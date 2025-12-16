@@ -1,120 +1,108 @@
 # AI Timeline - Development Roadmap
 
-## Project Overview
+## Project Vision
 
-**AI Timeline** is a web application for tracking and visualizing AI development milestones throughout history. This roadmap outlines the sprint-based development plan to build a fully functional, tested, and deployed application.
+**AI Timeline** is evolving from a timeline visualization into an **AI Fluency Platform** - helping non-technical professionals understand AI through interactive learning, contextual explanations, and personalized paths.
+
+**Live Production**: https://d33f170a3u5yyl.cloudfront.net
+
+---
+
+## Completed Foundation (Sprints 1-8)
+
+| Sprint | What Was Built |
+|--------|----------------|
+| 1-3 | React + TypeScript app, PostgreSQL/Prisma data layer, timeline UI foundation |
+| 4-5 | Interactive features, filtering, admin data management |
+| 6-7 | Search, keyboard navigation, accessibility, dark mode |
+| 7.5 | Semantic zoom (pills/cards/dots based on density), mobile vertical layout |
+| 8 | AWS deployment (S3 + CloudFront), static JSON API |
+
+**Current State**: 62 milestones from 1943-2025, horizontal timeline with semantic zoom, mobile-optimized vertical layout, dark mode, full-text search, category filtering.
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React + TypeScript |
-| **Styling** | Tailwind CSS |
-| **State Management** | React Context / Zustand |
-| **Backend** | Node.js + Express |
-| **Database** | PostgreSQL |
-| **ORM** | Prisma |
-| **Testing** | Playwright (E2E) + Jest (Unit) |
-| **Build Tool** | Vite |
-| **Deployment** | Vercel / Railway |
+| Layer | Current | Future |
+|-------|---------|--------|
+| **Frontend** | React + TypeScript + Tailwind | Add Framer Motion |
+| **Backend** | Static JSON on S3 | Lambda + DynamoDB |
+| **AI** | - | Claude API (Anthropic) |
+| **Auth** | - | Cognito (anonymous first) |
+| **CDN** | CloudFront | CloudFront |
+| **Testing** | Playwright E2E | Continue |
 
 ---
 
-## Sprint Overview
+## New Data Entities (Sprint 8.5+)
 
-| Sprint | Focus Area | Status |
-|--------|------------|--------|
-| [Sprint 1](./sprint-01-project-setup.md) | Project Setup & Foundation | [ ] Not Started |
-| [Sprint 2](./sprint-02-data-layer.md) | Data Layer & Models | [ ] Not Started |
-| [Sprint 3](./sprint-03-timeline-ui.md) | Timeline UI Foundation | [ ] Not Started |
-| [Sprint 4](./sprint-04-interactive-features.md) | Interactive Timeline Features | [ ] Not Started |
-| [Sprint 5](./sprint-05-data-management.md) | Data Management Interface | [ ] Not Started |
-| [Sprint 6](./sprint-06-search-filtering.md) | Search & Filtering | [ ] Not Started |
-| [Sprint 7](./sprint-07-polish-accessibility.md) | Polish & Accessibility | [ ] Not Started |
-| [Sprint 8](./sprint-08-deployment.md) | Deployment & Launch | [ ] Not Started |
-
----
-
-## Testing Strategy
-
-### Playwright E2E Testing
-
-Every sprint includes Playwright tests with automated screenshot capture for visual regression testing.
-
-```
-tests/
-├── e2e/
-│   ├── screenshots/           # Baseline screenshots
-│   │   ├── sprint-01/
-│   │   ├── sprint-02/
-│   │   └── ...
-│   ├── sprint-01/
-│   │   └── *.spec.ts
-│   ├── sprint-02/
-│   │   └── *.spec.ts
-│   └── ...
-├── unit/
-│   └── ...
-└── playwright.config.ts
-```
-
-### Screenshot Testing Workflow
-
-1. **Capture**: Playwright captures screenshots at key UI states
-2. **Baseline**: First run establishes baseline images
-3. **Compare**: Subsequent runs compare against baselines
-4. **Review**: Visual diffs highlight unintended changes
-5. **Update**: Approved changes update baselines
+| Entity | Description | Used By |
+|--------|-------------|---------|
+| `MilestoneLayeredContent` | 7 explanation layers per milestone | Sprint 10 |
+| `LearningPath` | Curated milestone sequences | Sprint 11, 14 |
+| `GlossaryEntry` | AI term definitions with business context | Sprint 12 |
+| `Checkpoint` | Knowledge test questions per path | Sprint 13 |
+| `Flashcard` | Term/definition cards for review | Sprint 13 |
+| `CurrentEvent` | AI news linked to historical milestones | Sprint 15 |
+| `UserProfile` | Role, goals, preferences (localStorage) | Sprint 14 |
 
 ---
 
-## Definition of Done
+## Upcoming Sprints
 
-Each sprint task is considered complete when:
+### Phase 0: Foundations (Required First)
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 8.5](./sprint-08.5-data-foundations.md) | Data Layer & Content Foundations | Critical | Medium |
 
-- [ ] Code is implemented and reviewed
-- [ ] Unit tests pass (where applicable)
-- [ ] Playwright E2E tests pass
-- [ ] Screenshots captured and baselined
-- [ ] Documentation updated
-- [ ] Code merged to main branch
+*Sprint 8.5 defines schemas, creates content structure, and generates seed data for all subsequent features.*
 
----
+### Phase 1: Core AI Fluency Features
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 9](./sprint-09-ai-companion.md) | AI Learning Companion | Very High | Medium |
+| [Sprint 10](./sprint-10-layered-explanations.md) | Layered Explanations | High | Low |
 
-## Progress Tracking
+### Phase 2: Structured Learning
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 11](./sprint-11-learning-paths.md) | Learning Paths | High | Low |
+| [Sprint 12](./sprint-12-business-glossary.md) | Business Glossary | Medium | Low |
 
-Update checkboxes in each sprint document as tasks are completed. Use the following status markers:
+### Phase 3: Knowledge Testing & Personalization
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 13](./sprint-13-concept-checkpoints.md) | Concept Checkpoints | Medium | Medium |
+| [Sprint 14](./sprint-14-personalized-onboarding.md) | Personalized Onboarding | High | Medium |
 
-- `[ ]` - Not started
-- `[x]` - Completed
-- `[~]` - In progress (optional)
-- `[!]` - Blocked (optional)
-
----
-
-## Quick Links
-
-- [Sprint 1: Project Setup](./sprint-01-project-setup.md)
-- [Sprint 2: Data Layer](./sprint-02-data-layer.md)
-- [Sprint 3: Timeline UI](./sprint-03-timeline-ui.md)
-- [Sprint 4: Interactive Features](./sprint-04-interactive-features.md)
-- [Sprint 5: Data Management](./sprint-05-data-management.md)
-- [Sprint 6: Search & Filtering](./sprint-06-search-filtering.md)
-- [Sprint 7: Polish & Accessibility](./sprint-07-polish-accessibility.md)
-- [Sprint 8: Deployment](./sprint-08-deployment.md)
+### Phase 4: Current Events Integration
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 15](./sprint-15-why-now-current-events.md) | "Why Now?" Current Events | Medium | Low |
 
 ---
 
-## Getting Started
-
-To begin development, start with **Sprint 1** and work through each sprint sequentially. Each sprint builds upon the previous one's foundation.
+## Quick Start
 
 ```bash
-# Clone and start
+# Development
 git clone <repository-url>
 cd ai_timeline
 npm install
 npm run dev
+
+# Run tests
+npx playwright test
+
+# Build for production
+npm run build
 ```
+
+---
+
+## AWS Resources
+
+- **S3 Bucket**: `ai-timeline-frontend-1765916222`
+- **CloudFront**: `E23Z9QNRPDI3HW` (d33f170a3u5yyl.cloudfront.net)
+- **API**: Static JSON at `/api/milestones.json`
