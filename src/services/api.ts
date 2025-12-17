@@ -13,11 +13,11 @@ import type { SearchResponse, FilterQueryParams } from '../types/filters';
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 /**
- * Check if we're running with static API (production build)
- * In development, Vite proxy handles /api requests to the backend
- * In production, we need .json extension for static files
+ * Check if we're running with static API (production build or forced via env)
+ * In development with VITE_USE_STATIC_API=true, uses static JSON files
+ * In production, always uses static files
  */
-const IS_STATIC_API = import.meta.env.PROD;
+const IS_STATIC_API = import.meta.env.PROD || import.meta.env.VITE_USE_STATIC_API === 'true';
 
 /**
  * Paginated response structure from API

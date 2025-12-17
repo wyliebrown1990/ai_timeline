@@ -88,18 +88,24 @@ export function CheckpointView({
     (questionId: string, isCorrect: boolean) => {
       const newResults = [...results, { questionId, isCorrect }];
       setResults(newResults);
-
-      // Check if this was the last question
-      if (currentIndex >= checkpoint.questions.length - 1) {
-        setIsComplete(true);
-        const finalScore = Math.round(
-          (newResults.filter((r) => r.isCorrect).length / checkpoint.questions.length) * 100
-        );
-        onComplete(newResults, finalScore);
-      }
+      // Don't immediately complete - let user see feedback first
     },
-    [results, currentIndex, checkpoint.questions.length, onComplete]
+    [results]
   );
+
+  // Handle finishing the checkpoint (called after user sees last question feedback)
+  // This shows the results screen - user then clicks Continue to proceed
+  const handleFinish = useCallback(() => {
+    setIsComplete(true);
+  }, []);
+
+  // Handle continuing after seeing results
+  const handleContinueAfterResults = useCallback(() => {
+    const finalScore = Math.round(
+      (results.filter((r) => r.isCorrect).length / checkpoint.questions.length) * 100
+    );
+    onComplete(results, finalScore);
+  }, [results, checkpoint.questions.length, onComplete]);
 
   // Move to next question
   const handleNext = useCallback(() => {
@@ -114,10 +120,12 @@ export function CheckpointView({
   );
 
   // Render the appropriate question component
+  // IMPORTANT: Each component needs a unique key to reset state when question changes
   const renderQuestion = (question: Question) => {
     if (isMultipleChoice(question)) {
       return (
         <MultipleChoiceQuestion
+          key={question.id}
           question={question as MCQuestion}
           onAnswer={(_selectedIndex, isCorrect) => handleAnswer(question.id, isCorrect)}
         />
@@ -127,6 +135,7 @@ export function CheckpointView({
     if (isOrdering(question)) {
       return (
         <OrderingQuestion
+          key={question.id}
           question={question as OQuestion}
           onAnswer={(_orderedIds, isCorrect) => handleAnswer(question.id, isCorrect)}
         />
@@ -136,6 +145,7 @@ export function CheckpointView({
     if (isMatching(question)) {
       return (
         <MatchingQuestion
+          key={question.id}
           question={question as MQuestion}
           onAnswer={(_matches, isCorrect) => handleAnswer(question.id, isCorrect)}
         />
@@ -145,6 +155,7 @@ export function CheckpointView({
     if (isExplainBack(question)) {
       return (
         <ExplainBackQuestion
+          key={question.id}
           question={question as EBQuestion}
           onAnswer={() => handleAnswer(question.id, true)} // Explain back is always "correct"
           getAIFeedback={getAIFeedback}
@@ -152,7 +163,7 @@ export function CheckpointView({
       );
     }
 
-    return <div>Unknown question type</div>;
+    return <div key="unknown">Unknown question type</div>;
   };
 
   // Completion view
@@ -199,6 +210,14 @@ export function CheckpointView({
             ? 'Good effort! Review the explanations to strengthen your knowledge.'
             : 'Consider reviewing the material before continuing.'}
         </p>
+        <button
+          onClick={handleContinueAfterResults}
+          className="w-full max-w-xs mx-auto py-3 px-4 rounded-lg font-medium bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+          data-testid="continue-after-results-button"
+        >
+          Continue
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
     );
   }
@@ -250,7 +269,7 @@ export function CheckpointView({
         </div>
       )}
 
-      {/* Continue button (shown after answering, before completion) */}
+      {/* Continue button (shown after answering, before last question) */}
       {isCurrentAnswered && currentIndex < checkpoint.questions.length - 1 && (
         <button
           onClick={handleNext}
@@ -259,6 +278,18 @@ export function CheckpointView({
         >
           Continue
           <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
+
+      {/* See Results button (shown after answering last question) */}
+      {isCurrentAnswered && currentIndex >= checkpoint.questions.length - 1 && (
+        <button
+          onClick={handleFinish}
+          className="w-full py-3 px-4 rounded-lg font-medium bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+          data-testid="finish-button"
+        >
+          See Results
+          <Award className="w-5 h-5" />
         </button>
       )}
     </div>

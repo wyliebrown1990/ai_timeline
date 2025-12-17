@@ -383,5 +383,123 @@
         "rubric": "A good explanation should mention at least one valid advantage: 1) Training stability - diffusion models don't suffer from mode collapse like GANs, 2) Image quality - diffusion often produces higher quality results, 3) Controllability - easier to guide generation with text prompts, 4) Diversity - better at producing varied outputs. Accept any well-explained advantage."
       }
     ]
+  },
+  {
+    "id": "cp-business-1",
+    "title": "Early AI in Business",
+    "pathId": "ai-for-business",
+    "afterMilestoneId": "E1997_DEEP_BLUE",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-expert-systems-use",
+        "question": "What was the primary business application of expert systems in the 1980s?",
+        "options": [
+          "Social media marketing",
+          "Encoding specialist knowledge for decision support",
+          "Generating creative content",
+          "Autonomous vehicle control"
+        ],
+        "correctIndex": 1,
+        "explanation": "Expert systems captured the decision-making knowledge of human specialists, enabling businesses to automate complex decisions in areas like medical diagnosis, loan approval, and equipment maintenance."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-deep-blue-lesson",
+        "question": "What business lesson did Deep Blue's 1997 victory over Kasparov demonstrate?",
+        "options": [
+          "AI will replace all human workers",
+          "Specialized AI can outperform humans in narrow domains",
+          "AI is better at everything",
+          "Chess players are no longer needed"
+        ],
+        "correctIndex": 1,
+        "explanation": "Deep Blue showed that AI could exceed human capabilities in specific, well-defined tasks. This principle guides AI adoption today: focus AI on narrow domains where it excels, while humans handle broader judgment."
+      }
+    ]
+  },
+  {
+    "id": "cp-business-2",
+    "title": "The Deep Learning Business Impact",
+    "pathId": "ai-for-business",
+    "afterMilestoneId": "E2020_GPT3",
+    "questions": [
+      {
+        "type": "ordering",
+        "id": "q-ai-business-timeline",
+        "prompt": "Put these AI business milestones in chronological order:",
+        "items": [
+          {"id": "expert", "label": "Expert systems in enterprises", "date": "1980s"},
+          {"id": "deep-blue", "label": "Deep Blue beats Kasparov", "date": "1997"},
+          {"id": "alexnet", "label": "AlexNet enables practical computer vision", "date": "2012"},
+          {"id": "gpt3", "label": "GPT-3 enables text generation at scale", "date": "2020"}
+        ],
+        "correctOrder": ["expert", "deep-blue", "alexnet", "gpt3"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-gpt3-business",
+        "question": "What new business capability did GPT-3 enable compared to earlier AI?",
+        "options": [
+          "Image recognition in factories",
+          "General-purpose text generation and understanding",
+          "Faster database queries",
+          "Robotic automation"
+        ],
+        "correctIndex": 1,
+        "explanation": "GPT-3's ability to generate coherent text and follow instructions opened new use cases: customer service automation, content generation, code assistance, and more—tasks that required human language skills."
+      },
+      {
+        "type": "matching",
+        "id": "q-ai-business-apps",
+        "prompt": "Match each AI milestone to its primary business application:",
+        "pairs": [
+          {"id": "p1", "left": "Expert Systems", "right": "Decision support & diagnostics"},
+          {"id": "p2", "left": "AlexNet/Computer Vision", "right": "Quality inspection & image analysis"},
+          {"id": "p3", "left": "GPT-3/LLMs", "right": "Content generation & automation"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cp-business-3",
+    "title": "Modern AI Strategy",
+    "pathId": "ai-for-business",
+    "afterMilestoneId": "E2023_GPT4",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-chatgpt-disruption",
+        "question": "Why did ChatGPT's launch in 2022 change business AI adoption?",
+        "options": [
+          "It was the first AI ever created",
+          "It made advanced AI accessible through a simple chat interface",
+          "It replaced all existing software",
+          "It only worked for large corporations"
+        ],
+        "correctIndex": 1,
+        "explanation": "ChatGPT democratized AI by providing a simple, conversational interface. Suddenly anyone could use advanced AI without technical expertise, forcing businesses to quickly develop AI strategies."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-gpt4-multimodal",
+        "question": "What capability did GPT-4 add that expanded business use cases?",
+        "options": [
+          "Faster text generation only",
+          "Multimodal abilities (processing images and text together)",
+          "Hardware manufacturing",
+          "Physical robot control"
+        ],
+        "correctIndex": 1,
+        "explanation": "GPT-4's multimodal capabilities enabled new applications: analyzing charts and documents, processing receipts, understanding diagrams, and more—expanding AI's usefulness across industries."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-ai-strategy",
+        "concept": "AI adoption strategy for businesses",
+        "prompt": "Based on the evolution from expert systems to GPT-4, what should a business leader consider when adopting AI today?",
+        "rubric": "A good response should include: 1) Start with specific, well-defined use cases (lesson from expert systems and Deep Blue), 2) Consider data requirements and availability, 3) Balance automation with human oversight, 4) Stay current as capabilities rapidly evolve (from GPT-3 to GPT-4 in just a few years). Bonus for mentioning risks, costs, or change management."
+      }
+    ]
   }
 ]
