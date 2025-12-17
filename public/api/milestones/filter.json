@@ -1582,55 +1582,207 @@
       "updatedAt": "2025-12-17T14:15:41.061Z"
     },
     {
-      "id": "cmja3uufe00008jve8hsumybx",
-      "title": "Test Milestone 1765981614162",
-      "description": "This is a test milestone description with enough characters.",
-      "date": "2024-01-15",
-      "category": "research",
-      "significance": 3,
-      "era": null,
+      "id": "E2024_GEMINI_1_5_PRO",
+      "title": "Google releases Gemini 1.5 Pro with 1M token context window",
+      "description": "Google introduces Gemini 1.5 Pro with groundbreaking 1 million token context window, using Mixture-of-Experts architecture. Can process 11 hours of audio, 1 hour of video, or 700,000 words in a single pass.",
+      "date": "2024-02-15",
+      "category": "model_release",
+      "significance": 4,
+      "era": "Transformers and LLMs",
       "organization": null,
-      "contributors": [],
-      "sourceUrl": null,
+      "contributors": [
+        "Google DeepMind"
+      ],
+      "sourceUrl": "https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/",
       "imageUrl": null,
-      "tags": [],
-      "sources": [],
-      "createdAt": "2025-12-17T14:26:54.218Z",
-      "updatedAt": "2025-12-17T14:26:54.218Z"
+      "tags": [
+        "Multimodal",
+        "Long context",
+        "Mixture of Experts"
+      ],
+      "sources": [
+        {
+          "label": "Google Blog Announcement",
+          "kind": "blog",
+          "url": "https://blog.google/technology/ai/google-gemini-next-generation-model-february-2024/"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
     },
     {
-      "id": "cmja47zjd00018jvekv8dvnnp",
-      "title": "Test Milestone 1765982227316",
-      "description": "This is a test milestone description with enough characters.",
-      "date": "2024-01-15",
-      "category": "research",
-      "significance": 3,
-      "era": null,
+      "id": "E2024_SORA_PREVIEW",
+      "title": "OpenAI previews Sora text-to-video model",
+      "description": "OpenAI announces Sora, a diffusion model capable of generating photorealistic videos up to one minute long from text prompts. Demonstrates understanding of physical world dynamics and object permanence.",
+      "date": "2024-02-15",
+      "category": "model_release",
+      "significance": 4,
+      "era": "Transformers and LLMs",
       "organization": null,
-      "contributors": [],
-      "sourceUrl": null,
+      "contributors": [
+        "OpenAI"
+      ],
+      "sourceUrl": "https://openai.com/sora",
       "imageUrl": null,
-      "tags": [],
-      "sources": [],
-      "createdAt": "2025-12-17T14:37:07.369Z",
-      "updatedAt": "2025-12-17T14:37:07.369Z"
+      "tags": [
+        "Text-to-video",
+        "Diffusion models",
+        "Generative AI"
+      ],
+      "sources": [
+        {
+          "label": "OpenAI Sora Page",
+          "kind": "blog",
+          "url": "https://openai.com/sora"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
     },
     {
-      "id": "cmja4vl4400028jveftkxok6u",
-      "title": "Test Milestone 1765983328373",
-      "description": "This is a test milestone description with enough characters.",
-      "date": "2024-01-15",
-      "category": "research",
-      "significance": 3,
-      "era": null,
+      "id": "E2024_CLAUDE_3",
+      "title": "Anthropic releases Claude 3 model family (Opus, Sonnet, Haiku)",
+      "description": "Anthropic launches Claude 3 with three models setting new benchmarks in reasoning, math, coding, and vision. Claude 3 Opus achieves near-human comprehension on complex tasks and introduces multimodal capabilities.",
+      "date": "2024-03-04",
+      "category": "model_release",
+      "significance": 4,
+      "era": "Transformers and LLMs",
       "organization": null,
-      "contributors": [],
-      "sourceUrl": null,
+      "contributors": [
+        "Anthropic"
+      ],
+      "sourceUrl": "https://www.anthropic.com/news/claude-3-family",
       "imageUrl": null,
-      "tags": [],
-      "sources": [],
-      "createdAt": "2025-12-17T14:55:28.420Z",
-      "updatedAt": "2025-12-17T14:55:28.420Z"
+      "tags": [
+        "Multimodal",
+        "LLM",
+        "AI Safety"
+      ],
+      "sources": [
+        {
+          "label": "Anthropic Announcement",
+          "kind": "blog",
+          "url": "https://www.anthropic.com/news/claude-3-family"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
+    },
+    {
+      "id": "E2024_LLAMA_3",
+      "title": "Meta releases Llama 3 open-weight models",
+      "description": "Meta releases Llama 3 in 8B and 70B parameter sizes, trained on 15 trillion tokens. Open-weight release enables widespread AI development and fine-tuning without massive compute requirements.",
+      "date": "2024-04-18",
+      "category": "model_release",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Meta AI"
+      ],
+      "sourceUrl": "https://ai.meta.com/blog/meta-llama-3/",
+      "imageUrl": null,
+      "tags": [
+        "Open source",
+        "LLM",
+        "Democratization"
+      ],
+      "sources": [
+        {
+          "label": "Meta AI Blog",
+          "kind": "blog",
+          "url": "https://ai.meta.com/blog/meta-llama-3/"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
+    },
+    {
+      "id": "E2024_GPT4O",
+      "title": "OpenAI releases GPT-4o omni model with native multimodal capabilities",
+      "description": "OpenAI launches GPT-4o (omni), accepting any combination of text, audio, image, and video inputs. Responds to audio in 232ms average, matching human conversation speed. Made free for all ChatGPT users.",
+      "date": "2024-05-13",
+      "category": "model_release",
+      "significance": 4,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "OpenAI"
+      ],
+      "sourceUrl": "https://openai.com/index/hello-gpt-4o/",
+      "imageUrl": null,
+      "tags": [
+        "Multimodal",
+        "Voice AI",
+        "Real-time"
+      ],
+      "sources": [
+        {
+          "label": "OpenAI Announcement",
+          "kind": "blog",
+          "url": "https://openai.com/index/hello-gpt-4o/"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
+    },
+    {
+      "id": "E2024_APPLE_INTELLIGENCE",
+      "title": "Apple announces Apple Intelligence at WWDC",
+      "description": "Apple introduces Apple Intelligence, integrating generative AI into iOS 18, iPadOS 18, and macOS Sequoia. Features on-device processing with Private Cloud Compute and ChatGPT integration for Siri.",
+      "date": "2024-06-10",
+      "category": "product_launch",
+      "significance": 4,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Apple"
+      ],
+      "sourceUrl": "https://www.apple.com/newsroom/2024/06/introducing-apple-intelligence-for-iphone-ipad-and-mac/",
+      "imageUrl": null,
+      "tags": [
+        "Consumer AI",
+        "Privacy",
+        "Mobile AI"
+      ],
+      "sources": [
+        {
+          "label": "Apple Newsroom",
+          "kind": "blog",
+          "url": "https://www.apple.com/newsroom/2024/06/introducing-apple-intelligence-for-iphone-ipad-and-mac/"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
+    },
+    {
+      "id": "E2024_CLAUDE_3_5_SONNET",
+      "title": "Anthropic releases Claude 3.5 Sonnet, outperforming larger models",
+      "description": "Anthropic launches Claude 3.5 Sonnet, operating at twice the speed of Claude 3 Opus while outperforming it on benchmarks. Introduces Artifacts feature for real-time code preview and collaboration.",
+      "date": "2024-06-20",
+      "category": "model_release",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Anthropic"
+      ],
+      "sourceUrl": "https://www.anthropic.com/news/claude-3-5-sonnet",
+      "imageUrl": null,
+      "tags": [
+        "LLM",
+        "Coding",
+        "AI Safety"
+      ],
+      "sources": [
+        {
+          "label": "Anthropic Announcement",
+          "kind": "blog",
+          "url": "https://www.anthropic.com/news/claude-3-5-sonnet"
+        }
+      ],
+      "createdAt": "2025-12-17T22:20:11.013Z",
+      "updatedAt": "2025-12-17T22:20:11.013Z"
     },
     {
       "id": "E2025_DEEPSEEK_R1",
