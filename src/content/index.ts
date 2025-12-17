@@ -34,6 +34,7 @@ import aiFundamentalsPath from './learning-paths/ai-fundamentals.json';
 import aiImageGenerationPath from './learning-paths/ai-image-generation.json';
 import aiForBusinessPath from './learning-paths/ai-for-business.json';
 import aiGovernancePath from './learning-paths/ai-governance.json';
+import aiForEverydayLifePath from './learning-paths/ai-for-everyday-life.json';
 import glossaryTermsData from './glossary/terms.json';
 import checkpointQuestionsData from './checkpoints/questions.json';
 import flashcardsData from './checkpoints/flashcards.json';
@@ -46,6 +47,7 @@ import layeredContentData from './milestones/layered-content.json';
 
 // Validate and store learning paths
 const learningPathsRaw = [
+  aiForEverydayLifePath, // Sprint 17: Featured first for 65+ audience
   chatgptStoryPath,
   aiFundamentalsPath,
   aiImageGenerationPath,

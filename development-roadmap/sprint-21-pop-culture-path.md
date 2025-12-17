@@ -10,21 +10,21 @@ Create a learning path focused on the drama, personalities, controversies, and c
 ## Tasks
 
 ### 21.1 New Milestone Content - Research & Creation
-- [ ] Research and write milestone: **Timnit Gebru Fired from Google** (Dec 2020)
-- [ ] Research and write milestone: **"Pause Giant AI" Open Letter** (Mar 2023)
-- [ ] Research and write milestone: **Hollywood Writers/Actors Strike Over AI** (May-Nov 2023)
-- [ ] Research and write milestone: **AI Drake/Weeknd Song Goes Viral** (Apr 2023)
-- [ ] Research and write milestone: **OpenAI Board Fires Sam Altman** (Nov 2023)
-- [ ] Research and write milestone: **Scarlett Johansson vs OpenAI "Sky" Voice** (May 2024)
+- [x] Research and write milestone: **Timnit Gebru Fired from Google** (Dec 2020)
+- [x] Research and write milestone: **"Pause Giant AI" Open Letter** (Mar 2023)
+- [x] Research and write milestone: **Hollywood Writers/Actors Strike Over AI** (May-Nov 2023)
+- [x] Research and write milestone: **AI Drake/Weeknd Song Goes Viral** (Apr 2023)
+- [x] Research and write milestone: **OpenAI Board Fires Sam Altman** (Nov 2023)
+- [x] Research and write milestone: **Scarlett Johansson vs OpenAI "Sky" Voice** (May 2024)
 
 ### 21.2 Milestone Data Entry
-- [ ] Add `E2020_GEBRU_FIRING` to milestones index.json and filter.json
-- [ ] Add `E2023_PAUSE_AI_LETTER` to milestones index.json and filter.json
-- [ ] Add `E2023_HOLLYWOOD_AI_STRIKES` to milestones index.json and filter.json
-- [ ] Add `E2023_AI_DRAKE_SONG` to milestones index.json and filter.json
-- [ ] Add `E2023_OPENAI_BOARD_CRISIS` to milestones index.json and filter.json
-- [ ] Add `E2024_SCARLETT_JOHANSSON_SKY` to milestones index.json and filter.json
-- [ ] Verify all milestone IDs exist and are valid
+- [x] Add `E2020_GEBRU_FIRING` to milestones index.json and filter.json
+- [x] Add `E2023_PAUSE_AI_LETTER` to milestones index.json and filter.json
+- [x] Add `E2023_HOLLYWOOD_AI_STRIKES` to milestones index.json and filter.json
+- [x] Add `E2023_AI_DRAKE_SONG` to milestones index.json and filter.json
+- [x] Add `E2023_OPENAI_BOARD_CRISIS` to milestones index.json and filter.json
+- [x] Add `E2024_SCARLETT_JOHANSSON_SKY` to milestones index.json and filter.json
+- [x] Verify all milestone IDs exist and are valid
 
 ### 21.3 Learning Path Creation
 - [ ] Create `pop-culture.json` learning path file

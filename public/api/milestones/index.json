@@ -1097,6 +1097,41 @@
       "updatedAt": "2025-12-17T14:15:41.061Z"
     },
     {
+      "id": "E2020_GEBRU_FIRING",
+      "title": "Google fires AI ethics researcher Timnit Gebru",
+      "description": "Google terminates prominent AI ethics co-lead Timnit Gebru after dispute over a research paper about bias in large language models. Over 2,700 Google employees and 4,300 academics sign letter condemning the firing, sparking industry-wide debate about corporate control of AI ethics research.",
+      "date": "2020-12-02",
+      "category": "cultural",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Timnit Gebru",
+        "Google"
+      ],
+      "sourceUrl": "https://www.technologyreview.com/2020/12/04/1013294/google-ai-ethics-research-paper-forced-out-timnit-gebru/",
+      "imageUrl": null,
+      "tags": [
+        "AI Ethics",
+        "Corporate AI",
+        "Diversity in Tech"
+      ],
+      "sources": [
+        {
+          "label": "MIT Technology Review",
+          "kind": "media",
+          "url": "https://www.technologyreview.com/2020/12/04/1013294/google-ai-ethics-research-paper-forced-out-timnit-gebru/"
+        },
+        {
+          "label": "Washington Post",
+          "kind": "media",
+          "url": "https://www.washingtonpost.com/technology/2020/12/23/google-timnit-gebru-ai-ethics/"
+        }
+      ],
+      "createdAt": "2025-12-17T23:52:41.291Z",
+      "updatedAt": "2025-12-17T23:52:41.291Z"
+    },
+    {
       "id": "E2021_CLIP",
       "title": "CLIP aligns vision and language with contrastive learning",
       "description": "A major foundation for multimodal retrieval and generation systems.",
@@ -1500,6 +1535,111 @@
       "updatedAt": "2025-12-17T14:15:41.061Z"
     },
     {
+      "id": "E2023_PAUSE_AI_LETTER",
+      "title": "\"Pause Giant AI Experiments\" open letter calls for 6-month moratorium",
+      "description": "Future of Life Institute publishes open letter signed by Elon Musk, Steve Wozniak, and over 30,000 others calling to pause training AI systems more powerful than GPT-4. Letter cites \"profound risks to society and humanity\" and ignites mainstream AI safety debate.",
+      "date": "2023-03-22",
+      "category": "policy",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Future of Life Institute",
+        "Elon Musk",
+        "Steve Wozniak",
+        "Yoshua Bengio"
+      ],
+      "sourceUrl": "https://futureoflife.org/open-letter/pause-giant-ai-experiments/",
+      "imageUrl": null,
+      "tags": [
+        "AI Safety",
+        "AI Risk",
+        "Public Debate",
+        "Open Letter"
+      ],
+      "sources": [
+        {
+          "label": "Future of Life Institute",
+          "kind": "primary_doc",
+          "url": "https://futureoflife.org/open-letter/pause-giant-ai-experiments/"
+        }
+      ],
+      "createdAt": "2025-12-17T23:52:41.291Z",
+      "updatedAt": "2025-12-17T23:52:41.291Z"
+    },
+    {
+      "id": "E2023_AI_DRAKE_SONG",
+      "title": "AI-generated \"Heart on My Sleeve\" mimicking Drake and The Weeknd goes viral",
+      "description": "Song by anonymous artist Ghostwriter977 uses AI to mimic Drake and The Weeknd's voices, garnering millions of streams before Universal Music demands removal. Sparks debate about AI in music, artist rights, and creative authenticity. Later submitted for Grammy consideration.",
+      "date": "2023-04-04",
+      "category": "cultural",
+      "significance": 2,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Ghostwriter977"
+      ],
+      "sourceUrl": "https://variety.com/2023/music/news/fake-ai-generated-drake-weeknd-collaboration-heart-on-my-sleeve-1235585451/",
+      "imageUrl": null,
+      "tags": [
+        "AI Music",
+        "Copyright",
+        "Viral Moment",
+        "Voice Cloning"
+      ],
+      "sources": [
+        {
+          "label": "Variety",
+          "kind": "media",
+          "url": "https://variety.com/2023/music/news/fake-ai-generated-drake-weeknd-collaboration-heart-on-my-sleeve-1235585451/"
+        },
+        {
+          "label": "Billboard",
+          "kind": "media",
+          "url": "https://www.billboard.com/music/pop/ghostwriter-heart-on-my-sleeve-drake-ai-grammy-exclusive-interview-1235434099/"
+        }
+      ],
+      "createdAt": "2025-12-17T23:52:41.291Z",
+      "updatedAt": "2025-12-17T23:52:41.291Z"
+    },
+    {
+      "id": "E2023_HOLLYWOOD_AI_STRIKES",
+      "title": "Hollywood writers and actors strike with AI protections as key demand",
+      "description": "WGA strikes for 148 days starting May 2, SAG-AFTRA joins July 14 - first joint strike since 1960. AI protections are central demands: limiting AI-written scripts and digital replicas of actors. Results in groundbreaking contract provisions regulating AI use in entertainment.",
+      "date": "2023-05-02",
+      "category": "cultural",
+      "significance": 4,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "WGA",
+        "SAG-AFTRA",
+        "AMPTP"
+      ],
+      "sourceUrl": "https://www.equaltimes.org/hollywood-s-stand-against-ai-a",
+      "imageUrl": null,
+      "tags": [
+        "Labor",
+        "Entertainment",
+        "AI Displacement",
+        "Union"
+      ],
+      "sources": [
+        {
+          "label": "Wikipedia - SAG-AFTRA Strike",
+          "kind": "media",
+          "url": "https://en.wikipedia.org/wiki/2023_SAG-AFTRA_strike"
+        },
+        {
+          "label": "Perkins Coie Analysis",
+          "kind": "blog",
+          "url": "https://perkinscoie.com/insights/blog/generative-ai-movies-and-tv-how-2023-sag-aftra-and-wga-contracts-address-generative"
+        }
+      ],
+      "createdAt": "2025-12-17T23:52:41.291Z",
+      "updatedAt": "2025-12-17T23:52:41.291Z"
+    },
+    {
       "id": "E2023_DPO",
       "title": "Direct Preference Optimization (DPO) simplifies preference-based alignment",
       "description": "An influential alternative to full RLHF pipelines for aligning LMs.",
@@ -1554,6 +1694,44 @@
       ],
       "createdAt": "2025-12-17T14:15:41.061Z",
       "updatedAt": "2025-12-17T14:15:41.061Z"
+    },
+    {
+      "id": "E2023_OPENAI_BOARD_CRISIS",
+      "title": "OpenAI board fires Sam Altman; he returns as CEO within 5 days",
+      "description": "OpenAI's board abruptly fires CEO Sam Altman on November 17, citing lack of candor. Over 95% of employees threaten to quit, Microsoft offers Altman a job, and by November 21 he returns as CEO with a restructured board. Crisis exposes tensions between AI safety governance and commercial pressures.",
+      "date": "2023-11-17",
+      "category": "cultural",
+      "significance": 4,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Sam Altman",
+        "OpenAI Board",
+        "Ilya Sutskever",
+        "Microsoft"
+      ],
+      "sourceUrl": "https://techcrunch.com/2024/01/05/a-timeline-of-sam-altmans-firing-from-openai-and-the-fallout/",
+      "imageUrl": null,
+      "tags": [
+        "Corporate Drama",
+        "AI Governance",
+        "OpenAI",
+        "Silicon Valley"
+      ],
+      "sources": [
+        {
+          "label": "TechCrunch Timeline",
+          "kind": "media",
+          "url": "https://techcrunch.com/2024/01/05/a-timeline-of-sam-altmans-firing-from-openai-and-the-fallout/"
+        },
+        {
+          "label": "Wikipedia",
+          "kind": "media",
+          "url": "https://en.wikipedia.org/wiki/Removal_of_Sam_Altman_from_OpenAI"
+        }
+      ],
+      "createdAt": "2025-12-17T23:52:41.291Z",
+      "updatedAt": "2025-12-17T23:52:41.291Z"
     },
     {
       "id": "E2024_EU_AI_ACT",
@@ -1725,6 +1903,43 @@
       ],
       "createdAt": "2025-12-17T22:19:50.970Z",
       "updatedAt": "2025-12-17T22:19:50.970Z"
+    },
+    {
+      "id": "E2024_SCARLETT_JOHANSSON_SKY",
+      "title": "Scarlett Johansson threatens legal action over ChatGPT \"Sky\" voice",
+      "description": "Actress Scarlett Johansson publicly criticizes OpenAI after ChatGPT's \"Sky\" voice sounds eerily similar to her - after she declined to voice the assistant. OpenAI pauses the voice. CEO Sam Altman's \"her\" tweet referencing the film intensifies controversy over AI and celebrity likeness rights.",
+      "date": "2024-05-20",
+      "category": "cultural",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Scarlett Johansson",
+        "Sam Altman",
+        "OpenAI"
+      ],
+      "sourceUrl": "https://www.npr.org/2024/05/20/1252495087/openai-pulls-ai-voice-that-was-compared-to-scarlett-johansson-in-the-movie-her",
+      "imageUrl": null,
+      "tags": [
+        "AI Voice",
+        "Celebrity Rights",
+        "OpenAI",
+        "Right of Publicity"
+      ],
+      "sources": [
+        {
+          "label": "NPR",
+          "kind": "media",
+          "url": "https://www.npr.org/2024/05/20/1252495087/openai-pulls-ai-voice-that-was-compared-to-scarlett-johansson-in-the-movie-her"
+        },
+        {
+          "label": "Washington Post",
+          "kind": "media",
+          "url": "https://www.washingtonpost.com/technology/2024/05/20/openai-scarlett-johansson-chatgpt-ai-voice/"
+        }
+      ],
+      "createdAt": "2025-12-17T23:52:41.291Z",
+      "updatedAt": "2025-12-17T23:52:41.291Z"
     },
     {
       "id": "E2024_APPLE_INTELLIGENCE",
