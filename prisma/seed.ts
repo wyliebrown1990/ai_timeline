@@ -149,7 +149,9 @@ async function seed() {
   console.log(`Loaded ${events.length} events from seed file`);
 
   // Transform and insert events
+  // Include the readable ID from the source file for consistent content linking
   const milestones = events.map((event) => ({
+    id: event.id, // Use readable ID (e.g., E1943_MCCULLOCH_PITTS) instead of auto-generated cuid
     title: event.title,
     description: event.summary,
     date: parseDate(event.date),

@@ -1,10 +1,9 @@
 {
-  "_description": "Layered explanation content for milestones, keyed by milestone ID",
+  "_description": "Layered explanation content for milestones, keyed by readable milestone ID",
   "_generatedAt": "2025-12-17",
   "_totalMilestones": 58,
   "_note": "All milestones have comprehensive layered explanations with tldr, simpleExplanation, businessImpact, technicalDepth, historicalContext, whyItMattersToday, and commonMisconceptions",
-
-  "cmj8sy62a0000nyve6g53k7m1": {
+  "E1943_MCCULLOCH_PITTS": {
     "tldr": "First mathematical model showing how brain cells could compute.",
     "simpleExplanation": "In 1943, two scientists asked: could we describe how brain cells work using math? They created a simple model where artificial 'neurons' receive signals, add them up, and fire if the total is high enough. Think of it like a voting system—if enough inputs say 'yes,' the neuron activates.\n\nThis wasn't meant to build computers that think. It was meant to understand biology. But it planted a seed: if brains compute, maybe we could build machines that compute the same way.",
     "businessImpact": "- Established the theoretical foundation for all neural network technology used today\n- Created the conceptual bridge between biology and computing\n- Influenced decades of AI research direction\n- Every modern AI system—from ChatGPT to image recognition—traces back to this foundational idea",
@@ -13,8 +12,7 @@
     "whyItMattersToday": "Every neural network powering today's AI—from ChatGPT to Tesla's autopilot—descends conceptually from this 1943 paper's idea that computation can emerge from simple connected units.",
     "commonMisconceptions": "- ❌ \"This was the first AI\" → ✅ It was a theoretical model of biological neurons, not an AI system\n- ❌ \"These networks could learn\" → ✅ The original model had no learning mechanism; weights were fixed\n- ❌ \"It accurately models real brains\" → ✅ It's a vast simplification—real neurons are far more complex"
   },
-
-  "cmj8sy62a0001nyve7i37xsd1": {
+  "E1948_SHANNON_INFORMATION_THEORY": {
     "tldr": "Defined how to measure and transmit information mathematically.",
     "simpleExplanation": "Claude Shannon asked a simple question: how do you measure information? His answer: information is about reducing uncertainty. If I tell you something you already knew, that's zero information. If I tell you something surprising, that's lots of information.\n\nHe created formulas to measure this precisely, using 'bits' as the unit. This let engineers calculate exactly how much data could flow through phone lines, radio waves, or any channel—and how to compress messages without losing meaning.",
     "businessImpact": "- Enabled all digital communication: internet, cell phones, WiFi, Bluetooth\n- Created the theoretical basis for data compression (ZIP files, MP3s, streaming video)\n- Made error-correcting codes possible (CDs, QR codes, satellite communication)\n- Influenced machine learning's use of entropy and cross-entropy loss functions",
@@ -23,8 +21,7 @@
     "whyItMattersToday": "Every time you stream Netflix, send a text, or use WiFi, you're benefiting from Shannon's theory. Modern AI training also uses information-theoretic concepts like cross-entropy loss.",
     "commonMisconceptions": "- ❌ \"Information theory is about meaning\" → ✅ Shannon explicitly excluded semantics; it's about statistical patterns\n- ❌ \"Bits only matter for computers\" → ✅ The theory applies to any communication, including biological systems\n- ❌ \"This directly created AI\" → ✅ It's foundational infrastructure, not AI itself"
   },
-
-  "cmj8sy62a0002nyvehpjfi9y0": {
+  "E1950_TURING_TEST": {
     "tldr": "Proposed testing machine intelligence through conversation.",
     "simpleExplanation": "Alan Turing asked: how would we know if a machine can think? His answer: have a human chat with both a machine and another human (without seeing either). If the human can't tell which is which, the machine passes the test.\n\nThis clever approach sidesteps philosophical debates about 'real' thinking. Instead of defining intelligence, Turing defined a practical test for it. It's like saying: if it walks like a duck and quacks like a duck, we might as well call it a duck.",
     "businessImpact": "- Provided the first practical framework for evaluating AI capabilities\n- Inspired decades of chatbot and conversational AI development\n- Shaped public expectations of what 'intelligent' AI should look like\n- Still referenced in marketing and media coverage of AI advances like ChatGPT",
@@ -33,8 +30,7 @@
     "whyItMattersToday": "ChatGPT and similar systems have essentially passed informal Turing tests, reigniting debates about what the test actually measures and whether conversational ability equals intelligence.",
     "commonMisconceptions": "- ❌ \"Passing the test means the machine is conscious\" → ✅ The test only measures behavioral indistinguishability\n- ❌ \"No machine has passed the Turing Test\" → ✅ Modern chatbots regularly fool people in casual conversation\n- ❌ \"Turing thought this test was definitive\" → ✅ He proposed it as one approach, acknowledging limitations"
   },
-
-  "cmj8sy62a0003nyve0rh8qdb0": {
+  "E1955_DARTMOUTH_PROPOSAL": {
     "tldr": "The proposal that gave AI its name and launched the field.",
     "simpleExplanation": "In 1955, four scientists wrote a funding proposal for a summer workshop at Dartmouth College. They wanted to explore whether machines could be made to simulate intelligence. They coined the term 'artificial intelligence' and boldly claimed that significant progress could be made in one summer with ten researchers.\n\nThe workshop itself (held in 1956) didn't achieve its ambitious goals, but it brought together the founding figures of AI and established it as a distinct research field with its own identity and agenda.",
     "businessImpact": "- Created AI as a recognized field of study and research funding category\n- Established the optimistic, ambitious culture that still characterizes AI\n- United researchers who would lead AI for the next 50 years\n- The name 'artificial intelligence' shaped public perception and expectations",
@@ -43,8 +39,7 @@
     "whyItMattersToday": "The field they named now powers products used by billions. The original optimism about quick progress has parallels in today's AGI predictions—some see this as vision, others as recurring overconfidence.",
     "commonMisconceptions": "- ❌ \"AI was invented at Dartmouth\" → ✅ The workshop named and organized existing research threads\n- ❌ \"They achieved their summer goals\" → ✅ The workshop produced discussions, not breakthroughs\n- ❌ \"The founders agreed on approaches\" → ✅ Deep divisions (symbolic vs. neural) emerged immediately"
   },
-
-  "cmj8sy62a0004nyveuekpbieh": {
+  "E1958_PERCEPTRON": {
     "tldr": "First machine that could learn from examples.",
     "simpleExplanation": "Frank Rosenblatt built a machine that could learn to recognize patterns—not by being programmed with rules, but by being shown examples. Show it pictures of triangles labeled 'triangle' and squares labeled 'square,' and it would gradually learn to tell them apart.\n\nThis was revolutionary: instead of humans writing rules, the machine discovered its own rules from data. It's like teaching a child by showing examples rather than explaining grammar rules.",
     "businessImpact": "- Demonstrated that machines could learn from data, not just follow rules\n- Inspired the first wave of neural network research and funding\n- Created the template for supervised learning still used today\n- The basic idea (adjust weights based on errors) underlies all modern deep learning",
@@ -53,8 +48,7 @@
     "whyItMattersToday": "Modern neural networks are essentially many perceptrons stacked in layers. The core learning principle—adjusting parameters to reduce errors—remains the foundation of AI training.",
     "commonMisconceptions": "- ❌ \"Perceptrons could solve any problem\" → ✅ They're limited to linearly separable problems\n- ❌ \"This was just software\" → ✅ The original was custom hardware with physical weight adjustments\n- ❌ \"Perceptrons were abandoned\" → ✅ They're the building blocks of modern deep learning"
   },
-
-  "cmj8sy62a0005nyvefh1k3z37": {
+  "E1966_ELIZA": {
     "tldr": "First chatbot that made people think they were talking to a human.",
     "simpleExplanation": "ELIZA was a simple program that pretended to be a therapist. It would take your statements, find keywords, and rephrase them as questions. Say 'I'm worried about my mother' and ELIZA might respond 'Tell me more about your family.'\n\nThe shocking part: people knew it was a program but still found themselves opening up emotionally. Some insisted ELIZA truly understood them. Weizenbaum, its creator, was disturbed by how easily humans attributed understanding to a simple pattern-matching trick.",
     "businessImpact": "- Demonstrated that conversational interfaces could engage users emotionally\n- Launched the entire chatbot industry (customer service bots, virtual assistants)\n- Revealed how humans anthropomorphize technology\n- Showed that 'good enough' responses can create illusion of understanding",
@@ -63,8 +57,7 @@
     "whyItMattersToday": "Every customer service chatbot descends from ELIZA. The debate Weizenbaum started—do chatbots really understand?—is now central to discussions about ChatGPT and similar systems.",
     "commonMisconceptions": "- ❌ \"ELIZA used AI\" → ✅ It was pure pattern matching with no learning or reasoning\n- ❌ \"Weizenbaum was proud of fooling people\" → ✅ He was disturbed and became an AI critic\n- ❌ \"Modern chatbots work the same way\" → ✅ LLMs use fundamentally different technology, though the illusion question remains"
   },
-
-  "cmj8sy62a0006nyve4n81zkih": {
+  "E1969_PERCEPTRONS_BOOK": {
     "tldr": "Book that showed perceptrons' limits and triggered an AI winter.",
     "simpleExplanation": "Minsky and Papert wrote a mathematical analysis of perceptrons, proving they couldn't solve certain problems—like recognizing if a shape is connected or computing XOR (exclusive or). These weren't obscure edge cases; they were fundamental limitations.\n\nThe book's impact went beyond its mathematical content. It was widely interpreted as proving neural networks were a dead end, causing funding to dry up and researchers to abandon the approach for over a decade.",
     "businessImpact": "- Redirected AI research funding away from neural networks for 15+ years\n- Contributed to the first 'AI winter' of reduced funding and pessimism\n- Demonstrated how influential critiques can shape entire research fields\n- The problems they identified were eventually solved with multi-layer networks",
@@ -73,8 +66,7 @@
     "whyItMattersToday": "The book's lessons cut both ways: it showed rigorous criticism is valuable, but also how narrow critiques can be over-generalized to dismiss entire approaches that later prove successful.",
     "commonMisconceptions": "- ❌ \"They proved neural networks can't work\" → ✅ They proved single-layer networks have limits, which multi-layer networks overcome\n- ❌ \"Their math was wrong\" → ✅ Their proofs were correct; the over-generalization was the problem\n- ❌ \"They killed neural network research intentionally\" → ✅ The broader interpretation exceeded their claims"
   },
-
-  "cmj8sy62a0007nyve9ktbh2yg": {
+  "E1972_PROLOG": {
     "tldr": "Logic-based programming language that powered symbolic AI.",
     "simpleExplanation": "Prolog let programmers describe problems using logical rules instead of step-by-step instructions. Instead of saying 'do this, then that,' you'd say 'X is a grandparent of Y if X is a parent of Z and Z is a parent of Y.' The computer figures out how to find answers.\n\nThis made it natural to build systems that reasoned about relationships, rules, and knowledge—exactly what symbolic AI researchers wanted.",
     "businessImpact": "- Became the primary language for expert systems development\n- Powered the Japanese Fifth Generation Computer project\n- Influenced database query languages and constraint programming\n- Still used in specific domains like legal reasoning and bioinformatics",
@@ -83,8 +75,7 @@
     "whyItMattersToday": "While neural networks dominate modern AI, logic-based approaches persist in areas requiring explainability, formal verification, and structured reasoning. Hybrid neuro-symbolic systems are an active research area.",
     "commonMisconceptions": "- ❌ \"Prolog is obsolete\" → ✅ It's still used where logical reasoning is essential\n- ❌ \"Prolog programs learn\" → ✅ Traditional Prolog doesn't learn; rules are programmed\n- ❌ \"It was replaced by neural networks\" → ✅ They solve different problems; both have niches"
   },
-
-  "cmj8sy62a0008nyve54e51nhv": {
+  "E1980_EXPERT_SYSTEMS_RISE": {
     "tldr": "Rule-based systems that brought AI into business for the first time.",
     "simpleExplanation": "Expert systems captured human expertise as if-then rules. A medical diagnosis system might have rules like 'IF patient has fever AND cough AND traveled to tropical region, THEN consider malaria.' By encoding hundreds of such rules from doctors, the system could advise on diagnoses.\n\nFor the first time, AI delivered real business value. Companies like DEC saved millions using expert systems to configure computer orders.",
     "businessImpact": "- First commercially successful AI applications\n- Created a billion-dollar industry by the mid-1980s\n- DEC's XCON saved $40M+ annually in computer configuration\n- Established AI as a business investment category",
@@ -93,8 +84,7 @@
     "whyItMattersToday": "Modern 'rules engines' in business software descend from expert systems. The knowledge acquisition problem they faced—getting expertise into computers—is what machine learning now addresses differently.",
     "commonMisconceptions": "- ❌ \"Expert systems could handle anything\" → ✅ They only worked in narrow, well-defined domains\n- ❌ \"They were replaced by better expert systems\" → ✅ Statistical/ML approaches handled uncertainty better\n- ❌ \"They're completely obsolete\" → ✅ Rule-based systems still power many business workflows"
   },
-
-  "cmj8sy62a0009nyvezz52ct9z": {
+  "E1986_BACKPROP": {
     "tldr": "The learning algorithm that made deep neural networks trainable.",
     "simpleExplanation": "Backpropagation is how neural networks learn from mistakes. When a network makes a wrong prediction, backprop calculates exactly how much each connection contributed to the error, then adjusts them all to do better next time.\n\nImagine a factory assembly line where a defective product emerges. Backprop traces back through every station to identify what each one did wrong and how much to adjust. This made training networks with multiple layers practical.",
     "businessImpact": "- Enabled training of multi-layer neural networks, overcoming perceptron limits\n- Foundation of all modern deep learning training\n- Made neural networks practical for real applications\n- Every AI system trained today uses variants of backpropagation",
@@ -103,8 +93,7 @@
     "whyItMattersToday": "Every time you hear about 'training' an AI model, backpropagation is doing the heavy lifting. GPT, DALL-E, and all modern neural networks learn through this algorithm.",
     "commonMisconceptions": "- ❌ \"Hinton invented backpropagation\" → ✅ Multiple inventors; Hinton et al. popularized it\n- ❌ \"It mimics how brains learn\" → ✅ Biological plausibility is debated; brains may work differently\n- ❌ \"It always finds the best solution\" → ✅ It finds local optima, which are often good enough"
   },
-
-  "cmj8sy62a000anyveeaohbkjg": {
+  "E1995_SVM": {
     "tldr": "Powerful classification algorithm that dominated machine learning for years.",
     "simpleExplanation": "Support Vector Machines find the best possible dividing line between categories. If you're sorting emails into spam and not-spam, an SVM finds the line that keeps spam on one side and good emails on the other—with the widest possible margin.\n\nThe clever part: SVMs can handle cases where no straight line works by mathematically transforming the data into higher dimensions where separation becomes possible. It's like lifting tangled strings off a table so you can pass a sheet between them.",
     "businessImpact": "- Became the go-to algorithm for classification problems (1995-2012)\n- Used in handwriting recognition, image classification, bioinformatics\n- Provided reliable performance with limited data and computing power\n- Established the importance of 'kernel methods' in machine learning",
@@ -113,8 +102,7 @@
     "whyItMattersToday": "While deep learning has surpassed SVMs in most areas, they remain useful for smaller datasets and when interpretability matters. The margin maximization concept influences other algorithms.",
     "commonMisconceptions": "- ❌ \"SVMs are obsolete\" → ✅ They're still useful for specific problems, especially with limited data\n- ❌ \"Deep learning always beats SVMs\" → ✅ SVMs can win on small datasets with careful feature engineering\n- ❌ \"SVMs are neural networks\" → ✅ They're fundamentally different—no layers, no backpropagation"
   },
-
-  "cmj8sy62a000bnyveepsxbtpd": {
+  "E1997_LSTM": {
     "tldr": "Memory cells that let neural networks remember across long sequences.",
     "simpleExplanation": "Regular neural networks have a problem: when processing sequences (like sentences or time series), information from earlier steps fades away. It's like reading a novel where you forget the beginning by the time you reach the end.\n\nLSTM networks add special 'memory cells' that can store information for long periods and decide what to remember and what to forget. Think of it as giving the network a notebook to write important things down.",
     "businessImpact": "- Enabled practical speech recognition (Siri, Google Voice)\n- Powered machine translation before Transformers\n- Made time-series prediction practical (stock prices, weather)\n- Dominated sequence modeling for 20 years until Transformers emerged",
@@ -123,8 +111,7 @@
     "whyItMattersToday": "While Transformers have largely replaced LSTMs for language tasks, LSTMs remain important for real-time applications and sequential data where attention mechanisms are too expensive.",
     "commonMisconceptions": "- ❌ \"LSTMs are obsolete\" → ✅ They're still used where Transformers are impractical\n- ❌ \"Transformers always beat LSTMs\" → ✅ For some tasks, especially real-time ones, LSTMs remain competitive\n- ❌ \"LSTM is one architecture\" → ✅ There are many variants (GRU, BiLSTM, etc.)"
   },
-
-  "cmj8sy62a000cnyvezjrdf0m1": {
+  "E1997_DEEP_BLUE": {
     "tldr": "Computer defeats world chess champion using brute-force search.",
     "simpleExplanation": "IBM's Deep Blue beat Garry Kasparov, the world's best chess player. But it didn't 'think' about chess the way humans do. Instead, it examined millions of possible moves per second, using chess knowledge programmed by experts to evaluate positions.\n\nIt was a triumph of computing power and clever engineering rather than human-like reasoning. Kasparov described playing against an opponent who never got tired, never got nervous, and never made simple mistakes.",
     "businessImpact": "- Demonstrated computers could match humans at complex intellectual tasks\n- Generated massive media attention and public interest in AI\n- Showed the power of specialized hardware for specific problems\n- Influenced corporate investment in AI research",
@@ -133,8 +120,7 @@
     "whyItMattersToday": "Modern chess engines like Stockfish use similar search but with neural network evaluation (NNUE). AlphaZero later showed purely learned systems could surpass hand-crafted ones.",
     "commonMisconceptions": "- ❌ \"Deep Blue used AI as we know it today\" → ✅ It used search and hand-crafted rules, not machine learning\n- ❌ \"It understood chess\" → ✅ It calculated; understanding is debatable\n- ❌ \"This approach led to modern AI\" → ✅ Modern AI uses fundamentally different learning-based methods"
   },
-
-  "cmj8sy62a000dnyveaudvld1s": {
+  "E1998_LENET": {
     "tldr": "Convolutional networks that made computers recognize handwriting.",
     "simpleExplanation": "LeNet was a neural network designed to read handwritten digits on bank checks. Instead of looking at the whole image at once, it scanned for local patterns—edges, curves, corners—and built up to recognizing complete digits.\n\nThis 'convolutional' approach mirrors how our visual system works: detecting simple features first, then combining them into complex objects. It made computers practical for visual recognition tasks.",
     "businessImpact": "- Deployed for reading millions of bank checks (real commercial AI success)\n- Established CNN architecture used in all modern computer vision\n- Proved neural networks could solve practical visual problems\n- Inspired the architectures behind modern image recognition, self-driving cars",
@@ -143,8 +129,7 @@
     "whyItMattersToday": "Every image recognition system—from phone cameras to medical imaging—uses descendants of LeNet's convolutional architecture. The core ideas remain central to computer vision.",
     "commonMisconceptions": "- ❌ \"LeNet was just an experiment\" → ✅ It was commercially deployed and read real checks\n- ❌ \"CNNs were immediately popular\" → ✅ They were largely ignored until 2012\n- ❌ \"Modern CNNs are completely different\" → ✅ Same fundamental principles, just deeper and bigger"
   },
-
-  "cmj8sy62a000enyvew77wrc4h": {
+  "E2006_DEEP_BELIEF_NETS": {
     "tldr": "Layer-by-layer training that revived deep neural network research.",
     "simpleExplanation": "Training deep neural networks was nearly impossible—they got stuck and wouldn't learn. Hinton found a workaround: train one layer at a time, from bottom to top, using an unsupervised method. Then fine-tune the whole thing together.\n\nIt's like building a skyscraper: you can't construct all floors simultaneously, but you can build each floor, then connect them. This 'pretraining' trick made deep networks trainable for the first time.",
     "businessImpact": "- Reignited interest in neural networks after years in the wilderness\n- Demonstrated that depth matters in neural network architecture\n- Attracted new researchers and funding to deep learning\n- Set the stage for the deep learning revolution of 2012+",
@@ -153,8 +138,7 @@
     "whyItMattersToday": "While greedy pretraining is rarely used now (better initialization and normalization methods exist), the principle of pretraining transformed into the foundation model paradigm that powers GPT and other modern AI.",
     "commonMisconceptions": "- ❌ \"DBNs are still widely used\" → ✅ Better methods have replaced them, but they were historically crucial\n- ❌ \"This was the first deep network\" → ✅ Deep networks existed; training them was the breakthrough\n- ❌ \"Pretraining is obsolete\" → ✅ The concept evolved into modern self-supervised learning"
   },
-
-  "cmj8sy62a000fnyvekxs7a95y": {
+  "E2009_IMAGENET": {
     "tldr": "Massive labeled image dataset that enabled modern computer vision.",
     "simpleExplanation": "Imagine trying to teach a child to recognize thousands of different objects, but you only have a few pictures of each. That's the situation AI researchers faced. ImageNet changed this by providing 14 million images organized into 20,000+ categories.\n\nThis wealth of labeled data became the training ground where modern AI learned to see. The annual ImageNet competition became the Olympics of computer vision, driving rapid progress.",
     "businessImpact": "- Provided the benchmark that measured computer vision progress for a decade\n- Enabled training of models that power image search, photo apps, medical imaging\n- Established the 'data is king' principle in modern AI development\n- Competitions drove algorithmic innovations that spread across all AI",
@@ -163,8 +147,7 @@
     "whyItMattersToday": "Models pretrained on ImageNet became the starting point for nearly all computer vision applications. The dataset catalyzed the deep learning revolution by providing the fuel neural networks needed.",
     "commonMisconceptions": "- ❌ \"ImageNet created deep learning\" → ✅ It enabled existing architectures to reach their potential\n- ❌ \"ImageNet is still the main benchmark\" → ✅ Larger and more diverse datasets have supplemented it\n- ❌ \"Labels are perfectly accurate\" → ✅ Crowdsourced labels have known biases and errors"
   },
-
-  "cmj8sy62a000gnyve1rilag9i": {
+  "E2012_ALEXNET": {
     "tldr": "Deep learning breakthrough that proved neural networks could dominate.",
     "simpleExplanation": "In 2012, a deep neural network called AlexNet won the ImageNet competition by a huge margin—not just beating other methods, but crushing them. Error rate dropped from 26% to 16% in one year.\n\nThis wasn't gradual improvement; it was a wake-up call. The AI research community realized deep learning wasn't just one approach among many—it was fundamentally better for visual recognition. Everyone started paying attention.",
     "businessImpact": "- Triggered the modern deep learning boom and massive industry investment\n- Led directly to AI assistants, autonomous vehicles, facial recognition\n- Caused major tech companies to acquire AI startups and talent\n- Established GPUs as essential AI hardware, boosting NVIDIA's business",
@@ -173,8 +156,7 @@
     "whyItMattersToday": "AlexNet's victory marked the beginning of the current AI era. Every image recognition system, face filter, and visual AI application traces back to this moment.",
     "commonMisconceptions": "- ❌ \"AlexNet invented deep learning\" → ✅ It proved deep learning's effectiveness; the ideas existed earlier\n- ❌ \"The architecture was completely new\" → ✅ It combined known techniques (CNNs, GPUs, dropout) effectively\n- ❌ \"Only academics noticed\" → ✅ Industry immediately recognized its significance"
   },
-
-  "cmj8sy62a000hnyveu342xf11": {
+  "E2013_WORD2VEC": {
     "tldr": "Efficient word representations that captured meaning mathematically.",
     "simpleExplanation": "Word2vec converts words into lists of numbers (vectors) where similar words have similar numbers. 'King' and 'queen' are close; 'king' and 'banana' are far apart.\n\nThe magic: you can do math with meanings. 'King' minus 'man' plus 'woman' equals 'queen.' The algorithm learned these relationships just by reading lots of text, not from dictionaries or grammar rules.",
     "businessImpact": "- Made it practical to represent words for machine learning\n- Enabled better search engines, recommendation systems, and chatbots\n- Became a standard preprocessing step in NLP pipelines\n- Showed that meaning could emerge from statistical patterns",
@@ -183,8 +165,7 @@
     "whyItMattersToday": "Word embeddings evolved into contextual embeddings (BERT) and are fundamental to how language models understand text. The idea that meaning is captured by usage patterns underlies all modern NLP.",
     "commonMisconceptions": "- ❌ \"Word2vec understands language\" → ✅ It captures statistical patterns, not true understanding\n- ❌ \"Embeddings are unbiased\" → ✅ They learn biases present in training data\n- ❌ \"Word2vec is still state-of-the-art\" → ✅ Contextual embeddings (BERT, GPT) have surpassed it"
   },
-
-  "cmj8sy62a000inyvel7b75n4s": {
+  "E2014_SEQ2SEQ": {
     "tldr": "Encoder-decoder architecture that made translation with neural networks work.",
     "simpleExplanation": "Sequence-to-sequence models read an entire input sentence, compress it into a single representation, then generate an output sentence word by word. It's like having a translator read a paragraph, think about the whole meaning, then write the translation.\n\nThis simple idea—encode, then decode—became the template for translation, summarization, and conversation systems.",
     "businessImpact": "- Revolutionized machine translation quality (Google Translate improved dramatically)\n- Enabled chatbots that generate coherent responses\n- Created the architecture pattern used in summarization, question answering\n- Laid groundwork for modern language models",
@@ -193,8 +174,7 @@
     "whyItMattersToday": "Modern language models like GPT are decoder-only variants of this architecture. The encode-decode paradigm remains central to understanding how AI processes and generates language.",
     "commonMisconceptions": "- ❌ \"This solved translation\" → ✅ It was a major step; attention and Transformers brought further improvements\n- ❌ \"The architecture is obsolete\" → ✅ The encoder-decoder pattern persists in T5 and similar models\n- ❌ \"It required specialized hardware\" → ✅ It could train on available GPUs, enabling broad adoption"
   },
-
-  "cmj8sy62a000jnyveu8iqvx7b": {
+  "E2014_ATTENTION_NMT": {
     "tldr": "Mechanism that lets models focus on relevant parts of input.",
     "simpleExplanation": "In translation, some input words matter more than others for each output word. Attention lets the model look back at the entire input and decide what to focus on at each step—like how you might glance back at specific parts of a foreign sentence while writing its translation.\n\nThis 'soft' focus mechanism dramatically improved translation and became a cornerstone of modern AI architecture.",
     "businessImpact": "- Significantly improved machine translation quality\n- Enabled models to handle longer sentences effectively\n- Became the foundation of the Transformer architecture (GPT, BERT)\n- Now central to virtually all state-of-the-art language and vision models",
@@ -203,8 +183,7 @@
     "whyItMattersToday": "Every modern language model, from GPT to Gemini, is built on attention. The 'self-attention' in Transformers applies this concept to let each word attend to all other words in context.",
     "commonMisconceptions": "- ❌ \"Attention was invented for Transformers\" → ✅ It predates Transformers by three years\n- ❌ \"Attention solves understanding\" → ✅ It's a mechanism for relevance weighting, not comprehension\n- ❌ \"Only language models use attention\" → ✅ Vision Transformers and multimodal models also rely on it"
   },
-
-  "cmj8sy62a000knyve9p9gg06y": {
+  "E2014_ADAM": {
     "tldr": "Adaptive learning algorithm that became the default for training neural networks.",
     "simpleExplanation": "When training neural networks, you need to decide how big a step to take when adjusting parameters. Too big and you overshoot; too small and training takes forever. Adam adapts the step size automatically for each parameter.\n\nThink of it like a car with automatic transmission—you don't have to manually shift gears for different terrain. Adam adjusts its learning approach based on what it's seeing in the data.",
     "businessImpact": "- Became the default optimizer for most deep learning projects\n- Reduced need for careful learning rate tuning\n- Accelerated research by making training more reliable\n- Used in training GPT, BERT, and virtually all modern AI systems",
@@ -213,8 +192,7 @@
     "whyItMattersToday": "Adam (and variants like AdamW) trains nearly every major AI model. When you hear about training a language model, Adam is usually doing the heavy lifting of parameter updates.",
     "commonMisconceptions": "- ❌ \"Adam is always best\" → ✅ SGD sometimes converges to better solutions, especially for vision\n- ❌ \"You don't need to tune anything\" → ✅ Learning rate still matters; just less critical than with SGD\n- ❌ \"Adam is one algorithm\" → ✅ Many variants exist (AdamW, AdaFactor, etc.)"
   },
-
-  "cmj8sy62a000lnyveq3y9bm6a": {
+  "E2014_GANS": {
     "tldr": "Two neural networks compete to generate realistic fake data.",
     "simpleExplanation": "GANs pit two neural networks against each other: a generator that creates fake data and a discriminator that tries to tell real from fake. As the discriminator gets better at spotting fakes, the generator gets better at making convincing ones.\n\nIt's like a counterfeiter and detective constantly improving against each other. Eventually, the generator produces fakes so good they're indistinguishable from reality.",
     "businessImpact": "- Enabled AI-generated images, video, and audio\n- Powers face filters, style transfer, image enhancement apps\n- Created the 'deepfake' phenomenon (both creative tools and risks)\n- Influenced drug discovery and data augmentation in healthcare",
@@ -223,8 +201,7 @@
     "whyItMattersToday": "While diffusion models now lead in image quality, GANs remain important for real-time applications and influenced how we think about generative AI. Deepfake concerns made AI-generated content a policy issue.",
     "commonMisconceptions": "- ❌ \"GANs are only for images\" → ✅ They've been applied to audio, text, molecules, and more\n- ❌ \"GANs are still the best for image generation\" → ✅ Diffusion models have surpassed them in quality\n- ❌ \"Training GANs is easy\" → ✅ GANs are notoriously difficult to train stably"
   },
-
-  "cmj8sy62a000mnyve6xtkjgwd": {
+  "E2014_DROPOUT": {
     "tldr": "Simple technique that dramatically reduces neural network overfitting.",
     "simpleExplanation": "Neural networks tend to memorize training data rather than learn general patterns—like a student who memorizes answers instead of understanding concepts. Dropout randomly 'turns off' neurons during training, forcing the network to learn redundant representations.\n\nImagine studying for an exam where random parts of your notes are blacked out each time. You'd learn to understand the material multiple ways, not just memorize one path.",
     "businessImpact": "- Became a standard technique in almost all deep learning\n- Significantly improved model generalization\n- Reduced need for larger datasets to prevent overfitting\n- Made deep networks practical for many applications",
@@ -233,8 +210,7 @@
     "whyItMattersToday": "Dropout remains a default regularization technique in many architectures. While newer methods like weight decay and batch normalization complement it, dropout's principle of forcing robust representations endures.",
     "commonMisconceptions": "- ❌ \"Dropout is obsolete\" → ✅ It's still widely used, especially in fully-connected layers\n- ❌ \"More dropout is always better\" → ✅ Too much dropout hurts performance; tuning is needed\n- ❌ \"Dropout works the same everywhere\" → ✅ Different rates work for different layer types"
   },
-
-  "cmj8sy62a000nnyve55v692ts": {
+  "E2015_BATCHNORM": {
     "tldr": "Normalizing layer inputs that made training very deep networks practical.",
     "simpleExplanation": "As data flows through a deep network, its statistical properties shift from layer to layer, making training unstable. Batch normalization fixes this by standardizing each layer's inputs to have consistent mean and variance.\n\nIt's like ensuring every department in a company receives information in a standard format—no more translating between different conventions, so work flows smoothly.",
     "businessImpact": "- Enabled training of much deeper networks reliably\n- Became a standard component in most neural network architectures\n- Dramatically reduced training time for many models\n- Made deep learning more accessible by reducing tuning needed",
@@ -243,8 +219,7 @@
     "whyItMattersToday": "BatchNorm (and variants like LayerNorm) are standard in almost all deep learning architectures. Understanding normalization is essential for building and debugging neural networks.",
     "commonMisconceptions": "- ❌ \"We know exactly why BatchNorm works\" → ✅ The original explanation is debated; smoothing loss landscape may matter more\n- ❌ \"BatchNorm works everywhere\" → ✅ It struggles with small batches and RNNs; LayerNorm is often preferred\n- ❌ \"BatchNorm is just normalization\" → ✅ The learnable parameters and regularization effects are crucial"
   },
-
-  "cmj8sy62a000onyve576e3x37": {
+  "E2015_RESNET": {
     "tldr": "Skip connections that allowed training of extremely deep networks.",
     "simpleExplanation": "Deep networks should be better than shallow ones—they can learn more complex patterns. But in practice, adding more layers often made performance worse. ResNet solved this with 'skip connections' that let information bypass layers.\n\nImagine a highway system where some routes skip certain cities entirely. If the detours aren't helpful, traffic takes the direct route. ResNets let signals skip layers that aren't contributing.",
     "businessImpact": "- Enabled networks with 100+ layers (previous limit was ~20)\n- Won ImageNet 2015 with record accuracy\n- Became the standard architecture for computer vision\n- Influenced design of Transformers and other modern architectures",
@@ -253,8 +228,7 @@
     "whyItMattersToday": "Skip connections appear in virtually all modern architectures: Transformers use them, as do U-Nets for image segmentation. The principle of residual learning is fundamental to current AI.",
     "commonMisconceptions": "- ❌ \"ResNet was just deeper\" → ✅ The skip connections were the key innovation, not just depth\n- ❌ \"Deeper is always better\" → ✅ After a point, wider or more efficient architectures often win\n- ❌ \"Skip connections are obsolete\" → ✅ They're in virtually every modern architecture"
   },
-
-  "cmj8sy62a000pnyve9r0jt6k2": {
+  "E2016_ALPHAGO": {
     "tldr": "AI defeats world champion at Go, a game thought too complex for computers.",
     "simpleExplanation": "Go has more possible positions than atoms in the universe—too many to search through like Deep Blue did for chess. AlphaGo combined neural networks with search: it used deep learning to evaluate positions and guide search toward promising moves.\n\nWhen it beat Lee Sedol 4-1, including one game with a move that stunned experts, it proved AI could master tasks requiring intuition, not just calculation.",
     "businessImpact": "- Demonstrated AI could handle extreme complexity\n- Validated deep reinforcement learning as a powerful paradigm\n- Sparked massive increase in AI investment and research\n- Led to applications in protein folding (AlphaFold), chip design, and more",
@@ -263,8 +237,7 @@
     "whyItMattersToday": "AlphaGo's techniques—combining neural networks with planning—influence AI system design. The success led to AlphaFold (protein structure), AlphaGeometry (math), and other scientific applications.",
     "commonMisconceptions": "- ❌ \"AlphaGo uses brute force like Deep Blue\" → ✅ It uses learned intuition to guide selective search\n- ❌ \"Go was the last game AI needed to conquer\" → ✅ Games like Diplomacy and poker posed different challenges\n- ❌ \"The techniques only work for games\" → ✅ Similar methods now advance science and engineering"
   },
-
-  "cmj8sy62a000qnyve20mtkpnt": {
+  "E2017_PPO": {
     "tldr": "Stable reinforcement learning algorithm that powers RLHF in ChatGPT.",
     "simpleExplanation": "Reinforcement learning—training AI through trial and error—was powerful but unstable. Small changes in the algorithm could cause catastrophic performance swings. PPO added 'guardrails' that prevent too-large updates, making training reliable.\n\nThink of it like cruise control that smoothly adjusts speed rather than slamming between accelerator and brake. PPO makes RL training predictable enough for real applications.",
     "businessImpact": "- Became the standard algorithm for RLHF (ChatGPT, Claude)\n- Enabled training of AI from human preferences reliably\n- Made reinforcement learning practical for real-world problems\n- Powers robotics learning, game AI, and recommendation systems",
@@ -273,8 +246,7 @@
     "whyItMattersToday": "PPO is the algorithm that makes ChatGPT 'helpful and harmless.' RLHF uses PPO to train models from human preferences, making it central to AI alignment efforts.",
     "commonMisconceptions": "- ❌ \"PPO is only for games\" → ✅ It's essential for RLHF in language models\n- ❌ \"PPO is state-of-the-art for all RL\" → ✅ Newer algorithms sometimes outperform it in specific domains\n- ❌ \"PPO was designed for language models\" → ✅ It was designed for general RL; RLHF came later"
   },
-
-  "cmj8sy62a000rnyvehanqqbwl": {
+  "E2017_TRANSFORMER": {
     "tldr": "Architecture that processes sequences in parallel using self-attention.",
     "simpleExplanation": "Previous language models processed words one at a time, like reading a book one word per second. Transformers let the model look at all words simultaneously and learn relationships between any pair—like seeing the whole page at once.\n\nThis parallel processing made training much faster and let models capture long-range patterns. 'Attention is all you need' became the paper's memorable claim.",
     "businessImpact": "- Foundation of GPT, BERT, ChatGPT, Claude, and virtually all modern AI\n- Enabled training on unprecedented scales (billions of parameters)\n- Revolutionized not just language but vision, audio, and multimodal AI\n- Triggered the current AI boom and multi-billion dollar investments",
@@ -283,8 +255,7 @@
     "whyItMattersToday": "The Transformer is the foundation of modern AI. ChatGPT, Claude, Gemini, DALL-E, and countless other systems are Transformers or derived from them. Understanding Transformers is understanding modern AI.",
     "commonMisconceptions": "- ❌ \"Transformers understand language\" → ✅ They learn statistical patterns; understanding is debated\n- ❌ \"The architecture hasn't changed\" → ✅ Many variations exist (GPT-style, encoder-only, sparse attention)\n- ❌ \"Transformers replaced everything\" → ✅ Other architectures still excel for specific tasks"
   },
-
-  "cmj8sy62a000snyve6cohm0cp": {
+  "E2018_GPT1": {
     "tldr": "Pretrain a language model, then fine-tune for any task.",
     "simpleExplanation": "Training a model from scratch for each new task is expensive. GPT showed a better way: first, train a model to predict the next word on massive amounts of text. This 'pretrained' model learns general language patterns. Then, 'fine-tune' it on your specific task with much less data.\n\nIt's like giving someone a broad education before job training—they already understand the basics and can learn the specifics quickly.",
     "businessImpact": "- Established the 'pretrain then fine-tune' paradigm that dominates modern AI\n- Made high-quality NLP accessible to organizations without massive compute\n- Enabled transfer learning across diverse tasks (classification, summarization, etc.)\n- Set the template that led to GPT-2, GPT-3, and ChatGPT",
@@ -293,8 +264,7 @@
     "whyItMattersToday": "GPT's pretrain-then-adapt paradigm defines how modern AI is built. Every major language model follows this approach, making GPT one of the most influential papers in AI history.",
     "commonMisconceptions": "- ❌ \"GPT was immediately huge\" → ✅ The original GPT was modest; GPT-2 and GPT-3 brought scale\n- ❌ \"Pretraining was new with GPT\" → ✅ The idea existed; GPT showed its power for language\n- ❌ \"GPT and ChatGPT are the same\" → ✅ ChatGPT added RLHF alignment to the GPT base"
   },
-
-  "cmj8sy62a000tnyvevdzg31am": {
+  "E2018_BERT": {
     "tldr": "Bidirectional pretraining that transformed NLP benchmarks.",
     "simpleExplanation": "GPT reads text left-to-right. BERT reads in both directions at once, using a clever training trick: randomly hide some words and train the model to guess them. This lets BERT understand context from both before and after each word.\n\nThis bidirectional understanding made BERT dramatically better at comprehension tasks—question answering, sentiment analysis, finding information.",
     "businessImpact": "- Revolutionized search engines (Google integrated BERT in 2019)\n- Set new records on virtually all NLP benchmarks\n- Made high-quality language understanding accessible via fine-tuning\n- Spawned numerous variants (RoBERTa, ALBERT, DistilBERT)",
@@ -303,8 +273,7 @@
     "whyItMattersToday": "BERT and its descendants power search engines, document analysis, and classification systems globally. The masked language modeling technique influenced training approaches across AI.",
     "commonMisconceptions": "- ❌ \"BERT generates text\" → ✅ BERT is for understanding/classification; GPT is for generation\n- ❌ \"BERT is better than GPT\" → ✅ They excel at different tasks; both matter\n- ❌ \"BERT is obsolete\" → ✅ BERT-style models remain widely deployed, especially for classification"
   },
-
-  "cmj8sy62a000unyvevkrd486u": {
+  "E2018_OPENAI_CHARTER": {
     "tldr": "OpenAI's founding document committing to beneficial AI for humanity.",
     "simpleExplanation": "When OpenAI published its charter, it made bold promises: develop AI safely, share benefits broadly, avoid races that compromise safety. The charter committed to helping others succeed if they were closer to building safe AGI.\n\nThis document shaped how the AI safety community talked about responsible development and became a reference point—both for praise when OpenAI seemed to follow it and criticism when it seemed to deviate.",
     "businessImpact": "- Established OpenAI's public identity and mission\n- Influenced how other AI labs framed their own commitments\n- Created accountability expectations for AI development\n- Became a touchstone in debates about OpenAI's later commercial decisions",
@@ -313,8 +282,7 @@
     "whyItMattersToday": "As OpenAI has become the most prominent AI company, its charter is frequently cited in debates about whether the company lives up to its founding principles, especially regarding commercialization and transparency.",
     "commonMisconceptions": "- ❌ \"The charter is legally binding\" → ✅ It's a statement of intent, not a legal contract\n- ❌ \"OpenAI perfectly follows the charter\" → ✅ Observers debate adherence to various provisions\n- ❌ \"Other AI labs have similar charters\" → ✅ Few have published such explicit commitments"
   },
-
-  "cmj8sy62a000vnyvesf7o8nm6": {
+  "E2019_GPT2": {
     "tldr": "Larger language model whose release sparked debates about AI risk disclosure.",
     "simpleExplanation": "GPT-2 was 10x larger than GPT and wrote remarkably coherent text. OpenAI initially withheld the full model, worried it could enable mass disinformation. This 'staged release' sparked debate: was this responsible caution or publicity stunt?\n\nThe controversy introduced the public to questions about AI capabilities and risks that would become central to discussions about ChatGPT and beyond.",
     "businessImpact": "- Demonstrated text generation quality leap through scale\n- Sparked first major public debate about AI capability disclosure\n- Introduced 'staged release' as an AI governance approach\n- Showed that scaling transformers yielded consistent improvements",
@@ -323,8 +291,7 @@
     "whyItMattersToday": "GPT-2 established the pattern of 'surprisingly capable models require governance decisions.' Every major model release since has navigated similar disclosure and access questions.",
     "commonMisconceptions": "- ❌ \"GPT-2 was dangerous\" → ✅ The fears proved somewhat overblown; misuse was limited\n- ❌ \"OpenAI never released it\" → ✅ They eventually released the full model\n- ❌ \"This was unprecedented\" → ✅ Staged releases existed before; the scale of debate was new"
   },
-
-  "cmj8sy62a000ynyvebazlz6ne": {
+  "E2019_T5": {
     "tldr": "First major international AI governance principles adopted by governments.",
     "simpleExplanation": "The OECD—a club of wealthy democracies—agreed on five principles for trustworthy AI: beneficial outcomes, human rights respect, transparency, robustness, and accountability. It was the first time major governments coordinated on how AI should be developed and used.\n\nThese principles became a reference point for national AI strategies and later regulations worldwide.",
     "businessImpact": "- Provided common vocabulary for international AI governance\n- Influenced national AI strategies in 40+ countries\n- Became a baseline for corporate AI ethics policies\n- Set expectations for transparency and accountability in AI systems",
@@ -333,8 +300,7 @@
     "whyItMattersToday": "The OECD principles remain influential as AI regulation expands globally. They shaped the EU AI Act and inform policies from Japan to Canada.",
     "commonMisconceptions": "- ❌ \"These are binding regulations\" → ✅ They're principles, not laws; implementation varies\n- ❌ \"All countries follow them\" → ✅ Adoption is voluntary and uneven\n- ❌ \"They're outdated now\" → ✅ They remain the main international reference point"
   },
-
-  "cmj8sy62a000xnyvegmo5pee4": {
+  "E2019_ROBERTA": {
     "tldr": "Improved BERT training that showed recipe matters as much as architecture.",
     "simpleExplanation": "Facebook AI took BERT's architecture and changed how it was trained: more data, longer training, no next-sentence prediction task. The result was dramatically better performance without any architectural changes.\n\nRoBERTa showed that the 'recipe'—training procedures and data—matters as much as the model design. It was a lesson the field would learn repeatedly.",
     "businessImpact": "- Demonstrated importance of training methodology over architecture\n- Provided a stronger baseline for NLP research\n- Showed that BERT was undertrained\n- Influenced how researchers approach model development",
@@ -343,8 +309,7 @@
     "whyItMattersToday": "RoBERTa's insights about training importance influence modern practices. The principle that 'models may be undertrained' shaped decisions about compute allocation across the field.",
     "commonMisconceptions": "- ❌ \"RoBERTa has a different architecture\" → ✅ It's the same as BERT; only training changed\n- ❌ \"BERT's design was flawed\" → ✅ The architecture was fine; training was suboptimal\n- ❌ \"This was just incremental\" → ✅ It fundamentally changed how researchers approach model development"
   },
-
-  "cmj8sy62a000wnyveibuis166": {
+  "E2019_OECD_AI_PRINCIPLES": {
     "tldr": "Unified framework treating all NLP tasks as text-to-text problems.",
     "simpleExplanation": "T5 proposed a simple idea: every NLP task can be framed as converting one text to another. Translation? Input text to output text. Classification? Input text to a label word. Summarization? Long text to short text.\n\nThis unified view simplified model design and training. Instead of task-specific architectures, one model learns all tasks through the same text-to-text interface.",
     "businessImpact": "- Simplified NLP model development with unified framework\n- Enabled multi-task learning with single model\n- Influenced design of later models (FLAN, PaLM)\n- Made task specification through prompts more natural",
@@ -353,8 +318,7 @@
     "whyItMattersToday": "T5's text-to-text framing influenced instruction-tuned models and the 'prompt everything' approach. The unified task format prefigured how users interact with ChatGPT.",
     "commonMisconceptions": "- ❌ \"T5 is decoder-only like GPT\" → ✅ It uses encoder-decoder architecture\n- ❌ \"Text-to-text is just a trick\" → ✅ The unified format enables powerful multi-task learning\n- ❌ \"T5 is obsolete\" → ✅ T5 variants remain widely used, especially for specific tasks"
   },
-
-  "cmj8sy62a000znyvex3puwcel": {
+  "E2020_SCALING_LAWS": {
     "tldr": "Mathematical laws connecting AI performance to compute, data, and model size.",
     "simpleExplanation": "Researchers discovered that language model performance follows predictable patterns: double the model size, get a predictable improvement. Double the data, get a predictable improvement. These 'scaling laws' let you forecast how good a model will be before spending millions to train it.\n\nThis transformed AI development from alchemy to engineering—you could plan budgets and capabilities with scientific precision.",
     "businessImpact": "- Enabled planning of training investments worth hundreds of millions\n- Shifted AI competition toward compute and data acquisition\n- Justified massive infrastructure investments by AI labs\n- Made AI progress more predictable (for labs with resources)",
@@ -363,8 +327,7 @@
     "whyItMattersToday": "Scaling laws guide how labs like OpenAI, Anthropic, and Google allocate billions in compute. They're why AI observers track GPU purchases and data center construction.",
     "commonMisconceptions": "- ❌ \"Scaling laws guarantee improvement\" → ✅ They predict loss; capabilities can be emergent and unpredictable\n- ❌ \"The original laws were perfect\" → ✅ Chinchilla significantly revised optimal ratios\n- ❌ \"Anyone can use scaling laws\" → ✅ They require massive compute to exploit"
   },
-
-  "cmj8sy62a0011nyvej79t4r5d": {
+  "E2020_GPT3": {
     "tldr": "Combining retrieval with generation to reduce AI hallucinations.",
     "simpleExplanation": "Language models often confidently state wrong facts—they 'hallucinate.' RAG addresses this by letting the model look up information in a database before answering. Instead of relying solely on memorized knowledge, it retrieves relevant documents and uses them to generate responses.\n\nIt's like letting a student use reference materials during an exam instead of relying only on memory.",
     "businessImpact": "- Became standard approach for enterprise AI applications\n- Enables AI systems to use proprietary/current information\n- Reduces hallucinations in customer-facing applications\n- Powers most practical ChatGPT-like deployments in business",
@@ -373,8 +336,7 @@
     "whyItMattersToday": "RAG is how most enterprises deploy AI: connecting language models to internal documents, databases, and current information. It's the standard architecture for practical AI applications.",
     "commonMisconceptions": "- ❌ \"RAG eliminates hallucinations\" → ✅ It reduces them but doesn't eliminate them\n- ❌ \"RAG is just search plus generation\" → ✅ Integration and training matter significantly\n- ❌ \"All RAG systems work similarly\" → ✅ Implementation choices dramatically affect quality"
   },
-
-  "cmj8sy62a0010nyved1iqr6bw": {
+  "E2020_RAG": {
     "tldr": "Massive language model that showed few-shot learning emerges at scale.",
     "simpleExplanation": "GPT-3 was 100x larger than GPT-2 and displayed an unexpected ability: it could perform tasks from just a few examples in its prompt, without any retraining. Show it three translation pairs, and it would translate. Show it three Q&A examples, and it would answer questions.\n\nThis 'few-shot learning' suggested that at sufficient scale, language models become surprisingly general-purpose tools.",
     "businessImpact": "- Launched the foundation model paradigm and API economy\n- Demonstrated that one model could serve many applications\n- Spawned hundreds of AI startups building on GPT-3 API\n- Made 'prompting' a skill and profession",
@@ -383,8 +345,7 @@
     "whyItMattersToday": "GPT-3 proved that scaling yields capabilities, not just better benchmarks. It established the foundation model business model and made AI accessible via API to developers worldwide.",
     "commonMisconceptions": "- ❌ \"GPT-3 was trained on the entire internet\" → ✅ Training data was filtered and curated\n- ❌ \"GPT-3 understands what it's doing\" → ✅ It's pattern matching at scale; understanding is debated\n- ❌ \"GPT-3 replaced fine-tuning\" → ✅ Fine-tuning remains important for specialized applications"
   },
-
-  "cmj8sy62a0013nyvetvb4a7av": {
+  "E2021_SWITCH_TRANSFORMERS": {
     "tldr": "Learned to connect images and text, enabling zero-shot visual recognition.",
     "simpleExplanation": "CLIP learned to match images with their descriptions by training on 400 million image-text pairs from the internet. The result: it could recognize things it was never explicitly trained to identify. Describe any visual concept in words, and CLIP could find images matching that description.\n\nThis 'zero-shot' visual recognition—identifying objects without task-specific training—was a major step toward flexible visual AI.",
     "businessImpact": "- Enabled flexible image search and classification without custom training\n- Became a core component of text-to-image systems (DALL-E, Stable Diffusion)\n- Powered content moderation and image analysis at scale\n- Made visual AI more accessible to non-ML engineers",
@@ -393,8 +354,7 @@
     "whyItMattersToday": "CLIP is a foundational component of modern multimodal AI. It guides image generation in Stable Diffusion, powers reverse image search, and enables flexible visual classification.",
     "commonMisconceptions": "- ❌ \"CLIP generates images\" → ✅ CLIP matches images and text; DALL-E generates\n- ❌ \"CLIP understands images\" → ✅ It learns statistical associations between visual and textual patterns\n- ❌ \"CLIP is only for classification\" → ✅ It's used in generation, search, and many other applications"
   },
-
-  "cmj8sy62a0014nyve4hw157kt": {
+  "E2021_CLIP": {
     "tldr": "First AI system to generate images from text descriptions.",
     "simpleExplanation": "Type 'an armchair in the shape of an avocado' and DALL-E would create exactly that image—a concept that never existed before. It combined language understanding (GPT-like) with image generation to create pictures from descriptions.\n\nThis wasn't just impressive; it felt magical. For the first time, anyone could describe something and see it materialize as an image.",
     "businessImpact": "- Opened the era of AI-generated imagery\n- Launched creative AI tools used by millions\n- Created new jobs (prompt engineering) and disrupted others (stock photography)\n- Sparked debates about AI art, copyright, and creative work",
@@ -403,8 +363,7 @@
     "whyItMattersToday": "DALL-E launched the text-to-image revolution. Midjourney, Stable Diffusion, and other tools follow its paradigm, making AI image generation ubiquitous in creative and commercial work.",
     "commonMisconceptions": "- ❌ \"DALL-E understands what it's creating\" → ✅ It matches statistical patterns between text and images\n- ❌ \"Original DALL-E used diffusion\" → ✅ It used a VAE + Transformer; DALL-E 2 introduced diffusion\n- ❌ \"AI art is just collaging training images\" → ✅ It generates novel images; how this relates to 'creativity' is debated"
   },
-
-  "cmj8sy62a0015nyved5wnb13a": {
+  "E2021_DALLE": {
     "tldr": "GPT-3 fine-tuned for code that powers GitHub Copilot.",
     "simpleExplanation": "Codex took GPT-3 and trained it further on billions of lines of code from GitHub. The result was an AI that could write code from descriptions: explain what you want in English, get working code back.\n\nThis became GitHub Copilot, bringing AI assistance directly into programmers' editors and changing how software is written.",
     "businessImpact": "- Launched the AI coding assistant category (GitHub Copilot)\n- Changed software development workflows for millions of developers\n- Demonstrated AI could automate significant portions of programming\n- Raised questions about code copyright and training data rights",
@@ -413,8 +372,7 @@
     "whyItMattersToday": "AI coding assistants are now standard tools. Copilot showed that foundation models could be specialized for professional workflows, establishing a pattern for other verticals.",
     "commonMisconceptions": "- ❌ \"Codex replaces programmers\" → ✅ It's an assistant; human oversight remains essential\n- ❌ \"Generated code is always correct\" → ✅ Code often has bugs; testing and review are required\n- ❌ \"Codex memorizes GitHub\" → ✅ It learns patterns; exact reproduction is rare but possible"
   },
-
-  "cmj8sy62a0016nyvere7gm3e8": {
+  "E2021_CODEX": {
     "tldr": "AI predicts protein structures with atomic accuracy, solving a 50-year problem.",
     "simpleExplanation": "Proteins are molecular machines whose function depends on their 3D shape. Determining that shape experimentally takes months; predicting it from the protein's sequence was considered nearly impossible.\n\nAlphaFold solved this. Given just a protein's sequence, it predicts the 3D structure with accuracy matching experiments. Scientists called it one of the most significant biological breakthroughs in decades.",
     "businessImpact": "- Accelerated drug discovery by making protein structures accessible\n- DeepMind released 200+ million structure predictions freely\n- Transformed structural biology research workflows\n- Demonstrated AI could solve fundamental scientific problems",
@@ -423,8 +381,7 @@
     "whyItMattersToday": "AlphaFold changed biology. Researchers now start with AI-predicted structures rather than spending months on experiments. The approach is being extended to protein-protein interactions and drug design.",
     "commonMisconceptions": "- ❌ \"AlphaFold replaces experiments\" → ✅ Predictions still require validation for many applications\n- ❌ \"AlphaFold works for everything\" → ✅ Some proteins, especially flexible ones, remain challenging\n- ❌ \"This solves drug discovery\" → ✅ Structure is one piece; drug development remains complex"
   },
-
-  "cmj8sy62a0012nyvek8m7wke9": {
+  "E2021_ALPHAFOLD2": {
     "tldr": "Sparse models with trillion parameters using only a fraction actively.",
     "simpleExplanation": "What if you could have a model with a trillion parameters but only use a tiny fraction for each prediction? Switch Transformers route each input to specialized 'expert' sub-networks, using massive total capacity while keeping computation manageable.\n\nThis 'mixture of experts' approach lets models grow much larger without proportional increases in computation.",
     "businessImpact": "- Showed how to scale beyond dense model limits\n- Influenced design of Google's PaLM and other large models\n- Enabled trillion-parameter experiments\n- Demonstrated efficiency-accuracy tradeoffs at scale",
@@ -433,8 +390,7 @@
     "whyItMattersToday": "Sparse models influence current architecture design. GPT-4 and other frontier models reportedly use mixture-of-experts, making this approach central to modern AI scaling.",
     "commonMisconceptions": "- ❌ \"All parameters are used per token\" → ✅ Sparsity means only a fraction activates\n- ❌ \"Sparse models are always better\" → ✅ They have training challenges; dense models remain competitive\n- ❌ \"This is a new idea\" → ✅ Mixture-of-experts dates to the 1990s; the scale is new"
   },
-
-  "cmj8sy62a001cnyvezeru7izl": {
+  "E2022_PALM": {
     "tldr": "Diffusion in compressed space that made high-quality image generation practical.",
     "simpleExplanation": "Diffusion models work by gradually adding noise to images, then learning to remove it. But doing this at full resolution is computationally expensive. Latent diffusion operates in a compressed 'latent' space—like working with a smaller sketch instead of a full painting.\n\nThis made diffusion practical for high-resolution images, directly enabling Stable Diffusion and the AI art explosion.",
     "businessImpact": "- Foundation of Stable Diffusion and most modern image generators\n- Made high-quality image generation accessible on consumer hardware\n- Enabled the generative AI art revolution\n- Democratized AI image generation beyond big tech",
@@ -443,8 +399,7 @@
     "whyItMattersToday": "Latent diffusion is the architecture behind Stable Diffusion, SDXL, and most open source image generators. It made AI image generation a mainstream creative tool.",
     "commonMisconceptions": "- ❌ \"Latent diffusion invented diffusion models\" → ✅ It made them efficient; diffusion existed earlier\n- ❌ \"It works only for images\" → ✅ The approach extends to video, audio, and 3D\n- ❌ \"The latent space is intuitive\" → ✅ It's a learned compression; interpretation is challenging"
   },
-
-  "cmj8sy62a0018nyve34j0ko45": {
+  "E2022_CHINCHILLA": {
     "tldr": "Revised scaling laws showing most models were trained on too little data.",
     "simpleExplanation": "Previous scaling laws suggested making models bigger. Chinchilla revealed that labs were building models that were too large for their training data—like having a huge brain but not enough education.\n\nThe insight: a smaller model trained on more data often beats a bigger model trained on less. This reshaped how labs allocate compute budgets.",
     "businessImpact": "- Changed how AI labs allocate compute (more data, appropriately-sized models)\n- Led to more data-efficient training approaches\n- Influenced design of subsequent models (LLaMA, etc.)\n- Made high-quality training data more valuable",
@@ -453,8 +408,7 @@
     "whyItMattersToday": "Chinchilla's lessons shape current training practices. Labs now emphasize training data quality and quantity alongside model size, changing competitive dynamics.",
     "commonMisconceptions": "- ❌ \"Chinchilla says smaller is always better\" → ✅ It says balance matters; huge models can still be worth it\n- ❌ \"This obsoletes large models\" → ✅ Frontier capabilities may still require scale\n- ❌ \"Everyone follows Chinchilla scaling\" → ✅ Practices vary; some prioritize capability over efficiency"
   },
-
-  "cmj8sy62a0019nyvev1m9hlnf": {
+  "E2022_INSTRUCTGPT": {
     "tldr": "Training from human preferences that made GPT-3 actually useful.",
     "simpleExplanation": "GPT-3 was impressive but often unhelpful—it would generate text, but not necessarily answer questions or follow instructions. InstructGPT solved this by training with human feedback: people rated which responses were better, and the model learned to produce responses humans preferred.\n\nThis RLHF (Reinforcement Learning from Human Feedback) approach turned a text generator into an assistant.",
     "businessImpact": "- Made language models practically useful for real tasks\n- Introduced RLHF as standard for aligning AI with human preferences\n- Directly led to ChatGPT (which uses the same approach)\n- Established the 'alignment' step in model development",
@@ -463,8 +417,7 @@
     "whyItMattersToday": "RLHF is how ChatGPT, Claude, and other assistants become helpful and safe. InstructGPT established the template that defines modern AI assistant development.",
     "commonMisconceptions": "- ❌ \"InstructGPT changed the base model\" → ✅ Same GPT-3 architecture; training approach changed\n- ❌ \"RLHF makes models safe\" → ✅ It helps but doesn't guarantee safety\n- ❌ \"Human feedback is perfect\" → ✅ Labeler biases and disagreements affect outcomes"
   },
-
-  "cmj8sy62a001bnyvexvooj7qg": {
+  "E2022_FLAN": {
     "tldr": "First large open-access multilingual language model.",
     "simpleExplanation": "Most powerful language models were English-focused and restricted. BLOOM was trained by a global collaboration on 46 languages, from English and French to Indonesian and Vietnamese. And it was released openly.\n\nThis meant researchers worldwide could study and use a frontier language model, not just those at wealthy tech companies.",
     "businessImpact": "- Democratized access to large language models globally\n- Enabled research on multilingual capabilities\n- Showed collaborative model training was viable\n- Provided alternative to closed commercial models",
@@ -473,8 +426,7 @@
     "whyItMattersToday": "BLOOM demonstrated that open collaboration could produce frontier models. It influenced the open source AI movement and showed global participation in AI development was possible.",
     "commonMisconceptions": "- ❌ \"BLOOM matches GPT-3 on everything\" → ✅ Performance varies by task and language\n- ❌ \"Multilingual means equally good in all languages\" → ✅ English performance typically leads\n- ❌ \"BLOOM was trained by one company\" → ✅ It was a distributed international collaboration"
   },
-
-  "cmj8sy62a001dnyveu8yxls1s": {
+  "E2022_BLOOM": {
     "tldr": "Open source image generator that democratized AI art creation.",
     "simpleExplanation": "While DALL-E was restricted and Midjourney required subscriptions, Stable Diffusion was released freely. Anyone could download it, run it on their own computer, and modify it however they wanted.\n\nThis openness sparked an explosion of creativity: thousands of fine-tuned models, custom interfaces, and applications emerged. AI image generation became accessible to everyone.",
     "businessImpact": "- Made AI image generation accessible to individual creators\n- Spawned ecosystem of tools, interfaces, and fine-tuned models\n- Demonstrated viable open source AI business model\n- Raised urgent questions about AI art copyright and training data",
@@ -483,8 +435,7 @@
     "whyItMattersToday": "Stable Diffusion powers most non-commercial AI art tools. Its open release set expectations that advanced AI should be accessible, influencing debates about AI openness vs. safety.",
     "commonMisconceptions": "- ❌ \"Stable Diffusion is made by OpenAI\" → ✅ It was developed by CompVis/Stability AI\n- ❌ \"It's completely unrestricted\" → ✅ The model has safety filters; community often removes them\n- ❌ \"Training data was licensed\" → ✅ LAION-5B scraped public web images without consent"
   },
-
-  "cmj8sy62a0017nyvetnixdyto": {
+  "E2022_LATENT_DIFFUSION": {
     "tldr": "Google's massive language model showing scale yields new capabilities.",
     "simpleExplanation": "PaLM was Google's answer to GPT-3: 540 billion parameters, trained on diverse data, capable of remarkable reasoning. It could solve math problems step by step, explain jokes, and write code.\n\nPaLM demonstrated that at sufficient scale, capabilities emerge that smaller models simply don't have.",
     "businessImpact": "- Demonstrated Google's frontier AI capabilities\n- Showed 'emergent abilities' arising at scale\n- Influenced understanding of what's possible with large models\n- Eventually became basis for Google's Gemini",
@@ -493,8 +444,7 @@
     "whyItMattersToday": "PaLM's insights about emergent capabilities shaped understanding of why scale matters. Google's Gemini models build on PaLM's foundation.",
     "commonMisconceptions": "- ❌ \"PaLM was public like GPT-3\" → ✅ It was a research paper; broad access came later with Bard/Gemini\n- ❌ \"Size alone explains capabilities\" → ✅ Data quality and training methodology also matter\n- ❌ \"Emergent abilities are well understood\" → ✅ Why and when they appear remains unclear"
   },
-
-  "cmj8sy62a001fnyveqm51dd9e": {
+  "E2022_STABLE_DIFFUSION_RELEASE": {
     "tldr": "Training AI using written principles instead of just human feedback.",
     "simpleExplanation": "Instead of having humans rate every response, what if you gave the AI a set of principles ('be helpful, be harmless, be honest') and had it critique its own responses? That's Constitutional AI.\n\nThe AI learns from written 'constitutions' plus its own self-critique, reducing reliance on expensive human feedback while baking in desired values.",
     "businessImpact": "- Reduced costs of alignment training\n- Enabled more scalable AI safety approaches\n- Became central to Anthropic's Claude development\n- Influenced how other labs think about AI values",
@@ -503,8 +453,7 @@
     "whyItMattersToday": "Constitutional AI principles guide Claude's behavior. The approach represents a different philosophy than pure RLHF, emphasizing explicit values over learned preferences.",
     "commonMisconceptions": "- ❌ \"CAI replaces human oversight\" → ✅ Humans still define the constitution and validate outcomes\n- ❌ \"Any principles work\" → ✅ Constitution design requires careful thought about values and tradeoffs\n- ❌ \"This guarantees safety\" → ✅ It's a training approach; guarantees remain elusive"
   },
-
-  "cmj8sy62a001hnyve275ko588": {
+  "E2022_CHATGPT": {
     "tldr": "Meta's efficient open model that sparked the open source AI movement.",
     "simpleExplanation": "LLaMA showed that smaller, well-trained models could rival much larger ones. A 13 billion parameter LLaMA matched GPT-3's 175 billion on many tasks. When the weights leaked online, they fueled an explosion of open source AI development.\n\nLLaMA democratized large language models—suddenly, researchers and hobbyists could fine-tune powerful models on consumer hardware.",
     "businessImpact": "- Catalyzed the open source AI movement\n- Enabled thousands of derivative models (Alpaca, Vicuna, etc.)\n- Demonstrated Chinchilla scaling in practice\n- Shifted the competitive landscape toward open models",
@@ -513,8 +462,7 @@
     "whyItMattersToday": "LLaMA and its successors (LLaMA 2, 3) form the backbone of open source AI. Most non-OpenAI/Anthropic applications use LLaMA-family models, making it one of the most impactful releases in AI history.",
     "commonMisconceptions": "- ❌ \"LLaMA was intentionally open sourced\" → ✅ Original release was restricted; weights leaked\n- ❌ \"LLaMA matches GPT-4\" → ✅ It competed with GPT-3; later versions narrowed the gap\n- ❌ \"Open models can't be commercial\" → ✅ LLaMA 2 and 3 have commercial licenses"
   },
-
-  "cmj8sy62a001jnyvet9093avb": {
+  "E2022_CONSTITUTIONAL_AI": {
     "tldr": "US government framework for managing AI risks in organizations.",
     "simpleExplanation": "How should organizations think about AI risks? NIST provided a structured answer: identify risks, assess them, and manage them throughout the AI lifecycle. The framework doesn't mandate specific practices but provides a common vocabulary and approach.\n\nIt's become the go-to reference for companies building AI governance programs.",
     "businessImpact": "- Became standard reference for enterprise AI governance\n- Influenced corporate AI policies and risk management\n- Provides vocabulary for board-level AI discussions\n- Referenced in regulatory compliance frameworks",
@@ -523,8 +471,7 @@
     "whyItMattersToday": "Companies building AI systems increasingly adopt NIST AI RMF. It provides structure for conversations between technical teams, executives, and boards about AI risk.",
     "commonMisconceptions": "- ❌ \"This is a regulation\" → ✅ It's a voluntary framework, not legally binding\n- ❌ \"Following it guarantees compliance\" → ✅ It's a risk management approach, not a compliance checklist\n- ❌ \"It only matters in the US\" → ✅ International organizations reference and adapt it"
   },
-
-  "cmj8sy62a001inyve4tnr93u9": {
+  "E2023_DPO": {
     "tldr": "Multimodal AI system that redefined what language models could do.",
     "simpleExplanation": "GPT-4 wasn't just better at text—it could see. It passed the bar exam, wrote code from sketches, and explained images. The jump in capability from GPT-3.5 to GPT-4 was dramatic and somewhat mysterious.\n\nGPT-4 made ChatGPT truly useful for professional work and showed that AI systems were rapidly approaching human-level performance on many tasks.",
     "businessImpact": "- Demonstrated professional-grade AI capabilities (passing exams, writing production code)\n- Became the engine for enterprise AI applications\n- Triggered corporate AI adoption at unprecedented scale\n- Set new expectations for what AI systems should do",
@@ -533,8 +480,7 @@
     "whyItMattersToday": "GPT-4 powers ChatGPT Plus, Copilot, and countless enterprise applications. It set the capability bar that competitors chase and showed AI was ready for professional use.",
     "commonMisconceptions": "- ❌ \"We know how GPT-4 works\" → ✅ OpenAI disclosed almost no architectural details\n- ❌ \"GPT-4 is general intelligence\" → ✅ It has significant limitations and makes errors\n- ❌ \"GPT-4 is one model\" → ✅ Multiple versions exist with different capabilities and contexts"
   },
-
-  "cmj8sy62a001gnyvet731no2c": {
+  "E2023_LLAMA": {
     "tldr": "Simpler alternative to RLHF that aligns models directly from preferences.",
     "simpleExplanation": "RLHF is complicated: you need a reward model, reinforcement learning, and careful tuning. DPO showed you could skip all that. Instead of learning a reward model then optimizing against it, DPO adjusts the language model directly based on preference data.\n\nThis made alignment training faster, cheaper, and more accessible to smaller teams.",
     "businessImpact": "- Simplified alignment training for smaller organizations\n- Reduced compute costs for preference-based training\n- Enabled rapid iteration on aligned models\n- Democratized AI alignment techniques",
@@ -543,8 +489,7 @@
     "whyItMattersToday": "DPO and variants (IPO, KTO) are now standard for aligning open source models. The simplification made preference-based training practical for researchers without massive compute.",
     "commonMisconceptions": "- ❌ \"DPO always beats RLHF\" → ✅ Results vary; RLHF sometimes performs better\n- ❌ \"DPO eliminates need for preference data\" → ✅ You still need human (or AI) preference judgments\n- ❌ \"This is completely new\" → ✅ It reframes existing techniques; the insight is the simplification"
   },
-
-  "cmj8sy62a001knyve54osn6y4": {
+  "E2023_GPT4": {
     "tldr": "Major US executive order establishing AI safety and security requirements.",
     "simpleExplanation": "President Biden's executive order was the most significant US government action on AI. It required safety testing for powerful models, addressed AI-generated content and fraud, and directed agencies to develop AI policies.\n\nThe order treated advanced AI as a national security and economic priority requiring federal coordination.",
     "businessImpact": "- Established reporting requirements for frontier AI development\n- Created safety testing obligations for large model developers\n- Directed agencies to address AI in their domains\n- Signaled US government taking AI seriously",
@@ -553,8 +498,7 @@
     "whyItMattersToday": "While subsequent administration changes affected implementation, EO 14110 established precedents for AI governance and demonstrated that advanced AI would face federal attention.",
     "commonMisconceptions": "- ❌ \"This regulates all AI\" → ✅ Focus is on frontier models above compute thresholds\n- ❌ \"Executive orders are permanent\" → ✅ They can be revoked by subsequent presidents\n- ❌ \"This created new agencies\" → ✅ It directed existing agencies to act on AI"
   },
-
-  "cmj8sy62a001mnyve1oxih3wl": {
+  "E2023_NIST_AIRMF": {
     "tldr": "World's first comprehensive AI regulation, establishing risk-based rules.",
     "simpleExplanation": "The EU AI Act categorizes AI systems by risk level: unacceptable (banned), high-risk (heavily regulated), limited risk (transparency required), and minimal risk (no special rules). It creates requirements for high-risk AI in areas like employment, credit, and law enforcement.\n\nIt's the most ambitious attempt to regulate AI systematically, setting global precedents.",
     "businessImpact": "- Created compliance requirements for AI used in EU\n- Established extraterritorial reach affecting global companies\n- Set expectations that may influence other jurisdictions\n- Required documentation, testing, and human oversight for high-risk AI",
@@ -563,8 +507,7 @@
     "whyItMattersToday": "Companies serving EU customers must comply. The EU AI Act may create global standards as companies adopt unified compliance approaches rather than region-specific ones.",
     "commonMisconceptions": "- ❌ \"It bans AI\" → ✅ Most AI is allowed; only specific high-risk applications face heavy regulation\n- ❌ \"It only affects EU companies\" → ✅ Any company serving EU users must comply\n- ❌ \"Compliance is immediate\" → ✅ Phased implementation over 2024-2027"
   },
-
-  "cmj8sy62a001lnyved9drikpa": {
+  "E2023_US_EO_14110": {
     "tldr": "New US administration reverses AI executive order, shifts policy approach.",
     "simpleExplanation": "The incoming administration revoked Biden's AI executive order, stating it hindered innovation and imposed unnecessary burdens. The action directed agencies to review previous AI policies and develop new approaches emphasizing American competitiveness.\n\nThis represented a significant shift in how the US government approaches AI governance.",
     "businessImpact": "- Removed reporting requirements for frontier AI developers\n- Created regulatory uncertainty during policy transition\n- Signaled deregulatory approach to AI\n- May affect international coordination on AI governance",
@@ -573,8 +516,7 @@
     "whyItMattersToday": "The shift creates a different US posture on AI governance, potentially affecting international coordination and industry practices. How replacement policies develop will shape AI development norms.",
     "commonMisconceptions": "- ❌ \"This eliminates all AI rules\" → ✅ Other laws and agency authorities remain; executive orders are one layer\n- ❌ \"Companies can do anything now\" → ✅ State laws, FTC authority, and other constraints persist\n- ❌ \"This is permanent\" → ✅ Future administrations can change course again"
   },
-
-  "cmj8sy62a001nnyvefyqws2vu": {
+  "E2025_US_EO_14110_REVOKED": {
     "tldr": "In-depth conversation offering accessible deep dive into modern AI.",
     "simpleExplanation": "Andrej Karpathy's conversation with Dwarkesh Patel provided an unusually clear, comprehensive overview of how modern AI works. Karpathy, who led AI at Tesla and worked at OpenAI, explained transformers, training, and capabilities in accessible terms.\n\nThe episode became a go-to educational resource for understanding the current AI landscape.",
     "businessImpact": "- Provided accessible education for non-technical leaders\n- Helped business audiences understand AI capabilities and limits\n- Demonstrated value of long-form AI explanation\n- Became reference for AI literacy efforts",
