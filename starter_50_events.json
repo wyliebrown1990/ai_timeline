@@ -748,5 +748,110 @@
       { "label": "OpenAI announcement", "kind": "primary_doc", "url": "https://openai.com/index/new-chatgpt-images-is-here/" },
       { "label": "TechCrunch article", "kind": "media", "url": "https://techcrunch.com/2025/12/16/openai-continues-on-its-code-red-warpath-with-new-image-generation-model/" }
     ]
+  },
+  {
+    "id": "E2025_DEEPSEEK_R1",
+    "date": "2025-01-20",
+    "era": "Transformers and LLMs",
+    "title": "DeepSeek releases R1, disrupting AI industry with efficient training",
+    "summary": "Chinese AI lab DeepSeek releases DeepSeek-R1, a reasoning model matching OpenAI's o1 performance while trained on far less powerful hardware. The release triggers an 18% drop in Nvidia's stock price and is called a 'Sputnik moment' for American AI. By January 27, DeepSeek surpasses ChatGPT as the most downloaded app on iOS in the US, demonstrating that innovative training approaches can rival massive compute investments.",
+    "guidedStart": true,
+    "coreConcepts": ["Efficient training", "Reasoning models", "Open weights", "AI competition"],
+    "keyPeople": ["DeepSeek"],
+    "sources": [
+      { "label": "DeepSeek API announcement", "kind": "primary_doc", "url": "https://api-docs.deepseek.com/news/news250120" },
+      { "label": "Wikipedia", "kind": "media", "url": "https://en.wikipedia.org/wiki/DeepSeek" }
+    ]
+  },
+  {
+    "id": "E2025_OPENAI_OPERATOR",
+    "date": "2025-01-23",
+    "era": "AI Agents",
+    "title": "OpenAI launches Operator, first major AI agent for autonomous web tasks",
+    "summary": "OpenAI releases Operator as a research preview, an AI agent powered by the Computer-Using Agent (CUA) model that can autonomously browse the web to accomplish tasks like booking tickets, filling grocery orders, and conducting research. Combines GPT-4o's vision capabilities with reinforcement learning to interact with graphical user interfaces. Available to ChatGPT Pro subscribers at $200/month, later integrated into ChatGPT as 'agent mode'.",
+    "coreConcepts": ["AI agents", "Computer use", "Autonomous AI", "Web automation"],
+    "keyPeople": ["OpenAI"],
+    "sources": [
+      { "label": "OpenAI announcement", "kind": "primary_doc", "url": "https://openai.com/index/introducing-operator/" },
+      { "label": "MIT Technology Review", "kind": "media", "url": "https://www.technologyreview.com/2025/01/23/1110484/openai-launches-operator-an-agent-that-can-use-a-computer-for-you/" }
+    ]
+  },
+  {
+    "id": "E2025_GROK_3",
+    "date": "2025-02-17",
+    "era": "Transformers and LLMs",
+    "title": "xAI releases Grok 3 with 10x compute and 1M token context",
+    "summary": "Elon Musk's xAI releases Grok 3, trained with 10x more compute than Grok 2 using the Colossus data center with ~200,000 GPUs. Features 1 million token context window (8x larger than previous models), reasoning variants that 'think through' problems, DeepSearch for internet and X analysis, and image generation. Musk calls it 'the smartest AI on Earth.' X raises Premium+ subscription to $40/month following launch.",
+    "coreConcepts": ["Large context windows", "Reasoning models", "AI competition"],
+    "keyPeople": ["Elon Musk", "xAI"],
+    "sources": [
+      { "label": "xAI announcement", "kind": "primary_doc", "url": "https://x.ai/news/grok-3" },
+      { "label": "TechCrunch article", "kind": "media", "url": "https://techcrunch.com/2025/02/17/elon-musks-ai-company-xai-releases-its-latest-flagship-ai-grok-3/" }
+    ]
+  },
+  {
+    "id": "E2025_CLAUDE_3_7_SONNET",
+    "date": "2025-02-24",
+    "era": "Transformers and LLMs",
+    "title": "Anthropic releases Claude 3.7 Sonnet with extended thinking",
+    "summary": "Anthropic introduces Claude 3.7 Sonnet with 'Extended Thinking' mode, allowing the model to reason through complex problems step-by-step before responding. Delivers enhanced coding performance and the ability to analyze its own reasoning processes. The hybrid approach enables both quick responses and deeper reasoning as needed, making it particularly strong for coding, math, and scientific analysis.",
+    "coreConcepts": ["Extended thinking", "Reasoning models", "Chain-of-thought"],
+    "keyPeople": ["Anthropic", "Dario Amodei"],
+    "sources": [
+      { "label": "Anthropic announcement", "kind": "primary_doc", "url": "https://www.anthropic.com/news/claude-3-7-sonnet" }
+    ]
+  },
+  {
+    "id": "E2025_LLAMA_4",
+    "date": "2025-04-05",
+    "era": "Open Models",
+    "title": "Meta releases Llama 4 with mixture-of-experts architecture",
+    "summary": "Meta releases the Llama 4 model family (Scout, Maverick, Behemoth) - the first Llama models using mixture-of-experts architecture where only a subset of parameters activate per token. Trained on 30+ trillion tokens (2x Llama 3), with Scout offering 10M context window and Maverick 1M context. Llama 4 Behemoth (2T total parameters) outperforms GPT-4.5, Claude Sonnet 3.7, and Gemini 2.0 Pro on STEM benchmarks. Released on a Saturday when CEO Zuckerberg said 'That's when it was ready.'",
+    "guidedStart": true,
+    "coreConcepts": ["Mixture-of-experts", "Open models", "Multimodal AI", "Large context windows"],
+    "keyPeople": ["Meta AI", "Mark Zuckerberg"],
+    "sources": [
+      { "label": "Meta AI blog", "kind": "primary_doc", "url": "https://ai.meta.com/blog/llama-4-multimodal-intelligence/" },
+      { "label": "TechCrunch article", "kind": "media", "url": "https://techcrunch.com/2025/04/05/meta-releases-llama-4-a-new-crop-of-flagship-ai-models/" }
+    ]
+  },
+  {
+    "id": "E2025_GEMINI_3",
+    "date": "2025-11-18",
+    "era": "Transformers and LLMs",
+    "title": "Google releases Gemini 3 Pro with record benchmark scores",
+    "summary": "Google launches Gemini 3 Pro, described as their best model for multimodal understanding and most powerful agentic and coding model to date. Powers Google Search and the Gemini app. Part of an unprecedented 25-day sprint where four major AI companies released frontier models. Also releases reimagined Gemini Deep Research agent built on Gemini 3 Pro foundation.",
+    "guidedStart": true,
+    "coreConcepts": ["Multimodal AI", "AI agents", "Foundation models"],
+    "keyPeople": ["Google", "DeepMind"],
+    "sources": [
+      { "label": "Google AI blog", "kind": "primary_doc", "url": "https://blog.google/technology/ai/google-ai-updates-november-2025/" }
+    ]
+  },
+  {
+    "id": "E2025_CLAUDE_OPUS_4_5",
+    "date": "2025-11-24",
+    "era": "Transformers and LLMs",
+    "title": "Anthropic releases Claude Opus 4.5 with elite coding performance",
+    "summary": "Anthropic launches Claude Opus 4.5, delivering elite coding and agentic performance at 67% reduced pricing compared to previous frontier models. Achieves 80.9% accuracy on SWE-bench Verified, outperforming OpenAI's GPT-5.1-Codex-Max (77.9%) and Google's Gemini 3 Pro (76.2%). Makes frontier AI performance accessible at scale, accelerating the agentic AI market projected to grow from $7.38B (2025) to $103.6B by 2032.",
+    "guidedStart": true,
+    "coreConcepts": ["Coding AI", "AI agents", "Frontier models", "Alignment"],
+    "keyPeople": ["Anthropic", "Dario Amodei"],
+    "sources": [
+      { "label": "Anthropic announcement", "kind": "primary_doc", "url": "https://www.anthropic.com/news/claude-opus-4-5" }
+    ]
+  },
+  {
+    "id": "E2025_GPT_5_2",
+    "date": "2025-12-11",
+    "era": "Transformers and LLMs",
+    "title": "OpenAI releases GPT-5.2, their 'best model for everyday professional use'",
+    "summary": "OpenAI releases GPT-5.2 (codenamed 'Garlic'), positioned as their best model for everyday professional use. Powers ChatGPT and is available through the API. Released on the same day Google announced Gemini Deep Research updates, marking continued 'code red' competition between the companies. Claims to outperform rivals on standard benchmarks. Powers the subsequently released GPT Image 1.5.",
+    "guidedStart": true,
+    "coreConcepts": ["Large language models", "Foundation models", "AI competition"],
+    "keyPeople": ["OpenAI", "Sam Altman"],
+    "sources": [
+      { "label": "TechCrunch article", "kind": "media", "url": "https://techcrunch.com/2025/12/11/google-launched-its-deepest-ai-research-agent-yet-on-the-same-day-openai-dropped-gpt-5-2/" }
+    ]
   }
 ]

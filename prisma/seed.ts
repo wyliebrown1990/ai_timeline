@@ -37,7 +37,7 @@ function mapEraToCategory(era: string): MilestoneCategory {
   if (eraLower.includes('governance') || eraLower.includes('policy') || eraLower.includes('regulation')) {
     return MilestoneCategory.REGULATION;
   }
-  if (eraLower.includes('product') || eraLower.includes('code models')) {
+  if (eraLower.includes('product') || eraLower.includes('code models') || eraLower.includes('ai agents')) {
     return MilestoneCategory.PRODUCT;
   }
   if (eraLower.includes('milestone') || eraLower.includes('breakthrough')) {
@@ -85,7 +85,14 @@ function determineSignificance(event: RawEvent): SignificanceLevel {
     summaryLower.includes('groundbreaking') ||
     summaryLower.includes('foundation') ||
     summaryLower.includes('first to train') ||
-    summaryLower.includes('becomes first')
+    summaryLower.includes('becomes first') ||
+    summaryLower.includes('sputnik moment') ||
+    titleLower.includes('gpt-5') ||
+    titleLower.includes('gemini 3') ||
+    titleLower.includes('claude opus') ||
+    titleLower.includes('llama 4') ||
+    titleLower.includes('grok 3') ||
+    titleLower.includes('deepseek')
   ) {
     return SignificanceLevel.MAJOR;
   }

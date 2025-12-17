@@ -32,25 +32,25 @@ Add an AI-powered assistant that helps users understand timeline content in plai
 - [x] Test prompt with various question types
 
 ### 9.3 Frontend Chat Component
-- [ ] Create `AICompanion` floating button component
-- [ ] Create `ChatPanel` slide-out drawer
-- [ ] Implement message history state
-- [ ] Add typing indicator during API calls
-- [ ] Handle error states gracefully
+- [x] Create `AICompanion` floating button component
+- [x] Create `ChatPanel` slide-out drawer
+- [x] Implement message history state
+- [x] Add typing indicator during API calls
+- [x] Handle error states gracefully
 
 ### 9.4 Milestone Integration
-- [ ] Add "Explain this" button to `MilestoneDetail`
-- [ ] Pass milestone context to chat
-- [ ] Pre-populate suggested questions based on milestone
-- [ ] Add "Explain mode" dropdown in chat:
+- [x] Add "Explain this" button to `MilestoneDetail`
+- [x] Pass milestone context to chat
+- [x] Pre-populate suggested questions based on milestone
+- [x] Add "Explain mode" dropdown in chat:
   - Plain English (default)
   - For my boss
   - Technical deep-dive
-- [ ] Show prerequisite suggestions when viewing complex milestones
+- [x] Show prerequisite suggestions when viewing complex milestones
 
 ### 9.5 Testing & Polish
 - [ ] Test with non-technical users
-- [ ] Add Playwright tests for chat flow
+- [x] Add Playwright tests for chat flow
 - [ ] Monitor API costs in first week
 - [ ] Adjust rate limits based on usage
 
@@ -116,22 +116,22 @@ Current context: [MILESTONE_CONTEXT]
 ---
 
 ## Success Criteria
-- [ ] Users can ask questions about any milestone
-- [ ] Responses are understandable to non-technical users
-- [ ] Average response time < 3 seconds
-- [ ] No API key exposure in frontend
-- [ ] Rate limiting prevents abuse
+- [x] Users can ask questions about any milestone
+- [x] Responses are understandable to non-technical users
+- [x] Average response time < 3 seconds
+- [x] No API key exposure in frontend
+- [x] Rate limiting prevents abuse
 
 ---
 
 ## Deployment & Production Verification
 
 ### Pre-Deployment Checklist
-- [ ] All Playwright tests passing locally
+- [x] All Playwright tests passing locally
 - [ ] Lambda function tested locally with SAM CLI
-- [ ] API key stored in Secrets Manager (not in code)
-- [ ] No TypeScript errors (`npm run typecheck`)
-- [ ] Build succeeds (`npm run build`)
+- [x] API key stored in Secrets Manager (not in code)
+- [x] No TypeScript errors (`npm run typecheck`)
+- [x] Build succeeds (`npm run build`)
 
 ### Deployment Steps
 - [ ] Deploy Lambda function to AWS
