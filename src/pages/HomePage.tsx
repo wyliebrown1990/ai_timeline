@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Clock, BookOpen, Users } from 'lucide-react';
+import { ArrowRight, Clock, BookOpen, Users, Sparkles } from 'lucide-react';
+import { useOnboarding } from '../components/Onboarding';
 
 /**
  * Feature card data for the home page
@@ -31,6 +32,8 @@ const features = [
  * Landing page with hero section, feature highlights, and CTA
  */
 function HomePage() {
+  const { openOnboarding } = useOnboarding();
+
   return (
     <div className="animate-fade-in">
       {/* Hero Section */}
@@ -54,6 +57,13 @@ function HomePage() {
               <span>Explore Timeline</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
+            <button
+              onClick={openOnboarding}
+              className="inline-flex items-center gap-2 rounded-lg border border-purple-300 bg-white px-6 py-3 font-medium text-purple-700 shadow-sm transition-all hover:bg-purple-50 hover:border-purple-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:border-purple-600 dark:bg-gray-800 dark:text-purple-400 dark:hover:bg-purple-900/30 dark:hover:border-purple-500 dark:focus:ring-offset-gray-900"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Personalize Your Journey</span>
+            </button>
           </div>
         </div>
       </section>

@@ -7,5 +7,5 @@
  */
 
 export { OnboardingModal } from './OnboardingModal';
-export { OnboardingWrapper } from './OnboardingWrapper';
+export { OnboardingWrapper, useOnboarding } from './OnboardingWrapper';
 export { ProfileIndicator } from './ProfileIndicator';

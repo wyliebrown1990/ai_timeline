@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, LayoutGrid, Workflow } from 'lucide-react';
+import { AlertCircle, Clock, LayoutGrid, Workflow, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -16,6 +16,7 @@ import {
 import type { ZoomLevel } from '../components/Timeline';
 import { SearchBar, SearchResults } from '../components/Search';
 import { FilterPanel } from '../components/Filters';
+import { useOnboarding } from '../components/Onboarding';
 import { useSearch } from '../hooks/useSearch';
 import { useFilters, useTags } from '../hooks/useFilters';
 import { useTimelineSelection } from '../hooks/useTimelineSelection';
@@ -70,6 +71,7 @@ function EmptyState() {
  */
 function TimelinePage() {
   const navigate = useNavigate();
+  const { openOnboarding } = useOnboarding();
 
   // Search state
   const {
@@ -338,6 +340,16 @@ function TimelinePage() {
                   onToggle={() => setIsFilterOpen(!isFilterOpen)}
                 />
               </div>
+
+              {/* Personalize button */}
+              <button
+                onClick={openOnboarding}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-50 hover:border-purple-400 dark:border-purple-600 dark:bg-gray-800 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                title="Get personalized learning recommendations"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">Personalize</span>
+              </button>
             </div>
           </div>
 

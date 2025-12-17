@@ -1,44 +1,61 @@
 /**
  * OnboardingWrapper Component
  *
- * Wraps the application to show onboarding for first-time visitors
- * and welcome back messages for returning users.
+ * Provides onboarding modal that can be triggered from anywhere in the app.
+ * Uses context to expose openOnboarding function to child components.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, createContext, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { OnboardingModal } from './OnboardingModal';
 import { useUserProfileContext } from '../../contexts/UserProfileContext';
 import type { CreateUserProfile } from '../../types/userProfile';
+
+/**
+ * Context type for onboarding controls
+ */
+interface OnboardingContextType {
+  /** Open the onboarding modal */
+  openOnboarding: () => void;
+  /** Whether the onboarding modal is currently open */
+  isOnboardingOpen: boolean;
+}
+
+const OnboardingContext = createContext<OnboardingContextType | null>(null);
+
+/**
+ * Hook to access onboarding controls from any component
+ * @throws Error if used outside of OnboardingWrapper
+ */
+export function useOnboarding(): OnboardingContextType {
+  const context = useContext(OnboardingContext);
+  if (!context) {
+    throw new Error('useOnboarding must be used within an OnboardingWrapper');
+  }
+  return context;
+}
 
 interface OnboardingWrapperProps {
   children: React.ReactNode;
 }
 
 /**
- * Wrapper component that handles onboarding flow
- * Shows modal for first-time visitors, otherwise renders children
+ * Wrapper component that provides onboarding functionality
+ * Exposes openOnboarding via context for use anywhere in the app
  */
 export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
   const navigate = useNavigate();
   const {
-    isFirstTimeVisitor,
     createProfile,
     skipOnboarding,
   } = useUserProfileContext();
 
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Show onboarding modal for first-time visitors
-  useEffect(() => {
-    if (isFirstTimeVisitor) {
-      // Small delay to let the page render first
-      const timer = setTimeout(() => {
-        setShowOnboarding(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isFirstTimeVisitor]);
+  // Open the onboarding modal
+  const openOnboarding = useCallback(() => {
+    setShowOnboarding(true);
+  }, []);
 
   // Handle completing onboarding
   const handleComplete = useCallback(
@@ -70,8 +87,13 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
     navigate('/learn');
   }, [navigate]);
 
+  const contextValue: OnboardingContextType = {
+    openOnboarding,
+    isOnboardingOpen: showOnboarding,
+  };
+
   return (
-    <>
+    <OnboardingContext.Provider value={contextValue}>
       {children}
 
       <OnboardingModal
@@ -81,7 +103,7 @@ export function OnboardingWrapper({ children }: OnboardingWrapperProps) {
         onStartPath={handleStartPath}
         onExploreAll={handleExploreAll}
       />
-    </>
+    </OnboardingContext.Provider>
   );
 }
 
