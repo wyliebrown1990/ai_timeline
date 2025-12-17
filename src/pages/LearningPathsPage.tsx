@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, RotateCcw, X, Sparkles } from 'lucide-react';
+import { useOnboarding } from '../components/Onboarding';
 import { useLearningPath, useCheckpointsForPath } from '../hooks/useContent';
 import { usePathProgress } from '../hooks/usePathProgress';
 import { useCheckpointProgress } from '../hooks/useCheckpointProgress';
@@ -37,6 +38,7 @@ function LearningPathsPage() {
   const navigate = useNavigate();
   const { pathId } = useParams<{ pathId?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { openOnboarding } = useOnboarding();
 
   // Get milestone index from URL params
   const milestoneIndexParam = searchParams.get('step');
@@ -308,18 +310,28 @@ function LearningPathsPage() {
           {/* Header */}
           <section className="bg-gradient-to-b from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 py-12">
             <div className="container-main">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                      Learning Paths
+                    </h1>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Curated journeys through AI history
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    Learning Paths
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Curated journeys through AI history
-                  </p>
-                </div>
+                <button
+                  onClick={openOnboarding}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-50 hover:border-purple-400 dark:border-purple-600 dark:bg-gray-800 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                  title="Get personalized learning recommendations"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="hidden sm:inline">Personalize</span>
+                </button>
               </div>
               <p className="text-gray-600 dark:text-gray-300 max-w-2xl">
                 Choose a guided path to explore AI milestones in context. Each path is designed

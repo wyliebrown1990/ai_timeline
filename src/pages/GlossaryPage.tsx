@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, BookOpen, Filter, X } from 'lucide-react';
+import { Search, BookOpen, Filter, X, Sparkles } from 'lucide-react';
+import { useOnboarding } from '../components/Onboarding';
 import { useGlossary } from '../hooks/useContent';
 import { GlossaryTermDetail } from '../components/Glossary/GlossaryTermDetail';
 import { GLOSSARY_CATEGORIES, GLOSSARY_CATEGORY_LABELS, type GlossaryCategory } from '../types/glossary';
@@ -41,6 +42,7 @@ export default function GlossaryPage() {
   const { data: glossaryData, isLoading } = useGlossary();
   const allTerms = glossaryData ?? [];
   const [searchParams, setSearchParams] = useSearchParams();
+  const { openOnboarding } = useOnboarding();
 
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -146,11 +148,21 @@ export default function GlossaryPage() {
     <div className="container-main py-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <BookOpen className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            AI Glossary
-          </h1>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <BookOpen className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              AI Glossary
+            </h1>
+          </div>
+          <button
+            onClick={openOnboarding}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-50 hover:border-purple-400 dark:border-purple-600 dark:bg-gray-800 dark:text-purple-400 dark:hover:bg-purple-900/30"
+            title="Get personalized learning recommendations"
+          >
+            <Sparkles className="h-4 w-4" />
+            <span className="hidden sm:inline">Personalize</span>
+          </button>
         </div>
         <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
           Plain-language definitions of AI terms with business context.
