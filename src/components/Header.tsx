@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Clock, Home, BookOpen, FileText, Newspaper } from 'lucide-react';
+import { Clock, Home, BookOpen, FileText, Newspaper, Settings } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 
@@ -68,6 +68,20 @@ function Header() {
 
             {/* Profile Indicator */}
             <ProfileIndicator />
+
+            {/* Settings Link */}
+            <Link
+              to="/settings"
+              className={`p-2 rounded-lg transition-colors ${
+                location.pathname === '/settings'
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
+              }`}
+              aria-label="Settings"
+              title="Settings"
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
 
             {/* Theme Toggle */}
             <ThemeToggleSimple />

@@ -12,6 +12,7 @@ import TimelinePage from './pages/TimelinePage';
 import LearningPathsPage from './pages/LearningPathsPage';
 import GlossaryPage from './pages/GlossaryPage';
 import NewsPage from './pages/NewsPage';
+import SettingsPage from './pages/SettingsPage';
 import {
   AdminDashboard,
   MilestonesListPage,
@@ -69,6 +70,7 @@ function App() {
                   <Route path="learn/:pathId/complete" element={<LearningPathsPage />} />
                   <Route path="news" element={<NewsPage />} />
                   <Route path="glossary" element={<GlossaryPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
                 </Route>
 
                 {/* Admin routes */}

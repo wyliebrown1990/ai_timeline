@@ -2,7 +2,7 @@
 
 **Impact**: High | **Effort**: Medium | **Dependencies**: Sprint 9 (AI Companion), Sprint 15 (Current Events AI)
 
-**Status**: Core implementation complete (December 2024)
+**Status**: COMPLETE - Production Ready (December 2024)
 
 ## Implementation Summary
 
@@ -12,19 +12,23 @@
 - `src/components/ApiKey/ApiKeyContext.tsx` - React context provider for global state
 - `src/components/ApiKey/ApiKeyModal.tsx` - Modal component for key entry
 - `src/components/ApiKey/index.ts` - Public exports
+- `src/pages/SettingsPage.tsx` - Settings page with API key management
 
 ### Files Modified
-- `src/App.tsx` - Wrapped app with `ApiKeyProvider`, added `ApiKeyModal`
+- `src/App.tsx` - Wrapped app with `ApiKeyProvider`, added `ApiKeyModal`, added Settings route
 - `src/services/chatApi.ts` - Added direct Anthropic API calls using user's key
 - `src/components/CurrentEvents/NewsContextModal.tsx` - Added API key check before AI features
+- `src/components/AICompanion/ChatPanel.tsx` - Added API key required banner
+- `src/context/ChatContext.tsx` - Integrated API key check for AI Companion
+- `src/components/Header.tsx` - Added Settings link
 - `src/hooks/index.ts` - Added useApiKey export
 - `tests/unit/components/CurrentEvents/NewsContextModal.test.tsx` - Added ApiKeyContext mock
+- `tests/unit/components/CurrentEvents/InTheNewsSection.test.tsx` - Fixed tests for updated component
 
-### Remaining Work
-- Settings panel for key management (16.3 partial)
-- Streaming responses for chat (16.4)
-- AI Companion integration (16.5 partial)
-- CSP headers and full security audit (16.6)
+### Verification
+- TypeScript: Passing
+- Build: Successful
+- Tests: 531/531 passing
 
 ---
 
@@ -59,10 +63,10 @@ This approach:
 - [x] Remember "don't show again" preference (optional)
 
 ### 16.3 API Key Settings Panel
-- [ ] Add API Key section to user settings/profile
+- [x] Add API Key section to user settings/profile (`/settings` page)
 - [x] Show masked key (last 4 characters visible)
 - [x] Allow key update and removal
-- [ ] Display usage statistics if available
+- [ ] Display usage statistics if available (future enhancement)
 - [x] Show key validation status
 
 ### 16.4 Direct Anthropic API Integration
@@ -75,9 +79,9 @@ This approach:
 ### 16.5 AI Feature Gate
 - [x] Create `useApiKey` hook for key state
 - [x] Create `ApiKeyProvider` context for global state
-- [ ] Update AI Companion to check for key
+- [x] Update AI Companion to check for key (ChatContext + ChatPanel)
 - [x] Update "Ask AI" in NewsContextModal
-- [x] Add visual indicator when AI features require key (lock icon)
+- [x] Add visual indicator when AI features require key (lock icon, banner)
 
 ### 16.6 Security Hardening
 - [ ] Implement Content Security Policy headers

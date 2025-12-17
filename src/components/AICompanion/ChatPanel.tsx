@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react';
-import { X, Send, Trash2, AlertCircle, Sparkles, ChevronDown } from 'lucide-react';
+import { X, Send, Trash2, AlertCircle, Sparkles, ChevronDown, Lock } from 'lucide-react';
 import type { ChatMessage, ExplainMode, MilestoneContext } from '../../types/chat';
 import { EXPLAIN_MODE_LABELS } from '../../types/chat';
 
@@ -21,6 +21,8 @@ interface ChatPanelProps {
   onSetExplainMode: (mode: ExplainMode) => void;
   onClearChat: () => void;
   onDismissError: () => void;
+  /** Whether user has configured an API key */
+  hasApiKey?: boolean;
 }
 
 /**
@@ -169,6 +171,7 @@ export function ChatPanel({
   onSetExplainMode,
   onClearChat,
   onDismissError,
+  hasApiKey = true,
 }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -260,8 +263,24 @@ export function ChatPanel({
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* API Key required banner */}
+        {!hasApiKey && (
+          <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+            <Lock className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                API Key Required
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                To use the AI companion, you'll need to enter your Anthropic API key.
+                Click the send button or type a message to get started.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Welcome message if no messages */}
-        {messages.length === 0 && (
+        {messages.length === 0 && hasApiKey && (
           <div className="text-center py-8">
             <Sparkles className="w-12 h-12 text-blue-500 mx-auto mb-4" />
             <h3 className="font-medium text-gray-900 dark:text-white mb-2">

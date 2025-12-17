@@ -4,12 +4,13 @@
  * Allows any component to open the AI companion with milestone context
  */
 
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, useCallback, type ReactNode } from 'react';
 import { useChat } from '../hooks/useChat';
 import { AICompanionButton } from '../components/AICompanion/AICompanionButton';
 import { ChatPanel } from '../components/AICompanion/ChatPanel';
 import type { MilestoneContext, ExplainMode, UserProfileContext } from '../types/chat';
 import { useUserProfileContext } from '../contexts/UserProfileContext';
+import { useApiKeyContext } from '../components/ApiKey';
 
 /**
  * Chat context value interface
@@ -56,6 +57,9 @@ export function ChatProvider({ children }: ChatProviderProps) {
   // Get user profile for personalized AI responses
   const { profile } = useUserProfileContext();
 
+  // Get API key context for authentication
+  const { hasKey, promptForKey } = useApiKeyContext();
+
   // Build user profile context for the chat API
   const userProfile: UserProfileContext | undefined = useMemo(() => {
     if (!profile) return undefined;
@@ -77,12 +81,27 @@ export function ChatProvider({ children }: ChatProviderProps) {
     openChat,
     closeChat,
     toggleChat,
-    sendMessage,
+    sendMessage: sendMessageInternal,
     setExplainMode,
     clearChat,
     dismissError,
     explainMilestone,
   } = useChat({ userProfile });
+
+  /**
+   * Wrap sendMessage to check for API key first
+   * Prompts user for key if not configured
+   */
+  const sendMessage = useCallback(
+    (message: string) => {
+      if (!hasKey) {
+        promptForKey();
+        return;
+      }
+      sendMessageInternal(message);
+    },
+    [hasKey, promptForKey, sendMessageInternal]
+  );
 
   const contextValue: ChatContextValue = {
     openChat,
@@ -117,6 +136,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         onSetExplainMode={setExplainMode}
         onClearChat={clearChat}
         onDismissError={dismissError}
+        hasApiKey={hasKey}
       />
     </ChatContext.Provider>
   );

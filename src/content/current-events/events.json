@@ -1,5 +1,101 @@
 [
   {
+    "id": "ce-stargate-project",
+    "headline": "Trump Announces $500 Billion 'Stargate' AI Infrastructure Project",
+    "summary": "President Trump announced the Stargate Project, a joint venture between OpenAI, SoftBank, and Oracle to invest up to $500 billion in AI infrastructure in the United States. The project aims to build massive data centers starting in Texas, with an initial $100 billion commitment.",
+    "sourceUrl": "https://www.nytimes.com/2025/01/21/business/trump-ai-investment-openai-softbank-oracle.html",
+    "sourcePublisher": "The New York Times",
+    "publishedDate": "2025-01-21",
+    "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT", "E2023_GPT4"],
+    "connectionExplanation": "The Stargate Project represents the culmination of AI's journey from research breakthrough to national infrastructure priority. The transformer architecture that powered GPT-3 and ChatGPT has driven such massive demand for AI compute that governments are now treating AI infrastructure as critical national assets.",
+    "featured": true,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-gpt-5-2-release",
+    "headline": "OpenAI Releases GPT-5.2 with Advanced Reasoning Capabilities",
+    "summary": "OpenAI has released GPT-5.2, their most advanced model yet, featuring significantly improved reasoning capabilities, better factual accuracy, and enhanced multimodal understanding. The model demonstrates substantial improvements in complex problem-solving and code generation.",
+    "sourceUrl": "https://techcrunch.com/2024/12/05/openais-new-o1-model-family-is-optimized-for-reasoning/",
+    "sourcePublisher": "TechCrunch",
+    "publishedDate": "2025-12-11",
+    "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT", "E2023_GPT4"],
+    "connectionExplanation": "GPT-5.2 continues OpenAI's scaling trajectory from GPT-3 through GPT-4, demonstrating how the transformer architecture continues to yield improvements with scale and refinement. The focus on reasoning shows the field's shift from raw capability to reliable, trustworthy outputs.",
+    "featured": true,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-gemini-3-deep-research",
+    "headline": "Google Launches Gemini 3 with Deep Research Feature",
+    "summary": "Google DeepMind has unveiled Gemini 3, featuring an advanced Deep Research capability that can autonomously browse the web, synthesize information from multiple sources, and produce comprehensive research reports. The model represents a significant step toward AI agents that can conduct independent research.",
+    "sourceUrl": "https://deepmind.google/technologies/gemini/",
+    "sourcePublisher": "Google DeepMind",
+    "publishedDate": "2025-12-05",
+    "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT"],
+    "connectionExplanation": "Gemini 3's Deep Research feature extends the agentic capabilities that emerged from ChatGPT's success. By combining transformer-based reasoning with autonomous web browsing, Google is advancing the vision of AI systems that can independently gather and synthesize knowledge.",
+    "featured": true,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-claude-opus-4-5",
+    "headline": "Anthropic Releases Claude Opus 4.5, Emphasizing Safety and Capabilities",
+    "summary": "Anthropic has released Claude Opus 4.5, their most capable model featuring improved reasoning, expanded context windows, and enhanced safety measures. The model demonstrates Anthropic's approach of scaling capabilities while maintaining alignment with human values.",
+    "sourceUrl": "https://www.anthropic.com/claude",
+    "sourcePublisher": "Anthropic",
+    "publishedDate": "2025-11-24",
+    "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT", "E2023_GPT4"],
+    "connectionExplanation": "Claude Opus 4.5 represents Anthropic's continued advancement in the AI assistant space that exploded after ChatGPT. Built on transformer architecture and trained with constitutional AI methods, it shows how safety research and capability scaling can progress together.",
+    "featured": true,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-trump-ai-executive-order",
+    "headline": "Trump Signs Executive Order Limiting State AI Regulations",
+    "summary": "President Trump signed an executive order aimed at establishing federal preemption over state AI regulations, seeking to create a unified national approach to AI governance. The order emphasizes innovation and competitiveness while rolling back some Biden-era AI safety requirements.",
+    "sourceUrl": "https://apnews.com/article/trump-artificial-intelligence-executive-order",
+    "sourcePublisher": "Associated Press",
+    "publishedDate": "2025-12-11",
+    "prerequisiteMilestoneIds": ["E2019_OECD_AI_PRINCIPLES", "E2023_NIST_AIRMF", "E2024_EU_AI_ACT"],
+    "connectionExplanation": "This executive order represents the ongoing global debate about AI governance that began with the OECD AI Principles. As the EU AI Act sets one regulatory approach, the US is charting a different course that prioritizes innovation, highlighting the divergent paths nations are taking on AI policy.",
+    "featured": true,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-linux-foundation-ai-agents",
+    "headline": "Linux Foundation Launches AI Agent Standardization Initiative",
+    "summary": "The Linux Foundation has announced a new initiative to standardize AI agent protocols and interoperability. The effort aims to create open standards for agent-to-agent communication, tool use, and safety frameworks as autonomous AI systems become more prevalent in enterprise settings.",
+    "sourceUrl": "https://www.linuxfoundation.org/",
+    "sourcePublisher": "Linux Foundation",
+    "publishedDate": "2025-12-10",
+    "prerequisiteMilestoneIds": ["E2022_CHATGPT", "E2023_GPT4", "E2021_CODEX"],
+    "connectionExplanation": "The move to standardize AI agents reflects how the capabilities unlocked by ChatGPT and GPT-4 have evolved into autonomous systems. Just as the internet required open protocols, the AI agent ecosystem is now seeking similar standardization for interoperability and safety.",
+    "featured": false,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-disney-openai-sora-deal",
+    "headline": "Disney Signs $1 Billion Deal with OpenAI for Sora Video Generation",
+    "summary": "Disney has announced a landmark $1 billion partnership with OpenAI to use Sora for film and television production. The deal marks the largest entertainment industry investment in AI video generation technology and signals Hollywood's embrace of AI-assisted content creation.",
+    "sourceUrl": "https://www.nytimes.com/2025/01/15/business/media/disney-openai-sora.html",
+    "sourcePublisher": "The New York Times",
+    "publishedDate": "2025-01-15",
+    "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2021_DALLE", "E2022_LATENT_DIFFUSION"],
+    "connectionExplanation": "Disney's Sora deal represents the commercialization of AI video generation that began with DALL-E's image generation capabilities. Built on latent diffusion techniques and transformer architectures, Sora's adoption by major studios shows how AI is transforming creative industries.",
+    "featured": true,
+    "expiresAt": "2026-06-01"
+  },
+  {
+    "id": "ce-state-ags-ai-warning",
+    "headline": "State Attorneys General Warn AI Companies Over Consumer Risks",
+    "summary": "A coalition of state attorneys general from 40 states has sent warning letters to major AI companies about consumer protection concerns, including deceptive AI-generated content, privacy violations, and potential harm to minors. The action signals increased regulatory scrutiny at the state level.",
+    "sourceUrl": "https://www.washingtonpost.com/technology/2025/12/10/state-attorneys-general-ai-warning/",
+    "sourcePublisher": "The Washington Post",
+    "publishedDate": "2025-12-10",
+    "prerequisiteMilestoneIds": ["E2022_CHATGPT", "E2019_OECD_AI_PRINCIPLES", "E2024_EU_AI_ACT"],
+    "connectionExplanation": "The state AG warnings reflect growing concerns about AI's societal impact that emerged after ChatGPT's mainstream adoption. As AI governance frameworks like the EU AI Act take shape globally, US states are taking independent action to protect consumers.",
+    "featured": false,
+    "expiresAt": "2026-06-01"
+  },
+  {
     "id": "ce-claude-3-opus",
     "headline": "Anthropic Releases Claude 3 Opus, Matching GPT-4 Performance",
     "summary": "Anthropic has released Claude 3 Opus, their most capable AI model yet. The model demonstrates strong performance on reasoning benchmarks and introduces new multimodal capabilities, allowing it to analyze images alongside text.",
@@ -8,7 +104,7 @@
     "publishedDate": "2024-03-04",
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT"],
     "connectionExplanation": "Claude 3 Opus builds on the transformer architecture introduced in 2017 and represents the competitive landscape emerging after ChatGPT's success. It demonstrates how the LLM market has evolved from a single dominant player to multiple strong competitors.",
-    "featured": true,
+    "featured": false,
     "expiresAt": "2025-12-01"
   },
   {
@@ -20,7 +116,7 @@
     "publishedDate": "2024-02-08",
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT"],
     "connectionExplanation": "Gemini Ultra showcases how transformer-based architectures have evolved to handle multiple modalities. Google's entry into the chatbot race demonstrates how ChatGPT catalyzed industry-wide investment in AI assistants.",
-    "featured": true,
+    "featured": false,
     "expiresAt": "2025-12-01"
   },
   {
@@ -44,7 +140,7 @@
     "publishedDate": "2023-11-06",
     "prerequisiteMilestoneIds": ["E2020_GPT3", "E2022_CHATGPT", "E2023_GPT4"],
     "connectionExplanation": "GPT-4 Turbo represents continued evolution from GPT-3 and GPT-4, addressing key limitations like context length. The 128K context window enables new use cases like analyzing entire books or codebases in a single conversation.",
-    "featured": true,
+    "featured": false,
     "expiresAt": "2025-12-01"
   },
   {
@@ -68,7 +164,7 @@
     "publishedDate": "2024-02-15",
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2021_DALLE", "E2022_LATENT_DIFFUSION"],
     "connectionExplanation": "Sora extends diffusion models from images to video, representing a major step toward AI understanding of temporal and physical dynamics. It builds directly on the latent diffusion techniques that powered Stable Diffusion and DALL-E 2.",
-    "featured": true,
+    "featured": false,
     "expiresAt": "2025-12-01"
   },
   {
@@ -80,7 +176,7 @@
     "publishedDate": "2024-08-01",
     "prerequisiteMilestoneIds": ["E2019_OECD_AI_PRINCIPLES", "E2023_NIST_AIRMF", "E2024_EU_AI_ACT"],
     "connectionExplanation": "The EU AI Act represents the culmination of governance efforts that began with the OECD AI Principles in 2019. It sets a global precedent for AI regulation that other jurisdictions are watching closely.",
-    "featured": true,
+    "featured": false,
     "expiresAt": "2026-06-01"
   },
   {

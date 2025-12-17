@@ -140,16 +140,16 @@ describe('InTheNewsSection', () => {
       </TestWrapper>
     );
 
-    // Should show 3 events by default
+    // Should show 3 events by default - use getAllByTestId due to mobile/desktop views
     expect(
-      screen.getByTestId('current-event-card-featured-1')
-    ).toBeInTheDocument();
+      screen.getAllByTestId('current-event-card-featured-1').length
+    ).toBeGreaterThan(0);
     expect(
-      screen.getByTestId('current-event-card-featured-2')
-    ).toBeInTheDocument();
+      screen.getAllByTestId('current-event-card-featured-2').length
+    ).toBeGreaterThan(0);
     expect(
-      screen.getByTestId('current-event-card-regular-1')
-    ).toBeInTheDocument();
+      screen.getAllByTestId('current-event-card-regular-1').length
+    ).toBeGreaterThan(0);
 
     // Should not show 4th and 5th events
     expect(
@@ -164,77 +164,40 @@ describe('InTheNewsSection', () => {
       </TestWrapper>
     );
 
-    // Should show only 2 events
+    // Should show only 2 events - use getAllByTestId due to mobile/desktop views
     expect(
-      screen.getByTestId('current-event-card-featured-1')
-    ).toBeInTheDocument();
+      screen.getAllByTestId('current-event-card-featured-1').length
+    ).toBeGreaterThan(0);
     expect(
-      screen.getByTestId('current-event-card-featured-2')
-    ).toBeInTheDocument();
+      screen.getAllByTestId('current-event-card-featured-2').length
+    ).toBeGreaterThan(0);
     expect(
       screen.queryByTestId('current-event-card-regular-1')
     ).not.toBeInTheDocument();
   });
 
-  it('shows expand button when more events available', () => {
+  it('shows View All link when more events available', () => {
     render(
       <TestWrapper>
         <InTheNewsSection />
       </TestWrapper>
     );
 
-    expect(screen.getByText('See all 5 stories')).toBeInTheDocument();
+    // Component now uses "View all X stories" link instead of expand button
+    expect(screen.getAllByText(/View all 5 stories/).length).toBeGreaterThan(0);
   });
 
-  it('expands to show all events when button clicked', () => {
+  it('View All link navigates to news page', () => {
     render(
       <TestWrapper>
         <InTheNewsSection />
       </TestWrapper>
     );
 
-    // Click expand button
-    fireEvent.click(screen.getByText('See all 5 stories'));
-
-    // Should now show all 5 events
-    expect(
-      screen.getByTestId('current-event-card-featured-1')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('current-event-card-featured-2')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('current-event-card-regular-1')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('current-event-card-regular-2')
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId('current-event-card-regular-3')
-    ).toBeInTheDocument();
-
-    // Button text should change
-    expect(screen.getByText('Show less')).toBeInTheDocument();
-  });
-
-  it('collapses when show less button clicked', () => {
-    render(
-      <TestWrapper>
-        <InTheNewsSection />
-      </TestWrapper>
-    );
-
-    // Expand first
-    fireEvent.click(screen.getByText('See all 5 stories'));
-
-    // Then collapse
-    fireEvent.click(screen.getByText('Show less'));
-
-    // Should be back to 3 events
-    expect(
-      screen.queryByTestId('current-event-card-regular-2')
-    ).not.toBeInTheDocument();
-    expect(screen.getByText('See all 5 stories')).toBeInTheDocument();
+    // Get the first View All link
+    const viewAllLinks = screen.getAllByText(/View all 5 stories/);
+    const link = viewAllLinks[0].closest('a');
+    expect(link).toHaveAttribute('href', '/news');
   });
 
   it('opens modal when event card is clicked', () => {
@@ -244,8 +207,9 @@ describe('InTheNewsSection', () => {
       </TestWrapper>
     );
 
-    // Click on an event card
-    fireEvent.click(screen.getByTestId('current-event-card-featured-1'));
+    // Click on an event card - use getAllByTestId due to mobile/desktop views
+    const cards = screen.getAllByTestId('current-event-card-featured-1');
+    fireEvent.click(cards[0]);
 
     // Modal should appear with the event headline
     expect(screen.getByTestId('mock-modal')).toBeInTheDocument();
@@ -261,8 +225,9 @@ describe('InTheNewsSection', () => {
       </TestWrapper>
     );
 
-    // Open modal
-    fireEvent.click(screen.getByTestId('current-event-card-featured-1'));
+    // Open modal - use getAllByTestId since component renders both mobile and desktop views
+    const cards = screen.getAllByTestId('current-event-card-featured-1');
+    fireEvent.click(cards[0]);
     expect(screen.getByTestId('mock-modal')).toBeInTheDocument();
 
     // Close modal
@@ -313,7 +278,7 @@ describe('InTheNewsSection', () => {
     );
   });
 
-  it('does not show expand button when events <= maxEvents', () => {
+  it('shows correct count in View All link', () => {
     mockUseFeaturedCurrentEvents.mockReturnValue({
       data: [mockFeaturedEvents[0]],
       isLoading: false,
@@ -331,7 +296,7 @@ describe('InTheNewsSection', () => {
       </TestWrapper>
     );
 
-    expect(screen.queryByText(/See all/)).not.toBeInTheDocument();
-    expect(screen.queryByText('Show less')).not.toBeInTheDocument();
+    // View all link should show the correct count (1 event)
+    expect(screen.getAllByText(/View all 1 stories/).length).toBeGreaterThan(0);
   });
 });

@@ -115,7 +115,7 @@ export const chatApi = {
   /**
    * Send a message to the AI companion
    * Uses direct Anthropic API if user has provided an API key,
-   * otherwise falls back to backend proxy
+   * otherwise falls back to backend proxy (if available)
    */
   async sendMessage(request: Omit<ChatRequest, 'sessionId'>): Promise<ChatResponse> {
     // Check for user-provided API key first
@@ -126,19 +126,46 @@ export const chatApi = {
       return sendMessageDirect(request, userApiKey);
     }
 
+    // Check if backend is available (only in development with proxy)
+    // In production without a backend, throw a helpful error
+    if (typeof import.meta.env.VITE_API_URL === 'undefined' && import.meta.env.PROD) {
+      throw new ApiError(
+        401,
+        'Please configure your API key in Settings to use AI features.'
+      );
+    }
+
     // Fall back to backend proxy
     const sessionId = getSessionId();
 
-    const response = await fetch(`${API_BASE}/chat`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        ...request,
-        sessionId,
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...request,
+          sessionId,
+        }),
+      });
+    } catch (error) {
+      // Network error - likely no backend available
+      throw new ApiError(
+        503,
+        'AI service unavailable. Please configure your API key in Settings.'
+      );
+    }
+
+    // Check if we got HTML instead of JSON (backend not configured)
+    const contentType = response.headers.get('content-type');
+    if (contentType && !contentType.includes('application/json')) {
+      throw new ApiError(
+        503,
+        'Please configure your API key in Settings to use AI features.'
+      );
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));

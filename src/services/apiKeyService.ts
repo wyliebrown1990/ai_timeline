@@ -159,12 +159,24 @@ function isValidKeyFormat(key: string): boolean {
  */
 export const apiKeyService = {
   /**
-   * Check if a key exists in storage
+   * Check if a valid key exists in storage
+   * Verifies the stored data is properly formatted JSON
    */
   hasKey(): boolean {
     try {
-      return localStorage.getItem(STORAGE_KEYS.API_KEY) !== null;
+      const stored = localStorage.getItem(STORAGE_KEYS.API_KEY);
+      if (!stored) return false;
+
+      // Verify it's valid JSON with expected structure
+      const data = JSON.parse(stored);
+      return !!(data.encryptedKey && data.iv && data.keyFingerprint);
     } catch {
+      // Invalid data - clean it up
+      try {
+        localStorage.removeItem(STORAGE_KEYS.API_KEY);
+      } catch {
+        // Ignore cleanup errors
+      }
       return false;
     }
   },
