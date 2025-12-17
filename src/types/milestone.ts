@@ -167,6 +167,29 @@ export const MilestoneListResponseSchema = z.array(MilestoneResponseSchema);
 // =============================================================================
 
 /**
+ * Plain English content for the "AI for Everyday Life" learning path
+ * Targets 65+ audience who wants to understand AI without jargon
+ */
+export const PlainEnglishContentSchema = z.object({
+  // What happened - 2-3 sentences, no jargon, simple subject-verb-object
+  whatHappened: z.string().min(1),
+
+  // Think of it like - familiar analogy from everyday life
+  thinkOfItLike: z.string().min(1),
+
+  // How it affects you - bullet points on healthcare, shopping, family, daily life
+  howItAffectsYou: z.string().min(1),
+
+  // Try it yourself - safe, optional activity with specific steps (optional)
+  tryItYourself: z.string().optional(),
+
+  // Watch out for - scam awareness, misinformation, privacy concerns
+  watchOutFor: z.string().min(1),
+});
+
+export type PlainEnglishContent = z.infer<typeof PlainEnglishContentSchema>;
+
+/**
  * Layered explanation content for milestones
  *
  * Each milestone can have multiple explanation layers targeting different
@@ -194,6 +217,9 @@ export const MilestoneLayeredContentSchema = z.object({
 
   // Common misconceptions - bullet points with corrections
   commonMisconceptions: z.string().min(1),
+
+  // Plain English content for everyday life audience (optional)
+  plainEnglish: PlainEnglishContentSchema.optional(),
 });
 
 export type MilestoneLayeredContent = z.infer<typeof MilestoneLayeredContentSchema>;

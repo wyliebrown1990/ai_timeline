@@ -8,13 +8,15 @@ import {
   ChevronUp,
   AlertCircle,
   Lightbulb,
+  Home,
+  Shield,
 } from 'lucide-react';
 import type { MilestoneLayeredContent } from '../../types/milestone';
 
 /**
  * Tab identifiers for layered explanations
  */
-export type ExplanationTab = 'simple' | 'business' | 'technical' | 'historical';
+export type ExplanationTab = 'plain-english' | 'simple' | 'business' | 'technical' | 'historical';
 
 /**
  * Storage key for user's preferred explanation tab
@@ -34,6 +36,11 @@ interface LayeredExplanationTabsProps {
  * Tab configuration with icons and labels
  */
 const TAB_CONFIG: Record<ExplanationTab, { label: string; icon: typeof BookOpen; description: string }> = {
+  'plain-english': {
+    label: 'Everyday',
+    icon: Home,
+    description: 'Plain English for everyone',
+  },
   simple: {
     label: 'Simple',
     icon: BookOpen,
@@ -120,6 +127,8 @@ export function LayeredExplanationTabs({
   // Get content for the active tab
   const getTabContent = (tab: ExplanationTab): string => {
     switch (tab) {
+      case 'plain-english':
+        return ''; // Handled separately with custom rendering
       case 'simple':
         return content.simpleExplanation;
       case 'business':
@@ -133,14 +142,89 @@ export function LayeredExplanationTabs({
     }
   };
 
+  // Get available tabs (only show plain-english if content exists)
+  const availableTabs = (Object.keys(TAB_CONFIG) as ExplanationTab[]).filter((tab) => {
+    if (tab === 'plain-english') {
+      return content.plainEnglish !== undefined;
+    }
+    return true;
+  });
+
+  // Render the plain English content with its structured format
+  const renderPlainEnglishContent = () => {
+    if (!content.plainEnglish) return null;
+    const pe = content.plainEnglish;
+
+    return (
+      <div className="space-y-6">
+        {/* What Happened */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            What Happened
+          </h4>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            {pe.whatHappened}
+          </p>
+        </div>
+
+        {/* Think of It Like */}
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-100 dark:border-amber-800">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
+            Think of It Like...
+          </h4>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+            {pe.thinkOfItLike}
+          </p>
+        </div>
+
+        {/* How It Affects You */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            How This Affects You
+          </h4>
+          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+            {pe.howItAffectsYou}
+          </div>
+        </div>
+
+        {/* Try It Yourself (Optional) */}
+        {pe.tryItYourself && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-100 dark:border-emerald-800">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-2">
+              Try It Yourself
+            </h4>
+            <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+              {pe.tryItYourself}
+            </div>
+          </div>
+        )}
+
+        {/* Watch Out For */}
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-100 dark:border-red-800">
+          <div className="flex items-start gap-2">
+            <Shield className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-red-700 dark:text-red-400 mb-2">
+                Watch Out For
+              </h4>
+              <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+                {pe.watchOutFor}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4" data-testid="layered-explanation-tabs">
       {/* TL;DR Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+      <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
         <div className="flex items-start gap-2">
-          <Lightbulb className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <Lightbulb className="w-5 h-5 text-orange-600 dark:text-orange-400 flex-shrink-0 mt-0.5" />
           <div>
-            <span className="text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+            <span className="text-xs font-semibold uppercase tracking-wide text-orange-600 dark:text-orange-400">
               TL;DR
             </span>
             <p className="text-gray-900 dark:text-white font-medium mt-1">
@@ -156,7 +240,7 @@ export function LayeredExplanationTabs({
         role="tablist"
         aria-label="Explanation depth levels"
       >
-        {(Object.keys(TAB_CONFIG) as ExplanationTab[]).map((tab) => {
+        {availableTabs.map((tab) => {
           const { label, icon: Icon } = TAB_CONFIG[tab];
           const isActive = activeTab === tab;
 
@@ -173,7 +257,7 @@ export function LayeredExplanationTabs({
                 transition-all duration-200 ease-out
                 ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25'
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
                 }
               `}
@@ -193,11 +277,15 @@ export function LayeredExplanationTabs({
         className="animate-fade-in"
         data-testid={`tabpanel-${activeTab}`}
       >
-        <div className="prose prose-gray dark:prose-invert max-w-none">
-          <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
-            {getTabContent(activeTab)}
+        {activeTab === 'plain-english' ? (
+          renderPlainEnglishContent()
+        ) : (
+          <div className="prose prose-gray dark:prose-invert max-w-none">
+            <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">
+              {getTabContent(activeTab)}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Why It Matters Today */}

@@ -1,0 +1,23 @@
+{
+  "id": "ai-for-everyday-life",
+  "title": "AI for Everyday Life",
+  "description": "Understand what AI is, why everyone's talking about it, and how it affects your daily life. Written in plain English with no technical jargon.",
+  "targetAudience": "Anyone who wants to understand AI without a technical background",
+  "milestoneIds": [
+    "E2019_GPT2",
+    "E2020_GPT3",
+    "E2021_DALLE",
+    "E2022_CHATGPT",
+    "E2023_GPT4"
+  ],
+  "estimatedMinutes": 20,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["chatgpt-story", "ai-for-business"],
+  "keyTakeaways": [
+    "Understand what AI can and cannot do today",
+    "Know how to spot AI-generated content and scams",
+    "Feel confident discussing AI with family and friends"
+  ],
+  "conceptsCovered": ["language-model", "chatbot", "generative-ai", "misinformation"],
+  "icon": "🏠"
+}

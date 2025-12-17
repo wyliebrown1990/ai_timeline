@@ -501,5 +501,141 @@
         "rubric": "A good response should include: 1) Start with specific, well-defined use cases (lesson from expert systems and Deep Blue), 2) Consider data requirements and availability, 3) Balance automation with human oversight, 4) Stay current as capabilities rapidly evolve (from GPT-3 to GPT-4 in just a few years). Bonus for mentioning risks, costs, or change management."
       }
     ]
+  },
+  {
+    "id": "cp-everyday-1",
+    "title": "Quick Check: AI Writing",
+    "pathId": "ai-for-everyday-life",
+    "afterMilestoneId": "E2020_GPT3",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-ai-write",
+        "question": "What can AI writing tools like GPT-3 do?",
+        "options": [
+          "Actually understand what they're writing",
+          "Predict what words should come next based on patterns",
+          "Think and reason like a human",
+          "Always give correct information"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI writing tools work by predicting what words should come next, based on patterns from millions of documents. They don't actually understand or think—they're very good at pattern matching."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-trust",
+        "question": "When should you trust information from AI?",
+        "options": [
+          "Always—AI is very accurate",
+          "Never—AI is always wrong",
+          "With caution—verify important information from other sources",
+          "Only for medical and legal advice"
+        ],
+        "correctIndex": 2,
+        "explanation": "The best approach is healthy skepticism. AI can be helpful but also confidently wrong. Always verify important information, especially for health, legal, or financial decisions."
+      }
+    ]
+  },
+  {
+    "id": "cp-everyday-2",
+    "title": "Quick Check: AI Images",
+    "pathId": "ai-for-everyday-life",
+    "afterMilestoneId": "E2021_DALLE",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-ai-image",
+        "question": "How can you often spot an AI-generated image?",
+        "options": [
+          "AI images are always blurry",
+          "Look for strange hands, scrambled text, or odd backgrounds",
+          "AI images are always black and white",
+          "There's no way to tell"
+        ],
+        "correctIndex": 1,
+        "explanation": "Common signs of AI images include: hands with too many or too few fingers, text that looks scrambled, backgrounds that don't quite make sense, and faces that seem 'too perfect.'"
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-photo-trust",
+        "question": "A friend shares an amazing photo on social media. What should you consider?",
+        "options": [
+          "All photos online are real",
+          "It could be AI-generated, especially if it seems too perfect or outrageous",
+          "Only professional photographers use AI",
+          "AI can only make cartoon images"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI can now create very realistic photos. If something seems too perfect, too outrageous, or too good to be true, it's worth questioning whether it's real."
+      }
+    ]
+  },
+  {
+    "id": "cp-everyday-3",
+    "title": "Quick Check: ChatGPT",
+    "pathId": "ai-for-everyday-life",
+    "afterMilestoneId": "E2022_CHATGPT",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-chatgpt-good",
+        "question": "What is ChatGPT good for?",
+        "options": [
+          "Getting accurate medical diagnosis",
+          "Making important financial decisions",
+          "Helping draft letters, explain concepts, or brainstorm ideas",
+          "Providing legal advice"
+        ],
+        "correctIndex": 2,
+        "explanation": "ChatGPT is helpful for everyday tasks like writing drafts, getting explanations, or brainstorming. But it should never be used for medical, legal, or financial advice—always consult professionals for those."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-scam-warning",
+        "question": "Your 'grandchild' calls asking for emergency money. The voice sounds like them. What should you do?",
+        "options": [
+          "Send money immediately—family comes first",
+          "Hang up and call them back at their real phone number",
+          "Ask for their bank account details",
+          "AI can't clone voices, so it must be real"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI can now clone voices very convincingly. If anyone calls asking for money—even if they sound like family—hang up and call them back at a number you know is real. This is a common scam."
+      }
+    ]
+  },
+  {
+    "id": "cp-everyday-4",
+    "title": "Final Check: AI Today",
+    "pathId": "ai-for-everyday-life",
+    "afterMilestoneId": "E2023_GPT4",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-ai-limits",
+        "question": "What should you remember about AI tools like ChatGPT and GPT-4?",
+        "options": [
+          "They're always correct because they're computers",
+          "They can be confidently wrong, so always verify important information",
+          "They have no practical uses",
+          "They're too complicated for regular people to use"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI tools can be very helpful, but they can also be confidently wrong. Always verify important information from trusted sources, especially for health, money, or legal matters."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-everyday-safe-use",
+        "question": "What's a safe way to try AI tools like ChatGPT?",
+        "options": [
+          "Share your social security number to verify your identity",
+          "Give it your passwords so it can help with your accounts",
+          "Ask it to explain something you're curious about, like a recipe or hobby",
+          "Tell it your bank account information"
+        ],
+        "correctIndex": 2,
+        "explanation": "Never share personal information like passwords, social security numbers, or financial details with AI tools. Safe uses include asking questions, getting explanations, or help with writing—nothing that requires sensitive information."
+      }
+    ]
   }
 ]
