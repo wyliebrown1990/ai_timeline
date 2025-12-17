@@ -11,12 +11,14 @@ import {
   MessageCircle,
   Loader2,
   AlertCircle,
+  Lock,
 } from 'lucide-react';
 import type { CurrentEvent } from '../../types/currentEvent';
 import type { MilestoneResponse } from '../../types/milestone';
 import { milestonesApi } from '../../services/api';
 import { chatApi } from '../../services/chatApi';
 import { generateContextPath, saveContextPath } from '../../utils/contextPathUtils';
+import { useApiKeyContext } from '../ApiKey';
 
 /**
  * Props for NewsContextModal component
@@ -46,6 +48,8 @@ const MINUTES_PER_MILESTONE = 3;
  */
 export function NewsContextModal({ event, onClose }: NewsContextModalProps) {
   const navigate = useNavigate();
+  const { hasKey, promptForKey } = useApiKeyContext();
+
   // State for milestone data
   const [milestones, setMilestones] = useState<MilestoneResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,9 +126,16 @@ export function NewsContextModal({ event, onClose }: NewsContextModalProps) {
   /**
    * Ask AI to explain why this news matters
    * Uses milestone context for a grounded, historically-informed response
+   * Requires API key - prompts user if not configured
    */
   const handleAskAiWhyThisNews = useCallback(async () => {
     if (isAiLoading || milestones.length === 0) return;
+
+    // Check for API key - prompt if not available
+    if (!hasKey) {
+      promptForKey();
+      return;
+    }
 
     setIsAiLoading(true);
     setAiError(null);
@@ -162,7 +173,7 @@ Please give me a clear, accessible explanation that connects the history to this
     } finally {
       setIsAiLoading(false);
     }
-  }, [event.headline, event.summary, isAiLoading, milestones]);
+  }, [event.headline, event.summary, hasKey, isAiLoading, milestones, promptForKey]);
 
   // Handle clicking outside modal to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -307,8 +318,15 @@ Please give me a clear, accessible explanation that connects the history to this
               className="w-full flex items-center justify-center gap-2 p-4 rounded-lg border-2 border-dashed border-purple-300 dark:border-purple-700 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-400 dark:hover:border-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               data-testid="ask-ai-button"
             >
-              <MessageCircle className="w-5 h-5" />
-              <span className="font-medium">Ask AI: Why is this news?</span>
+              {hasKey ? (
+                <MessageCircle className="w-5 h-5" />
+              ) : (
+                <Lock className="w-5 h-5" />
+              )}
+              <span className="font-medium">
+                Ask AI: Why is this news?
+                {!hasKey && <span className="text-xs ml-1">(API key required)</span>}
+              </span>
             </button>
           )}
 

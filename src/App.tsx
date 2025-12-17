@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ChatProvider } from './context/ChatContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
 import { OnboardingWrapper } from './components/Onboarding';
+import { ApiKeyProvider, ApiKeyModal } from './components/ApiKey';
 import Layout from './components/Layout';
 import { AdminLayout } from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
@@ -26,8 +27,12 @@ function App() {
     <ThemeProvider defaultTheme="system">
       <BrowserRouter>
         <UserProfileProvider>
-          <ChatProvider>
-            {/* Toast notifications */}
+          <ApiKeyProvider>
+            <ChatProvider>
+              {/* API Key Modal - shown when AI features require key */}
+              <ApiKeyModal />
+
+              {/* Toast notifications */}
             <Toaster
               position="top-right"
               toastOptions={{
@@ -73,7 +78,8 @@ function App() {
                 </Route>
               </Routes>
             </OnboardingWrapper>
-          </ChatProvider>
+            </ChatProvider>
+          </ApiKeyProvider>
         </UserProfileProvider>
       </BrowserRouter>
     </ThemeProvider>

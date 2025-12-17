@@ -3,6 +3,10 @@
  */
 export { useMilestones, useMilestone, useMilestoneMutation } from './useMilestones';
 
+// API Key hook (Sprint 16)
+export { useApiKey } from './useApiKey';
+export type { ApiKeyState, ApiKeyActions, UseApiKeyReturn } from './useApiKey';
+
 // Path progress hook
 export { usePathProgress } from './usePathProgress';
 export type { PathProgress, UsePathProgressReturn } from './usePathProgress';

@@ -57,9 +57,9 @@ export function CurrentEventCard({
         }
       }}
     >
-      {/* Featured badge */}
+      {/* Featured badge - positioned inside card at top-right */}
       {event.featured && (
-        <span className="absolute -top-2 right-4 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+        <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-amber-500 text-white dark:bg-amber-600 rounded-full shadow-sm">
           Featured
         </span>
       )}
