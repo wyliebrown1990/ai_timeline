@@ -64,6 +64,7 @@ function LearningPathsPage() {
   const {
     isCheckpointCompleted,
     getPathCheckpointStats,
+    completeCheckpoint,
   } = useCheckpointProgress();
 
   // Get current path data
@@ -168,6 +169,9 @@ function LearningPathsPage() {
     (_results: { questionId: string; isCorrect: boolean }[], _score: number) => {
       if (viewState.type !== 'checkpoint' || !currentPath) return;
 
+      // Mark checkpoint as completed so it won't show again
+      completeCheckpoint(viewState.checkpoint.id, viewState.checkpoint.questions.length);
+
       // Move to next milestone after checkpoint
       const nextIndex = viewState.milestoneIndex + 1;
       if (nextIndex >= currentPath.milestoneIds.length) {
@@ -179,12 +183,15 @@ function LearningPathsPage() {
         setViewState({ type: 'path', pathId: currentPath.id, milestoneIndex: nextIndex });
       }
     },
-    [viewState, currentPath, completePath, navigate]
+    [viewState, currentPath, completePath, completeCheckpoint, navigate]
   );
 
   // Handle checkpoint skip - move to next milestone without completing
   const handleCheckpointSkip = useCallback(() => {
     if (viewState.type !== 'checkpoint' || !currentPath) return;
+
+    // Mark checkpoint as completed (skipped) so it won't show again
+    completeCheckpoint(viewState.checkpoint.id, viewState.checkpoint.questions.length);
 
     // Move to next milestone
     const nextIndex = viewState.milestoneIndex + 1;
@@ -195,7 +202,7 @@ function LearningPathsPage() {
     } else {
       setViewState({ type: 'path', pathId: currentPath.id, milestoneIndex: nextIndex });
     }
-  }, [viewState, currentPath, completePath, navigate]);
+  }, [viewState, currentPath, completePath, completeCheckpoint, navigate]);
 
   // Handle previous milestone
   const handlePrevious = useCallback(() => {
