@@ -38,11 +38,14 @@
     font-family: var(--font-sans);
     scroll-behavior: smooth;
     overflow-x: hidden;
-    @apply bg-warm-50 dark:bg-warm-900;
+    background-color: var(--color-bg);
   }
 
   body {
-    @apply antialiased bg-warm-50 text-warmGray-800 dark:bg-warm-900 dark:text-warm-100;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--color-bg);
+    color: var(--color-text);
     min-height: 100vh;
     overflow-x: hidden;
     width: 100%;
@@ -51,17 +54,25 @@
 
   /* Focus visible styles for accessibility - now using primary color */
   :focus-visible {
-    @apply outline-none ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-warm-900;
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-primary);
   }
 
   /* Improved typography */
   h1, h2, h3, h4, h5, h6 {
-    @apply text-warmGray-800 dark:text-warm-50 font-semibold tracking-tight;
+    color: var(--color-text);
+    font-weight: 600;
+    letter-spacing: -0.025em;
   }
 
   /* Better link defaults */
   a {
-    @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors;
+    color: var(--color-primary);
+    transition: color 0.15s ease;
+  }
+
+  a:hover {
+    color: var(--color-primary-hover);
   }
 }
 
