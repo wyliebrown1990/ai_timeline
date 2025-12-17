@@ -9,6 +9,7 @@ import type {
   ChatPanelState,
   ExplainMode,
   MilestoneContext,
+  UserProfileContext,
 } from '../types/chat';
 import { chatApi } from '../services/chatApi';
 
@@ -20,9 +21,18 @@ function generateMessageId(): string {
 }
 
 /**
+ * Options for the useChat hook
+ */
+interface UseChatOptions {
+  userProfile?: UserProfileContext;
+}
+
+/**
  * Hook for managing chat state and interactions
  */
-export function useChat() {
+export function useChat(options: UseChatOptions = {}) {
+  const { userProfile } = options;
+
   const [state, setState] = useState<ChatPanelState>({
     isOpen: false,
     messages: [],
@@ -112,6 +122,7 @@ export function useChat() {
         message: content.trim(),
         milestoneContext: state.milestoneContext || undefined,
         explainMode: state.explainMode,
+        userProfile,
       });
 
       // Add assistant response
@@ -138,7 +149,7 @@ export function useChat() {
         error: errorMessage,
       }));
     }
-  }, [state.milestoneContext, state.explainMode]);
+  }, [state.milestoneContext, state.explainMode, userProfile]);
 
   /**
    * Clear the chat history

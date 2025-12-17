@@ -4,11 +4,12 @@
  * Allows any component to open the AI companion with milestone context
  */
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useChat } from '../hooks/useChat';
 import { AICompanionButton } from '../components/AICompanion/AICompanionButton';
 import { ChatPanel } from '../components/AICompanion/ChatPanel';
-import type { MilestoneContext, ExplainMode } from '../types/chat';
+import type { MilestoneContext, ExplainMode, UserProfileContext } from '../types/chat';
+import { useUserProfileContext } from '../contexts/UserProfileContext';
 
 /**
  * Chat context value interface
@@ -52,6 +53,19 @@ interface ChatProviderProps {
  * Wraps the application to provide chat functionality and renders the chat UI
  */
 export function ChatProvider({ children }: ChatProviderProps) {
+  // Get user profile for personalized AI responses
+  const { profile } = useUserProfileContext();
+
+  // Build user profile context for the chat API
+  const userProfile: UserProfileContext | undefined = useMemo(() => {
+    if (!profile) return undefined;
+    return {
+      role: profile.role,
+      goals: profile.goals,
+      preferredExplanationLevel: profile.preferredExplanationLevel,
+    };
+  }, [profile]);
+
   const {
     isOpen,
     messages,
@@ -68,7 +82,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     clearChat,
     dismissError,
     explainMilestone,
-  } = useChat();
+  } = useChat({ userProfile });
 
   const contextValue: ChatContextValue = {
     openChat,

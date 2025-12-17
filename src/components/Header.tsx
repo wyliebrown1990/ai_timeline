@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Clock, Home, BookOpen, FileText } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
+import { ProfileIndicator } from './Onboarding';
 
 /**
  * Navigation link configuration
@@ -63,6 +64,9 @@ function Header() {
                 })}
               </ul>
             </nav>
+
+            {/* Profile Indicator */}
+            <ProfileIndicator />
 
             {/* Theme Toggle */}
             <ThemeToggleSimple />

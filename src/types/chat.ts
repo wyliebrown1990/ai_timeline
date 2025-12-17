@@ -45,6 +45,15 @@ export interface ChatMessage {
 }
 
 /**
+ * User profile context for personalized AI responses
+ */
+export interface UserProfileContext {
+  role: string;
+  goals: string[];
+  preferredExplanationLevel: string;
+}
+
+/**
  * Request to send a chat message
  */
 export interface ChatRequest {
@@ -52,6 +61,7 @@ export interface ChatRequest {
   sessionId: string;
   milestoneContext?: MilestoneContext;
   explainMode?: ExplainMode;
+  userProfile?: UserProfileContext;
 }
 
 /**

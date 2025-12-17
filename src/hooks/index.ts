@@ -15,6 +15,10 @@ export type {
   UseCheckpointProgressReturn,
 } from './useCheckpointProgress';
 
+// User profile hook (Sprint 14)
+export { useUserProfile, getRoleDefaultExplanationLevel } from './useUserProfile';
+export type { StoredUserData, UseUserProfileReturn } from './useUserProfile';
+
 // Content hooks (Sprint 8.5)
 export {
   // Learning Paths

@@ -10,44 +10,44 @@ Create a first-time user flow that personalizes the learning experience based on
 ## Tasks
 
 ### 14.1 Onboarding Flow UI
-- [ ] Create `OnboardingModal` component
-- [ ] Step 1: Role selection (single select)
-- [ ] Step 2: Goal selection (multi-select, 1-3 goals)
-- [ ] Step 3: Time commitment selection
-- [ ] Progress indicator showing steps
-- [ ] Skip option (use defaults)
+- [x] Create `OnboardingModal` component
+- [x] Step 1: Role selection (single select)
+- [x] Step 2: Goal selection (multi-select, 1-3 goals)
+- [x] Step 3: Time commitment selection
+- [x] Progress indicator showing steps
+- [x] Skip option (use defaults)
 
 ### 14.2 User Profile Storage
-- [ ] Define UserProfile interface
-- [ ] Store profile in localStorage
-- [ ] Create profile context for app-wide access
+- [x] Define UserProfile interface
+- [x] Store profile in localStorage
+- [x] Create profile context for app-wide access
 - [ ] Support profile editing from settings
 
 ### 14.3 Path Recommendation Engine
-- [ ] Map role + goals to recommended paths
-- [ ] Filter paths by time commitment
-- [ ] Prioritize paths by relevance score
-- [ ] Generate "Your personalized learning plan"
+- [x] Map role + goals to recommended paths
+- [x] Filter paths by time commitment
+- [x] Prioritize paths by relevance score
+- [x] Generate "Your personalized learning plan"
 
 ### 14.4 Content Personalization
-- [ ] Set default explanation level based on role:
+- [x] Set default explanation level based on role:
   - Executive/Leadership → Business Impact
   - Developer → Technical
   - Others → Simple
-- [ ] Customize AI Companion system prompt with role context
+- [x] Customize AI Companion system prompt with role context
 - [ ] Show role-relevant examples in explanations
 
 ### 14.5 First-Time Experience
-- [ ] Detect first-time visitors
-- [ ] Show onboarding before main content
-- [ ] "Welcome back" message for returning users
-- [ ] Quick profile summary in header/sidebar
+- [x] Detect first-time visitors
+- [x] Show onboarding before main content
+- [x] "Welcome back" message for returning users
+- [x] Quick profile summary in header/sidebar
 
 ### 14.6 Results Screen
-- [ ] Show personalized path recommendations
-- [ ] Display estimated total learning time
-- [ ] "Start your journey" CTA
-- [ ] Option to explore all paths instead
+- [x] Show personalized path recommendations
+- [x] Display estimated total learning time
+- [x] "Start your journey" CTA
+- [x] Option to explore all paths instead
 
 ---
 
