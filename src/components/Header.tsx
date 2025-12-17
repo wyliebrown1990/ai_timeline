@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Clock, Home, BookOpen, FileText, Newspaper, Settings } from 'lucide-react';
+import { Clock, Home, BookOpen, FileText, Newspaper, Settings, Menu, X } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 
@@ -21,6 +22,9 @@ const navLinks = [
  */
 function Header() {
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   return (
     <header
@@ -33,13 +37,15 @@ function Header() {
           <Link
             to="/"
             className="flex items-center gap-2 text-xl font-bold text-gray-900 transition-colors hover:text-blue-600 dark:text-gray-100 dark:hover:text-blue-400"
+            onClick={closeMobileMenu}
           >
             <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-            <span>AI Timeline</span>
+            <span className="hidden sm:inline">AI Timeline</span>
+            <span className="sm:hidden">AI</span>
           </Link>
 
-          {/* Navigation and Controls */}
-          <div className="flex items-center gap-2">
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-2">
             <nav aria-label="Main navigation" role="navigation">
               <ul className="flex items-center gap-1">
                 {navLinks.map(({ to, label, icon: Icon, exact }) => {
@@ -50,7 +56,7 @@ function Header() {
                     <li key={to}>
                       <Link
                         to={to}
-                        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                           isActive
                             ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100'
@@ -86,8 +92,79 @@ function Header() {
             {/* Theme Toggle */}
             <ThemeToggleSimple />
           </div>
+
+          {/* Mobile Controls */}
+          <div className="flex md:hidden items-center gap-1">
+            {/* Settings Link - Mobile */}
+            <Link
+              to="/settings"
+              className={`p-2 rounded-lg transition-colors ${
+                location.pathname === '/settings'
+                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200'
+              }`}
+              aria-label="Settings"
+              onClick={closeMobileMenu}
+            >
+              <Settings className="h-5 w-5" />
+            </Link>
+
+            {/* Theme Toggle - Mobile */}
+            <ThemeToggleSimple />
+
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200 transition-colors"
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <nav aria-label="Mobile navigation" className="container-main py-3">
+            <ul className="space-y-1">
+              {navLinks.map(({ to, label, icon: Icon, exact }) => {
+                const isActive = exact
+                  ? location.pathname === to
+                  : location.pathname.startsWith(to);
+                return (
+                  <li key={to}>
+                    <Link
+                      to={to}
+                      onClick={closeMobileMenu}
+                      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium transition-colors ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
+                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                      }`}
+                      aria-current={isActive ? 'page' : undefined}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Profile Indicator in Mobile Menu */}
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 px-4">
+              <ProfileIndicator />
+            </div>
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
