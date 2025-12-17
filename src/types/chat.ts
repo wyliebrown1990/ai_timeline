@@ -110,3 +110,19 @@ export interface ChatPanelState {
   explainMode: ExplainMode;
   suggestedFollowUps: string[];
 }
+
+/**
+ * News context for AI-assisted explanations
+ * Used in the "Why is this news?" feature
+ */
+export interface NewsContext {
+  headline: string;
+  summary: string;
+  connectionExplanation: string;
+  prerequisiteMilestones: {
+    id: string;
+    title: string;
+    description: string;
+    year: number;
+  }[];
+}

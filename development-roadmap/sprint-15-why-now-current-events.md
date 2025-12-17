@@ -10,40 +10,40 @@ Connect today's AI headlines to historical context. When users see news about AI
 ## Tasks
 
 ### 15.1 Current Events Data Model
-- [ ] Define CurrentEvent interface
-- [ ] Create events.json for curated current events
-- [ ] Link events to prerequisite milestones
-- [ ] Add manual curation workflow
+- [x] Define CurrentEvent interface
+- [x] Create events.json for curated current events
+- [x] Link events to prerequisite milestones
+- [x] Add manual curation workflow
 
 ### 15.2 Current Events Section
-- [ ] Add "In The News" section to homepage/sidebar
-- [ ] Display 3-5 current AI headlines
-- [ ] Show prerequisite milestone chips
-- [ ] "Take me through this context" CTA
+- [x] Add "In The News" section to homepage/sidebar
+- [x] Display 3-5 current AI headlines
+- [x] Show prerequisite milestone chips
+- [x] "Take me through this context" CTA
 
 ### 15.3 Context Path Generator
-- [ ] Generate mini learning path from prerequisite milestones
-- [ ] Order milestones chronologically
-- [ ] Calculate estimated time
-- [ ] Use existing path navigation UI
+- [x] Generate mini learning path from prerequisite milestones
+- [x] Order milestones chronologically
+- [x] Calculate estimated time
+- [x] Use existing path navigation UI
 
 ### 15.4 News Entry Detail
-- [ ] Create `NewsContextModal` component
-- [ ] Show headline and brief summary
-- [ ] List prerequisite milestones with descriptions
-- [ ] Explain connection between history and current news
-- [ ] "Start context path" button
+- [x] Create `NewsContextModal` component
+- [x] Show headline and brief summary
+- [x] List prerequisite milestones with descriptions
+- [x] Explain connection between history and current news
+- [x] "Start context path" button
 
 ### 15.5 Content Curation
-- [ ] Create initial 5-10 current event entries
-- [ ] Establish update cadence (weekly/bi-weekly)
-- [ ] Define criteria for newsworthy events
-- [ ] Write connection explanations
+- [x] Create initial 5-10 current event entries
+- [x] Establish update cadence (weekly/bi-weekly)
+- [x] Define criteria for newsworthy events
+- [x] Write connection explanations
 
 ### 15.6 AI-Assisted Context (Optional)
-- [ ] "Ask AI: Why is this news?" button
-- [ ] Claude generates explanation connecting news to history
-- [ ] Uses milestone context for grounded response
+- [x] "Ask AI: Why is this news?" button
+- [x] Claude generates explanation connecting news to history
+- [x] Uses milestone context for grounded response
 
 ---
 
@@ -237,14 +237,14 @@ milestones. Keep it accessible for non-technical readers."
 ---
 
 ## Success Criteria
-- [ ] 5+ current events curated at launch
-- [ ] Prerequisite milestones clearly explain the connection
-- [ ] Context path generates correctly from any event
-- [ ] News section visible on homepage without scrolling
+- [x] 5+ current events curated at launch
+- [x] Prerequisite milestones clearly explain the connection
+- [x] Context path generates correctly from any event
+- [x] News section visible on homepage without scrolling
 - [ ] Events updated at least bi-weekly
 - [ ] "Take me through context" reduces time to understanding
-- [ ] Works on mobile
-- [ ] Clear curation workflow documented for content team
+- [x] Works on mobile
+- [x] Clear curation workflow documented for content team
 
 ---
 
@@ -252,10 +252,10 @@ milestones. Keep it accessible for non-technical readers."
 
 ### Pre-Deployment Checklist
 - [ ] All Playwright tests passing locally
-- [ ] All 5+ current events validated against schema
-- [ ] Prerequisite milestone IDs verified to exist
-- [ ] No TypeScript errors (`npm run typecheck`)
-- [ ] Build succeeds (`npm run build`)
+- [x] All 5+ current events validated against schema
+- [x] Prerequisite milestone IDs verified to exist
+- [x] No TypeScript errors (`npm run typecheck`)
+- [x] Build succeeds (`npm run build`)
 
 ### Deployment Steps
 - [ ] Create PR with current events feature

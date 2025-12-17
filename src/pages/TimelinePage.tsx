@@ -17,6 +17,7 @@ import type { ZoomLevel } from '../components/Timeline';
 import { SearchBar, SearchResults } from '../components/Search';
 import { FilterPanel } from '../components/Filters';
 import { useOnboarding } from '../components/Onboarding';
+import { ContextPathBanner } from '../components/CurrentEvents';
 import { useSearch } from '../hooks/useSearch';
 import { useFilters, useTags } from '../hooks/useFilters';
 import { useTimelineSelection } from '../hooks/useTimelineSelection';
@@ -242,6 +243,12 @@ function TimelinePage() {
 
   return (
     <div className="animate-fade-in">
+      {/* Context Path Banner (shown when navigating from a current event) */}
+      <ContextPathBanner
+        currentMilestoneId={selectedId ?? undefined}
+        onNavigate={select}
+      />
+
       {/* Page Header */}
       <section className="border-b border-gray-200 bg-white py-8">
         <div className="container-main">

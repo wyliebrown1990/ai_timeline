@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, BookOpen, Users, Sparkles } from 'lucide-react';
 import { useOnboarding } from '../components/Onboarding';
+import { InTheNewsSection } from '../components/CurrentEvents';
 
 /**
  * Feature card data for the home page
@@ -67,6 +68,9 @@ function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* In The News Section - Current events with historical context */}
+      <InTheNewsSection maxEvents={3} />
 
       {/* Features Section */}
       <section className="py-16 dark:bg-gray-900 sm:py-24">
