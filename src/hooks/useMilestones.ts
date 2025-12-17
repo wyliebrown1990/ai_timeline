@@ -129,14 +129,21 @@ export function useMilestone(id: string | null): UseMilestoneReturn {
     try {
       // Fetch all milestones and find the one we need
       const allMilestones = await getAllMilestonesCached();
+      console.log('[useMilestone] Looking for milestone:', id);
+      console.log('[useMilestone] Total milestones in cache:', allMilestones.length);
+
       const milestone = allMilestones.find((m) => m.id === id);
 
       if (milestone) {
+        console.log('[useMilestone] Found milestone:', milestone.id);
         setState({ data: milestone, isLoading: false, error: null });
       } else {
+        console.error('[useMilestone] Milestone not found:', id);
+        console.log('[useMilestone] Available IDs:', allMilestones.map(m => m.id).join(', '));
         setState({ data: null, isLoading: false, error: `Milestone not found: ${id}` });
       }
     } catch (err) {
+      console.error('[useMilestone] Error fetching milestone:', err);
       const message = err instanceof ApiError ? err.message : 'Failed to fetch milestone';
       setState({ data: null, isLoading: false, error: message });
     }

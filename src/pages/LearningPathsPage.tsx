@@ -103,7 +103,7 @@ function LearningPathsPage() {
   );
 
   // Fetch the current milestone
-  const { data: currentMilestone, isLoading: milestoneLoading } = useMilestone(
+  const { data: currentMilestone, isLoading: milestoneLoading, error: milestoneError } = useMilestone(
     currentMilestoneId || ''
   );
 
@@ -251,11 +251,57 @@ function LearningPathsPage() {
     resetAllPathProgress();
     resetAllCheckpointProgress();
     setShowResetConfirm(false);
+    // Reload the page to reflect the reset state
+    window.location.reload();
   }, [resetAllPathProgress, resetAllCheckpointProgress]);
+
+  // Debug: Log render state
+  useEffect(() => {
+    console.log('[Render Debug] viewState:', viewState);
+    console.log('[Render Debug] currentPath:', currentPath?.id);
+    console.log('[Render Debug] currentMilestoneId:', currentMilestoneId);
+    console.log('[Render Debug] currentMilestone:', currentMilestone?.id);
+    console.log('[Render Debug] milestoneLoading:', milestoneLoading);
+    console.log('[Render Debug] milestoneError:', milestoneError);
+  }, [viewState, currentPath, currentMilestoneId, currentMilestone, milestoneLoading, milestoneError]);
 
   // Render based on view state
   return (
     <div className="animate-fade-in min-h-screen">
+      {/* Debug: Show error state when path view but no content */}
+      {viewState.type === 'path' && !currentPath && (
+        <div className="flex flex-col items-center justify-center min-h-screen p-8">
+          <div className="text-red-500 text-lg font-medium mb-2">Error: Path not found</div>
+          <div className="text-gray-500 text-sm mb-4">Path ID: {viewState.pathId}</div>
+          <button
+            onClick={handleExitPath}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Back to Learning Paths
+          </button>
+        </div>
+      )}
+
+      {viewState.type === 'path' && currentPath && !currentMilestone && !milestoneLoading && (
+        <div className="flex flex-col items-center justify-center min-h-screen p-8">
+          <div className="text-red-500 text-lg font-medium mb-2">Error: Milestone not found</div>
+          <div className="text-gray-500 text-sm mb-2">Milestone ID: {currentMilestoneId}</div>
+          <div className="text-gray-500 text-sm mb-2">Index: {viewState.milestoneIndex} of {currentPath.milestoneIds.length}</div>
+          {milestoneError && (
+            <div className="text-red-400 text-sm mb-2">API Error: {milestoneError}</div>
+          )}
+          <div className="text-gray-400 text-xs mb-4 max-w-md text-center">
+            Path milestones: {currentPath.milestoneIds.join(', ')}
+          </div>
+          <button
+            onClick={handleExitPath}
+            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            Back to Learning Paths
+          </button>
+        </div>
+      )}
+
       {/* Path Selection View */}
       {viewState.type === 'selection' && (
         <>
