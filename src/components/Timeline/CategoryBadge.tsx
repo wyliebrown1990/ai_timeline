@@ -32,6 +32,11 @@ interface CategoryIconProps {
 
 export function CategoryIcon({ category, className = 'h-4 w-4' }: CategoryIconProps) {
   const Icon = categoryIcons[category];
+  // Fallback to Sparkles if category is undefined or unknown
+  if (!Icon) {
+    const FallbackIcon = Sparkles;
+    return <FallbackIcon className={className} aria-hidden="true" />;
+  }
   return <Icon className={className} aria-hidden="true" />;
 }
 
@@ -58,9 +63,9 @@ export function CategoryBadge({
   size = 'md',
   className = '',
 }: CategoryBadgeProps) {
-  const Icon = categoryIcons[category];
-  const label = categoryLabels[category];
-  const colorClasses = categoryBadgeClasses[category];
+  const Icon = categoryIcons[category] || Sparkles;
+  const label = categoryLabels[category] || 'Unknown';
+  const colorClasses = categoryBadgeClasses[category] || 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600';
 
   // Size-specific classes
   const sizeClasses = {
