@@ -66,8 +66,34 @@ interface UseMilestoneReturn extends AsyncState<MilestoneResponse> {
   refetch: () => Promise<void>;
 }
 
+// Cache for all milestones to avoid repeated fetches
+let milestonesCache: MilestoneResponse[] | null = null;
+let milestonesCachePromise: Promise<MilestoneResponse[]> | null = null;
+
+/**
+ * Fetch all milestones with caching
+ * Used by useMilestone to find individual milestones without individual API endpoints
+ */
+async function getAllMilestonesCached(): Promise<MilestoneResponse[]> {
+  if (milestonesCache) {
+    return milestonesCache;
+  }
+
+  if (milestonesCachePromise) {
+    return milestonesCachePromise;
+  }
+
+  milestonesCachePromise = milestonesApi.getAll({ limit: 1000 }).then((response) => {
+    milestonesCache = response.data;
+    return response.data;
+  });
+
+  return milestonesCachePromise;
+}
+
 /**
  * Hook for fetching a single milestone by ID
+ * Uses cached milestones list to support static API without individual endpoints
  * @param id - Milestone ID to fetch
  */
 export function useMilestone(id: string | null): UseMilestoneReturn {
@@ -86,8 +112,15 @@ export function useMilestone(id: string | null): UseMilestoneReturn {
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const milestone = await milestonesApi.getById(id);
-      setState({ data: milestone, isLoading: false, error: null });
+      // Fetch all milestones and find the one we need
+      const allMilestones = await getAllMilestonesCached();
+      const milestone = allMilestones.find((m) => m.id === id);
+
+      if (milestone) {
+        setState({ data: milestone, isLoading: false, error: null });
+      } else {
+        setState({ data: null, isLoading: false, error: `Milestone not found: ${id}` });
+      }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Failed to fetch milestone';
       setState({ data: null, isLoading: false, error: message });
