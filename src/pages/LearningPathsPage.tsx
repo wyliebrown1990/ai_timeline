@@ -126,8 +126,14 @@ function LearningPathsPage() {
   const handleNext = useCallback(() => {
     if (viewState.type !== 'path' || !currentPath || !currentMilestoneId) return;
 
+    // Debug logging
+    console.log('[Checkpoint Debug] currentMilestoneId:', currentMilestoneId);
+    console.log('[Checkpoint Debug] pathCheckpoints:', pathCheckpoints);
+    console.log('[Checkpoint Debug] currentPathId:', currentPathId);
+
     // Check if there's a checkpoint after this milestone
     const checkpoint = getCheckpointForMilestone(currentMilestoneId);
+    console.log('[Checkpoint Debug] found checkpoint:', checkpoint);
     if (checkpoint) {
       // Show checkpoint before moving to next milestone
       setViewState({
@@ -149,7 +155,7 @@ function LearningPathsPage() {
     } else {
       setViewState({ type: 'path', pathId: currentPath.id, milestoneIndex: nextIndex });
     }
-  }, [viewState, currentPath, currentMilestoneId, getCheckpointForMilestone, completePath, navigate]);
+  }, [viewState, currentPath, currentMilestoneId, currentPathId, pathCheckpoints, getCheckpointForMilestone, completePath, navigate]);
 
   // Handle checkpoint completion - move to next milestone
   const handleCheckpointComplete = useCallback(
