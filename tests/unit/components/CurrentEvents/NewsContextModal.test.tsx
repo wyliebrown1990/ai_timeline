@@ -31,12 +31,16 @@ jest.mock('../../../../src/services/chatApi', () => ({
   },
 }));
 
-// Mock the ApiKeyContext
+// Mock the ApiKeyContext - use a variable to allow per-test configuration
 const mockPromptForKey = jest.fn();
+let mockHasKey = false;
+
 jest.mock('../../../../src/components/ApiKey/ApiKeyContext', () => ({
   ApiKeyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useApiKeyContext: () => ({
-    hasKey: false,
+    get hasKey() {
+      return mockHasKey;
+    },
     hasOptedOut: false,
     isValidating: false,
     showModal: false,
@@ -267,6 +271,16 @@ describe('NewsContextModal', () => {
   });
 
   describe('AI-Assisted Context Feature', () => {
+    beforeEach(() => {
+      // Enable API key for AI tests
+      mockHasKey = true;
+    });
+
+    afterEach(() => {
+      // Reset to default
+      mockHasKey = false;
+    });
+
     it('shows "Ask AI: Why is this news?" button initially', async () => {
       renderWithRouter(<NewsContextModal event={mockEvent} onClose={jest.fn()} />);
 

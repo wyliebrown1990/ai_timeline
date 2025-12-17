@@ -1,5 +1,14 @@
-import { useState } from 'react';
-import { Newspaper, ChevronRight, ChevronDown } from 'lucide-react';
+/**
+ * InTheNewsSection Component
+ *
+ * Homepage section showcasing current AI news with historical context.
+ * Features a horizontal scrollable carousel on mobile and grid on desktop,
+ * with a prominent "View All" link to the dedicated news page.
+ */
+
+import { useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { Newspaper, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
 import { useFeaturedCurrentEvents, useCurrentEvents } from '../../hooks/useContent';
 import { CurrentEventCard } from './CurrentEventCard';
 import { NewsContextModal } from './NewsContextModal';
@@ -18,13 +27,8 @@ interface InTheNewsSectionProps {
 /**
  * InTheNewsSection Component
  *
- * Displays a section of current AI news items on the homepage.
+ * Displays a curated selection of current AI news items on the homepage.
  * Users can click on events to see the historical context modal.
- *
- * Features:
- * - Shows featured events first, then recent events
- * - Expandable to show more events
- * - Links to context paths for understanding current news
  */
 export function InTheNewsSection({
   maxEvents = 3,
@@ -32,22 +36,36 @@ export function InTheNewsSection({
 }: InTheNewsSectionProps) {
   // Track selected event for context modal
   const [selectedEvent, setSelectedEvent] = useState<CurrentEvent | null>(null);
-  // Track whether expanded to show all events
-  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Ref for horizontal scroll
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch current events data
   const { data: featuredEvents } = useFeaturedCurrentEvents();
   const { data: allEvents } = useCurrentEvents();
 
   // Combine featured (first) and non-featured events, removing duplicates
+  // Sort by date (newest first) after combining
   const featuredIds = new Set(featuredEvents.map((e) => e.id));
   const nonFeaturedEvents = allEvents.filter((e) => !featuredIds.has(e.id));
-  const combinedEvents = [...featuredEvents, ...nonFeaturedEvents];
+  const combinedEvents = [...featuredEvents, ...nonFeaturedEvents].sort(
+    (a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime()
+  );
 
-  // Determine how many events to show
-  const displayCount = isExpanded ? combinedEvents.length : maxEvents;
-  const eventsToShow = combinedEvents.slice(0, displayCount);
-  const hasMoreEvents = combinedEvents.length > maxEvents;
+  // Show limited events on homepage
+  const eventsToShow = combinedEvents.slice(0, maxEvents);
+  const totalCount = combinedEvents.length;
+
+  // Handle scroll buttons
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 320; // Card width + gap
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Handle opening the context modal
   const handleViewContext = (event: CurrentEvent) => {
@@ -67,23 +85,34 @@ export function InTheNewsSection({
   return (
     <section className={`py-12 sm:py-16 dark:bg-gray-900 ${className}`}>
       <div className="container-main">
-        {/* Section header */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-            <Newspaper className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        {/* Section header with "View All" link */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+              <Newspaper className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                In The News
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Understand today's AI headlines through history
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              In The News
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Understand today's AI headlines through history
-            </p>
-          </div>
+
+          {/* View All link */}
+          <Link
+            to="/news"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+          >
+            View all {totalCount} stories
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
 
-        {/* Events grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Desktop: Grid layout */}
+        <div className="hidden sm:grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {eventsToShow.map((event) => (
             <CurrentEventCard
               key={event.id}
@@ -93,27 +122,54 @@ export function InTheNewsSection({
           ))}
         </div>
 
-        {/* Show more/less toggle */}
-        {hasMoreEvents && (
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            >
-              {isExpanded ? (
-                <>
-                  Show less
-                  <ChevronDown className="w-4 h-4 rotate-180" />
-                </>
-              ) : (
-                <>
-                  See all {combinedEvents.length} stories
-                  <ChevronRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
+        {/* Mobile: Horizontal scroll carousel */}
+        <div className="sm:hidden relative">
+          {/* Scroll buttons */}
+          <button
+            onClick={() => scroll('left')}
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+            aria-label="Scroll left"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => scroll('right')}
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+            aria-label="Scroll right"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+
+          {/* Scrollable container */}
+          <div
+            ref={scrollContainerRef}
+            className="flex gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-4 -mx-4 px-4"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {eventsToShow.map((event) => (
+              <div
+                key={event.id}
+                className="flex-shrink-0 w-[300px] snap-start"
+              >
+                <CurrentEventCard
+                  event={event}
+                  onViewContext={handleViewContext}
+                />
+              </div>
+            ))}
           </div>
-        )}
+        </div>
+
+        {/* Mobile: View All link */}
+        <div className="sm:hidden mt-4 text-center">
+          <Link
+            to="/news"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+          >
+            View all {totalCount} stories
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
       </div>
 
       {/* Context modal */}

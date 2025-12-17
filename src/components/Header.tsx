@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Clock, Home, BookOpen, FileText } from 'lucide-react';
+import { Clock, Home, BookOpen, FileText, Newspaper } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 
@@ -10,6 +10,7 @@ import { ProfileIndicator } from './Onboarding';
 const navLinks = [
   { to: '/', label: 'Home', icon: Home, exact: true },
   { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
+  { to: '/news', label: 'News', icon: Newspaper, exact: true },
   { to: '/learn', label: 'Learn', icon: BookOpen, exact: false },
   { to: '/glossary', label: 'Glossary', icon: FileText, exact: true },
 ] as const;
