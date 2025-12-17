@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen } from 'lucide-react';
-import { useLearningPath } from '../hooks/useContent';
+import { useLearningPath, useCheckpointsForPath } from '../hooks/useContent';
 import { usePathProgress } from '../hooks/usePathProgress';
+import { useCheckpointProgress } from '../hooks/useCheckpointProgress';
 import { useMilestone } from '../hooks/useMilestones';
 import {
   PathSelector,
@@ -10,7 +11,9 @@ import {
   PathCompletionSummary,
 } from '../components/LearningPaths';
 import { MilestoneDetail } from '../components/Timeline/MilestoneDetail';
+import { CheckpointView } from '../components/Checkpoints';
 import type { LearningPath } from '../types/learningPath';
+import type { Checkpoint } from '../types/checkpoint';
 
 /**
  * View states for the learning paths page
@@ -18,6 +21,7 @@ import type { LearningPath } from '../types/learningPath';
 type ViewState =
   | { type: 'selection' }
   | { type: 'path'; pathId: string; milestoneIndex: number }
+  | { type: 'checkpoint'; pathId: string; milestoneIndex: number; checkpoint: Checkpoint }
   | { type: 'completion'; pathId: string };
 
 /**
@@ -56,16 +60,35 @@ function LearningPathsPage() {
     startPath,
   } = usePathProgress();
 
+  // Checkpoint progress tracking
+  const {
+    isCheckpointCompleted,
+    getPathCheckpointStats,
+  } = useCheckpointProgress();
+
   // Get current path data
-  const { data: currentPath } = useLearningPath(
-    viewState.type !== 'selection' ? viewState.pathId : ''
-  );
+  const currentPathId = viewState.type !== 'selection' ? viewState.pathId : '';
+  const { data: currentPath } = useLearningPath(currentPathId);
+
+  // Get checkpoints for the current path
+  const { data: pathCheckpoints } = useCheckpointsForPath(currentPathId);
 
   // Get current milestone ID from path
   const currentMilestoneId =
-    viewState.type === 'path' && currentPath
+    (viewState.type === 'path' || viewState.type === 'checkpoint') && currentPath
       ? currentPath.milestoneIds[viewState.milestoneIndex]
       : undefined;
+
+  // Find checkpoint that should appear after a given milestone
+  const getCheckpointForMilestone = useCallback(
+    (milestoneId: string): Checkpoint | undefined => {
+      if (!pathCheckpoints) return undefined;
+      return pathCheckpoints.find(
+        (cp) => cp.afterMilestoneId === milestoneId && !isCheckpointCompleted(cp.id)
+      );
+    },
+    [pathCheckpoints, isCheckpointCompleted]
+  );
 
   // Fetch the current milestone
   const { data: currentMilestone, isLoading: milestoneLoading } = useMilestone(
@@ -99,13 +122,61 @@ function LearningPathsPage() {
     navigate(`/learn/${path.id}?step=${startIndex + 1}`);
   }, [navigate, startPath, getPathProgress]);
 
-  // Handle next milestone
+  // Handle next milestone (checks for checkpoints first)
   const handleNext = useCallback(() => {
-    if (viewState.type !== 'path' || !currentPath) return;
+    if (viewState.type !== 'path' || !currentPath || !currentMilestoneId) return;
 
+    // Check if there's a checkpoint after this milestone
+    const checkpoint = getCheckpointForMilestone(currentMilestoneId);
+    if (checkpoint) {
+      // Show checkpoint before moving to next milestone
+      setViewState({
+        type: 'checkpoint',
+        pathId: currentPath.id,
+        milestoneIndex: viewState.milestoneIndex,
+        checkpoint,
+      });
+      return;
+    }
+
+    // No checkpoint, proceed to next milestone
     const nextIndex = viewState.milestoneIndex + 1;
     if (nextIndex >= currentPath.milestoneIds.length) {
       // Path complete!
+      completePath(currentPath.id);
+      setViewState({ type: 'completion', pathId: currentPath.id });
+      navigate(`/learn/${currentPath.id}/complete`);
+    } else {
+      setViewState({ type: 'path', pathId: currentPath.id, milestoneIndex: nextIndex });
+    }
+  }, [viewState, currentPath, currentMilestoneId, getCheckpointForMilestone, completePath, navigate]);
+
+  // Handle checkpoint completion - move to next milestone
+  const handleCheckpointComplete = useCallback(
+    (_results: { questionId: string; isCorrect: boolean }[], _score: number) => {
+      if (viewState.type !== 'checkpoint' || !currentPath) return;
+
+      // Move to next milestone after checkpoint
+      const nextIndex = viewState.milestoneIndex + 1;
+      if (nextIndex >= currentPath.milestoneIds.length) {
+        // Path complete!
+        completePath(currentPath.id);
+        setViewState({ type: 'completion', pathId: currentPath.id });
+        navigate(`/learn/${currentPath.id}/complete`);
+      } else {
+        setViewState({ type: 'path', pathId: currentPath.id, milestoneIndex: nextIndex });
+      }
+    },
+    [viewState, currentPath, completePath, navigate]
+  );
+
+  // Handle checkpoint skip - move to next milestone without completing
+  const handleCheckpointSkip = useCallback(() => {
+    if (viewState.type !== 'checkpoint' || !currentPath) return;
+
+    // Move to next milestone
+    const nextIndex = viewState.milestoneIndex + 1;
+    if (nextIndex >= currentPath.milestoneIds.length) {
       completePath(currentPath.id);
       setViewState({ type: 'completion', pathId: currentPath.id });
       navigate(`/learn/${currentPath.id}/complete`);
@@ -231,8 +302,50 @@ function LearningPathsPage() {
                   onPrevious={viewState.milestoneIndex > 0 ? handlePrevious : undefined}
                   hasNext={viewState.milestoneIndex < currentPath.milestoneIds.length - 1}
                   hasPrevious={viewState.milestoneIndex > 0}
+                  embedded
                 />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Checkpoint View */}
+      {viewState.type === 'checkpoint' && currentPath && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-gray-100 dark:bg-gray-900">
+          {/* Checkpoint Header */}
+          <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+            <div className="container-main">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleExitPath}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <div>
+                    <h2 className="font-semibold text-gray-900 dark:text-white">
+                      {currentPath.title}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Knowledge Check
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Checkpoint Content */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 min-h-full shadow-xl p-6">
+              <CheckpointView
+                checkpoint={viewState.checkpoint}
+                onComplete={handleCheckpointComplete}
+                onSkip={handleCheckpointSkip}
+                allowSkip={true}
+              />
             </div>
           </div>
         </div>
@@ -256,6 +369,33 @@ function LearningPathsPage() {
               onRestartPath={handleRestartPath}
               onBackToPathSelection={handleExitPath}
             />
+
+            {/* Checkpoint Stats */}
+            {(() => {
+              const stats = getPathCheckpointStats(currentPath.id);
+              if (stats.totalCheckpoints === 0) return null;
+              return (
+                <div className="mt-6 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                    Knowledge Checkpoints
+                  </h3>
+                  <div className="flex items-center justify-between">
+                    <div className="text-gray-900 dark:text-white">
+                      <span className="font-bold">{stats.completedCheckpoints}</span>
+                      <span className="text-gray-500 dark:text-gray-400"> of {stats.totalCheckpoints} completed</span>
+                    </div>
+                    {stats.completedCheckpoints > 0 && (
+                      <div className="text-right">
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {stats.averageScore}%
+                        </span>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">avg score</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </section>
       )}

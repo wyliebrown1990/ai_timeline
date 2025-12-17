@@ -3,6 +3,18 @@
  */
 export { useMilestones, useMilestone, useMilestoneMutation } from './useMilestones';
 
+// Path progress hook
+export { usePathProgress } from './usePathProgress';
+export type { PathProgress, UsePathProgressReturn } from './usePathProgress';
+
+// Checkpoint progress hook (Sprint 13)
+export { useCheckpointProgress } from './useCheckpointProgress';
+export type {
+  QuestionAnswer,
+  CheckpointProgress,
+  UseCheckpointProgressReturn,
+} from './useCheckpointProgress';
+
 // Content hooks (Sprint 8.5)
 export {
   // Learning Paths
