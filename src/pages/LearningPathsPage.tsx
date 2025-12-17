@@ -73,6 +73,12 @@ function LearningPathsPage() {
   // Get checkpoints for the current path
   const { data: pathCheckpoints } = useCheckpointsForPath(currentPathId);
 
+  // Debug: Log when checkpoints are loaded
+  useEffect(() => {
+    console.log('[Checkpoint Debug] Path changed, currentPathId:', currentPathId);
+    console.log('[Checkpoint Debug] pathCheckpoints loaded:', pathCheckpoints);
+  }, [currentPathId, pathCheckpoints]);
+
   // Get current milestone ID from path
   const currentMilestoneId =
     (viewState.type === 'path' || viewState.type === 'checkpoint') && currentPath
