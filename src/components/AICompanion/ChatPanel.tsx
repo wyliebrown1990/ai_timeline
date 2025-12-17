@@ -1,6 +1,7 @@
 /**
  * ChatPanel Component
  * Slide-out drawer containing the AI companion chat interface
+ * Anthropic Warm theme - elegant, minimal design
  */
 
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react';
@@ -31,12 +32,12 @@ interface ChatPanelProps {
  */
 function TypingIndicator() {
   return (
-    <div className="flex items-center space-x-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg max-w-[80%]">
-      <Sparkles className="w-4 h-4 text-blue-500 animate-pulse" />
+    <div className="flex items-center space-x-2 p-4 bg-warm-100 dark:bg-warm-800 rounded-lg max-w-[80%]">
+      <Sparkles className="w-4 h-4 text-primary-500 animate-pulse" />
       <div className="flex space-x-1">
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <span className="w-2 h-2 bg-warmGray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+        <span className="w-2 h-2 bg-warmGray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+        <span className="w-2 h-2 bg-warmGray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
       </div>
     </div>
   );
@@ -57,8 +58,8 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           max-w-[85%] p-3 rounded-lg
           ${
             isUser
-              ? 'bg-blue-600 text-white rounded-br-none'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-none'
+              ? 'bg-primary-500 text-white rounded-br-none'
+              : 'bg-warm-100 dark:bg-warm-800 text-warmGray-800 dark:text-warm-100 rounded-bl-none'
           }
         `}
       >
@@ -72,7 +73,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         <time
           className={`
             text-xs mt-1 block
-            ${isUser ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}
+            ${isUser ? 'text-primary-200' : 'text-warmGray-500 dark:text-warm-400'}
           `}
           dateTime={new Date(message.timestamp).toISOString()}
         >
@@ -116,8 +117,8 @@ function ExplainModeSelector({
         onClick={() => setIsOpen(!isOpen)}
         className="
           flex items-center gap-1 px-2 py-1 text-xs
-          bg-gray-100 dark:bg-gray-700 rounded
-          hover:bg-gray-200 dark:hover:bg-gray-600
+          bg-warm-100 dark:bg-warm-700 rounded
+          hover:bg-warm-200 dark:hover:bg-warm-600
           transition-colors
         "
         aria-haspopup="listbox"
@@ -131,8 +132,8 @@ function ExplainModeSelector({
         <ul
           className="
             absolute bottom-full left-0 mb-1
-            bg-white dark:bg-gray-800 rounded-lg shadow-lg
-            border border-gray-200 dark:border-gray-700
+            bg-white dark:bg-warm-800 rounded-lg shadow-warm-lg
+            border border-warm-200 dark:border-warm-700
             py-1 min-w-[160px] z-10
           "
           role="listbox"
@@ -146,8 +147,8 @@ function ExplainModeSelector({
                 }}
                 className={`
                   w-full text-left px-3 py-2 text-sm
-                  hover:bg-gray-100 dark:hover:bg-gray-700
-                  ${mode === currentMode ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : ''}
+                  hover:bg-warm-100 dark:hover:bg-warm-700
+                  ${mode === currentMode ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : ''}
                 `}
                 role="option"
                 aria-selected={mode === currentMode}
@@ -225,9 +226,9 @@ export function ChatPanel({
         fixed bottom-24 right-6 z-[60]
         w-[380px] max-w-[calc(100vw-3rem)]
         h-[500px] max-h-[calc(100vh-8rem)]
-        bg-white dark:bg-gray-900
-        rounded-xl shadow-2xl
-        border border-gray-200 dark:border-gray-700
+        bg-white dark:bg-warm-900
+        rounded-xl shadow-warm-lg
+        border border-warm-200 dark:border-warm-700
         flex flex-col
         animate-in slide-in-from-bottom-4 duration-300
       "
@@ -235,15 +236,15 @@ export function ChatPanel({
       aria-label="AI Learning Companion"
     >
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+      <header className="flex items-center justify-between p-4 border-b border-warm-200 dark:border-warm-700">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-blue-500" />
-          <h2 className="font-semibold text-gray-900 dark:text-white">AI Companion</h2>
+          <Sparkles className="w-5 h-5 text-primary-500" />
+          <h2 className="font-semibold text-warmGray-800 dark:text-warm-100">AI Companion</h2>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={onClearChat}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 text-warmGray-500 hover:text-warmGray-700 dark:hover:text-warm-300 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800"
             aria-label="Clear chat"
             title="Clear chat"
           >
@@ -251,7 +252,7 @@ export function ChatPanel({
           </button>
           <button
             onClick={onClose}
-            className="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="p-2 text-warmGray-500 hover:text-warmGray-700 dark:hover:text-warm-300 rounded-lg hover:bg-warm-100 dark:hover:bg-warm-800"
             aria-label="Close chat"
           >
             <X className="w-4 h-4" />
@@ -261,8 +262,8 @@ export function ChatPanel({
 
       {/* Milestone context banner */}
       {milestoneContext && (
-        <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
-          <p className="text-xs text-blue-700 dark:text-blue-300">
+        <div className="px-4 py-2 bg-primary-50 dark:bg-primary-900/20 border-b border-primary-100 dark:border-primary-800">
+          <p className="text-xs text-primary-700 dark:text-primary-300">
             <span className="font-medium">Discussing:</span> {milestoneContext.title}
           </p>
         </div>
@@ -289,11 +290,11 @@ export function ChatPanel({
         {/* Welcome message if no messages */}
         {messages.length === 0 && hasApiKey && (
           <div className="text-center py-8">
-            <Sparkles className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-            <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+            <Sparkles className="w-12 h-12 text-primary-500 mx-auto mb-4" />
+            <h3 className="font-medium text-warmGray-800 dark:text-warm-100 mb-2">
               Ask me anything about AI history
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            <p className="text-sm text-warmGray-500 dark:text-warm-400 mb-4">
               I can explain concepts in plain English, help you prepare for interviews, or dive into technical details.
             </p>
             {/* Suggested starter questions */}
@@ -308,8 +309,8 @@ export function ChatPanel({
                   onClick={() => handleSuggestedQuestion(question)}
                   className="
                     block w-full text-left px-3 py-2 text-sm
-                    bg-gray-100 dark:bg-gray-800 rounded-lg
-                    hover:bg-gray-200 dark:hover:bg-gray-700
+                    bg-warm-100 dark:bg-warm-800 rounded-lg
+                    hover:bg-warm-200 dark:hover:bg-warm-700
                     transition-colors
                   "
                 >
@@ -347,7 +348,7 @@ export function ChatPanel({
         {/* Suggested follow-ups */}
         {suggestedFollowUps.length > 0 && !isLoading && (
           <div className="pt-2">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggested questions:</p>
+            <p className="text-xs text-warmGray-500 dark:text-warm-400 mb-2">Suggested questions:</p>
             <div className="space-y-1">
               {suggestedFollowUps.map((question, index) => (
                 <button
@@ -355,9 +356,9 @@ export function ChatPanel({
                   onClick={() => handleSuggestedQuestion(question)}
                   className="
                     block w-full text-left px-3 py-2 text-sm
-                    bg-gray-50 dark:bg-gray-800 rounded-lg
-                    hover:bg-gray-100 dark:hover:bg-gray-700
-                    border border-gray-200 dark:border-gray-700
+                    bg-warm-50 dark:bg-warm-800 rounded-lg
+                    hover:bg-warm-100 dark:hover:bg-warm-700
+                    border border-warm-200 dark:border-warm-700
                     transition-colors
                   "
                 >
@@ -372,7 +373,7 @@ export function ChatPanel({
       </div>
 
       {/* Input area */}
-      <footer className="p-4 border-t border-gray-200 dark:border-gray-700">
+      <footer className="p-4 border-t border-warm-200 dark:border-warm-700">
         <form onSubmit={handleSubmit} className="space-y-2">
           <div className="flex items-end gap-2">
             <div className="flex-1 relative">
@@ -385,12 +386,12 @@ export function ChatPanel({
                 rows={1}
                 className="
                   w-full px-3 py-2 pr-10
-                  bg-gray-100 dark:bg-gray-800
-                  border border-gray-200 dark:border-gray-700
+                  bg-warm-100 dark:bg-warm-800
+                  border border-warm-200 dark:border-warm-700
                   rounded-lg resize-none
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                  text-sm text-gray-900 dark:text-white
-                  placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent
+                  text-sm text-warmGray-800 dark:text-warm-100
+                  placeholder-warmGray-500 dark:placeholder-warm-500
                 "
                 style={{ minHeight: '40px', maxHeight: '120px' }}
                 disabled={isLoading}
@@ -400,8 +401,8 @@ export function ChatPanel({
               type="submit"
               disabled={!inputValue.trim() || isLoading}
               className="
-                p-2 bg-blue-600 text-white rounded-lg
-                hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
+                p-2 bg-primary-500 text-white rounded-lg
+                hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed
                 transition-colors
               "
               aria-label="Send message"
@@ -411,7 +412,7 @@ export function ChatPanel({
           </div>
 
           {/* Mode selector */}
-          <div className="flex items-center justify-between text-gray-500 dark:text-gray-400">
+          <div className="flex items-center justify-between text-warmGray-500 dark:text-warm-400">
             <ExplainModeSelector currentMode={explainMode} onSelectMode={onSetExplainMode} />
             <span className="text-xs">Shift+Enter for new line</span>
           </div>

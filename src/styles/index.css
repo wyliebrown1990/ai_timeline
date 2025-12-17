@@ -4,35 +4,64 @@
 
 /**
  * Global styles for AI Timeline
- * Uses Tailwind CSS for utility-first styling
+ * Anthropic Warm theme - elegant, minimal design
  */
 
 @layer base {
   /* Custom font stack with system fonts as fallback */
   :root {
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+
+    /* Warm theme CSS variables */
+    --color-bg: #FAF9F7;
+    --color-bg-secondary: #F5F3EF;
+    --color-text: #2D3436;
+    --color-text-muted: #7A7367;
+    --color-primary: #E07A5F;
+    --color-primary-hover: #C9604A;
+    --color-border: #EBE8E2;
+    --color-card: #FFFFFF;
+  }
+
+  .dark {
+    --color-bg: #1a1a1a;
+    --color-bg-secondary: #252525;
+    --color-text: #F5F3EF;
+    --color-text-muted: #A9A193;
+    --color-primary: #E8846A;
+    --color-primary-hover: #E07A5F;
+    --color-border: #333333;
+    --color-card: #252525;
   }
 
   html {
     font-family: var(--font-sans);
     scroll-behavior: smooth;
     overflow-x: hidden;
-    /* Prevent horizontal overflow and ensure background covers viewport */
-    @apply bg-gray-50 dark:bg-gray-900;
+    @apply bg-warm-50 dark:bg-warm-900;
   }
 
   body {
-    @apply antialiased bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+    @apply antialiased bg-warm-50 text-warmGray-800 dark:bg-warm-900 dark:text-warm-100;
     min-height: 100vh;
     overflow-x: hidden;
-    /* Ensure content doesn't escape viewport bounds */
     width: 100%;
     max-width: 100vw;
   }
 
-  /* Focus visible styles for accessibility */
+  /* Focus visible styles for accessibility - now using primary color */
   :focus-visible {
-    @apply outline-none ring-2 ring-blue-500 ring-offset-2;
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-warm-900;
+  }
+
+  /* Improved typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-warmGray-800 dark:text-warm-50 font-semibold tracking-tight;
+  }
+
+  /* Better link defaults */
+  a {
+    @apply text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 transition-colors;
   }
 }
 
@@ -40,5 +69,24 @@
   /* Reusable container class */
   .container-main {
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Warm button styles */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-lg bg-primary-500 px-6 py-3 font-medium text-white shadow-warm transition-all hover:bg-primary-600 hover:shadow-warm-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-primary-400 dark:hover:bg-primary-500 dark:focus:ring-offset-warm-900;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-lg border border-warm-300 bg-white px-6 py-3 font-medium text-warmGray-700 shadow-warm-sm transition-all hover:bg-warm-50 hover:border-warm-400 hover:shadow-warm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:border-warm-700 dark:bg-warm-800 dark:text-warm-200 dark:hover:bg-warm-700 dark:focus:ring-offset-warm-900;
+  }
+
+  /* Card styles */
+  .card {
+    @apply rounded-xl border border-warm-200 bg-white shadow-warm-sm transition-shadow hover:shadow-warm dark:border-warm-700 dark:bg-warm-800;
+  }
+
+  /* Input styles */
+  .input {
+    @apply w-full rounded-lg border border-warm-300 bg-white px-4 py-2 text-warmGray-800 placeholder-warmGray-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 dark:border-warm-700 dark:bg-warm-800 dark:text-warm-100 dark:placeholder-warm-500;
   }
 }
