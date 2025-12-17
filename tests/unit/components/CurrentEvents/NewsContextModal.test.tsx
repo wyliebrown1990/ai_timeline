@@ -10,6 +10,7 @@
  * - Modal accessibility and keyboard interactions
  */
 
+import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { NewsContextModal } from '../../../../src/components/CurrentEvents/NewsContextModal';
@@ -28,6 +29,25 @@ jest.mock('../../../../src/services/chatApi', () => ({
   chatApi: {
     sendMessage: jest.fn(),
   },
+}));
+
+// Mock the ApiKeyContext
+const mockPromptForKey = jest.fn();
+jest.mock('../../../../src/components/ApiKey/ApiKeyContext', () => ({
+  ApiKeyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useApiKeyContext: () => ({
+    hasKey: false,
+    hasOptedOut: false,
+    isValidating: false,
+    showModal: false,
+    promptForKey: mockPromptForKey,
+    closeModal: jest.fn(),
+    saveKey: jest.fn(),
+    removeKey: jest.fn(),
+    setOptOut: jest.fn(),
+    keyFingerprint: null,
+    validationError: null,
+  }),
 }));
 
 // Mock navigate
@@ -79,6 +99,7 @@ const mockMilestones = [
 
 /**
  * Helper to render component with router context
+ * Note: ApiKeyContext is mocked above
  */
 const renderWithRouter = (ui: React.ReactElement) => {
   return render(<BrowserRouter>{ui}</BrowserRouter>);

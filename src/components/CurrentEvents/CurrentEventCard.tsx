@@ -57,15 +57,15 @@ export function CurrentEventCard({
         }
       }}
     >
-      {/* Featured badge - positioned inside card at top-right */}
+      {/* Featured badge - positioned inside card, top-right with space for headline */}
       {event.featured && (
-        <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-amber-500 text-white dark:bg-amber-600 rounded-full shadow-sm">
+        <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
           Featured
         </span>
       )}
 
-      {/* Headline */}
-      <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors pr-6">
+      {/* Headline - extra right padding to avoid overlap with Featured badge */}
+      <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors pr-20">
         {event.headline}
       </h3>
 
