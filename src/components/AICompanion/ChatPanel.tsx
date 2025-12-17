@@ -222,7 +222,7 @@ export function ChatPanel({
   return (
     <div
       className="
-        fixed bottom-24 right-6 z-40
+        fixed bottom-24 right-6 z-[60]
         w-[380px] max-w-[calc(100vw-3rem)]
         h-[500px] max-h-[calc(100vh-8rem)]
         bg-white dark:bg-gray-900
