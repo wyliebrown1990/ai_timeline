@@ -184,6 +184,11 @@ describe('CheckpointView', () => {
     fireEvent.click(screen.getByTestId('option-0'));
     fireEvent.click(screen.getByText('Check Answer'));
 
+    // Click "See Results" button to view completion screen
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId('finish-button'));
+    });
+
     // Should show completion screen
     await waitFor(() => {
       expect(screen.getByTestId('checkpoint-complete')).toBeInTheDocument();
@@ -199,6 +204,16 @@ describe('CheckpointView', () => {
     // Answer correctly (Option Alpha is at index 0)
     fireEvent.click(screen.getByTestId('option-0'));
     fireEvent.click(screen.getByText('Check Answer'));
+
+    // Click "See Results" button to view completion screen
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId('finish-button'));
+    });
+
+    // Click "Continue" button on results screen to trigger onComplete
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId('continue-after-results-button'));
+    });
 
     await waitFor(() => {
       expect(onComplete).toHaveBeenCalledWith(
@@ -222,6 +237,11 @@ describe('CheckpointView', () => {
     fireEvent.click(screen.getByTestId('option-0'));
     fireEvent.click(screen.getByText('Check Answer'));
 
+    // Click "See Results" button to view completion screen
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId('finish-button'));
+    });
+
     await waitFor(() => {
       expect(screen.getByText('100%')).toBeInTheDocument();
       expect(screen.getByText(/1 of 1/)).toBeInTheDocument();
@@ -237,6 +257,11 @@ describe('CheckpointView', () => {
     fireEvent.click(screen.getByTestId('option-0'));
     fireEvent.click(screen.getByText('Check Answer'));
 
+    // Click "See Results" button to view completion screen
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId('finish-button'));
+    });
+
     await waitFor(() => {
       expect(screen.getByText(/Excellent work/)).toBeInTheDocument();
     });
@@ -251,6 +276,11 @@ describe('CheckpointView', () => {
     // Answer incorrectly (index 1 is wrong, correct is 0)
     fireEvent.click(screen.getByTestId('option-1'));
     fireEvent.click(screen.getByText('Check Answer'));
+
+    // Click "See Results" button to view completion screen
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId('finish-button'));
+    });
 
     await waitFor(() => {
       expect(screen.getByText(/Consider reviewing/)).toBeInTheDocument();
