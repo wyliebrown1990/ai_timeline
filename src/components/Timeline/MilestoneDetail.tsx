@@ -31,6 +31,8 @@ interface MilestoneDetailProps {
   hasNext?: boolean;
   /** Whether there is a previous milestone */
   hasPrevious?: boolean;
+  /** When true, renders without modal wrapper (for embedding in other containers) */
+  embedded?: boolean;
 }
 
 /**
@@ -44,6 +46,7 @@ export function MilestoneDetail({
   onPrevious,
   hasNext = false,
   hasPrevious = false,
+  embedded = false,
 }: MilestoneDetailProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -94,14 +97,18 @@ export function MilestoneDetail({
     document.addEventListener('keydown', handleKeyDown);
     closeButtonRef.current?.focus();
 
-    // Prevent body scroll while panel is open
-    document.body.style.overflow = 'hidden';
+    // Only prevent body scroll when not embedded (modal mode)
+    if (!embedded) {
+      document.body.style.overflow = 'hidden';
+    }
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      if (!embedded) {
+        document.body.style.overflow = '';
+      }
     };
-  }, [handleKeyDown]);
+  }, [handleKeyDown, embedded]);
 
   // Handle click outside to close
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -110,26 +117,17 @@ export function MilestoneDetail({
     }
   };
 
-  return (
+  // Panel content that's shared between modal and embedded modes
+  const panelContent = (
     <div
-      className="fixed inset-0 z-50 flex justify-end"
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="milestone-detail-title"
+      ref={panelRef}
+      data-testid="milestone-detail"
+      className={
+        embedded
+          ? 'bg-white dark:bg-gray-900 overflow-y-auto'
+          : 'relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto'
+      }
     >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 transition-opacity duration-300"
-        aria-hidden="true"
-      />
-
-      {/* Slide-in panel */}
-      <div
-        ref={panelRef}
-        data-testid="milestone-detail"
-        className="relative w-full max-w-lg bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
-      >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-4">
           <div className="flex items-center gap-2">
@@ -347,6 +345,28 @@ export function MilestoneDetail({
           </div>
         </div>
       </div>
+  );
+
+  // When embedded, return just the panel content without modal wrapper
+  if (embedded) {
+    return panelContent;
+  }
+
+  // Modal mode: wrap in fixed overlay with backdrop
+  return (
+    <div
+      className="fixed inset-0 z-50 flex justify-end"
+      onClick={handleBackdropClick}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="milestone-detail-title"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 transition-opacity duration-300"
+        aria-hidden="true"
+      />
+      {panelContent}
     </div>
   );
 }

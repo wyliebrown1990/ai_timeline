@@ -13,6 +13,13 @@ import type { SearchResponse, FilterQueryParams } from '../types/filters';
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 /**
+ * Check if we're running with static API (production build)
+ * In development, Vite proxy handles /api requests to the backend
+ * In production, we need .json extension for static files
+ */
+const IS_STATIC_API = import.meta.env.PROD;
+
+/**
  * Paginated response structure from API
  */
 export interface PaginatedResponse<T> {
@@ -43,29 +50,45 @@ export class ApiError extends Error {
  * Generic fetch wrapper with error handling
  */
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
-  });
+  console.log('[API] Fetching:', url, '| Static mode:', IS_STATIC_API);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new ApiError(
-      response.status,
-      error.error?.message || `HTTP error ${response.status}`,
-      error.error?.details
-    );
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+    });
+
+    console.log('[API] Response status:', response.status, 'for', url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[API] Error response:', errorText);
+      let error = {};
+      try {
+        error = JSON.parse(errorText);
+      } catch {
+        // Not JSON
+      }
+      throw new ApiError(
+        response.status,
+        (error as { error?: { message?: string } }).error?.message || `HTTP error ${response.status}`,
+        (error as { error?: { details?: unknown } }).error?.details
+      );
+    }
+
+    // Handle 204 No Content
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    return response.json();
+  } catch (err) {
+    console.error('[API] Fetch error for', url, ':', err);
+    throw err;
   }
-
-  // Handle 204 No Content
-  if (response.status === 204) {
-    return undefined as T;
-  }
-
-  return response.json();
 }
 
 /**
@@ -83,8 +106,14 @@ export interface MilestoneQueryParams {
 export const milestonesApi = {
   /**
    * Get all milestones with pagination
+   * In production, fetches from static /api/milestones/index.json
    */
   async getAll(params?: MilestoneQueryParams): Promise<PaginatedResponse<MilestoneResponse>> {
+    // In production, ignore pagination params - static file has all data
+    if (IS_STATIC_API) {
+      return fetchJson<PaginatedResponse<MilestoneResponse>>(`${API_BASE}/milestones/index.json`);
+    }
+
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.limit) searchParams.set('limit', String(params.limit));
@@ -182,10 +211,52 @@ export const milestonesApi = {
 
   /**
    * Get filtered milestones with advanced options
+   * In production, returns all milestones (filtering done client-side)
    */
   async getFiltered(
     filters: FilterQueryParams
   ): Promise<PaginatedResponse<MilestoneResponse>> {
+    // In production, fetch all milestones and filter client-side
+    if (IS_STATIC_API) {
+      const response = await fetchJson<PaginatedResponse<MilestoneResponse>>(
+        `${API_BASE}/milestones/filter.json`
+      );
+
+      // Apply client-side filtering
+      let filtered = response.data;
+
+      if (filters.categories) {
+        const cats = filters.categories.split(',');
+        filtered = filtered.filter(m => cats.includes(m.category));
+      }
+      if (filters.significance) {
+        const sigs = filters.significance.split(',').map(Number);
+        filtered = filtered.filter(m => sigs.includes(m.significance));
+      }
+      if (filters.dateStart) {
+        filtered = filtered.filter(m => m.date >= filters.dateStart!);
+      }
+      if (filters.dateEnd) {
+        filtered = filtered.filter(m => m.date <= filters.dateEnd!);
+      }
+      if (filters.tags) {
+        const tags = filters.tags.split(',');
+        filtered = filtered.filter(m =>
+          m.tags.some(t => tags.includes(t))
+        );
+      }
+
+      return {
+        data: filtered,
+        pagination: {
+          page: 1,
+          limit: filtered.length,
+          total: filtered.length,
+          totalPages: 1,
+        },
+      };
+    }
+
     const searchParams = new URLSearchParams();
     if (filters.categories) searchParams.set('categories', filters.categories);
     if (filters.significance) searchParams.set('significance', filters.significance);
@@ -204,6 +275,7 @@ export const milestonesApi = {
    * Get all unique tags with counts
    */
   async getTags(): Promise<{ data: { tag: string; count: number }[] }> {
-    return fetchJson<{ data: { tag: string; count: number }[] }>(`${API_BASE}/milestones/tags`);
+    const ext = IS_STATIC_API ? '.json' : '';
+    return fetchJson<{ data: { tag: string; count: number }[] }>(`${API_BASE}/milestones/tags${ext}`);
   },
 };

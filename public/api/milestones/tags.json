@@ -1,0 +1,488 @@
+{
+  "data": [
+    {
+      "tag": "Alignment",
+      "count": 4
+    },
+    {
+      "tag": "CNN",
+      "count": 3
+    },
+    {
+      "tag": "AI policy",
+      "count": 3
+    },
+    {
+      "tag": "Foundation models",
+      "count": 3
+    },
+    {
+      "tag": "Text-to-image",
+      "count": 3
+    },
+    {
+      "tag": "Open models",
+      "count": 3
+    },
+    {
+      "tag": "Reasoning models",
+      "count": 3
+    },
+    {
+      "tag": "AI competition",
+      "count": 3
+    },
+    {
+      "tag": "AI agents",
+      "count": 3
+    },
+    {
+      "tag": "Multimodal AI",
+      "count": 3
+    },
+    {
+      "tag": "Fine-tuning",
+      "count": 2
+    },
+    {
+      "tag": "Autoregressive LMs",
+      "count": 2
+    },
+    {
+      "tag": "Transformers",
+      "count": 2
+    },
+    {
+      "tag": "Trustworthy AI",
+      "count": 2
+    },
+    {
+      "tag": "Scaling laws",
+      "count": 2
+    },
+    {
+      "tag": "Generative models",
+      "count": 2
+    },
+    {
+      "tag": "LLMs",
+      "count": 2
+    },
+    {
+      "tag": "Open weights",
+      "count": 2
+    },
+    {
+      "tag": "Large language models",
+      "count": 2
+    },
+    {
+      "tag": "Large context windows",
+      "count": 2
+    },
+    {
+      "tag": "Artificial neuron",
+      "count": 1
+    },
+    {
+      "tag": "Neural networks",
+      "count": 1
+    },
+    {
+      "tag": "Entropy",
+      "count": 1
+    },
+    {
+      "tag": "Information theory",
+      "count": 1
+    },
+    {
+      "tag": "Turing Test",
+      "count": 1
+    },
+    {
+      "tag": "Machine intelligence",
+      "count": 1
+    },
+    {
+      "tag": "Artificial Intelligence",
+      "count": 1
+    },
+    {
+      "tag": "Perceptron",
+      "count": 1
+    },
+    {
+      "tag": "Linear classifier",
+      "count": 1
+    },
+    {
+      "tag": "Chatbots",
+      "count": 1
+    },
+    {
+      "tag": "NLP",
+      "count": 1
+    },
+    {
+      "tag": "Perceptrons",
+      "count": 1
+    },
+    {
+      "tag": "Model limitations",
+      "count": 1
+    },
+    {
+      "tag": "Logic programming",
+      "count": 1
+    },
+    {
+      "tag": "Prolog",
+      "count": 1
+    },
+    {
+      "tag": "Expert systems",
+      "count": 1
+    },
+    {
+      "tag": "Knowledge engineering",
+      "count": 1
+    },
+    {
+      "tag": "Backpropagation",
+      "count": 1
+    },
+    {
+      "tag": "Gradient descent",
+      "count": 1
+    },
+    {
+      "tag": "SVM",
+      "count": 1
+    },
+    {
+      "tag": "Margin maximization",
+      "count": 1
+    },
+    {
+      "tag": "LSTM",
+      "count": 1
+    },
+    {
+      "tag": "Recurrent neural networks",
+      "count": 1
+    },
+    {
+      "tag": "Game-playing AI",
+      "count": 1
+    },
+    {
+      "tag": "Search",
+      "count": 1
+    },
+    {
+      "tag": "Computer vision",
+      "count": 1
+    },
+    {
+      "tag": "Deep learning",
+      "count": 1
+    },
+    {
+      "tag": "Representation learning",
+      "count": 1
+    },
+    {
+      "tag": "Datasets",
+      "count": 1
+    },
+    {
+      "tag": "Supervised learning",
+      "count": 1
+    },
+    {
+      "tag": "GPU training",
+      "count": 1
+    },
+    {
+      "tag": "Embeddings",
+      "count": 1
+    },
+    {
+      "tag": "Distributional semantics",
+      "count": 1
+    },
+    {
+      "tag": "Seq2Seq",
+      "count": 1
+    },
+    {
+      "tag": "Encoder-decoder",
+      "count": 1
+    },
+    {
+      "tag": "Attention",
+      "count": 1
+    },
+    {
+      "tag": "Neural machine translation",
+      "count": 1
+    },
+    {
+      "tag": "Optimization",
+      "count": 1
+    },
+    {
+      "tag": "Adam",
+      "count": 1
+    },
+    {
+      "tag": "GANs",
+      "count": 1
+    },
+    {
+      "tag": "Generative modeling",
+      "count": 1
+    },
+    {
+      "tag": "Regularization",
+      "count": 1
+    },
+    {
+      "tag": "Dropout",
+      "count": 1
+    },
+    {
+      "tag": "Normalization",
+      "count": 1
+    },
+    {
+      "tag": "Training stability",
+      "count": 1
+    },
+    {
+      "tag": "Residual connections",
+      "count": 1
+    },
+    {
+      "tag": "Deep reinforcement learning",
+      "count": 1
+    },
+    {
+      "tag": "Monte Carlo tree search",
+      "count": 1
+    },
+    {
+      "tag": "PPO",
+      "count": 1
+    },
+    {
+      "tag": "Policy gradients",
+      "count": 1
+    },
+    {
+      "tag": "Transformer",
+      "count": 1
+    },
+    {
+      "tag": "Self-attention",
+      "count": 1
+    },
+    {
+      "tag": "Pretraining",
+      "count": 1
+    },
+    {
+      "tag": "Masked language modeling",
+      "count": 1
+    },
+    {
+      "tag": "AI governance",
+      "count": 1
+    },
+    {
+      "tag": "Safety",
+      "count": 1
+    },
+    {
+      "tag": "Model release strategy",
+      "count": 1
+    },
+    {
+      "tag": "Pretraining recipes",
+      "count": 1
+    },
+    {
+      "tag": "Text-to-text",
+      "count": 1
+    },
+    {
+      "tag": "Transfer learning",
+      "count": 1
+    },
+    {
+      "tag": "Compute",
+      "count": 1
+    },
+    {
+      "tag": "RAG",
+      "count": 1
+    },
+    {
+      "tag": "Retrieval",
+      "count": 1
+    },
+    {
+      "tag": "Few-shot learning",
+      "count": 1
+    },
+    {
+      "tag": "Contrastive learning",
+      "count": 1
+    },
+    {
+      "tag": "Vision-language models",
+      "count": 1
+    },
+    {
+      "tag": "Code generation",
+      "count": 1
+    },
+    {
+      "tag": "Protein folding",
+      "count": 1
+    },
+    {
+      "tag": "Scientific ML",
+      "count": 1
+    },
+    {
+      "tag": "MoE",
+      "count": 1
+    },
+    {
+      "tag": "Sparse routing",
+      "count": 1
+    },
+    {
+      "tag": "Diffusion models",
+      "count": 1
+    },
+    {
+      "tag": "Latent diffusion",
+      "count": 1
+    },
+    {
+      "tag": "Compute-optimal training",
+      "count": 1
+    },
+    {
+      "tag": "RLHF",
+      "count": 1
+    },
+    {
+      "tag": "Instruction tuning",
+      "count": 1
+    },
+    {
+      "tag": "Multilingual LMs",
+      "count": 1
+    },
+    {
+      "tag": "Scaling",
+      "count": 1
+    },
+    {
+      "tag": "Risk management",
+      "count": 1
+    },
+    {
+      "tag": "Multimodal LLMs",
+      "count": 1
+    },
+    {
+      "tag": "Preference optimization",
+      "count": 1
+    },
+    {
+      "tag": "AI safety",
+      "count": 1
+    },
+    {
+      "tag": "AI regulation",
+      "count": 1
+    },
+    {
+      "tag": "Risk-based governance",
+      "count": 1
+    },
+    {
+      "tag": "Efficient training",
+      "count": 1
+    },
+    {
+      "tag": "Regulatory shifts",
+      "count": 1
+    },
+    {
+      "tag": "Computer use",
+      "count": 1
+    },
+    {
+      "tag": "Autonomous AI",
+      "count": 1
+    },
+    {
+      "tag": "Web automation",
+      "count": 1
+    },
+    {
+      "tag": "Extended thinking",
+      "count": 1
+    },
+    {
+      "tag": "Chain-of-thought",
+      "count": 1
+    },
+    {
+      "tag": "Mixture-of-experts",
+      "count": 1
+    },
+    {
+      "tag": "Agents",
+      "count": 1
+    },
+    {
+      "tag": "Modern AI practice",
+      "count": 1
+    },
+    {
+      "tag": "Coding AI",
+      "count": 1
+    },
+    {
+      "tag": "Frontier models",
+      "count": 1
+    },
+    {
+      "tag": "Orbital data centers",
+      "count": 1
+    },
+    {
+      "tag": "AI infrastructure",
+      "count": 1
+    },
+    {
+      "tag": "Space computing",
+      "count": 1
+    },
+    {
+      "tag": "GPU compute",
+      "count": 1
+    },
+    {
+      "tag": "Image generation",
+      "count": 1
+    }
+  ]
+}

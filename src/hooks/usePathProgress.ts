@@ -199,61 +199,65 @@ export function usePathProgress(): UsePathProgressReturn {
   // Mark a milestone as viewed
   const markMilestoneViewed = useCallback(
     (pathId: string, milestoneId: string) => {
-      const pathProgress = progress.paths[pathId];
+      // Use functional update to avoid depending on progress state
+      setProgress((prevProgress) => {
+        const pathProgress = prevProgress.paths[pathId];
 
-      if (!pathProgress) {
-        // Auto-start the path if not started
-        const newPathProgress: PathProgress = {
-          pathId,
-          viewedMilestoneIds: [milestoneId],
-          startedAt: new Date().toISOString(),
-          timeSpentSeconds: 0,
-          lastViewedMilestoneId: milestoneId,
-        };
+        let newProgress: StoredProgress;
 
-        updateProgress({
-          ...progress,
-          paths: {
-            ...progress.paths,
-            [pathId]: newPathProgress,
-          },
-          lastActivePath: pathId,
-        });
-        return;
-      }
-
-      // Check if already viewed
-      if (pathProgress.viewedMilestoneIds.includes(milestoneId)) {
-        // Just update lastViewedMilestoneId
-        updateProgress({
-          ...progress,
-          paths: {
-            ...progress.paths,
-            [pathId]: {
-              ...pathProgress,
-              lastViewedMilestoneId: milestoneId,
-            },
-          },
-          lastActivePath: pathId,
-        });
-        return;
-      }
-
-      // Add to viewed milestones
-      updateProgress({
-        ...progress,
-        paths: {
-          ...progress.paths,
-          [pathId]: {
-            ...pathProgress,
-            viewedMilestoneIds: [...pathProgress.viewedMilestoneIds, milestoneId],
+        if (!pathProgress) {
+          // Auto-start the path if not started
+          const newPathProgress: PathProgress = {
+            pathId,
+            viewedMilestoneIds: [milestoneId],
+            startedAt: new Date().toISOString(),
+            timeSpentSeconds: 0,
             lastViewedMilestoneId: milestoneId,
-          },
-        },
-        lastActivePath: pathId,
+          };
+
+          newProgress = {
+            ...prevProgress,
+            paths: {
+              ...prevProgress.paths,
+              [pathId]: newPathProgress,
+            },
+            lastActivePath: pathId,
+          };
+        } else if (pathProgress.viewedMilestoneIds.includes(milestoneId)) {
+          // Already viewed - just update lastViewedMilestoneId
+          newProgress = {
+            ...prevProgress,
+            paths: {
+              ...prevProgress.paths,
+              [pathId]: {
+                ...pathProgress,
+                lastViewedMilestoneId: milestoneId,
+              },
+            },
+            lastActivePath: pathId,
+          };
+        } else {
+          // Add to viewed milestones
+          newProgress = {
+            ...prevProgress,
+            paths: {
+              ...prevProgress.paths,
+              [pathId]: {
+                ...pathProgress,
+                viewedMilestoneIds: [...pathProgress.viewedMilestoneIds, milestoneId],
+                lastViewedMilestoneId: milestoneId,
+              },
+            },
+            lastActivePath: pathId,
+          };
+        }
+
+        // Save to localStorage
+        saveProgress(newProgress);
+        return newProgress;
       });
     },
-    [progress, updateProgress]
+    [] // No dependencies - uses functional update
   );
 
   // Mark path as completed

@@ -7,6 +7,7 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
 import TimelinePage from './pages/TimelinePage';
 import LearningPathsPage from './pages/LearningPathsPage';
+import GlossaryPage from './pages/GlossaryPage';
 import {
   AdminDashboard,
   MilestonesListPage,
@@ -55,6 +56,7 @@ function App() {
               <Route path="learn" element={<LearningPathsPage />} />
               <Route path="learn/:pathId" element={<LearningPathsPage />} />
               <Route path="learn/:pathId/complete" element={<LearningPathsPage />} />
+              <Route path="glossary" element={<GlossaryPage />} />
             </Route>
 
             {/* Admin routes */}

@@ -71,6 +71,14 @@ let milestonesCache: MilestoneResponse[] | null = null;
 let milestonesCachePromise: Promise<MilestoneResponse[]> | null = null;
 
 /**
+ * Clear the milestones cache - useful for forcing a refetch after mutations
+ */
+export function clearMilestonesCache(): void {
+  milestonesCache = null;
+  milestonesCachePromise = null;
+}
+
+/**
  * Fetch all milestones with caching
  * Used by useMilestone to find individual milestones without individual API endpoints
  */
@@ -83,10 +91,17 @@ async function getAllMilestonesCached(): Promise<MilestoneResponse[]> {
     return milestonesCachePromise;
   }
 
-  milestonesCachePromise = milestonesApi.getAll({ limit: 1000 }).then((response) => {
-    milestonesCache = response.data;
-    return response.data;
-  });
+  milestonesCachePromise = milestonesApi
+    .getAll({ limit: 1000 })
+    .then((response) => {
+      milestonesCache = response.data;
+      return response.data;
+    })
+    .catch((error) => {
+      // Clear the promise on error so subsequent calls will retry
+      milestonesCachePromise = null;
+      throw error;
+    });
 
   return milestonesCachePromise;
 }
