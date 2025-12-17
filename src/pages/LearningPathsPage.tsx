@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen, RotateCcw, X } from 'lucide-react';
 import { useLearningPath, useCheckpointsForPath } from '../hooks/useContent';
 import { usePathProgress } from '../hooks/usePathProgress';
 import { useCheckpointProgress } from '../hooks/useCheckpointProgress';
@@ -58,6 +58,7 @@ function LearningPathsPage() {
     resetPathProgress,
     getPathProgress,
     startPath,
+    resetAllProgress: resetAllPathProgress,
   } = usePathProgress();
 
   // Checkpoint progress tracking
@@ -65,7 +66,11 @@ function LearningPathsPage() {
     isCheckpointCompleted,
     getPathCheckpointStats,
     completeCheckpoint,
+    resetAllProgress: resetAllCheckpointProgress,
   } = useCheckpointProgress();
+
+  // State for reset confirmation dialog
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Get current path data
   const currentPathId = viewState.type !== 'selection' ? viewState.pathId : '';
@@ -241,6 +246,13 @@ function LearningPathsPage() {
     handleExitPath();
   }, [handleExitPath]);
 
+  // Handle reset all progress
+  const handleResetAllProgress = useCallback(() => {
+    resetAllPathProgress();
+    resetAllCheckpointProgress();
+    setShowResetConfirm(false);
+  }, [resetAllPathProgress, resetAllCheckpointProgress]);
+
   // Render based on view state
   return (
     <div className="animate-fade-in min-h-screen">
@@ -275,8 +287,79 @@ function LearningPathsPage() {
           <section className="py-8 dark:bg-gray-900">
             <div className="container-main">
               <PathSelector onSelectPath={handleSelectPath} />
+
+              {/* Reset Progress Section */}
+              <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Progress Management
+                    </h3>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Reset your progress to start fresh on all learning paths
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowResetConfirm(true)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Reset All Progress
+                  </button>
+                </div>
+              </div>
             </div>
           </section>
+
+          {/* Reset Confirmation Modal */}
+          {showResetConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Reset All Progress?
+                  </h3>
+                  <button
+                    onClick={() => setShowResetConfirm(false)}
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  This will permanently clear all your learning progress, including:
+                </p>
+                <ul className="text-sm text-gray-600 dark:text-gray-400 mb-6 space-y-2">
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                    All completed milestones across all paths
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                    All checkpoint quiz answers and scores
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                    Time spent tracking data
+                  </li>
+                </ul>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowResetConfirm(false)}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleResetAllProgress}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                  >
+                    Yes, Reset Everything
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
 
