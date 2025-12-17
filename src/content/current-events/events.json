@@ -105,7 +105,7 @@
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT"],
     "connectionExplanation": "Claude 3 Opus builds on the transformer architecture introduced in 2017 and represents the competitive landscape emerging after ChatGPT's success. It demonstrates how the LLM market has evolved from a single dominant player to multiple strong competitors.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   },
   {
     "id": "ce-gemini-ultra",
@@ -117,7 +117,7 @@
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3", "E2022_CHATGPT"],
     "connectionExplanation": "Gemini Ultra showcases how transformer-based architectures have evolved to handle multiple modalities. Google's entry into the chatbot race demonstrates how ChatGPT catalyzed industry-wide investment in AI assistants.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   },
   {
     "id": "ce-open-source-llms",
@@ -129,7 +129,7 @@
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2020_GPT3"],
     "connectionExplanation": "Open source LLMs like Llama 2 represent a shift from the proprietary model approach of GPT-3. They show how the technology introduced by transformers has become accessible enough for broad experimentation and deployment.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   },
   {
     "id": "ce-gpt-4-turbo",
@@ -141,7 +141,7 @@
     "prerequisiteMilestoneIds": ["E2020_GPT3", "E2022_CHATGPT", "E2023_GPT4"],
     "connectionExplanation": "GPT-4 Turbo represents continued evolution from GPT-3 and GPT-4, addressing key limitations like context length. The 128K context window enables new use cases like analyzing entire books or codebases in a single conversation.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   },
   {
     "id": "ce-midjourney-v6",
@@ -153,7 +153,7 @@
     "prerequisiteMilestoneIds": ["E2014_GANS", "E2021_DALLE", "E2022_STABLE_DIFFUSION_RELEASE"],
     "connectionExplanation": "Midjourney V6 builds on the foundation of GANs and diffusion models, representing the commercialization of AI image generation. Its improved text rendering addresses a key limitation of earlier models like DALL-E and Stable Diffusion.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   },
   {
     "id": "ce-sora-announcement",
@@ -165,7 +165,7 @@
     "prerequisiteMilestoneIds": ["E2017_TRANSFORMER", "E2021_DALLE", "E2022_LATENT_DIFFUSION"],
     "connectionExplanation": "Sora extends diffusion models from images to video, representing a major step toward AI understanding of temporal and physical dynamics. It builds directly on the latent diffusion techniques that powered Stable Diffusion and DALL-E 2.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   },
   {
     "id": "ce-eu-ai-act-enforcement",
@@ -189,6 +189,6 @@
     "prerequisiteMilestoneIds": ["E2022_CHATGPT", "E2023_GPT4", "E2021_CODEX"],
     "connectionExplanation": "AI agents build on the foundation of ChatGPT and GPT-4's instruction-following capabilities, combined with tool use pioneered by systems like Codex. They represent the evolution from conversational AI to autonomous task completion.",
     "featured": false,
-    "expiresAt": "2025-12-01"
+    "expiresAt": "2026-06-01"
   }
 ]
