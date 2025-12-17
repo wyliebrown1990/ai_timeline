@@ -76,10 +76,23 @@
 | [Sprint 13](./sprint-13-concept-checkpoints.md) | Concept Checkpoints | Medium | Medium |
 | [Sprint 14](./sprint-14-personalized-onboarding.md) | Personalized Onboarding | High | Medium |
 
-### Phase 4: Current Events Integration
+### Phase 4: Current Events & Security
 | Sprint | Focus | Impact | Effort |
 |--------|-------|--------|--------|
 | [Sprint 15](./sprint-15-why-now-current-events.md) | "Why Now?" Current Events | Medium | Low |
+| [Sprint 16](./sprint-16-secure-api-key-management.md) | Secure API Key Management | High | Medium |
+
+### Phase 5: Audience-Specific Learning Paths
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 17](./sprint-17-ai-for-everyday-life.md) | "AI for Everyday Life" Path (65+ audience) | High | Medium |
+| [Sprint 18](./sprint-18-ai-for-leaders.md) | "AI for Leaders" Path (Executives) | High | Medium |
+| [Sprint 19](./sprint-19-audience-targeting-infrastructure.md) | Audience Targeting Infrastructure | High | Medium |
+| [Sprint 20](./sprint-20-audience-content-completion.md) | Content Completion & User Testing | High | High |
+
+**Phase 5 Goal**: Make AI Timeline accessible to non-technical audiences:
+- **Everyday Life Track**: For 65+ users who want to understand AI in plain English, with familiar analogies and practical safety tips
+- **Leaders Track**: For 40s-50s executives who need to make AI decisions but don't know where to start
 
 ---
 
