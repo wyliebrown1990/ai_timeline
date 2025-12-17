@@ -18,7 +18,7 @@ const navLinks = [
 
 /**
  * Header component with main navigation
- * Anthropic Warm theme - elegant, minimal design
+ * Warm orange accent theme
  * Responsive: hamburger menu on mobile, horizontal nav on desktop
  */
 function Header() {
@@ -29,7 +29,7 @@ function Header() {
 
   return (
     <header
-      className="sticky top-0 z-50 border-b border-warm-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-warm-700 dark:bg-warm-900/95 dark:supports-[backdrop-filter]:bg-warm-900/80"
+      className="sticky top-0 z-50 border-b border-gray-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-gray-700 dark:bg-gray-900/95 dark:supports-[backdrop-filter]:bg-gray-900/80"
       role="banner"
     >
       <div className="container-main">
@@ -37,10 +37,10 @@ function Header() {
           {/* Logo / Brand */}
           <Link
             to="/"
-            className="flex items-center gap-2 text-xl font-bold text-warmGray-800 transition-colors hover:text-primary-600 dark:text-warm-100 dark:hover:text-primary-400"
+            className="flex items-center gap-2 text-xl font-bold text-gray-900 transition-colors hover:text-orange-600 dark:text-white dark:hover:text-orange-400"
             onClick={closeMobileMenu}
           >
-            <Clock className="h-6 w-6 text-primary-500 dark:text-primary-400" />
+            <Clock className="h-6 w-6 text-orange-500 dark:text-orange-400" />
             <span className="hidden sm:inline">AI Timeline</span>
             <span className="sm:hidden">AI</span>
           </Link>
@@ -59,8 +59,8 @@ function Header() {
                         to={to}
                         className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                           isActive
-                            ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                            : 'text-warmGray-600 hover:bg-warm-100 hover:text-warmGray-800 dark:text-warm-400 dark:hover:bg-warm-800 dark:hover:text-warm-100'
+                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
                         }`}
                         aria-current={isActive ? 'page' : undefined}
                       >
@@ -81,8 +81,8 @@ function Header() {
               to="/settings"
               className={`p-2 rounded-lg transition-colors ${
                 location.pathname === '/settings'
-                  ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                  : 'text-warmGray-500 hover:bg-warm-100 hover:text-warmGray-700 dark:text-warm-400 dark:hover:bg-warm-800 dark:hover:text-warm-200'
+                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
               }`}
               aria-label="Settings"
               title="Settings"
@@ -101,8 +101,8 @@ function Header() {
               to="/settings"
               className={`p-2 rounded-lg transition-colors ${
                 location.pathname === '/settings'
-                  ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                  : 'text-warmGray-500 hover:bg-warm-100 hover:text-warmGray-700 dark:text-warm-400 dark:hover:bg-warm-800 dark:hover:text-warm-200'
+                  ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                  : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
               }`}
               aria-label="Settings"
               onClick={closeMobileMenu}
@@ -116,7 +116,7 @@ function Header() {
             {/* Hamburger Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-warmGray-500 hover:bg-warm-100 hover:text-warmGray-700 dark:text-warm-400 dark:hover:bg-warm-800 dark:hover:text-warm-200 transition-colors"
+              className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white transition-colors"
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileMenuOpen}
             >
@@ -132,7 +132,7 @@ function Header() {
 
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-warm-200 dark:border-warm-700 bg-white dark:bg-warm-900">
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <nav aria-label="Mobile navigation" className="container-main py-3">
             <ul className="space-y-1">
               {navLinks.map(({ to, label, icon: Icon, exact }) => {
@@ -146,8 +146,8 @@ function Header() {
                       onClick={closeMobileMenu}
                       className={`flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium transition-colors ${
                         isActive
-                          ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400'
-                          : 'text-warmGray-700 hover:bg-warm-100 dark:text-warm-300 dark:hover:bg-warm-800'
+                          ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
                       }`}
                       aria-current={isActive ? 'page' : undefined}
                     >
@@ -160,7 +160,7 @@ function Header() {
             </ul>
 
             {/* Profile Indicator in Mobile Menu */}
-            <div className="mt-3 pt-3 border-t border-warm-200 dark:border-warm-700 px-4">
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 px-4">
               <ProfileIndicator />
             </div>
           </nav>

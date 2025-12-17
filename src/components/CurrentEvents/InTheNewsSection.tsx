@@ -88,8 +88,8 @@ export function InTheNewsSection({
         {/* Section header with "View All" link */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-              <Newspaper className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+              <Newspaper className="w-5 h-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -104,7 +104,7 @@ export function InTheNewsSection({
           {/* View All link */}
           <Link
             to="/news"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg transition-colors"
           >
             View all {totalCount} stories
             <ArrowRight className="w-4 h-4" />
@@ -164,7 +164,7 @@ export function InTheNewsSection({
         <div className="sm:hidden mt-4 text-center">
           <Link
             to="/news"
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors"
           >
             View all {totalCount} stories
             <ArrowRight className="w-4 h-4" />

@@ -55,11 +55,11 @@ function EmptyState() {
   return (
     <div
       data-testid="empty-state"
-      className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-warm-300 bg-warm-50 p-8 dark:border-warm-700 dark:bg-warm-800"
+      className="flex min-h-[300px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-8 dark:border-gray-700 dark:bg-gray-800"
     >
-      <Clock className="h-12 w-12 text-warmGray-400" />
-      <h2 className="mt-4 text-lg font-semibold text-warmGray-700 dark:text-warm-200">No Milestones Found</h2>
-      <p className="mt-2 text-center text-warmGray-500 dark:text-warm-400">
+      <Clock className="h-12 w-12 text-gray-400" />
+      <h2 className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-200">No Milestones Found</h2>
+      <p className="mt-2 text-center text-gray-500 dark:text-gray-400">
         There are no AI milestones to display at this time.
       </p>
     </div>
@@ -250,12 +250,12 @@ function TimelinePage() {
       />
 
       {/* Page Header */}
-      <section className="border-b border-warm-200 bg-white py-8 dark:border-warm-700 dark:bg-warm-900">
+      <section className="border-b border-gray-200 bg-white py-8 dark:border-gray-700 dark:bg-gray-900">
         <div className="container-main">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-warmGray-800 dark:text-warm-50 sm:text-3xl">AI Timeline</h1>
-              <p className="mt-1 text-warmGray-600 dark:text-warm-300">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">AI Timeline</h1>
+              <p className="mt-1 text-gray-600 dark:text-gray-300">
                 Explore the history of artificial intelligence from 1940s to present
                 {filterTotal > 0 && (
                   <span>
@@ -269,14 +269,14 @@ function TimelinePage() {
             {/* Toolbar */}
             <div className="flex items-center gap-2">
               {/* View mode toggle */}
-              <div className="flex rounded-lg border border-warm-300 bg-white dark:border-warm-600 dark:bg-warm-800">
+              <div className="flex rounded-lg border border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800">
                 <button
                   type="button"
                   onClick={() => setViewMode('timeline')}
                   className={`inline-flex items-center gap-1.5 rounded-l-lg px-3 py-2 text-sm font-medium transition-colors ${
                     viewMode === 'timeline'
-                      ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
-                      : 'text-warmGray-700 hover:bg-warm-50 dark:text-warm-300 dark:hover:bg-warm-700'
+                      ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
                   }`}
                   aria-label="Timeline view"
                   aria-pressed={viewMode === 'timeline'}
@@ -287,10 +287,10 @@ function TimelinePage() {
                 <button
                   type="button"
                   onClick={() => setViewMode('list')}
-                  className={`inline-flex items-center gap-1.5 rounded-r-lg border-l border-warm-300 px-3 py-2 text-sm font-medium transition-colors dark:border-warm-600 ${
+                  className={`inline-flex items-center gap-1.5 rounded-r-lg border-l border-gray-300 px-3 py-2 text-sm font-medium transition-colors dark:border-gray-600 ${
                     viewMode === 'list'
-                      ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'
-                      : 'text-warmGray-700 hover:bg-warm-50 dark:text-warm-300 dark:hover:bg-warm-700'
+                      ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                      : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
                   }`}
                   aria-label="List view"
                   aria-pressed={viewMode === 'list'}
@@ -351,7 +351,7 @@ function TimelinePage() {
               {/* Personalize button */}
               <button
                 onClick={openOnboarding}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-warm-300 bg-white px-3 py-2 text-sm font-medium text-warmGray-700 transition-colors hover:bg-warm-50 hover:border-warm-400 dark:border-warm-600 dark:bg-warm-800 dark:text-warm-300 dark:hover:bg-warm-700"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                 title="Get personalized learning recommendations"
               >
                 <Sparkles className="h-4 w-4" />
@@ -397,7 +397,7 @@ function TimelinePage() {
       </section>
 
       {/* Timeline Content */}
-      <section className="py-8 bg-warm-50 dark:bg-warm-900">
+      <section className="py-8 bg-gray-50 dark:bg-gray-900">
         <div
           ref={timelineRef}
           className={viewMode === 'timeline' ? 'px-4' : 'container-main'}

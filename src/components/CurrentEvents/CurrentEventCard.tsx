@@ -40,7 +40,7 @@ export function CurrentEventCard({
         group relative p-5 rounded-xl border
         bg-white dark:bg-gray-800
         border-gray-200 dark:border-gray-700
-        hover:border-blue-300 dark:hover:border-blue-600
+        hover:border-orange-300 dark:hover:border-orange-600
         hover:shadow-lg
         transition-all duration-200
         cursor-pointer
@@ -65,7 +65,7 @@ export function CurrentEventCard({
       )}
 
       {/* Headline - extra right padding to avoid overlap with Featured badge */}
-      <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors pr-20">
+      <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-snug group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors pr-20">
         {event.headline}
       </h3>
 
@@ -93,7 +93,7 @@ export function CurrentEventCard({
         <span className="text-xs text-gray-500 dark:text-gray-400">
           {event.prerequisiteMilestoneIds.length} milestones to understand this
         </span>
-        <span className="flex items-center gap-1 text-sm font-medium text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform">
+        <span className="flex items-center gap-1 text-sm font-medium text-orange-600 dark:text-orange-400 group-hover:translate-x-1 transition-transform">
           Get context
           <ChevronRight className="w-4 h-4" />
         </span>

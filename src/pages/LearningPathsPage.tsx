@@ -277,7 +277,7 @@ function LearningPathsPage() {
           <div className="text-gray-500 text-sm mb-4">Path ID: {viewState.pathId}</div>
           <button
             onClick={handleExitPath}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
           >
             Back to Learning Paths
           </button>
@@ -297,7 +297,7 @@ function LearningPathsPage() {
           </div>
           <button
             onClick={handleExitPath}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
           >
             Back to Learning Paths
           </button>
@@ -308,12 +308,12 @@ function LearningPathsPage() {
       {viewState.type === 'selection' && (
         <>
           {/* Header */}
-          <section className="bg-gradient-to-b from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 py-12">
+          <section className="bg-gradient-to-b from-orange-50 to-white dark:from-gray-800 dark:to-gray-900 py-12">
             <div className="container-main">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
-                    <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                  <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+                    <BookOpen className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div>
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -326,7 +326,7 @@ function LearningPathsPage() {
                 </div>
                 <button
                   onClick={openOnboarding}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-50 hover:border-purple-400 dark:border-purple-600 dark:bg-gray-800 dark:text-purple-400 dark:hover:bg-purple-900/30"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                   title="Get personalized learning recommendations"
                 >
                   <Sparkles className="h-4 w-4" />
@@ -448,7 +448,7 @@ function LearningPathsPage() {
             <div className="max-w-2xl mx-auto bg-white dark:bg-gray-800 min-h-full shadow-xl">
               {milestoneLoading ? (
                 <div className="flex items-center justify-center h-64">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent" />
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-orange-500 border-t-transparent" />
                 </div>
               ) : (
                 <MilestoneDetail
@@ -546,7 +546,7 @@ function LearningPathsPage() {
                     </div>
                     {stats.completedCheckpoints > 0 && (
                       <div className="text-right">
-                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                           {stats.averageScore}%
                         </span>
                         <p className="text-xs text-gray-500 dark:text-gray-400">avg score</p>

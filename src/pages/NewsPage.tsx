@@ -116,12 +116,12 @@ export function NewsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Hero header */}
-      <div className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 text-white">
+      <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 text-white">
         <div className="container-main py-12 sm:py-16">
           {/* Breadcrumb */}
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-blue-100 hover:text-white transition-colors mb-6"
+            className="inline-flex items-center gap-2 text-orange-100 hover:text-white transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
@@ -133,7 +133,7 @@ export function NewsPage() {
             </div>
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold">AI News Hub</h1>
-              <p className="text-blue-100 mt-1">
+              <p className="text-orange-100 mt-1">
                 Understand today's AI headlines through historical context
               </p>
             </div>
@@ -147,12 +147,12 @@ export function NewsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search news stories..."
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all"
+              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/10 backdrop-blur border border-white/20 text-white placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-white/50 focus:bg-white/20 transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-200 hover:text-white"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-200 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -171,7 +171,7 @@ export function NewsPage() {
                 onClick={() => setFilterType('all')}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   filterType === 'all'
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
@@ -205,14 +205,14 @@ export function NewsPage() {
                 onClick={() => setShowFilters(!showFilters)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   showFilters || activeFilterCount > 0
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" />
                 More Filters
                 {activeFilterCount > 0 && (
-                  <span className="ml-1 w-5 h-5 rounded-full bg-purple-600 text-white text-xs flex items-center justify-center">
+                  <span className="ml-1 w-5 h-5 rounded-full bg-orange-600 text-white text-xs flex items-center justify-center">
                     {activeFilterCount}
                   </span>
                 )}
@@ -227,7 +227,7 @@ export function NewsPage() {
               <select
                 value={sortType}
                 onChange={(e) => setSortType(e.target.value as SortType)}
-                className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -244,7 +244,7 @@ export function NewsPage() {
                 <select
                   value={selectedPublisher || ''}
                   onChange={(e) => setSelectedPublisher(e.target.value || null)}
-                  className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-orange-500"
                 >
                   <option value="">All Sources</option>
                   {publishers.map((pub) => (
@@ -295,7 +295,7 @@ export function NewsPage() {
             </p>
             <button
               onClick={clearFilters}
-              className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
+              className="text-orange-600 dark:text-orange-400 font-medium hover:underline"
             >
               Clear all filters
             </button>

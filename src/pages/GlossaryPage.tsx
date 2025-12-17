@@ -133,11 +133,11 @@ export default function GlossaryPage() {
     return (
       <div className="container-main py-8">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-warm-200 dark:bg-warm-700 rounded w-1/4" />
-          <div className="h-12 bg-warm-200 dark:bg-warm-700 rounded" />
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4" />
+          <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded" />
           <div className="space-y-2">
             {[...Array(10)].map((_, i) => (
-              <div key={i} className="h-20 bg-warm-200 dark:bg-warm-700 rounded" />
+              <div key={i} className="h-20 bg-gray-200 dark:bg-gray-700 rounded" />
             ))}
           </div>
         </div>
@@ -151,21 +151,21 @@ export default function GlossaryPage() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
-            <BookOpen className="h-8 w-8 text-primary-500 dark:text-primary-400" />
-            <h1 className="text-3xl font-bold text-warmGray-800 dark:text-warm-50">
+            <BookOpen className="h-8 w-8 text-orange-500 dark:text-orange-400" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               AI Glossary
             </h1>
           </div>
           <button
             onClick={openOnboarding}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-warm-300 bg-white px-3 py-2 text-sm font-medium text-warmGray-700 transition-colors hover:bg-warm-50 hover:border-warm-400 dark:border-warm-600 dark:bg-warm-800 dark:text-warm-300 dark:hover:bg-warm-700"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             title="Get personalized learning recommendations"
           >
             <Sparkles className="h-4 w-4" />
             <span className="hidden sm:inline">Personalize</span>
           </button>
         </div>
-        <p className="text-warmGray-600 dark:text-warm-400 max-w-2xl">
+        <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
           Plain-language definitions of AI terms with business context.
           Click any term to learn more, or hover for quick definitions.
         </p>
@@ -175,19 +175,19 @@ export default function GlossaryPage() {
       <div className="mb-6 space-y-4">
         {/* Search bar */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-warmGray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <input
             id="glossary-search"
             type="text"
             placeholder="Search terms... (Press '/' to focus)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-3 border border-warm-300 dark:border-warm-600 rounded-lg bg-white dark:bg-warm-800 text-warmGray-800 dark:text-warm-100 placeholder-warmGray-500 dark:placeholder-warm-500 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-500 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-warmGray-400 hover:text-warmGray-600 dark:hover:text-warm-300"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -197,13 +197,13 @@ export default function GlossaryPage() {
 
         {/* Category filter */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="h-4 w-4 text-warmGray-500 dark:text-warm-400" />
+          <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
           <button
             onClick={() => setSelectedCategory('all')}
             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
               selectedCategory === 'all'
-                ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
-                : 'bg-warm-100 text-warmGray-600 hover:bg-warm-200 dark:bg-warm-800 dark:text-warm-400 dark:hover:bg-warm-700'
+                ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
             }`}
           >
             All ({allTerms.length})
@@ -216,8 +216,8 @@ export default function GlossaryPage() {
                 onClick={() => setSelectedCategory(category)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === category
-                    ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
-                    : 'bg-warm-100 text-warmGray-600 hover:bg-warm-200 dark:bg-warm-800 dark:text-warm-400 dark:hover:bg-warm-700'
+                    ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'
                 }`}
               >
                 {GLOSSARY_CATEGORY_LABELS[category]} ({count})
@@ -229,7 +229,7 @@ export default function GlossaryPage() {
 
       {/* Alphabetical navigation */}
       <nav
-        className="mb-6 flex flex-wrap gap-1 sticky top-16 z-10 bg-warm-50 dark:bg-warm-900 py-3 border-b border-warm-200 dark:border-warm-700"
+        className="mb-6 flex flex-wrap gap-1 sticky top-16 z-10 bg-gray-50 dark:bg-gray-900 py-3 border-b border-gray-200 dark:border-gray-700"
         aria-label="Alphabetical navigation"
       >
         {ALPHABET.map((letter) => {
@@ -241,8 +241,8 @@ export default function GlossaryPage() {
               disabled={!isAvailable}
               className={`w-8 h-8 rounded text-sm font-medium transition-colors ${
                 isAvailable
-                  ? 'bg-warm-100 text-warmGray-700 hover:bg-primary-100 hover:text-primary-700 dark:bg-warm-800 dark:text-warm-300 dark:hover:bg-primary-900/50 dark:hover:text-primary-300'
-                  : 'text-warm-300 dark:text-warm-600 cursor-not-allowed'
+                  ? 'bg-gray-100 text-gray-700 hover:bg-orange-100 hover:text-orange-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-orange-900/50 dark:hover:text-orange-300'
+                  : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
               }`}
               aria-label={isAvailable ? `Jump to ${letter}` : `No terms starting with ${letter}`}
             >
@@ -253,7 +253,7 @@ export default function GlossaryPage() {
       </nav>
 
       {/* Results count */}
-      <p className="mb-4 text-sm text-warmGray-500 dark:text-warm-400">
+      <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
         Showing {filteredTerms.length} of {allTerms.length} terms
         {searchQuery && ` matching "${searchQuery}"`}
         {selectedCategory !== 'all' && ` in ${GLOSSARY_CATEGORY_LABELS[selectedCategory]}`}
@@ -262,11 +262,11 @@ export default function GlossaryPage() {
       {/* Terms list */}
       {filteredTerms.length === 0 ? (
         <div className="text-center py-12">
-          <BookOpen className="h-12 w-12 text-warm-300 dark:text-warm-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-warmGray-800 dark:text-warm-100 mb-2">
+          <BookOpen className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
             No terms found
           </h3>
-          <p className="text-warmGray-500 dark:text-warm-400">
+          <p className="text-gray-500 dark:text-gray-400">
             Try adjusting your search or filter criteria.
           </p>
         </div>
@@ -278,7 +278,7 @@ export default function GlossaryPage() {
               id={`glossary-section-${letter}`}
               className="scroll-mt-32"
             >
-              <h2 className="text-2xl font-bold text-warmGray-800 dark:text-warm-100 mb-4 border-b border-warm-200 dark:border-warm-700 pb-2">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
                 {letter}
               </h2>
               <div className="grid gap-3">
@@ -286,18 +286,18 @@ export default function GlossaryPage() {
                   <button
                     key={term.id}
                     onClick={() => handleTermClick(term)}
-                    className="text-left p-4 rounded-lg border border-warm-200 dark:border-warm-700 hover:border-primary-300 dark:hover:border-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors group"
+                    className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors group"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-warmGray-800 dark:text-warm-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
                           {term.term}
                         </h3>
-                        <p className="text-sm text-warmGray-600 dark:text-warm-400 mt-1 line-clamp-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                           {term.shortDefinition}
                         </p>
                       </div>
-                      <span className="shrink-0 px-2 py-1 rounded text-xs font-medium bg-warm-100 text-warmGray-600 dark:bg-warm-800 dark:text-warm-400">
+                      <span className="shrink-0 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                         {GLOSSARY_CATEGORY_LABELS[term.category]}
                       </span>
                     </div>
