@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Clock, Home } from 'lucide-react';
+import { Clock, Home, BookOpen } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 
 /**
@@ -7,8 +7,9 @@ import { ThemeToggleSimple } from './ThemeToggle';
  * Defines all main navigation items
  */
 const navLinks = [
-  { to: '/', label: 'Home', icon: Home },
-  { to: '/timeline', label: 'Timeline', icon: Clock },
+  { to: '/', label: 'Home', icon: Home, exact: true },
+  { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
+  { to: '/learn', label: 'Learn', icon: BookOpen, exact: false },
 ] as const;
 
 /**
@@ -38,8 +39,10 @@ function Header() {
           <div className="flex items-center gap-2">
             <nav aria-label="Main navigation" role="navigation">
               <ul className="flex items-center gap-1">
-                {navLinks.map(({ to, label, icon: Icon }) => {
-                  const isActive = location.pathname === to;
+                {navLinks.map(({ to, label, icon: Icon, exact }) => {
+                  const isActive = exact
+                    ? location.pathname === to
+                    : location.pathname.startsWith(to);
                   return (
                     <li key={to}>
                       <Link

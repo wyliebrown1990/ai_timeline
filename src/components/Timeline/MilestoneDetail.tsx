@@ -11,9 +11,11 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef } from 'react';
 import { useChatContext } from '../../context/ChatContext';
+import { useLayeredContent } from '../../hooks/useContent';
 import type { MilestoneResponse, SignificanceLevel } from '../../types/milestone';
 import { formatTimelineDate } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
+import { LayeredExplanationTabs } from './LayeredExplanationTabs';
 import { SignificanceBadge } from './SignificanceBadge';
 
 interface MilestoneDetailProps {
@@ -47,6 +49,9 @@ export function MilestoneDetail({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const date = new Date(milestone.date);
   const { explainMilestone } = useChatContext();
+
+  // Fetch layered content for this milestone
+  const { data: layeredContent } = useLayeredContent(milestone.id);
 
   // Handle "Explain this" button click
   const handleExplainClick = () => {
@@ -201,9 +206,17 @@ export function MilestoneDetail({
             </div>
           )}
 
-          {/* Description */}
-          <div data-testid="detail-description" className="prose prose-gray dark:prose-invert max-w-none mb-4">
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{milestone.description}</p>
+          {/* Layered Explanations or Basic Description */}
+          <div data-testid="detail-description" className="mb-4">
+            {layeredContent ? (
+              <LayeredExplanationTabs content={layeredContent} />
+            ) : (
+              <div className="prose prose-gray dark:prose-invert max-w-none">
+                <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {milestone.description}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Explain this with AI button */}

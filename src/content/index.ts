@@ -31,6 +31,9 @@ import {
 // use dynamic requires or fetch patterns depending on the bundler.
 import chatgptStoryPath from './learning-paths/chatgpt-story.json';
 import aiFundamentalsPath from './learning-paths/ai-fundamentals.json';
+import aiImageGenerationPath from './learning-paths/ai-image-generation.json';
+import aiForBusinessPath from './learning-paths/ai-for-business.json';
+import aiGovernancePath from './learning-paths/ai-governance.json';
 import glossaryTermsData from './glossary/terms.json';
 import checkpointQuestionsData from './checkpoints/questions.json';
 import flashcardsData from './checkpoints/flashcards.json';
@@ -42,7 +45,13 @@ import layeredContentData from './milestones/layered-content.json';
 // =============================================================================
 
 // Validate and store learning paths
-const learningPathsRaw = [chatgptStoryPath, aiFundamentalsPath];
+const learningPathsRaw = [
+  chatgptStoryPath,
+  aiFundamentalsPath,
+  aiImageGenerationPath,
+  aiForBusinessPath,
+  aiGovernancePath,
+];
 let learningPaths: LearningPath[] = [];
 
 try {

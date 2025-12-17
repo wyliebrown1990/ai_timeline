@@ -9,7 +9,7 @@
     "E2018_GPT1",
     "E2019_GPT2",
     "E2020_GPT3",
-    "E2022_INSTRUCT_GPT",
+    "E2022_INSTRUCTGPT",
     "E2022_CHATGPT"
   ],
   "estimatedMinutes": 30,
