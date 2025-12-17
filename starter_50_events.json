@@ -1,0 +1,752 @@
+[
+  {
+    "id": "E1943_MCCULLOCH_PITTS",
+    "date": "1943",
+    "era": "Foundations",
+    "title": "McCulloch and Pitts formalize a mathematical model of neurons",
+    "summary": "Early computational neuroscience work that helped inspire neural network thinking.",
+    "coreConcepts": ["Artificial neuron", "Neural networks"],
+    "keyPeople": ["Warren McCulloch", "Walter Pitts"],
+    "sources": [
+      { "label": "Paper (PDF)", "kind": "paper", "url": "https://homes.cs.washington.edu/~pedrod/papers/mcculloch43.pdf" }
+    ]
+  },
+  {
+    "id": "E1948_SHANNON_INFORMATION_THEORY",
+    "date": "1948",
+    "era": "Foundations",
+    "title": "Shannon publishes 'A Mathematical Theory of Communication'",
+    "summary": "Defines information theory, foundational for modern communication and learning systems.",
+    "coreConcepts": ["Entropy", "Information theory"],
+    "keyPeople": ["Claude Shannon"],
+    "sources": [
+      { "label": "Paper (PDF)", "kind": "paper", "url": "https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf" }
+    ]
+  },
+  {
+    "id": "E1950_TURING_TEST",
+    "date": "1950",
+    "era": "Foundations",
+    "title": "Alan Turing proposes the 'Imitation Game' (Turing Test)",
+    "summary": "Frames machine intelligence via conversational indistinguishability.",
+    "coreConcepts": ["Turing Test", "Machine intelligence"],
+    "keyPeople": ["Alan Turing"],
+    "sources": [
+      { "label": "Journal article (Mind)", "kind": "paper", "url": "https://academic.oup.com/mind/article/LIX/236/433/986238" }
+    ]
+  },
+  {
+    "id": "E1955_DARTMOUTH_PROPOSAL",
+    "date": "1955",
+    "era": "Foundations",
+    "title": "Dartmouth Summer Research Project proposal coins 'Artificial Intelligence'",
+    "summary": "The proposal that popularized the term and agenda of AI research.",
+    "coreConcepts": ["Artificial Intelligence"],
+    "keyPeople": ["John McCarthy", "Marvin Minsky", "Nathaniel Rochester", "Claude Shannon"],
+    "sources": [
+      { "label": "Proposal (PDF)", "kind": "primary_doc", "url": "http://jmc.stanford.edu/articles/dartmouth/dartmouth.pdf" }
+    ]
+  },
+  {
+    "id": "E1958_PERCEPTRON",
+    "date": "1958",
+    "era": "Early Neural Nets",
+    "title": "Rosenblatt introduces the Perceptron",
+    "summary": "A trainable linear classifier that shaped early neural network optimism.",
+    "coreConcepts": ["Perceptron", "Linear classifier"],
+    "keyPeople": ["Frank Rosenblatt"],
+    "sources": [
+      { "label": "Paper (Psychological Review)", "kind": "paper", "url": "https://doi.org/10.1037/h0042519" }
+    ]
+  },
+  {
+    "id": "E1966_ELIZA",
+    "date": "1966",
+    "era": "Symbolic AI and Early NLP",
+    "title": "Weizenbaum publishes ELIZA",
+    "summary": "A landmark conversational program demonstrating pattern-based dialogue.",
+    "coreConcepts": ["Chatbots", "NLP"],
+    "keyPeople": ["Joseph Weizenbaum"],
+    "sources": [
+      { "label": "Paper (CACM)", "kind": "paper", "url": "https://dl.acm.org/doi/10.1145/365153.365168" }
+    ]
+  },
+  {
+    "id": "E1969_PERCEPTRONS_BOOK",
+    "date": "1969",
+    "era": "Early Neural Nets",
+    "title": "Minsky and Papert publish 'Perceptrons'",
+    "summary": "Highlights limitations of single-layer perceptrons and shapes an AI winter narrative.",
+    "coreConcepts": ["Perceptrons", "Model limitations"],
+    "keyPeople": ["Marvin Minsky", "Seymour Papert"],
+    "sources": [
+      { "label": "Book (MIT Press)", "kind": "book", "url": "https://mitpress.mit.edu/9780262630221/perceptrons/" }
+    ]
+  },
+  {
+    "id": "E1972_PROLOG",
+    "date": "1972",
+    "era": "Symbolic AI",
+    "title": "Prolog emerges as a logic programming language",
+    "summary": "Logic programming becomes a major paradigm for symbolic AI.",
+    "coreConcepts": ["Logic programming", "Prolog"],
+    "keyPeople": ["Alain Colmerauer", "Philippe Roussel"],
+    "sources": [
+      { "label": "Historical note (INRIA)", "kind": "primary_doc", "url": "https://www-sop.inria.fr/manifestations/Prolog50/Prolog50-history.html" }
+    ]
+  },
+  {
+    "id": "E1980_EXPERT_SYSTEMS_RISE",
+    "date": "1980",
+    "era": "Expert Systems",
+    "title": "Expert systems become commercially influential",
+    "summary": "Rule-based systems see widespread enterprise adoption before later limitations surface.",
+    "coreConcepts": ["Expert systems", "Knowledge engineering"],
+    "keyPeople": [],
+    "sources": [
+      { "label": "Classic overview (AI Magazine)", "kind": "paper", "url": "https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/411" }
+    ]
+  },
+  {
+    "id": "E1986_BACKPROP",
+    "date": "1986",
+    "era": "Neural Nets Revival",
+    "title": "Backpropagation popularized for learning representations",
+    "summary": "Backprop becomes the practical workhorse for training multi-layer neural networks.",
+    "coreConcepts": ["Backpropagation", "Gradient descent"],
+    "keyPeople": ["David Rumelhart", "Geoffrey Hinton", "Ronald Williams"],
+    "sources": [
+      { "label": "Paper (Nature)", "kind": "paper", "url": "https://www.nature.com/articles/323533a0" }
+    ]
+  },
+  {
+    "id": "E1995_SVM",
+    "date": "1995",
+    "era": "Statistical ML",
+    "title": "Support Vector Machines formalized",
+    "summary": "SVMs become a dominant approach in supervised learning for years.",
+    "coreConcepts": ["SVM", "Margin maximization"],
+    "keyPeople": ["Corinna Cortes", "Vladimir Vapnik"],
+    "sources": [
+      { "label": "Paper (Machine Learning)", "kind": "paper", "url": "https://link.springer.com/article/10.1007/BF00994018" }
+    ]
+  },
+  {
+    "id": "E1997_LSTM",
+    "date": "1997",
+    "era": "Neural Nets",
+    "title": "Long Short-Term Memory (LSTM) introduced",
+    "summary": "Addresses vanishing gradients and enables long-range sequence learning.",
+    "coreConcepts": ["LSTM", "Recurrent neural networks"],
+    "keyPeople": ["Sepp Hochreiter", "Jürgen Schmidhuber"],
+    "sources": [
+      { "label": "Paper (Neural Computation)", "kind": "paper", "url": "https://doi.org/10.1162/neco.1997.9.8.1735" }
+    ]
+  },
+  {
+    "id": "E1997_DEEP_BLUE",
+    "date": "1997",
+    "era": "Milestones",
+    "title": "IBM Deep Blue defeats Garry Kasparov",
+    "summary": "A symbolic and brute-force search milestone for human-competitive performance.",
+    "coreConcepts": ["Game-playing AI", "Search"],
+    "keyPeople": ["Garry Kasparov"],
+    "sources": [
+      { "label": "IBM archive (primary)", "kind": "primary_doc", "url": "https://www.ibm.com/ibm/history/ibm100/us/en/icons/deepblue/" }
+    ]
+  },
+  {
+    "id": "E1998_LENET",
+    "date": "1998",
+    "era": "Deep Learning Precursors",
+    "title": "LeCun et al. publish gradient-based learning for document recognition (LeNet era)",
+    "summary": "CNNs applied effectively to real-world vision tasks like handwriting recognition.",
+    "coreConcepts": ["CNN", "Computer vision"],
+    "keyPeople": ["Yann LeCun", "Léon Bottou", "Yoshua Bengio", "Patrick Haffner"],
+    "sources": [
+      { "label": "Paper (PDF)", "kind": "paper", "url": "http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf" }
+    ]
+  },
+  {
+    "id": "E2006_DEEP_BELIEF_NETS",
+    "date": "2006",
+    "era": "Deep Learning Emerges",
+    "title": "Hinton et al. publish Deep Belief Nets training method",
+    "summary": "Helps restart interest in deep architectures via layer-wise pretraining.",
+    "coreConcepts": ["Deep learning", "Representation learning"],
+    "keyPeople": ["Geoffrey Hinton", "Simon Osindero", "Yee-Whye Teh"],
+    "sources": [
+      { "label": "Paper (Neural Computation)", "kind": "paper", "url": "https://doi.org/10.1162/neco.2006.18.7.1527" }
+    ]
+  },
+  {
+    "id": "E2009_IMAGENET",
+    "date": "2009",
+    "era": "Deep Learning Emerges",
+    "title": "ImageNet dataset introduced",
+    "summary": "Large-scale labeled data becomes a catalyst for modern computer vision.",
+    "coreConcepts": ["Datasets", "Supervised learning"],
+    "keyPeople": ["Jia Deng", "Fei-Fei Li"],
+    "sources": [
+      { "label": "Paper (CVPR) PDF", "kind": "paper", "url": "https://www.image-net.org/static_files/papers/imagenet_cvpr09.pdf" }
+    ]
+  },
+  {
+    "id": "E2012_ALEXNET",
+    "date": "2012",
+    "era": "Deep Learning Boom",
+    "title": "AlexNet wins ImageNet and popularizes GPU deep learning",
+    "summary": "A decisive ImageNet breakthrough that accelerates deep learning adoption.",
+    "coreConcepts": ["CNN", "GPU training"],
+    "keyPeople": ["Alex Krizhevsky", "Ilya Sutskever", "Geoffrey Hinton"],
+    "sources": [
+      { "label": "NeurIPS paper (PDF)", "kind": "paper", "url": "https://proceedings.neurips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf" }
+    ]
+  },
+  {
+    "id": "E2013_WORD2VEC",
+    "date": "2013",
+    "era": "Deep Learning Boom",
+    "title": "word2vec introduces efficient neural word embeddings",
+    "summary": "Embeddings become a standard representation for language modeling pipelines.",
+    "coreConcepts": ["Embeddings", "Distributional semantics"],
+    "keyPeople": ["Tomas Mikolov"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1301.3781" }
+    ]
+  },
+  {
+    "id": "E2014_SEQ2SEQ",
+    "date": "2014",
+    "era": "Seq2Seq and Attention",
+    "title": "Sequence-to-sequence learning with neural networks",
+    "summary": "Encoder-decoder framing for translation and other sequence tasks.",
+    "coreConcepts": ["Seq2Seq", "Encoder-decoder"],
+    "keyPeople": ["Ilya Sutskever", "Oriol Vinyals", "Quoc V. Le"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1409.3215" }
+    ]
+  },
+  {
+    "id": "E2014_ATTENTION_NMT",
+    "date": "2014",
+    "era": "Seq2Seq and Attention",
+    "title": "Neural machine translation with attention alignment",
+    "summary": "Demonstrates learned alignment. A key step toward Transformers.",
+    "coreConcepts": ["Attention", "Neural machine translation"],
+    "keyPeople": ["Dzmitry Bahdanau", "Kyunghyun Cho", "Yoshua Bengio"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1409.0473" }
+    ]
+  },
+  {
+    "id": "E2014_ADAM",
+    "date": "2014",
+    "era": "Deep Learning Boom",
+    "title": "Adam optimizer introduced",
+    "summary": "Becomes a widely used adaptive optimizer for training neural nets.",
+    "coreConcepts": ["Optimization", "Adam"],
+    "keyPeople": ["Diederik Kingma", "Jimmy Ba"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1412.6980" }
+    ]
+  },
+  {
+    "id": "E2014_GANS",
+    "date": "2014",
+    "era": "Generative Models",
+    "title": "Generative Adversarial Networks (GANs) introduced",
+    "summary": "Adversarial training becomes a major paradigm for generative modeling.",
+    "coreConcepts": ["GANs", "Generative modeling"],
+    "keyPeople": ["Ian Goodfellow"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1406.2661" }
+    ]
+  },
+  {
+    "id": "E2014_DROPOUT",
+    "date": "2014",
+    "era": "Deep Learning Boom",
+    "title": "Dropout popularized as regularization",
+    "summary": "Improves generalization and becomes a default deep learning technique.",
+    "coreConcepts": ["Regularization", "Dropout"],
+    "keyPeople": ["Nitish Srivastava", "Geoffrey Hinton"],
+    "sources": [
+      { "label": "Paper (JMLR) PDF", "kind": "paper", "url": "https://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf" }
+    ]
+  },
+  {
+    "id": "E2015_BATCHNORM",
+    "date": "2015",
+    "era": "Deep Learning Boom",
+    "title": "Batch Normalization introduced",
+    "summary": "Stabilizes and accelerates training for deep networks.",
+    "coreConcepts": ["Normalization", "Training stability"],
+    "keyPeople": ["Sergey Ioffe", "Christian Szegedy"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1502.03167" }
+    ]
+  },
+  {
+    "id": "E2015_RESNET",
+    "date": "2015",
+    "era": "Deep Learning Boom",
+    "title": "ResNet enables very deep networks via residual connections",
+    "summary": "Residual learning becomes a backbone of modern vision architectures.",
+    "coreConcepts": ["Residual connections", "CNN"],
+    "keyPeople": ["Kaiming He", "Xiangyu Zhang", "Shaoqing Ren", "Jian Sun"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1512.03385" }
+    ]
+  },
+  {
+    "id": "E2016_ALPHAGO",
+    "date": "2016-01",
+    "era": "Reinforcement Learning Milestones",
+    "title": "DeepMind publishes AlphaGo results",
+    "summary": "Deep RL plus search achieves pro-level Go and shocks the field.",
+    "coreConcepts": ["Deep reinforcement learning", "Monte Carlo tree search"],
+    "keyPeople": ["David Silver", "Demis Hassabis"],
+    "sources": [
+      { "label": "Nature paper (PDF mirror)", "kind": "paper", "url": "https://augmentingcognition.com/assets/Silver2016a.pdf" }
+    ]
+  },
+  {
+    "id": "E2017_PPO",
+    "date": "2017",
+    "era": "Reinforcement Learning",
+    "title": "Proximal Policy Optimization (PPO) introduced",
+    "summary": "PPO becomes a standard RL algorithm. Later widely used in RLHF pipelines.",
+    "coreConcepts": ["PPO", "Policy gradients"],
+    "keyPeople": ["John Schulman"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1707.06347" }
+    ]
+  },
+  {
+    "id": "E2017_TRANSFORMER",
+    "date": "2017-06-12",
+    "era": "Transformers and LLMs",
+    "title": "Transformer architecture introduced",
+    "summary": "Replaces recurrence with self-attention. A key foundation for modern LLMs.",
+    "guidedStart": true,
+    "coreConcepts": ["Transformer", "Self-attention"],
+    "keyPeople": ["Ashish Vaswani", "Noam Shazeer", "Niki Parmar", "Jakob Uszkoreit", "Llion Jones", "Aidan Gomez", "Łukasz Kaiser", "Illia Polosukhin"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1706.03762" }
+    ]
+  },
+  {
+    "id": "E2018_GPT1",
+    "date": "2018",
+    "era": "Transformers and LLMs",
+    "title": "GPT introduces generative pretraining for language understanding",
+    "summary": "Pretrain then adapt. A template for modern foundation models.",
+    "coreConcepts": ["Pretraining", "Fine-tuning", "Autoregressive LMs"],
+    "keyPeople": ["Alec Radford"],
+    "sources": [
+      { "label": "Paper (OpenAI)", "kind": "paper", "url": "https://cdn.openai.com/research-covers/language-unsupervised/language_understanding_paper.pdf" }
+    ]
+  },
+  {
+    "id": "E2018_BERT",
+    "date": "2018",
+    "era": "Transformers and LLMs",
+    "title": "BERT popularizes masked language model pretraining",
+    "summary": "Transforms NLP benchmarks and downstream fine-tuning practice.",
+    "coreConcepts": ["Masked language modeling", "Transformers"],
+    "keyPeople": ["Jacob Devlin"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1810.04805" }
+    ]
+  },
+  {
+    "id": "E2018_OPENAI_CHARTER",
+    "date": "2018-04",
+    "era": "Governance and Institutions",
+    "title": "OpenAI Charter published",
+    "summary": "A defining governance document for OpenAI’s mission and principles.",
+    "coreConcepts": ["AI governance", "Safety"],
+    "keyPeople": [],
+    "sources": [
+      { "label": "OpenAI Charter", "kind": "primary_doc", "url": "https://openai.com/charter/" }
+    ]
+  },
+  {
+    "id": "E2019_GPT2",
+    "date": "2019",
+    "era": "Transformers and LLMs",
+    "title": "GPT-2 release and staged publication debate",
+    "summary": "Highlights capability scaling and risk discourse around text generation.",
+    "coreConcepts": ["Autoregressive LMs", "Model release strategy"],
+    "keyPeople": ["Alec Radford"],
+    "sources": [
+      { "label": "Technical report (PDF)", "kind": "paper", "url": "https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf" }
+    ]
+  },
+  {
+    "id": "E2019_T5",
+    "date": "2019-10-23",
+    "era": "Transformers and LLMs",
+    "title": "T5 frames NLP as text-to-text transfer learning",
+    "summary": "A unifying recipe for multi-task and transfer learning in NLP.",
+    "coreConcepts": ["Text-to-text", "Transfer learning"],
+    "keyPeople": ["Colin Raffel", "Noam Shazeer"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1910.10683" }
+    ]
+  },
+  {
+    "id": "E2019_ROBERTA",
+    "date": "2019-07-26",
+    "era": "Transformers and LLMs",
+    "title": "RoBERTa refines BERT pretraining recipe",
+    "summary": "Shows how training choices and data scale change outcomes.",
+    "coreConcepts": ["Pretraining recipes", "Transformers"],
+    "keyPeople": ["Yinhan Liu"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/1907.11692" }
+    ]
+  },
+  {
+    "id": "E2019_OECD_AI_PRINCIPLES",
+    "date": "2019-05",
+    "era": "Governance and Policy",
+    "title": "OECD AI Principles adopted",
+    "summary": "Influential international principles for trustworthy AI.",
+    "coreConcepts": ["Trustworthy AI", "AI policy"],
+    "keyPeople": [],
+    "sources": [
+      { "label": "OECD Principles (official)", "kind": "primary_doc", "url": "https://oecd.ai/en/ai-principles" }
+    ]
+  },
+  {
+    "id": "E2020_SCALING_LAWS",
+    "date": "2020",
+    "era": "Transformers and LLMs",
+    "title": "Scaling laws for neural language models",
+    "summary": "Empirical laws connecting loss to compute, data, and parameters.",
+    "coreConcepts": ["Scaling laws", "Compute"],
+    "keyPeople": ["Jared Kaplan"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2001.08361" }
+    ]
+  },
+  {
+    "id": "E2020_GPT3",
+    "date": "2020-05-28",
+    "era": "Transformers and LLMs",
+    "title": "GPT-3 demonstrates strong few-shot learning at scale",
+    "summary": "Catalyzes the modern foundation-model era.",
+    "guidedStart": true,
+    "coreConcepts": ["Few-shot learning", "Foundation models"],
+    "keyPeople": ["Tom B. Brown", "OpenAI"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2005.14165" }
+    ]
+  },
+  {
+    "id": "E2020_RAG",
+    "date": "2020",
+    "era": "LLM Techniques",
+    "title": "Retrieval-Augmented Generation (RAG) introduced",
+    "summary": "Combines parametric models with retrieval for factuality and attribution.",
+    "coreConcepts": ["RAG", "Retrieval"],
+    "keyPeople": ["Patrick Lewis"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2005.11401" }
+    ]
+  },
+  {
+    "id": "E2021_SWITCH_TRANSFORMERS",
+    "date": "2021-01-11",
+    "era": "Transformers and LLMs",
+    "title": "Switch Transformers scale Mixture-of-Experts models",
+    "summary": "Sparse routing enables huge parameter counts at lower compute cost.",
+    "coreConcepts": ["MoE", "Sparse routing"],
+    "keyPeople": ["William Fedus", "Barret Zoph", "Noam Shazeer"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2101.03961" }
+    ]
+  },
+  {
+    "id": "E2021_CLIP",
+    "date": "2021",
+    "era": "Multimodal",
+    "title": "CLIP aligns vision and language with contrastive learning",
+    "summary": "A major foundation for multimodal retrieval and generation systems.",
+    "coreConcepts": ["Contrastive learning", "Vision-language models"],
+    "keyPeople": ["Alec Radford", "OpenAI"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2103.00020" }
+    ]
+  },
+  {
+    "id": "E2021_DALLE",
+    "date": "2021",
+    "era": "Multimodal",
+    "title": "DALL·E demonstrates zero-shot text-to-image generation",
+    "summary": "Popularizes text-to-image synthesis as a mainstream capability.",
+    "coreConcepts": ["Text-to-image", "Generative models"],
+    "keyPeople": ["OpenAI"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2102.12092" }
+    ]
+  },
+  {
+    "id": "E2021_CODEX",
+    "date": "2021",
+    "era": "Code Models",
+    "title": "Codex reports strong code generation abilities",
+    "summary": "A key precursor to code assistants and developer copilots.",
+    "coreConcepts": ["Code generation", "LLMs"],
+    "keyPeople": ["Mark Chen", "OpenAI"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2107.03374" }
+    ]
+  },
+  {
+    "id": "E2021_ALPHAFOLD2",
+    "date": "2021",
+    "era": "Scientific AI",
+    "title": "AlphaFold achieves highly accurate protein structure prediction",
+    "summary": "A landmark scientific result showcasing deep learning’s impact beyond NLP and vision.",
+    "coreConcepts": ["Protein folding", "Scientific ML"],
+    "keyPeople": ["John Jumper", "DeepMind"],
+    "sources": [
+      { "label": "Nature paper", "kind": "paper", "url": "https://www.nature.com/articles/s41586-021-03819-2" }
+    ]
+  },
+  {
+    "id": "E2022_PALM",
+    "date": "2022-04-05",
+    "era": "Transformers and LLMs",
+    "title": "PaLM scales dense Transformers to 540B parameters",
+    "summary": "A major public milestone in very large dense language models.",
+    "coreConcepts": ["Scaling", "Large language models"],
+    "keyPeople": ["Aakanksha Chowdhery", "Google"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2204.02311" }
+    ]
+  },
+  {
+    "id": "E2022_CHINCHILLA",
+    "date": "2022",
+    "era": "Transformers and LLMs",
+    "title": "Chinchilla formalizes compute-optimal training tradeoffs",
+    "summary": "Argues many LLMs were undertrained on tokens relative to parameter count.",
+    "coreConcepts": ["Compute-optimal training", "Scaling laws"],
+    "keyPeople": ["Jordan Hoffmann", "DeepMind"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2203.15556" }
+    ]
+  },
+  {
+    "id": "E2022_INSTRUCTGPT",
+    "date": "2022",
+    "era": "Alignment and Instruction Following",
+    "title": "InstructGPT demonstrates RLHF for instruction-following",
+    "summary": "A core milestone in aligning LLM behavior to human preferences.",
+    "coreConcepts": ["RLHF", "Instruction tuning", "Alignment"],
+    "keyPeople": ["Long Ouyang", "OpenAI"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2203.02155" }
+    ]
+  },
+  {
+    "id": "E2022_FLAN",
+    "date": "2022-10-20",
+    "era": "Alignment and Instruction Following",
+    "title": "FLAN scales instruction-finetuning",
+    "summary": "Shows broad gains from instruction datasets and chain-of-thought finetuning.",
+    "coreConcepts": ["Instruction tuning", "Chain-of-thought"],
+    "keyPeople": ["Hyung Won Chung", "Google"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2210.11416" }
+    ]
+  },
+  {
+    "id": "E2022_BLOOM",
+    "date": "2022",
+    "era": "Open Models",
+    "title": "BLOOM released as a large open-access multilingual LM",
+    "summary": "A major collaborative effort to broaden access to large-scale language models.",
+    "coreConcepts": ["Open models", "Multilingual LMs"],
+    "keyPeople": ["BigScience Workshop"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2211.05100" }
+    ]
+  },
+  {
+    "id": "E2022_LATENT_DIFFUSION",
+    "date": "2021-12",
+    "era": "Multimodal",
+    "title": "Latent Diffusion Models (foundation of Stable Diffusion) published",
+    "summary": "Efficient diffusion in latent space enables high-quality image generation.",
+    "coreConcepts": ["Diffusion models", "Latent diffusion"],
+    "keyPeople": ["Robin Rombach", "CompVis"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2112.10752" }
+    ]
+  },
+  {
+    "id": "E2022_STABLE_DIFFUSION_RELEASE",
+    "date": "2022",
+    "era": "Multimodal",
+    "title": "Stable Diffusion model and code released publicly",
+    "summary": "Brings strong text-to-image generation into wide public and developer use.",
+    "coreConcepts": ["Open weights", "Text-to-image"],
+    "keyPeople": ["CompVis", "Stability AI"],
+    "sources": [
+      { "label": "Repository (primary)", "kind": "code_repo", "url": "https://github.com/CompVis/stable-diffusion" }
+    ]
+  },
+  {
+    "id": "E2022_CHATGPT",
+    "date": "2022-11-30",
+    "era": "Transformers and LLMs",
+    "title": "ChatGPT launches and goes viral",
+    "summary": "Mass adoption of conversational LLMs changes public awareness and product strategy across tech.",
+    "guidedStart": true,
+    "coreConcepts": ["Chat interfaces", "Instruction-following LLMs"],
+    "keyPeople": ["OpenAI"],
+    "sources": [
+      { "label": "OpenAI announcement", "kind": "primary_doc", "url": "https://openai.com/index/chatgpt/" }
+    ]
+  },
+  {
+    "id": "E2022_CONSTITUTIONAL_AI",
+    "date": "2022-12-15",
+    "era": "Alignment and Safety",
+    "title": "Constitutional AI proposes RLAIF and principle-based alignment",
+    "summary": "Uses written principles as a training signal to reduce harmful behavior.",
+    "coreConcepts": ["Constitutional AI", "RLAIF"],
+    "keyPeople": ["Anthropic"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2212.08073" }
+    ]
+  },
+  {
+    "id": "E2023_DPO",
+    "date": "2023-05-29",
+    "era": "Alignment and Safety",
+    "title": "Direct Preference Optimization (DPO) simplifies preference-based alignment",
+    "summary": "An influential alternative to full RLHF pipelines for aligning LMs.",
+    "coreConcepts": ["Preference optimization", "Alignment"],
+    "keyPeople": ["Rafael Rafailov", "Stefano Ermon", "Chelsea Finn"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2305.18290" }
+    ]
+  },
+  {
+    "id": "E2023_LLAMA",
+    "date": "2023",
+    "era": "Open Models",
+    "title": "LLaMA accelerates open foundation model research",
+    "summary": "Popularizes strong base models usable for fine-tuning and instruction tuning in the open ecosystem.",
+    "coreConcepts": ["Open models", "Fine-tuning"],
+    "keyPeople": ["Meta AI"],
+    "sources": [
+      { "label": "Paper (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2302.13971" }
+    ]
+  },
+  {
+    "id": "E2023_GPT4",
+    "date": "2023-03-15",
+    "era": "Transformers and LLMs",
+    "title": "GPT-4 technical report published",
+    "summary": "Documents a large-scale multimodal model and post-training alignment approach.",
+    "guidedStart": true,
+    "coreConcepts": ["Multimodal LLMs", "Alignment"],
+    "keyPeople": ["OpenAI"],
+    "sources": [
+      { "label": "Technical report (arXiv)", "kind": "paper", "url": "https://arxiv.org/abs/2303.08774" }
+    ]
+  },
+  {
+    "id": "E2023_NIST_AIRMF",
+    "date": "2023-01",
+    "era": "Governance and Policy",
+    "title": "NIST AI Risk Management Framework (AI RMF 1.0) released",
+    "summary": "A widely used voluntary framework for managing AI risks and trustworthiness.",
+    "coreConcepts": ["Risk management", "Trustworthy AI"],
+    "keyPeople": ["NIST"],
+    "sources": [
+      { "label": "Framework (PDF)", "kind": "primary_doc", "url": "https://nvlpubs.nist.gov/nistpubs/ai/nist.ai.100-1.pdf" }
+    ]
+  },
+  {
+    "id": "E2023_US_EO_14110",
+    "date": "2023-10-30",
+    "era": "Governance and Policy",
+    "title": "US Executive Order 14110 on AI (Biden) issued",
+    "summary": "Major US federal policy action focused on safety, security, and trustworthy AI development and use.",
+    "coreConcepts": ["AI policy", "AI safety"],
+    "keyPeople": [],
+    "sources": [
+      { "label": "White House archive (primary)", "kind": "primary_doc", "url": "https://bidenwhitehouse.archives.gov/briefing-room/presidential-actions/2023/10/30/executive-order-on-the-safe-secure-and-trustworthy-development-and-use-of-artificial-intelligence/" }
+    ]
+  },
+  {
+    "id": "E2025_US_EO_14110_REVOKED",
+    "date": "2025-01-23",
+    "era": "Governance and Policy",
+    "title": "US action revokes EO 14110 and shifts federal AI policy posture",
+    "summary": "A later White House order states EO 14110 was revoked and directs review of actions taken under it.",
+    "coreConcepts": ["AI policy", "Regulatory shifts"],
+    "keyPeople": [],
+    "sources": [
+      { "label": "White House order (primary)", "kind": "primary_doc", "url": "https://www.whitehouse.gov/presidential-actions/2025/01/removing-barriers-to-american-leadership-in-artificial-intelligence/" }
+    ]
+  },
+  {
+    "id": "E2024_EU_AI_ACT",
+    "date": "2024",
+    "era": "Governance and Policy",
+    "title": "EU AI Act becomes law (Regulation (EU) 2024/1689)",
+    "summary": "A comprehensive risk-based framework for AI systems in the EU.",
+    "coreConcepts": ["AI regulation", "Risk-based governance"],
+    "keyPeople": [],
+    "sources": [
+      { "label": "EUR-Lex PDF endpoint (may require JS)", "kind": "primary_doc", "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/PDF/?uri=OJ%3AL_202401689" }
+    ]
+  },
+  {
+    "id": "E2025_DWARKESH_KARPATHY",
+    "date": "2025-10-17",
+    "era": "Modern Discourse and Learning Resources",
+    "title": "Dwarkesh Podcast episode with Andrej Karpathy (deep modern overview)",
+    "summary": "A long-form discussion that works well as an educational resource node in the timeline.",
+    "coreConcepts": ["LLMs", "Agents", "Modern AI practice"],
+    "keyPeople": ["Dwarkesh Patel", "Andrej Karpathy"],
+    "sources": [
+      { "label": "Episode page (primary)", "kind": "media", "url": "https://www.dwarkesh.com/p/andrej-karpathy" },
+      { "label": "YouTube (primary)", "kind": "media", "url": "https://www.youtube.com/watch?v=lXUZvyajciY" }
+    ]
+  },
+  {
+    "id": "E2025_STARCLOUD_SPACE_AI",
+    "date": "2025-12-10",
+    "era": "Infrastructure and Deployment",
+    "title": "Starcloud trains first AI model in space with Nvidia H100 GPU",
+    "summary": "Nvidia-backed Starcloud becomes first to train and run AI models in orbit, operating NanoGPT (trained on Shakespeare) and Google's Gemma LLM on an H100 GPU aboard its Starcloud-1 satellite. Demonstrates viability of orbital data centers that could alleviate Earth's digital infrastructure constraints with 10x lower energy costs and unlimited solar power.",
+    "coreConcepts": ["Orbital data centers", "AI infrastructure", "Space computing", "GPU compute"],
+    "keyPeople": ["Philip Johnston", "Nvidia"],
+    "sources": [
+      { "label": "CNBC article (primary)", "kind": "media", "url": "https://www.cnbc.com/2025/12/10/nvidia-starcloud-trains-first-ai-model-in-space.html" }
+    ]
+  },
+  {
+    "id": "E2025_GPT_IMAGE_1_5",
+    "date": "2025-12-16",
+    "era": "Multimodal",
+    "title": "OpenAI releases GPT Image 1.5 with 4x faster generation",
+    "summary": "OpenAI launches GPT Image 1.5, delivering 4x faster image generation, significantly improved text rendering in images, and precise editing capabilities that maintain consistency in lighting, composition, and facial likeness across modifications. Available to all ChatGPT users and via API at 20% reduced cost, with a new creative studio interface. Powered by GPT 5.2 and tops independent benchmarks with 1264 points on the Artificial Analysis leaderboard.",
+    "coreConcepts": ["Text-to-image", "Image generation", "Multimodal AI", "Generative models"],
+    "keyPeople": ["OpenAI", "Sam Altman"],
+    "sources": [
+      { "label": "OpenAI announcement", "kind": "primary_doc", "url": "https://openai.com/index/new-chatgpt-images-is-here/" },
+      { "label": "TechCrunch article", "kind": "media", "url": "https://techcrunch.com/2025/12/16/openai-continues-on-its-code-red-warpath-with-new-image-generation-model/" }
+    ]
+  }
+]

@@ -1,0 +1,60 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+dist-ssr
+build
+*.local
+
+# Testing
+coverage
+test-results/
+playwright-report/
+playwright/.cache/
+tests/e2e/screenshots/**/*.png
+!tests/e2e/screenshots/.gitkeep
+
+# IDE and editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Misc
+*.tsbuildinfo
+.eslintcache
+
+/generated/prisma
+
+# Local database
+dev.db
+dev.db-journal
+*.db
+
+# Lambda build output
+dist-lambda/

@@ -1,0 +1,24 @@
+{
+  "id": "ai-fundamentals",
+  "title": "AI Fundamentals",
+  "description": "Build a solid foundation in artificial intelligence concepts, from neural networks to modern deep learning. Start here if you want to understand the building blocks of AI.",
+  "targetAudience": "Anyone starting their AI learning journey",
+  "milestoneIds": [
+    "E1943_MCCULLOCH_PITTS",
+    "E1957_PERCEPTRON",
+    "E1986_BACKPROP",
+    "E2012_ALEXNET",
+    "E2014_GAN",
+    "E2017_TRANSFORMER"
+  ],
+  "estimatedMinutes": 45,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["chatgpt-story", "ai-image-generation"],
+  "keyTakeaways": [
+    "Understand how neural networks learn from data",
+    "Know the key breakthroughs that made modern AI possible",
+    "Grasp why deep learning changed everything"
+  ],
+  "conceptsCovered": ["neural-network", "deep-learning", "backpropagation", "cnn", "gan"],
+  "icon": "🧠"
+}

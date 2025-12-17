@@ -1,0 +1,25 @@
+{
+  "id": "ai-for-business",
+  "title": "AI for Business Leaders",
+  "description": "A strategic overview of AI development focused on business applications and decision-making. Learn what executives and managers need to know about AI capabilities and limitations.",
+  "targetAudience": "Executives, managers, and business professionals making AI-related decisions",
+  "milestoneIds": [
+    "E1980_EXPERT_SYSTEMS_RISE",
+    "E1997_DEEP_BLUE",
+    "E2012_ALEXNET",
+    "E2020_GPT3",
+    "E2022_CHATGPT",
+    "E2023_GPT4"
+  ],
+  "estimatedMinutes": 35,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["chatgpt-story", "ai-governance"],
+  "keyTakeaways": [
+    "Understand AI capabilities and realistic expectations",
+    "Know the business applications at each stage of AI development",
+    "Make informed decisions about AI adoption in your organization",
+    "Communicate effectively about AI with technical teams"
+  ],
+  "conceptsCovered": ["expert-system", "machine-learning", "llm", "prompt", "fine-tuning"],
+  "icon": "💼"
+}

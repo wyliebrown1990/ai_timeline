@@ -1,0 +1,387 @@
+[
+  {
+    "id": "cp-chatgpt-1",
+    "title": "Understanding Transformers",
+    "pathId": "chatgpt-story",
+    "afterMilestoneId": "E2017_TRANSFORMER",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-transformer-year",
+        "question": "In what year was the Transformer architecture introduced?",
+        "options": ["2015", "2016", "2017", "2018"],
+        "correctIndex": 2,
+        "explanation": "The Transformer was introduced in 2017 in the paper 'Attention Is All You Need' by Vaswani et al. at Google."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-transformer-key",
+        "question": "What is the key innovation of the Transformer architecture?",
+        "options": [
+          "Using more layers than previous models",
+          "Processing sequences in parallel using attention",
+          "Being smaller and faster than RNNs",
+          "Using images instead of text"
+        ],
+        "correctIndex": 1,
+        "explanation": "The Transformer's key innovation is using self-attention to process all parts of a sequence simultaneously, rather than one step at a time like RNNs."
+      }
+    ]
+  },
+  {
+    "id": "cp-chatgpt-2",
+    "title": "The GPT Evolution",
+    "pathId": "chatgpt-story",
+    "afterMilestoneId": "E2020_GPT3",
+    "questions": [
+      {
+        "type": "ordering",
+        "id": "q-gpt-timeline",
+        "prompt": "Put these AI milestones in chronological order:",
+        "items": [
+          {"id": "gpt1", "label": "GPT-1", "date": "2018"},
+          {"id": "transformer", "label": "Transformer", "date": "2017"},
+          {"id": "gpt3", "label": "GPT-3", "date": "2020"},
+          {"id": "gpt2", "label": "GPT-2", "date": "2019"}
+        ],
+        "correctOrder": ["transformer", "gpt1", "gpt2", "gpt3"]
+      },
+      {
+        "type": "matching",
+        "id": "q-gpt-params",
+        "prompt": "Match each GPT version with its approximate parameter count:",
+        "pairs": [
+          {"id": "p1", "left": "GPT-1", "right": "117 million"},
+          {"id": "p2", "left": "GPT-2", "right": "1.5 billion"},
+          {"id": "p3", "left": "GPT-3", "right": "175 billion"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cp-chatgpt-3",
+    "title": "ChatGPT and RLHF",
+    "pathId": "chatgpt-story",
+    "afterMilestoneId": "E2022_CHATGPT",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-rlhf-purpose",
+        "question": "What is the main purpose of RLHF (Reinforcement Learning from Human Feedback)?",
+        "options": [
+          "To make models faster",
+          "To align model behavior with human preferences",
+          "To reduce the number of parameters",
+          "To enable image processing"
+        ],
+        "correctIndex": 1,
+        "explanation": "RLHF trains models to produce outputs that humans rate as more helpful, honest, and harmless, aligning AI behavior with human values."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-chatgpt-release",
+        "question": "What made ChatGPT different from GPT-3 when it launched?",
+        "options": [
+          "It was much larger",
+          "It was trained with RLHF to be conversational and safe",
+          "It could process images",
+          "It was open source"
+        ],
+        "correctIndex": 1,
+        "explanation": "ChatGPT was built on GPT-3.5 but trained with RLHF (via InstructGPT techniques) to have natural conversations while refusing harmful requests."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-chatgpt",
+        "concept": "ChatGPT's breakthrough significance",
+        "prompt": "In your own words, explain why ChatGPT was such a breakthrough when it launched in November 2022.",
+        "rubric": "A good explanation should mention: 1) ChatGPT combined a powerful language model with RLHF training for natural conversation, 2) It was freely accessible and user-friendly, making advanced AI available to everyone, 3) It could have back-and-forth conversations while refusing harmful requests. Credit for mentioning the rapid user adoption or comparison to previous AI assistants."
+      }
+    ]
+  },
+  {
+    "id": "cp-fundamentals-1",
+    "title": "Neural Network Foundations",
+    "pathId": "ai-fundamentals",
+    "afterMilestoneId": "E1958_PERCEPTRON",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-perceptron-concept",
+        "question": "What was the perceptron designed to model?",
+        "options": [
+          "A single neuron in the brain",
+          "The entire human brain",
+          "A computer memory chip",
+          "A calculator"
+        ],
+        "correctIndex": 0,
+        "explanation": "The perceptron was an early attempt to model a single biological neuron, taking multiple inputs and producing a single output based on learned weights."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-mcculloch-pitts",
+        "question": "What did the McCulloch-Pitts paper (1943) establish?",
+        "options": [
+          "The first chatbot",
+          "That neural computation is mathematically possible",
+          "The internet protocol",
+          "Deep learning algorithms"
+        ],
+        "correctIndex": 1,
+        "explanation": "McCulloch and Pitts showed that networks of simple artificial neurons could, in principle, compute any logical function, establishing the theoretical foundation for neural networks."
+      }
+    ]
+  },
+  {
+    "id": "cp-fundamentals-2",
+    "title": "The Learning Breakthrough",
+    "pathId": "ai-fundamentals",
+    "afterMilestoneId": "E1986_BACKPROP",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-backprop-purpose",
+        "question": "What problem does backpropagation solve?",
+        "options": [
+          "Making networks faster",
+          "Teaching networks with multiple layers to learn",
+          "Compressing data",
+          "Connecting to the internet"
+        ],
+        "correctIndex": 1,
+        "explanation": "Backpropagation allows error signals to flow backward through multiple layers, telling each connection how to adjust to improve the network's performance."
+      },
+      {
+        "type": "ordering",
+        "id": "q-early-ai-timeline",
+        "prompt": "Put these early AI milestones in order:",
+        "items": [
+          {"id": "perceptron", "label": "Perceptron", "date": "1958"},
+          {"id": "mcculloch", "label": "McCulloch-Pitts Paper", "date": "1943"},
+          {"id": "backprop", "label": "Backpropagation", "date": "1986"},
+          {"id": "eliza", "label": "ELIZA chatbot", "date": "1966"}
+        ],
+        "correctOrder": ["mcculloch", "perceptron", "eliza", "backprop"]
+      }
+    ]
+  },
+  {
+    "id": "cp-fundamentals-3",
+    "title": "Deep Learning Revolution",
+    "pathId": "ai-fundamentals",
+    "afterMilestoneId": "E2012_ALEXNET",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-alexnet-impact",
+        "question": "Why was AlexNet (2012) considered revolutionary?",
+        "options": [
+          "It was the first neural network ever",
+          "It dramatically outperformed traditional methods on image recognition",
+          "It could generate text",
+          "It was open source"
+        ],
+        "correctIndex": 1,
+        "explanation": "AlexNet reduced ImageNet error rates by nearly half compared to traditional methods, proving that deep learning could solve real problems and sparking the deep learning revolution."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-deep-learning-why",
+        "question": "What combination made deep learning practical by 2012?",
+        "options": [
+          "Better scientists and bigger labs",
+          "Big data, GPUs, and better algorithms",
+          "Government funding and quantum computers",
+          "Faster internet connections"
+        ],
+        "correctIndex": 1,
+        "explanation": "The deep learning revolution was enabled by the availability of large datasets (like ImageNet), powerful GPU computing, and algorithmic improvements like better initialization and activation functions."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-deep-learning",
+        "concept": "Deep learning vs. earlier neural networks",
+        "prompt": "Explain in simple terms what makes 'deep' learning different from earlier neural networks.",
+        "rubric": "A good explanation should cover: 1) Deep learning uses many layers (hence 'deep'), unlike earlier 1-2 layer networks, 2) Deep networks learn hierarchical features - from simple (edges) to complex (objects), 3) This enables solving harder problems like image recognition or language understanding. Bonus for mentioning the computational requirements or specific breakthroughs."
+      }
+    ]
+  },
+  {
+    "id": "cp-fundamentals-4",
+    "title": "Generative AI",
+    "pathId": "ai-fundamentals",
+    "afterMilestoneId": "E2014_GANS",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-gan-concept",
+        "question": "How do GANs (Generative Adversarial Networks) learn to generate realistic images?",
+        "options": [
+          "By copying existing images exactly",
+          "Through competition between a generator and discriminator",
+          "By following human-written rules",
+          "By connecting to image databases"
+        ],
+        "correctIndex": 1,
+        "explanation": "GANs use two networks that compete: one generates fake images while the other tries to detect fakes. This adversarial training pushes the generator to produce increasingly realistic outputs."
+      },
+      {
+        "type": "matching",
+        "id": "q-nn-architectures",
+        "prompt": "Match each architecture to what it's best at:",
+        "pairs": [
+          {"id": "p1", "left": "CNN", "right": "Image recognition"},
+          {"id": "p2", "left": "GAN", "right": "Image generation"},
+          {"id": "p3", "left": "Transformer", "right": "Language understanding"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cp-governance-1",
+    "title": "AI Ethics and Safety",
+    "pathId": "ai-governance",
+    "afterMilestoneId": "E2022_CONSTITUTIONAL_AI",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-constitutional-ai",
+        "question": "What is Constitutional AI's approach to making AI safer?",
+        "options": [
+          "Limiting AI to simple tasks only",
+          "Using a set of principles for AI to self-critique and improve",
+          "Having humans review every AI output",
+          "Making AI models smaller"
+        ],
+        "correctIndex": 1,
+        "explanation": "Constitutional AI gives the model a set of principles (a 'constitution') and trains it to critique and revise its own outputs according to those principles, making safety more scalable."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-rlhf-vs-cai",
+        "question": "How does Constitutional AI differ from standard RLHF?",
+        "options": [
+          "It doesn't use any human feedback",
+          "It uses explicit principles for AI self-improvement, reducing human labeling needs",
+          "It makes models larger",
+          "It only works for images"
+        ],
+        "correctIndex": 1,
+        "explanation": "While RLHF relies heavily on human raters, Constitutional AI uses explicit principles that the AI applies to critique its own outputs, making the alignment process more transparent and scalable."
+      }
+    ]
+  },
+  {
+    "id": "cp-governance-2",
+    "title": "AI Regulation Landscape",
+    "pathId": "ai-governance",
+    "afterMilestoneId": "E2024_EU_AI_ACT",
+    "questions": [
+      {
+        "type": "ordering",
+        "id": "q-regulation-timeline",
+        "prompt": "Put these AI governance milestones in chronological order:",
+        "items": [
+          {"id": "openai-charter", "label": "OpenAI Charter", "date": "2018"},
+          {"id": "oecd", "label": "OECD AI Principles", "date": "2019"},
+          {"id": "nist", "label": "NIST AI Risk Management Framework", "date": "2023"},
+          {"id": "eu-act", "label": "EU AI Act", "date": "2024"}
+        ],
+        "correctOrder": ["openai-charter", "oecd", "nist", "eu-act"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-eu-ai-act",
+        "question": "What approach does the EU AI Act take to regulating AI?",
+        "options": [
+          "Banning all AI development",
+          "Risk-based regulation with different rules for different risk levels",
+          "Requiring all AI to be open source",
+          "Only regulating government AI use"
+        ],
+        "correctIndex": 1,
+        "explanation": "The EU AI Act uses a risk-based approach: minimal-risk AI has few restrictions, while high-risk AI (like hiring tools) must meet strict requirements, and some uses are banned entirely."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-governance",
+        "concept": "AI governance importance for business",
+        "prompt": "Why is AI governance important for businesses deploying AI systems?",
+        "rubric": "A good explanation should include: 1) Legal compliance - regulations like EU AI Act have penalties, 2) Risk management - safety failures cause reputational and legal issues, 3) Customer trust - well-governed AI is more reliable, 4) Proactive risk identification before deployment. Credit for mentioning specific regulations or real-world examples of governance failures."
+      }
+    ]
+  },
+  {
+    "id": "cp-image-gen-1",
+    "title": "AI Image Generation Basics",
+    "pathId": "ai-image-generation",
+    "afterMilestoneId": "E2021_DALLE",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-dalle-innovation",
+        "question": "What made DALL-E (2021) significant in AI history?",
+        "options": [
+          "It was the first image recognition system",
+          "It could generate images from text descriptions",
+          "It could only process existing photos",
+          "It was faster than GANs"
+        ],
+        "correctIndex": 1,
+        "explanation": "DALL-E was revolutionary because it could generate novel images from text prompts, combining language understanding (from transformers) with image generation capabilities."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-clip-role",
+        "question": "What role does CLIP play in image generation systems?",
+        "options": [
+          "It generates the images directly",
+          "It connects text understanding to visual concepts",
+          "It compresses image files",
+          "It stores images in databases"
+        ],
+        "correctIndex": 1,
+        "explanation": "CLIP learns to match images with text descriptions, enabling systems to understand what 'a sunset over mountains' should look like and guide image generation accordingly."
+      }
+    ]
+  },
+  {
+    "id": "cp-image-gen-2",
+    "title": "Diffusion Models",
+    "pathId": "ai-image-generation",
+    "afterMilestoneId": "E2022_STABLE_DIFFUSION_RELEASE",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-diffusion-process",
+        "question": "How do diffusion models generate images?",
+        "options": [
+          "By copying parts of existing images",
+          "By starting with noise and gradually removing it",
+          "By drawing shapes one at a time",
+          "By converting text directly to pixels"
+        ],
+        "correctIndex": 1,
+        "explanation": "Diffusion models start with random noise and learn to gradually 'denoise' it into a coherent image, guided by the text prompt. Each step removes some noise until a clear image emerges."
+      },
+      {
+        "type": "matching",
+        "id": "q-image-gen-tools",
+        "prompt": "Match each tool to its underlying technology:",
+        "pairs": [
+          {"id": "p1", "left": "Stable Diffusion", "right": "Latent diffusion model"},
+          {"id": "p2", "left": "Early StyleGAN", "right": "GAN architecture"},
+          {"id": "p3", "left": "DALL-E 2", "right": "Diffusion + CLIP"}
+        ]
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-diffusion-vs-gan",
+        "concept": "Diffusion models vs GANs",
+        "prompt": "Explain one advantage of diffusion models over GANs for image generation.",
+        "rubric": "A good explanation should mention at least one valid advantage: 1) Training stability - diffusion models don't suffer from mode collapse like GANs, 2) Image quality - diffusion often produces higher quality results, 3) Controllability - easier to guide generation with text prompts, 4) Diversity - better at producing varied outputs. Accept any well-explained advantage."
+      }
+    ]
+  }
+]

@@ -1,0 +1,275 @@
+[
+  {
+    "id": "fc-transformer",
+    "term": "Transformer",
+    "definition": "A neural network architecture that uses attention mechanisms to process sequences in parallel, enabling faster training and better understanding of context.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2017_TRANSFORMER"]
+  },
+  {
+    "id": "fc-attention",
+    "term": "Attention",
+    "definition": "A mechanism that lets neural networks focus on relevant parts of input when making predictions, like how humans focus on specific words when reading.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2017_TRANSFORMER", "E2014_ATTENTION_NMT"]
+  },
+  {
+    "id": "fc-llm",
+    "term": "Large Language Model (LLM)",
+    "definition": "An AI model trained on massive amounts of text data to understand and generate human-like language.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E2020_GPT3", "E2022_CHATGPT"]
+  },
+  {
+    "id": "fc-gpt",
+    "term": "GPT",
+    "definition": "Generative Pre-trained Transformer - a family of language models developed by OpenAI that can generate human-like text.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2018_GPT1", "E2019_GPT2", "E2020_GPT3"]
+  },
+  {
+    "id": "fc-rlhf",
+    "term": "RLHF",
+    "definition": "Reinforcement Learning from Human Feedback - a technique to align AI models with human preferences by having humans rate model outputs.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2022_INSTRUCTGPT", "E2022_CHATGPT"]
+  },
+  {
+    "id": "fc-prompt",
+    "term": "Prompt",
+    "definition": "The text input given to an AI model to get a response. Better prompts lead to better outputs.",
+    "category": "business_term",
+    "relatedMilestoneIds": ["E2022_CHATGPT"]
+  },
+  {
+    "id": "fc-fine-tuning",
+    "term": "Fine-tuning",
+    "definition": "Customizing a pre-trained AI model for a specific task by training it further on specialized data.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2020_GPT3"]
+  },
+  {
+    "id": "fc-neural-network",
+    "term": "Neural Network",
+    "definition": "A computing system inspired by the brain's structure, made of interconnected nodes that learn patterns from data.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E1943_MCCULLOCH_PITTS", "E1958_PERCEPTRON"]
+  },
+  {
+    "id": "fc-deep-learning",
+    "term": "Deep Learning",
+    "definition": "Machine learning using neural networks with many layers, enabling the learning of complex hierarchical patterns from data.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E2012_ALEXNET", "E2006_DEEP_BELIEF_NETS"]
+  },
+  {
+    "id": "fc-backpropagation",
+    "term": "Backpropagation",
+    "definition": "The algorithm that trains neural networks by propagating errors backward through layers to adjust connection weights.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E1986_BACKPROP"]
+  },
+  {
+    "id": "fc-gan",
+    "term": "GAN",
+    "definition": "Generative Adversarial Network - an architecture where two networks compete: one generates content, one detects fakes.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2014_GANS"]
+  },
+  {
+    "id": "fc-diffusion",
+    "term": "Diffusion Model",
+    "definition": "An AI model that generates images by gradually removing noise from random static, guided by text descriptions.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2022_LATENT_DIFFUSION", "E2022_STABLE_DIFFUSION_RELEASE"]
+  },
+  {
+    "id": "fc-bert",
+    "term": "BERT",
+    "definition": "Bidirectional Encoder Representations from Transformers - Google's model that understands language context from both directions.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2018_BERT"]
+  },
+  {
+    "id": "fc-cnn",
+    "term": "CNN",
+    "definition": "Convolutional Neural Network - a neural network architecture specialized for processing images and visual data.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2012_ALEXNET", "E2015_RESNET", "E1998_LENET"]
+  },
+  {
+    "id": "fc-nlp",
+    "term": "NLP",
+    "definition": "Natural Language Processing - AI technology that enables computers to understand, interpret, and generate human language.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E2017_TRANSFORMER", "E2018_BERT"]
+  },
+  {
+    "id": "fc-training",
+    "term": "Training",
+    "definition": "The process of teaching an AI model by exposing it to data and adjusting its internal parameters to improve.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E1986_BACKPROP"]
+  },
+  {
+    "id": "fc-inference",
+    "term": "Inference",
+    "definition": "Using a trained AI model to make predictions on new data; the operational phase after training.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2022_CHATGPT"]
+  },
+  {
+    "id": "fc-token",
+    "term": "Token",
+    "definition": "A piece of text (word or part of word) that language models process as a unit. Token counts determine API costs.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2020_GPT3"]
+  },
+  {
+    "id": "fc-context-window",
+    "term": "Context Window",
+    "definition": "The maximum amount of text a language model can consider at once, including input and output.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2023_GPT4"]
+  },
+  {
+    "id": "fc-hallucination",
+    "term": "Hallucination",
+    "definition": "When an AI model confidently generates false or made-up information that sounds plausible.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2020_GPT3", "E2022_CHATGPT"]
+  },
+  {
+    "id": "fc-rag",
+    "term": "RAG",
+    "definition": "Retrieval-Augmented Generation - combining AI text generation with information retrieval to improve accuracy.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2020_RAG"]
+  },
+  {
+    "id": "fc-embedding",
+    "term": "Embedding",
+    "definition": "A numerical representation of text or images that captures semantic meaning, enabling similarity search.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2013_WORD2VEC"]
+  },
+  {
+    "id": "fc-multimodal",
+    "term": "Multimodal AI",
+    "definition": "AI that can understand and generate multiple content types like text, images, and audio together.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E2021_CLIP", "E2021_DALLE", "E2023_GPT4"]
+  },
+  {
+    "id": "fc-zero-shot",
+    "term": "Zero-shot Learning",
+    "definition": "AI performing tasks it wasn't explicitly trained for, using its general knowledge and understanding.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2020_GPT3"]
+  },
+  {
+    "id": "fc-few-shot",
+    "term": "Few-shot Learning",
+    "definition": "AI learning to perform tasks from just a handful of examples provided in the prompt.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2020_GPT3"]
+  },
+  {
+    "id": "fc-alignment",
+    "term": "AI Alignment",
+    "definition": "Ensuring AI systems behave in accordance with human values and intentions, being helpful and harmless.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2022_CONSTITUTIONAL_AI", "E2022_INSTRUCTGPT"]
+  },
+  {
+    "id": "fc-constitutional-ai",
+    "term": "Constitutional AI",
+    "definition": "A technique for making AI follow ethical principles by using a 'constitution' for self-critique.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2022_CONSTITUTIONAL_AI"]
+  },
+  {
+    "id": "fc-scaling-laws",
+    "term": "Scaling Laws",
+    "definition": "Mathematical relationships showing AI improves predictably with more data, compute, and parameters.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2020_SCALING_LAWS", "E2022_CHINCHILLA"]
+  },
+  {
+    "id": "fc-perceptron",
+    "term": "Perceptron",
+    "definition": "An early artificial neuron model (1958) that takes weighted inputs and produces a single output.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E1958_PERCEPTRON"]
+  },
+  {
+    "id": "fc-expert-system",
+    "term": "Expert System",
+    "definition": "AI software using programmed if-then rules to mimic human expert decision-making in specific domains.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E1980_EXPERT_SYSTEMS_RISE"]
+  },
+  {
+    "id": "fc-imagenet",
+    "term": "ImageNet",
+    "definition": "A massive image database (14M+ images) that became the benchmark for image recognition, catalyzing deep learning.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2009_IMAGENET", "E2012_ALEXNET"]
+  },
+  {
+    "id": "fc-lstm",
+    "term": "LSTM",
+    "definition": "Long Short-Term Memory - a neural network that can remember information over long sequences, used before transformers.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E1997_LSTM"]
+  },
+  {
+    "id": "fc-resnet",
+    "term": "ResNet",
+    "definition": "Residual Network - a CNN architecture with skip connections that enabled training much deeper networks.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2015_RESNET"]
+  },
+  {
+    "id": "fc-alphago",
+    "term": "AlphaGo",
+    "definition": "DeepMind's AI that defeated the world Go champion in 2016, combining deep learning with game tree search.",
+    "category": "core_concept",
+    "relatedMilestoneIds": ["E2016_ALPHAGO"]
+  },
+  {
+    "id": "fc-clip",
+    "term": "CLIP",
+    "definition": "Contrastive Language-Image Pre-training - OpenAI's model that connects images with text descriptions.",
+    "category": "model_architecture",
+    "relatedMilestoneIds": ["E2021_CLIP"]
+  },
+  {
+    "id": "fc-word2vec",
+    "term": "Word2Vec",
+    "definition": "A technique that converts words into vectors where similar words have similar representations.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2013_WORD2VEC"]
+  },
+  {
+    "id": "fc-parameter",
+    "term": "Parameter",
+    "definition": "A number in a neural network that gets adjusted during training. More parameters generally means more capability.",
+    "category": "technical_term",
+    "relatedMilestoneIds": ["E2020_GPT3"]
+  },
+  {
+    "id": "fc-emergent",
+    "term": "Emergent Behavior",
+    "definition": "Capabilities that appear unexpectedly in AI models as they grow larger, without being explicitly trained.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2020_GPT3", "E2023_GPT4"]
+  },
+  {
+    "id": "fc-benchmark",
+    "term": "Benchmark",
+    "definition": "A standardized test to measure and compare AI model performance on specific tasks.",
+    "category": "research_concept",
+    "relatedMilestoneIds": ["E2009_IMAGENET"]
+  }
+]

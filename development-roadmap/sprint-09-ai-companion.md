@@ -10,26 +10,26 @@ Add an AI-powered assistant that helps users understand timeline content in plai
 ## Tasks
 
 ### 9.1 Backend Infrastructure
-- [ ] Create Lambda function for Claude API proxy
-- [ ] Set up API Gateway endpoint `/api/chat`
-- [ ] Store Anthropic API key in AWS Secrets Manager
-- [ ] Implement rate limiting (10 requests/minute per session)
-- [ ] Add request logging for cost monitoring
+- [x] Create Lambda function for Claude API proxy
+- [x] Set up API Gateway endpoint `/api/chat`
+- [x] Store Anthropic API key in AWS Secrets Manager
+- [x] Implement rate limiting (10 requests/minute per session)
+- [x] Add request logging for cost monitoring
 
 ### 9.2 System Prompt Design
-- [ ] Create base system prompt for AI assistant
+- [x] Create base system prompt for AI assistant
   - Focus on business-friendly explanations
   - Avoid technical jargon unless asked
   - Connect concepts to real-world impact
-- [ ] Add milestone context injection template
-- [ ] Create analogy mode prompts:
+- [x] Add milestone context injection template
+- [x] Create analogy mode prompts:
   - "Explain like I'm telling my boss"
   - "Explain like I'm in a job interview"
   - "Explain like I'm writing an email to my team"
-- [ ] Add prerequisite detection logic
+- [x] Add prerequisite detection logic
   - Identify concepts user should understand first
   - Generate "To understand this, first learn about: [X, Y, Z]"
-- [ ] Test prompt with various question types
+- [x] Test prompt with various question types
 
 ### 9.3 Frontend Chat Component
 - [ ] Create `AICompanion` floating button component

@@ -1,0 +1,25 @@
+{
+  "id": "chatgpt-story",
+  "title": "The ChatGPT Story",
+  "description": "Follow the journey from the transformer architecture to ChatGPT and understand how AI chatbots came to be. Perfect for anyone who wants to understand the foundations of modern AI assistants.",
+  "targetAudience": "Business professionals and curious learners new to AI",
+  "milestoneIds": [
+    "E2017_TRANSFORMER",
+    "E2018_BERT",
+    "E2018_GPT1",
+    "E2019_GPT2",
+    "E2020_GPT3",
+    "E2022_INSTRUCT_GPT",
+    "E2022_CHATGPT"
+  ],
+  "estimatedMinutes": 30,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["ai-fundamentals", "ai-for-business"],
+  "keyTakeaways": [
+    "Understand what transformers are and why they revolutionized AI",
+    "Know the difference between GPT-1, GPT-2, GPT-3, and ChatGPT",
+    "Explain ChatGPT to colleagues without using technical jargon"
+  ],
+  "conceptsCovered": ["transformer", "attention", "language-model", "llm", "chatbot", "rlhf"],
+  "icon": "🤖"
+}

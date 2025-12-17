@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+/// AI development milestone entity
+model Milestone {
+  id                   String   @id @default(cuid())
+  title                String
+  description          String
+  date                 DateTime
+  category             String
+  significance         Int
+  era                  String?
+  organization         String?
+  contributors         String   @default("[]")
+  sourceUrl            String?
+  imageUrl             String?
+  tags                 String   @default("[]")
+  sources              String   @default("[]")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  businessImpact       String?
+  commonMisconceptions String?
+  historicalContext    String?
+  simpleExplanation    String?
+  technicalDepth       String?
+  tldr                 String?
+  whyItMattersToday    String?
+
+  @@index([date])
+  @@index([category])
+  @@index([era])
+}

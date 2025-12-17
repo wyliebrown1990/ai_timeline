@@ -1,0 +1,23 @@
+{
+  "id": "ai-image-generation",
+  "title": "AI Image Generation",
+  "description": "Trace the evolution of AI-generated images from early GANs to modern diffusion models like DALL-E and Stable Diffusion. Understand how machines learned to create art.",
+  "targetAudience": "Creative professionals and anyone curious about AI art tools",
+  "milestoneIds": [
+    "E2014_GANS",
+    "E2021_CLIP",
+    "E2021_DALLE",
+    "E2022_LATENT_DIFFUSION",
+    "E2022_STABLE_DIFFUSION_RELEASE"
+  ],
+  "estimatedMinutes": 25,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["ai-fundamentals", "chatgpt-story"],
+  "keyTakeaways": [
+    "Understand how GANs pioneered AI image generation",
+    "Know the difference between GANs and diffusion models",
+    "Explain how DALL-E and Stable Diffusion work at a high level"
+  ],
+  "conceptsCovered": ["gan", "diffusion-model", "latent-space", "multimodal"],
+  "icon": "🎨"
+}

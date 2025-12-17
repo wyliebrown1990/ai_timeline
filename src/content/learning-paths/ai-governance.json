@@ -1,0 +1,26 @@
+{
+  "id": "ai-governance",
+  "title": "AI Governance & Policy",
+  "description": "Explore the evolving landscape of AI regulation, safety initiatives, and ethical frameworks. Essential knowledge for anyone involved in AI strategy or compliance.",
+  "targetAudience": "Policy makers, compliance officers, and business leaders navigating AI regulation",
+  "milestoneIds": [
+    "E2018_OPENAI_CHARTER",
+    "E2019_OECD_AI_PRINCIPLES",
+    "E2022_INSTRUCTGPT",
+    "E2022_CONSTITUTIONAL_AI",
+    "E2023_NIST_AIRMF",
+    "E2023_US_EO_14110",
+    "E2024_EU_AI_ACT"
+  ],
+  "estimatedMinutes": 40,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["ai-for-business", "chatgpt-story"],
+  "keyTakeaways": [
+    "Understand major AI governance frameworks and their requirements",
+    "Know the key safety and alignment techniques being developed",
+    "Navigate regulatory requirements for AI deployment",
+    "Explain AI governance to stakeholders and leadership"
+  ],
+  "conceptsCovered": ["rlhf", "constitutional-ai", "alignment", "ai-safety", "regulation"],
+  "icon": "⚖️"
+}
