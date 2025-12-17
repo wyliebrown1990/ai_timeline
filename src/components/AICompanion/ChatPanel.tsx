@@ -5,6 +5,7 @@
 
 import { useState, useRef, useEffect, type FormEvent, type KeyboardEvent } from 'react';
 import { X, Send, Trash2, AlertCircle, Sparkles, ChevronDown, Lock } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import type { ChatMessage, ExplainMode, MilestoneContext } from '../../types/chat';
 import { EXPLAIN_MODE_LABELS } from '../../types/chat';
 
@@ -61,7 +62,13 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           }
         `}
       >
-        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        {isUser ? (
+          <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+        ) : (
+          <div className="text-sm prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-headings:text-base prose-ul:my-1 prose-li:my-0.5">
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          </div>
+        )}
         <time
           className={`
             text-xs mt-1 block
