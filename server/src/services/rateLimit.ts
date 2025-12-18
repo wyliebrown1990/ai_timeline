@@ -114,6 +114,37 @@ export function clearRateLimitForSession(sessionId: string): void {
 /**
  * Gets current rate limit status without incrementing counter
  */
+/**
+ * Gets aggregate rate limit statistics for admin monitoring
+ */
+export function getRateLimitStats(): {
+  activeSessions: number;
+  totalRequestsInWindow: number;
+  sessionsAtLimit: number;
+} {
+  const now = Date.now();
+  let activeSessions = 0;
+  let totalRequestsInWindow = 0;
+  let sessionsAtLimit = 0;
+
+  for (const [, entry] of rateLimitStore.entries()) {
+    const windowEnd = entry.windowStart + RATE_LIMIT_WINDOW_MS;
+    if (now < windowEnd) {
+      activeSessions++;
+      totalRequestsInWindow += entry.count;
+      if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+        sessionsAtLimit++;
+      }
+    }
+  }
+
+  return {
+    activeSessions,
+    totalRequestsInWindow,
+    sessionsAtLimit,
+  };
+}
+
 export function getRateLimitStatus(sessionId: string): RateLimitResult {
   const now = Date.now();
   const entry = rateLimitStore.get(sessionId);

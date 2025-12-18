@@ -1,4 +1,5 @@
 import {
+  Activity,
   ChevronRight,
   History,
   Home,
@@ -27,6 +28,11 @@ const navItems: NavItem[] = [
     label: 'Milestones',
     href: '/admin/milestones',
     icon: <History className="h-5 w-5" />,
+  },
+  {
+    label: 'API Monitoring',
+    href: '/admin/api-monitoring',
+    icon: <Activity className="h-5 w-5" />,
   },
 ];
 

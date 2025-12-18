@@ -8,7 +8,7 @@
     "dev": "vite",
     "dev:server": "tsx watch server/src/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && cp -r dist/api dist/data",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "jest",

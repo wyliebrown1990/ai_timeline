@@ -32,12 +32,12 @@ function getSystemTheme(): 'light' | 'dark' {
 }
 
 function getStoredTheme(): ThemeMode {
-  if (typeof window === 'undefined') return 'system';
+  if (typeof window === 'undefined') return 'dark';
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === 'light' || stored === 'dark' || stored === 'system') {
     return stored;
   }
-  return 'system';
+  return 'dark'; // Default to dark mode for new users
 }
 
 interface ThemeProviderProps {
@@ -47,7 +47,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({
   children,
-  defaultTheme = 'system',
+  defaultTheme = 'dark',
 }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     // Check localStorage first, then use default

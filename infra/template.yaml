@@ -111,6 +111,13 @@ Resources:
                 - ssm:GetParameter
                 - ssm:GetParameters
               Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
+            # CloudWatch Logs Insights for API monitoring
+            - Effect: Allow
+              Action:
+                - logs:StartQuery
+                - logs:GetQueryResults
+                - logs:StopQuery
+              Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ai-timeline-api-${Environment}:*'
 
     Metadata:
       BuildMethod: esbuild

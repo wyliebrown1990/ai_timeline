@@ -38,6 +38,7 @@ import aiForEverydayLifePath from './learning-paths/ai-for-everyday-life.json';
 import aiForLeadersPath from './learning-paths/ai-for-leaders.json';
 import popCulturePath from './learning-paths/pop-culture.json';
 import appliedAIPath from './learning-paths/applied-ai.json';
+import codingWithAIPath from './learning-paths/coding-with-ai.json';
 import glossaryTermsData from './glossary/terms.json';
 import checkpointQuestionsData from './checkpoints/questions.json';
 import flashcardsData from './checkpoints/flashcards.json';
@@ -53,6 +54,7 @@ const learningPathsRaw = [
   aiForEverydayLifePath, // Sprint 17: Featured first for 65+ audience
   aiForLeadersPath, // Sprint 18: For executives and managers
   appliedAIPath, // Applied AI: How businesses actually use LLMs
+  codingWithAIPath, // Sprint 27: Vibe coding & context engineering
   chatgptStoryPath,
   aiFundamentalsPath,
   aiImageGenerationPath,

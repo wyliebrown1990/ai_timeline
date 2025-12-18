@@ -89,6 +89,24 @@ router.get('/logs', requireAdmin, chatController.getLogs);
 router.get('/health', chatController.healthCheck);
 
 /**
+ * GET /api/chat/admin-stats
+ * Get comprehensive API usage statistics for admin monitoring
+ * Protected endpoint - requires admin authentication
+ *
+ * Response:
+ * {
+ *   summary: { totalRequests, successfulRequests, failedRequests, successRate, avgResponseTimeMs, uniqueSessions },
+ *   timeStats: { requestsLastHour, requestsLast24Hours, errorsLastHour, errorsLast24Hours },
+ *   costs: { totalInputTokens, totalOutputTokens, estimatedCostUsd },
+ *   rateLimit: { activeSessions, totalRequestsInWindow, sessionsAtLimit, limitPerMinute },
+ *   errors: { total, byType },
+ *   recentLogs: ChatLogEntry[],
+ *   generatedAt: string,
+ * }
+ */
+router.get('/admin-stats', requireAdmin, chatController.getAdminStats);
+
+/**
  * GET /api/chat/prerequisites
  * Get prerequisite concepts for understanding a topic
  *

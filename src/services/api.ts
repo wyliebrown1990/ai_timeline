@@ -8,8 +8,9 @@ import type { SearchResponse, FilterQueryParams } from '../types/filters';
 
 /**
  * API base URL for static data (served from S3/CloudFront)
+ * Using /data to avoid conflict with /api/* CloudFront route to API Gateway
  */
-const STATIC_API_BASE = '/api';
+const STATIC_API_BASE = '/data';
 
 /**
  * API base URL for dynamic endpoints (auth, CRUD operations)

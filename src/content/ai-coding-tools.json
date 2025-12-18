@@ -1,0 +1,261 @@
+{
+  "_description": "AI coding tools comparison data for the Coding with AI learning path",
+  "_generatedAt": "2025-12-18",
+  "tools": [
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "company": "Anthropic",
+      "type": "cli",
+      "tagline": "Agentic coding in your terminal",
+      "description": "Claude Code brings Claude directly into the terminal, where it can read files, make edits, run commands, and complete multi-step tasks with your oversight. It's designed for developers who want AI that can take action, not just suggest.",
+      "bestFor": [
+        "Terminal power users",
+        "Multi-step coding tasks",
+        "Projects needing persistent context",
+        "Agentic workflows with human oversight"
+      ],
+      "contextMethod": {
+        "fileName": "CLAUDE.md",
+        "description": "Create a CLAUDE.md file in your project root describing your project, tech stack, commands, and preferences. Claude reads this automatically.",
+        "exampleUrl": "https://docs.anthropic.com/en/docs/claude-code/memory"
+      },
+      "pricingModel": {
+        "type": "usage-based",
+        "description": "Pay per Claude API usage",
+        "freeOption": false,
+        "typicalCost": "~$5-50/month for moderate use"
+      },
+      "learningCurve": "medium",
+      "autonomyLevel": "agentic",
+      "autonomyDescription": "Can read, write, execute, and complete multi-step tasks. Asks permission for potentially dangerous operations.",
+      "strengths": [
+        "Persistent project context via CLAUDE.md",
+        "Can run commands and tests",
+        "Multi-file editing with coordination",
+        "Human-in-the-loop safety model"
+      ],
+      "limitations": [
+        "Terminal-only (no GUI)",
+        "Requires comfort with command line",
+        "API costs can add up for heavy use"
+      ],
+      "website": "https://docs.anthropic.com/en/docs/claude-code",
+      "relatedMilestoneId": "E2024_CLAUDE_CODE"
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "company": "Cursor Inc",
+      "type": "ide",
+      "tagline": "The AI-native code editor",
+      "description": "Cursor is VS Code rebuilt around AI. Chat with your codebase, use Cmd+K for inline edits, and let AI make coordinated changes across multiple files. It's the IDE of choice for many 'vibe coders'.",
+      "bestFor": [
+        "Visual learners",
+        "Chat-based code editing",
+        "Codebase exploration and Q&A",
+        "People who prefer GUIs over terminals"
+      ],
+      "contextMethod": {
+        "fileName": ".cursorrules",
+        "description": "Create a .cursorrules file with project-specific instructions. Cursor also automatically indexes your codebase for context.",
+        "exampleUrl": "https://cursor.sh/docs"
+      },
+      "pricingModel": {
+        "type": "subscription",
+        "description": "$20/month for Pro",
+        "freeOption": true,
+        "typicalCost": "$0 (limited) or $20/month (Pro)"
+      },
+      "learningCurve": "low",
+      "autonomyLevel": "chat",
+      "autonomyDescription": "Chat-based with inline editing. AI suggests changes, you review and apply them. Can edit multiple files but with more oversight.",
+      "strengths": [
+        "Familiar VS Code interface",
+        "Low barrier to entry",
+        "Excellent codebase Q&A",
+        "Multi-file editing via Composer"
+      ],
+      "limitations": [
+        "Pro features require subscription",
+        "Less autonomous than CLI tools",
+        "Desktop app only"
+      ],
+      "website": "https://cursor.sh",
+      "relatedMilestoneId": "E2023_CURSOR"
+    },
+    {
+      "id": "github-copilot",
+      "name": "GitHub Copilot",
+      "company": "GitHub/Microsoft",
+      "type": "plugin",
+      "tagline": "Your AI pair programmer",
+      "description": "The original AI coding assistant. Copilot provides intelligent autocomplete as you type, suggesting code based on your context. Now includes chat features in supported IDEs.",
+      "bestFor": [
+        "Existing VS Code/JetBrains users",
+        "Fast inline completions",
+        "Enterprise teams with GitHub",
+        "Developers who want AI as a helper, not driver"
+      ],
+      "contextMethod": {
+        "fileName": ".github/copilot-instructions.md",
+        "description": "Create copilot-instructions.md in .github folder for repository-level context. Copilot also uses open files for context.",
+        "exampleUrl": "https://docs.github.com/en/copilot"
+      },
+      "pricingModel": {
+        "type": "subscription",
+        "description": "$10/month individual, $19/month business",
+        "freeOption": false,
+        "typicalCost": "$10-19/month"
+      },
+      "learningCurve": "low",
+      "autonomyLevel": "autocomplete",
+      "autonomyDescription": "Primarily inline suggestions as you type. Chat available but less integrated than Cursor. Human drives, AI assists.",
+      "strengths": [
+        "Seamless inline suggestions",
+        "Works in your existing IDE",
+        "Strong enterprise features",
+        "Wide language support"
+      ],
+      "limitations": [
+        "Less autonomous than newer tools",
+        "No built-in multi-file editing",
+        "Monthly subscription required"
+      ],
+      "website": "https://github.com/features/copilot",
+      "relatedMilestoneId": "E2021_COPILOT"
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "company": "OpenAI",
+      "type": "web",
+      "tagline": "The conversational starting point",
+      "description": "ChatGPT isn't a dedicated coding tool, but it's where many people start their 'vibe coding' journey. Describe what you want, copy the code, and iterate through conversation.",
+      "bestFor": [
+        "Complete beginners",
+        "One-off code generation",
+        "Learning and explanation",
+        "No-install experimentation"
+      ],
+      "contextMethod": {
+        "fileName": null,
+        "description": "Paste code snippets and describe your project in conversation. No persistent context—you explain each time.",
+        "exampleUrl": "https://chat.openai.com"
+      },
+      "pricingModel": {
+        "type": "freemium",
+        "description": "Free tier available, $20/month for Plus",
+        "freeOption": true,
+        "typicalCost": "$0 (limited) or $20/month (Plus)"
+      },
+      "learningCurve": "low",
+      "autonomyLevel": "chat",
+      "autonomyDescription": "Purely conversational. AI generates code, you copy-paste and test. No direct file access or command execution.",
+      "strengths": [
+        "No installation needed",
+        "Free tier available",
+        "Great for learning",
+        "Good at explaining code"
+      ],
+      "limitations": [
+        "No project context persistence",
+        "Manual copy-paste workflow",
+        "Can't directly edit your files"
+      ],
+      "website": "https://chat.openai.com",
+      "relatedMilestoneId": "E2022_CHATGPT"
+    },
+    {
+      "id": "windsurf",
+      "name": "Windsurf",
+      "company": "Codeium",
+      "type": "ide",
+      "tagline": "Agentic IDE with Cascade flows",
+      "description": "Windsurf combines Cursor-like chat with agentic 'Cascade' flows that can handle multi-step tasks. From the makers of Codeium, it aims to balance autonomy with control.",
+      "bestFor": [
+        "Users wanting more autonomy than Cursor",
+        "Multi-step task automation",
+        "Alternative to Cursor ecosystem",
+        "Free-tier seekers"
+      ],
+      "contextMethod": {
+        "fileName": ".windsurfrules",
+        "description": "Similar to .cursorrules, define project context in a rules file. Also indexes your codebase.",
+        "exampleUrl": "https://codeium.com/windsurf"
+      },
+      "pricingModel": {
+        "type": "freemium",
+        "description": "Free tier available, Pro at $15/month",
+        "freeOption": true,
+        "typicalCost": "$0 (limited) or $15/month (Pro)"
+      },
+      "learningCurve": "medium",
+      "autonomyLevel": "agentic",
+      "autonomyDescription": "Cascade flows can handle multi-step tasks more autonomously. Balance between chat and agentic modes.",
+      "strengths": [
+        "Generous free tier",
+        "Cascade flows for complex tasks",
+        "Active development",
+        "Competitive pricing"
+      ],
+      "limitations": [
+        "Newer, less proven than Cursor",
+        "Smaller community",
+        "Documentation still maturing"
+      ],
+      "website": "https://codeium.com/windsurf",
+      "relatedMilestoneId": null
+    }
+  ],
+  "comparisonMatrix": {
+    "headers": ["Tool", "Type", "Autonomy", "Learning Curve", "Price", "Best For"],
+    "rows": [
+      ["Claude Code", "CLI", "Agentic", "Medium", "Usage-based", "Terminal users, multi-step tasks"],
+      ["Cursor", "IDE", "Chat", "Low", "$0-20/mo", "Visual learners, codebase chat"],
+      ["GitHub Copilot", "Plugin", "Autocomplete", "Low", "$10-19/mo", "Existing IDE users, enterprise"],
+      ["ChatGPT", "Web", "Chat", "Low", "$0-20/mo", "Beginners, learning, one-offs"],
+      ["Windsurf", "IDE", "Agentic", "Medium", "$0-15/mo", "Cascade flows, autonomy balance"]
+    ]
+  },
+  "decisionHelper": {
+    "questions": [
+      {
+        "id": "experience",
+        "question": "What's your coding experience?",
+        "options": [
+          {"label": "Never coded before", "scores": {"chatgpt": 3, "cursor": 2, "windsurf": 1, "github-copilot": 0, "claude-code": 0}},
+          {"label": "Some coding, not a developer", "scores": {"cursor": 3, "chatgpt": 2, "windsurf": 2, "claude-code": 1, "github-copilot": 1}},
+          {"label": "Professional developer", "scores": {"claude-code": 3, "cursor": 3, "github-copilot": 3, "windsurf": 2, "chatgpt": 1}}
+        ]
+      },
+      {
+        "id": "environment",
+        "question": "Where do you want to work?",
+        "options": [
+          {"label": "In a web browser, no install", "scores": {"chatgpt": 3, "cursor": 0, "windsurf": 0, "github-copilot": 0, "claude-code": 0}},
+          {"label": "Desktop application (IDE)", "scores": {"cursor": 3, "windsurf": 3, "github-copilot": 2, "chatgpt": 0, "claude-code": 0}},
+          {"label": "Terminal / command line", "scores": {"claude-code": 3, "cursor": 0, "windsurf": 0, "github-copilot": 0, "chatgpt": 0}}
+        ]
+      },
+      {
+        "id": "autonomy",
+        "question": "How much do you want AI to do autonomously?",
+        "options": [
+          {"label": "Just suggest, I'll write", "scores": {"github-copilot": 3, "chatgpt": 2, "cursor": 1, "windsurf": 0, "claude-code": 0}},
+          {"label": "Chat and edit together", "scores": {"cursor": 3, "chatgpt": 2, "windsurf": 2, "claude-code": 1, "github-copilot": 1}},
+          {"label": "Let AI handle multi-step tasks", "scores": {"claude-code": 3, "windsurf": 3, "cursor": 1, "chatgpt": 0, "github-copilot": 0}}
+        ]
+      },
+      {
+        "id": "budget",
+        "question": "What's your budget?",
+        "options": [
+          {"label": "Free only", "scores": {"chatgpt": 3, "windsurf": 2, "cursor": 1, "github-copilot": 0, "claude-code": 0}},
+          {"label": "$10-20/month is fine", "scores": {"cursor": 3, "github-copilot": 3, "chatgpt": 3, "windsurf": 3, "claude-code": 2}},
+          {"label": "Pay for what I use", "scores": {"claude-code": 3, "cursor": 2, "github-copilot": 2, "chatgpt": 2, "windsurf": 2}}
+        ]
+      }
+    ]
+  }
+}

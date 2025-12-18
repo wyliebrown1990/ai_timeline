@@ -94,6 +94,31 @@
 - **Everyday Life Track**: For 65+ users who want to understand AI in plain English, with familiar analogies and practical safety tips
 - **Leaders Track**: For 40s-50s executives who need to make AI decisions but don't know where to start
 
+### Phase 6: Study & Retention
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 22](./sprint-22-flashcard-infrastructure.md) | Flashcard Infrastructure | High | Medium |
+| [Sprint 23](./sprint-23-study-center.md) | Study Center | High | Medium |
+| [Sprint 24](./sprint-24-flashcard-statistics.md) | Flashcard Statistics | Medium | Low |
+| [Sprint 25](./sprint-25-prebuilt-decks-polish.md) | Prebuilt Decks & Polish | Medium | Medium |
+
+### Phase 7: Operations & Monitoring
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 26](./sprint-26-api-monitoring-persistence.md) | API Monitoring Persistence (MVP) | Medium | Low |
+
+**Phase 7 Goal**: Production operations and cost management for AI features.
+
+### Phase 8: Practical AI Skills
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 27](./sprint-27-coding-with-ai.md) | "Coding with AI" Path (Vibe Coding) | High | Medium |
+
+**Phase 8 Goal**: Extend from AI understanding to AI creation—teaching users to build with AI tools.
+- **Coding with AI Track**: For curious professionals who want to build software using AI assistants without traditional programming education
+- Introduces "vibe coding" and "context engineering" concepts
+- Hands-on, practical activities with copy-paste prompts
+
 ---
 
 ## Quick Start

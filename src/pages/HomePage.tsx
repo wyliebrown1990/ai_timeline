@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Clock, BookOpen, Users, Sparkles } from 'lucide-react';
+import { ArrowRight, Clock, BookOpen, GraduationCap, Sparkles } from 'lucide-react';
 import { useOnboarding } from '../components/Onboarding';
 import { InTheNewsSection } from '../components/CurrentEvents';
 
@@ -13,18 +13,21 @@ const features = [
     title: 'Interactive Timeline',
     description:
       'Explore AI history from the 1940s to today with semantic zoom from decades to months.',
+    to: '/timeline',
   },
   {
     icon: BookOpen,
-    title: 'Primary Sources',
+    title: 'Learning Paths',
     description:
-      'Every event is backed by citations to original papers, announcements, and documents.',
+      'Guided journeys through AI topics—from fundamentals to cutting-edge developments.',
+    to: '/learn',
   },
   {
-    icon: Users,
-    title: 'Key Figures',
+    icon: GraduationCap,
+    title: 'Study Cards',
     description:
-      'Learn about the researchers, engineers, and visionaries who shaped artificial intelligence.',
+      'Reinforce your learning with spaced repetition flashcards and knowledge checkpoints.',
+    to: '/study',
   },
 ] as const;
 
@@ -90,17 +93,22 @@ function HomePage() {
           </p>
 
           <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {features.map(({ icon: Icon, title, description }) => (
-              <div
+            {features.map(({ icon: Icon, title, description, to }) => (
+              <Link
                 key={title}
-                className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
+                to={to}
+                className="group rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-lg hover:border-orange-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-orange-600"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100 transition-colors group-hover:bg-orange-200 dark:bg-orange-900/30 dark:group-hover:bg-orange-900/50">
                   <Icon className="h-6 w-6 text-orange-600 dark:text-orange-400" />
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+                <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">{title}</h3>
                 <p className="mt-2 text-gray-600 dark:text-gray-400">{description}</p>
-              </div>
+                <span className="mt-4 inline-flex items-center text-sm font-medium text-orange-600 dark:text-orange-400">
+                  Get started
+                  <ArrowRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </Link>
             ))}
           </div>
         </div>

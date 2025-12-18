@@ -1090,5 +1090,174 @@
         "rubric": "A good response should consider: 1) Buy when standard use cases apply (office productivity, basic chatbots), 2) Build when differentiation matters or proprietary data/workflows are central, 3) Consider hybrid approaches (APIs + custom integration), 4) Factor in maintenance burden and team expertise. Credit for mentioning specific examples like RAG for knowledge bases or copilots for standard workflows."
       }
     ]
+  },
+  {
+    "id": "cp-coding-ai-1",
+    "title": "Understanding AI Coding Tools",
+    "pathId": "coding-with-ai",
+    "afterMilestoneId": "E2021_COPILOT",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-copilot-role",
+        "question": "What was GitHub Copilot's main innovation when it launched?",
+        "options": [
+          "It could write entire applications from scratch",
+          "It suggested contextual code completions based on what you're working on",
+          "It replaced the need for human programmers",
+          "It only worked with Python code"
+        ],
+        "correctIndex": 1,
+        "explanation": "Copilot's key innovation was understanding your code context—comments, function names, surrounding code—to suggest relevant completions. It doesn't write whole apps or replace programmers, but it dramatically speeds up routine coding tasks."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-copilot-limitation",
+        "question": "What's a key limitation you should know about AI coding assistants?",
+        "options": [
+          "They only work in English-speaking countries",
+          "They can suggest buggy or insecure code that requires human review",
+          "They're too slow for practical use",
+          "They can only work offline"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI coding assistants frequently suggest code with bugs, security vulnerabilities, or patterns that don't fit your specific context. Human review is essential—never blindly accept AI suggestions without understanding and testing them."
+      }
+    ]
+  },
+  {
+    "id": "cp-coding-ai-2",
+    "title": "Which Prompt Works Better?",
+    "pathId": "coding-with-ai",
+    "afterMilestoneId": "E2025_VIBE_CODING",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-prompt-compare-1",
+        "question": "You want AI to create a to-do list app. Which prompt will get better results?",
+        "options": [
+          "Make me a to-do app",
+          "Create a simple to-do list using HTML, CSS, and JavaScript with add, complete, and delete features, storing tasks in localStorage, in a single HTML file",
+          "I need an app for tasks",
+          "Build something for productivity"
+        ],
+        "correctIndex": 1,
+        "explanation": "The second prompt specifies the technology (HTML/CSS/JS), features (add, complete, delete), persistence method (localStorage), and constraints (single file). Vague prompts like 'make me an app' leave too much undefined and often produce unusable results."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-debugging-approach",
+        "question": "Your AI-generated code doesn't work. Which approach is best?",
+        "options": [
+          "Say 'This doesn't work, please fix it' and paste the code",
+          "Start over with a completely different prompt",
+          "Give up—AI coding doesn't work",
+          "Paste the exact error message and describe what happened vs. what you expected"
+        ],
+        "correctIndex": 3,
+        "explanation": "Including the specific error message tells AI exactly where to look. Saying 'doesn't work' could mean many things. The more specific you are about what went wrong, the better AI can help you fix it."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-vibe-coding-myth",
+        "question": "Which statement about 'vibe coding' is FALSE?",
+        "options": [
+          "You can build working software by describing what you want in English",
+          "You don't need any skills—AI handles everything perfectly",
+          "Testing and iteration are still essential",
+          "It's changing who can participate in software creation"
+        ],
+        "correctIndex": 1,
+        "explanation": "Vibe coding requires real skills: clear thinking about requirements, understanding enough to verify results, and iterating when things don't work. AI isn't magic—it's a powerful tool that still needs human judgment and verification."
+      }
+    ]
+  },
+  {
+    "id": "cp-coding-ai-3",
+    "title": "Context Engineering Essentials",
+    "pathId": "coding-with-ai",
+    "afterMilestoneId": "E2025_CONTEXT_ENGINEERING",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-context-purpose",
+        "question": "What is the main purpose of a CLAUDE.md or .cursorrules file?",
+        "options": [
+          "To store your API keys securely",
+          "To give AI context about your project before you ask questions",
+          "To compile your code faster",
+          "To hide files from version control"
+        ],
+        "correctIndex": 1,
+        "explanation": "Context files give AI information about your project—what it does, what technologies you use, your preferences and constraints. This helps AI understand your project before you ask anything, leading to better, more relevant responses."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-context-content",
+        "question": "What should a good context file include?",
+        "options": [
+          "Your complete git history and every file in the project",
+          "Project description, tech stack, commands to run/test, and coding preferences",
+          "Only the name of your project",
+          "Detailed documentation of every function"
+        ],
+        "correctIndex": 1,
+        "explanation": "Good context files are concise and scannable: what the project does, your tech stack, how to run and test it, and key preferences or constraints. AI can read your actual code for details—the context file tells it how to think about your project."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-context-mistake",
+        "question": "What's a common context engineering mistake?",
+        "options": [
+          "Including commands to run and test the project",
+          "Writing too much—making the context file exhaustive instead of scannable",
+          "Mentioning your preferred coding patterns",
+          "Describing what the project does"
+        ],
+        "correctIndex": 1,
+        "explanation": "More context isn't always better. Long, detailed context files can actually hurt results because AI may miss important information in the noise. Keep context files focused on what actually helps AI understand your project."
+      }
+    ]
+  },
+  {
+    "id": "cp-coding-ai-4",
+    "title": "Tool Selection & Human Judgment",
+    "pathId": "coding-with-ai",
+    "afterMilestoneId": "E2024_CLAUDE_CODE",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-tool-autonomy",
+        "question": "What distinguishes 'agentic' AI coding tools like Claude Code from autocomplete tools like Copilot?",
+        "options": [
+          "Agentic tools are always more accurate",
+          "Agentic tools can take actions like running commands and editing multiple files",
+          "Autocomplete tools require no human oversight",
+          "Agentic tools only work in the browser"
+        ],
+        "correctIndex": 1,
+        "explanation": "Agentic tools go beyond suggestions—they can read files, make edits, run commands, and complete multi-step tasks. This makes them more powerful but also requires more careful oversight since they're taking real actions on your system."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-human-judgment",
+        "question": "When using AI coding tools, which tasks still require human judgment?",
+        "options": [
+          "Writing simple boilerplate code",
+          "Security decisions, testing, and verifying the code does what you wanted",
+          "Formatting code consistently",
+          "Looking up documentation"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI can write code, but humans must verify it actually does what was intended, check for security issues, test edge cases, and make judgment calls about design. Never deploy AI-generated code without testing and review."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-first-project",
+        "concept": "Getting started with AI-assisted coding",
+        "prompt": "What would you build as your first 'vibe coding' project, and what steps would you take to create it?",
+        "rubric": "A good response should: 1) Choose something simple and achievable (single HTML file, basic tool), 2) Describe what the project does specifically (not vaguely), 3) Mention which AI tool they'd use, 4) Include testing/iteration as part of the process. Credit for realistic expectations about complexity and the need to refine results."
+      }
+    ]
   }
 ]

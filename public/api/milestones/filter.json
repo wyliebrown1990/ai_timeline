@@ -2635,12 +2635,134 @@
       ],
       "createdAt": "2025-12-18T15:20:00.000Z",
       "updatedAt": "2025-12-18T15:20:00.000Z"
+    },
+    {
+      "id": "E2023_CURSOR",
+      "title": "Cursor AI-native IDE released",
+      "description": "Cursor launches as a fork of VS Code rebuilt around AI assistance. Unlike plugins, AI is the core interaction model—users chat with their codebase, and the AI can read, write, and refactor across multiple files simultaneously.",
+      "date": "2023-03-01",
+      "category": "product",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": "Cursor Inc",
+      "contributors": [
+        "Michael Truell",
+        "Sualeh Asif",
+        "Arvid Lunnemark",
+        "Aman Sanger"
+      ],
+      "sourceUrl": "https://cursor.sh",
+      "imageUrl": null,
+      "tags": [
+        "AI coding",
+        "IDE",
+        "Developer tools",
+        "Vibe coding"
+      ],
+      "sources": [
+        {
+          "label": "Cursor website",
+          "kind": "primary_doc",
+          "url": "https://cursor.sh"
+        }
+      ],
+      "createdAt": "2025-12-18T16:00:00.000Z",
+      "updatedAt": "2025-12-18T16:00:00.000Z"
+    },
+    {
+      "id": "E2024_CLAUDE_CODE",
+      "title": "Claude Code CLI brings agentic coding to the terminal",
+      "description": "Anthropic releases Claude Code, a command-line tool that brings Claude directly into the terminal. It can read files, execute commands, make edits, and work as an autonomous coding agent with user oversight, introducing concepts like CLAUDE.md files for persistent project context.",
+      "date": "2024-12-01",
+      "category": "product",
+      "significance": 3,
+      "era": "Multimodal & Deployment",
+      "organization": "Anthropic",
+      "contributors": [
+        "Anthropic"
+      ],
+      "sourceUrl": "https://docs.anthropic.com/en/docs/claude-code",
+      "imageUrl": null,
+      "tags": [
+        "AI coding",
+        "CLI",
+        "Agentic AI",
+        "Developer tools",
+        "Context engineering"
+      ],
+      "sources": [
+        {
+          "label": "Claude Code documentation",
+          "kind": "primary_doc",
+          "url": "https://docs.anthropic.com/en/docs/claude-code"
+        }
+      ],
+      "createdAt": "2025-12-18T16:00:00.000Z",
+      "updatedAt": "2025-12-18T16:00:00.000Z"
+    },
+    {
+      "id": "E2025_VIBE_CODING",
+      "title": "'Vibe coding' enters the lexicon",
+      "description": "Andrej Karpathy tweets about 'vibe coding'—a style of programming where you describe what you want in natural language and let AI write the implementation. 'The hottest new programming language is English.' The term crystallizes a paradigm shift already underway in software development.",
+      "date": "2025-02-01",
+      "category": "cultural",
+      "significance": 3,
+      "era": "Multimodal & Deployment",
+      "organization": null,
+      "contributors": [
+        "Andrej Karpathy"
+      ],
+      "sourceUrl": "https://x.com/karpathy/status/1886192184808149383",
+      "imageUrl": null,
+      "tags": [
+        "Vibe coding",
+        "AI coding",
+        "Natural language programming",
+        "Cultural moment"
+      ],
+      "sources": [
+        {
+          "label": "Karpathy tweet",
+          "kind": "media",
+          "url": "https://x.com/karpathy/status/1886192184808149383"
+        }
+      ],
+      "createdAt": "2025-12-18T16:00:00.000Z",
+      "updatedAt": "2025-12-18T16:00:00.000Z"
+    },
+    {
+      "id": "E2025_CONTEXT_ENGINEERING",
+      "title": "Context engineering emerges as a discipline",
+      "description": "As AI coding tools mature, practitioners recognize that 'prompt engineering' is insufficient. Context engineering—structuring project files, documentation, and instructions to maximize AI effectiveness—becomes a distinct skill. CLAUDE.md files, .cursorrules, and similar conventions emerge as best practices.",
+      "date": "2025-01-01",
+      "category": "industry",
+      "significance": 3,
+      "era": "Multimodal & Deployment",
+      "organization": null,
+      "contributors": [],
+      "sourceUrl": "https://docs.anthropic.com/en/docs/claude-code/memory",
+      "imageUrl": null,
+      "tags": [
+        "Context engineering",
+        "AI coding",
+        "Developer practices",
+        "CLAUDE.md"
+      ],
+      "sources": [
+        {
+          "label": "Claude Code memory documentation",
+          "kind": "primary_doc",
+          "url": "https://docs.anthropic.com/en/docs/claude-code/memory"
+        }
+      ],
+      "createdAt": "2025-12-18T16:00:00.000Z",
+      "updatedAt": "2025-12-18T16:00:00.000Z"
     }
   ],
   "pagination": {
     "page": 1,
-    "limit": 75,
-    "total": 76,
+    "limit": 80,
+    "total": 80,
     "totalPages": 1
   }
 }

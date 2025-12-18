@@ -1304,6 +1304,119 @@
       "watchOutFor": "RAG improves accuracy but isn't perfect. AI can still misinterpret retrieved information or combine facts incorrectly. Verify important information."
     }
   },
+  "E2023_CURSOR": {
+    "tldr": "AI-native IDE where you chat with your codebase and AI applies edits directly.",
+    "simpleExplanation": "Cursor took VS Code—the most popular code editor—and rebuilt it around AI. Instead of AI being a plugin that suggests code, AI is the core way you interact with your project. You can chat with your entire codebase, ask questions, and have AI make changes across multiple files at once.\n\nIt's like having a programmer assistant who can see your whole project and make coordinated changes, not just autocomplete the line you're on.",
+    "businessImpact": "- Pioneered 'AI-native' development environment category\n- Demonstrated that AI works best when deeply integrated, not bolted on\n- Reached profitability with $100M+ ARR in under 2 years\n- Influenced how all IDE vendors think about AI integration",
+    "technicalDepth": "Cursor combines multiple AI interaction patterns: inline autocomplete (like Copilot), chat interface for questions and commands, and 'Composer' mode for multi-file edits. It indexes your codebase to provide relevant context to the AI.\n\nThe .cursorrules file lets you define project-specific instructions that guide AI behavior—an early form of context engineering.",
+    "historicalContext": "Cursor launched as GitHub Copilot was dominating mindshare. Rather than compete as another autocomplete plugin, they bet that a purpose-built AI IDE would be more powerful than AI added to an existing editor.\n\nThe team (ex-MIT, ex-Scale AI) raised $60M from a16z and others, validating the AI-native tools thesis.",
+    "whyItMattersToday": "Cursor proved that AI coding tools can be standalone products, not just features. It's the IDE of choice for many 'vibe coders' who primarily interact with code through AI.",
+    "commonMisconceptions": "- ❌ \"It's just VS Code with a chatbot\" → ✅ Deep integration enables multi-file editing and codebase-aware responses\n- ❌ \"You need to be a programmer to use it\" → ✅ It's increasingly used by people learning to code through AI\n- ❌ \"Cursor is free\" → ✅ Pro features require $20/month subscription",
+    "codersGuide": {
+      "whatYouCanDo": "Chat with your entire codebase, ask questions about how things work, and have AI make coordinated changes across multiple files. It's the closest thing to having a knowledgeable programmer looking at your project with you.",
+      "howToTry": "1. Download Cursor from cursor.sh (free tier available)\n2. Open a project folder\n3. Press Cmd/Ctrl+K to ask AI to write or edit code\n4. Press Cmd/Ctrl+L to chat about your codebase\n5. Create a .cursorrules file to customize AI behavior",
+      "examplePrompt": "Open chat (Cmd+L) and try:\n\n'Explain how the authentication flow works in this project. What files are involved and how do they connect?'\n\nOr use Cmd+K and type:\n'Add error handling to this function that logs failures and retries up to 3 times'",
+      "commonMistakes": [
+        "Not creating a .cursorrules file to give AI context about your project",
+        "Accepting multi-file changes without reviewing each file",
+        "Using chat for things that would be faster with inline completion (Cmd+K)",
+        "Asking vague questions like 'make this better' instead of specific requests",
+        "Forgetting that AI doesn't know about recent changes until you save files"
+      ],
+      "whenToStepIn": "Review every multi-file change carefully—AI might break things in files you weren't focused on. Test changes before committing. Be especially careful with:\n- Database migrations\n- Authentication/security code\n- Code that handles money or sensitive data"
+    },
+    "plainEnglish": {
+      "whatHappened": "A company rebuilt VS Code (a popular code editor) with AI at its core. Instead of AI being an add-on, the whole editing experience is designed around chatting with AI to write and modify code.",
+      "thinkOfItLike": "Instead of AI whispering suggestions as you type, you're having a conversation with an assistant who can see and change your whole project.",
+      "howItAffectsYou": "Cursor makes it easier for non-programmers to build software by describing what they want. It's becoming popular among 'vibe coders' who work primarily through AI conversation rather than traditional coding.",
+      "watchOutFor": "The AI can make mistakes, especially when changing multiple files at once. Always review what it changed before accepting. Free tier is limited—full features require $20/month."
+    }
+  },
+  "E2024_CLAUDE_CODE": {
+    "tldr": "Agentic AI coding in the terminal that can read, write, and execute autonomously.",
+    "simpleExplanation": "Claude Code brings Claude directly into your terminal, where it can do more than answer questions—it can take actions. It reads your files, makes edits, runs commands, and completes multi-step tasks with your oversight.\n\nThe key innovation is the CLAUDE.md file: project documentation that Claude reads automatically, giving it context about your codebase, preferences, and constraints before you ask anything.",
+    "businessImpact": "- Introduced 'agentic coding' to mainstream developers\n- Popularized context engineering through CLAUDE.md files\n- Demonstrated that AI could be trusted with greater autonomy\n- Influenced how other AI tools think about persistent context",
+    "technicalDepth": "Claude Code operates as an agent that orchestrates multiple capabilities: file reading/writing, command execution, web search, and multi-file editing. It uses a tool-use architecture where Claude decides which actions to take.\n\nThe CLAUDE.md convention lets you specify project context, coding preferences, and constraints that persist across sessions. This addresses the 'context amnesia' problem of chat-based tools.",
+    "historicalContext": "Claude Code emerged as the AI coding space was fragmenting into autocomplete (Copilot), chat (ChatGPT), and IDE-integrated (Cursor) approaches. It represented a fourth paradigm: agentic, terminal-based, with persistent context.\n\nAnthropic positioned it as a professional tool rather than consumer product, emphasizing developer workflow integration.",
+    "whyItMattersToday": "Claude Code showed that context engineering—not just prompt engineering—is key to effective AI collaboration. The CLAUDE.md pattern is being adopted across the AI coding ecosystem.",
+    "commonMisconceptions": "- ❌ \"It's just ChatGPT in a terminal\" → ✅ The agentic capabilities and persistent context are fundamentally different\n- ❌ \"It runs commands without asking\" → ✅ Dangerous operations require explicit approval\n- ❌ \"CLAUDE.md is optional\" → ✅ It's technically optional but dramatically improves results",
+    "codersGuide": {
+      "whatYouCanDo": "Work with an AI that can see your project, make changes, run tests, and complete multi-step tasks. Unlike chat-based tools, it maintains context about your project through CLAUDE.md files.",
+      "howToTry": "1. Install with npm: `npm install -g @anthropic-ai/claude-code`\n2. Navigate to your project directory\n3. Create a CLAUDE.md file describing your project\n4. Run `claude` to start a conversation\n5. Describe what you want to build or change",
+      "examplePrompt": "A good CLAUDE.md file:\n\n```markdown\n# My Todo App\n\nSimple React todo app with localStorage persistence.\n\n## Tech Stack\n- React 18 with TypeScript\n- Tailwind CSS for styling\n- Vite for development\n\n## Commands\n- `npm run dev` - Start dev server\n- `npm test` - Run tests\n\n## Preferences\n- Use functional components with hooks\n- Keep components small and focused\n- Add comments for complex logic\n```\n\nThen ask: 'Add a feature to filter todos by completion status'",
+      "commonMistakes": [
+        "Not creating a CLAUDE.md file—the AI works much better with project context",
+        "Writing a novel in CLAUDE.md—keep it scannable and focused",
+        "Not including how to run and test the project",
+        "Approving commands you don't understand",
+        "Not reviewing file changes before they're written"
+      ],
+      "whenToStepIn": "Claude Code asks permission for 'dangerous' operations, but you should understand what you're approving. Pay special attention to:\n- Any command that modifies data (databases, files)\n- Package installations (npm install, pip install)\n- Git operations (especially push, reset)\n- Network requests to external services"
+    },
+    "plainEnglish": {
+      "whatHappened": "Anthropic released a tool that lets Claude work directly in your computer's terminal, able to read files, make changes, and run commands—not just answer questions, but actually do things.",
+      "thinkOfItLike": "Instead of copying code from a chatbot and pasting it yourself, you have an assistant who can directly make changes to your project while you supervise.",
+      "howItAffectsYou": "Claude Code makes it easier to build software without traditional coding knowledge. You describe what you want, and it makes changes. But you still need to understand enough to verify the changes are correct.",
+      "watchOutFor": "AI with the ability to run commands on your computer is powerful but requires trust. Always understand what you're approving. Don't run Claude Code on projects with sensitive data you can't afford to expose."
+    }
+  },
+  "E2025_VIBE_CODING": {
+    "tldr": "Programming by describing what you want in English, letting AI handle implementation.",
+    "simpleExplanation": "Andrej Karpathy coined 'vibe coding' to describe a new way of programming: instead of writing code syntax, you describe what you want in plain English and let AI write the implementation. You focus on the 'what' and 'why'; AI handles the 'how'.\n\nThe term crystallized a shift already happening: people building real software without traditional programming education, using AI as a translator between human intent and computer code.",
+    "businessImpact": "- Legitimized a new approach to software development\n- Lowered barriers to entry for building software\n- Created new roles: people who are good at directing AI but not traditional coding\n- Sparked debate about what 'programming' means in the AI era",
+    "technicalDepth": "Vibe coding doesn't eliminate the need to understand what you're building—it changes what you need to understand. Instead of syntax and APIs, you need clear thinking about requirements, edge cases, and verification.\n\nThe most effective vibe coders iterate rapidly: describe, review, refine, test. They treat AI output as first drafts requiring human judgment, not finished products.",
+    "historicalContext": "Karpathy's tweet went viral because it named something many people were already experiencing. The term spread from X to mainstream tech media within weeks, becoming standard vocabulary.\n\nKarpathy, having worked on AI at Tesla, Google, and OpenAI, lent credibility to the idea that this represents a genuine paradigm shift, not just hype.",
+    "whyItMattersToday": "Vibe coding is how many people are building their first software projects. It's changing who can create software and how software gets made.",
+    "commonMisconceptions": "- ❌ \"Vibe coding means no skill is needed\" → ✅ Clear thinking, good requirements, and verification skills are essential\n- ❌ \"It's just for toy projects\" → ✅ Real production software is being built this way\n- ❌ \"Traditional coding is obsolete\" → ✅ Deep expertise remains valuable; vibe coding extends who can participate",
+    "codersGuide": {
+      "whatYouCanDo": "Build working software by describing what you want in plain English. Focus on clearly explaining the goal, constraints, and expected behavior—AI handles translating that into code.",
+      "howToTry": "1. Start with a clear idea of what you want to build\n2. Open Claude, ChatGPT, or Cursor\n3. Describe your project in detail: what it does, who it's for, how it should behave\n4. Ask AI to create the first version\n5. Test it, describe what's wrong, iterate until it works",
+      "examplePrompt": "Good vibe coding prompt:\n\n'I want a simple web page that tracks my daily water intake. Features:\n- Button to add a glass of water (8oz)\n- Display total glasses today\n- Reset at midnight\n- Store data in localStorage so it persists\n- Simple, clean design with a blue color scheme\n- Shows a congratulations message when I hit 8 glasses\n\nCreate this as a single HTML file I can open in my browser.'",
+      "commonMistakes": [
+        "Being too vague: 'make me an app' vs describing specific features",
+        "Not specifying technical constraints: 'single HTML file' vs leaving it open",
+        "Accepting the first output without testing it",
+        "Not iterating: successful vibe coding often takes 3-5 rounds of refinement",
+        "Trying to build something too complex for your first project"
+      ],
+      "whenToStepIn": "You need human judgment for:\n- Verifying the code actually does what you wanted (test it!)\n- Security decisions (is it storing passwords safely? handling data properly?)\n- Edge cases (what happens if the user does something unexpected?)\n- Design decisions (does this make sense for real users?)"
+    },
+    "plainEnglish": {
+      "whatHappened": "AI researcher Andrej Karpathy gave a name to what many people were already doing: 'vibe coding'—building software by describing what you want in everyday English rather than learning programming languages.",
+      "thinkOfItLike": "Instead of learning a foreign language (programming) to tell a computer what to do, you describe what you want in English and AI translates it for you.",
+      "howItAffectsYou": "Vibe coding means:\n- You can build simple tools without formal programming training\n- The barrier to creating software is lower than ever\n- Kids, retirees, and professionals outside tech can build things\n- 'Knowing what you want' becomes the key skill",
+      "tryItYourself": "Try asking ChatGPT or Claude to create a simple HTML page that does something useful for you—a countdown timer, a personal checklist, a tip calculator. You might be surprised what you can build!",
+      "watchOutFor": "Vibe coding isn't magic. You still need to:\n- Know what you want (clear requirements)\n- Test that it actually works\n- Iterate when it doesn't\n- Be realistic about complexity (start simple)"
+    }
+  },
+  "E2025_CONTEXT_ENGINEERING": {
+    "tldr": "Structuring information to help AI understand your project before you ask anything.",
+    "simpleExplanation": "Context engineering goes beyond writing good prompts. It's about organizing your entire project so AI tools can understand it: documentation files like CLAUDE.md, rules files like .cursorrules, clear folder structures, and descriptive names.\n\nThe insight: the best AI results come from good context, not clever prompts. If AI understands your project before you ask a question, it gives better answers with less effort.",
+    "businessImpact": "- Shifted focus from one-off prompts to systematic approaches\n- Created new conventions (CLAUDE.md, .cursorrules, copilot-instructions.md)\n- Made AI tool effectiveness more predictable and replicable\n- Established context quality as a competitive advantage",
+    "technicalDepth": "Context engineering encompasses several practices:\n- **Project documentation**: CLAUDE.md/README files that explain what the project does\n- **Rules files**: .cursorrules, copilot-instructions.md that define preferences and constraints\n- **Code organization**: Naming, structure, and comments that help AI understand intent\n- **Context management**: Knowing when to include/exclude information for best results",
+    "historicalContext": "As AI coding tools matured, early adopters noticed that well-organized projects got better results than clever prompts on messy codebases. The term 'context engineering' emerged to describe this systematic approach.\n\nIt represents the evolution from 'prompt engineering' (getting good responses from individual queries) to sustainable AI collaboration practices.",
+    "whyItMattersToday": "Context engineering is becoming a core skill for working with AI. Projects with good context files consistently outperform those relying on prompt cleverness alone.",
+    "commonMisconceptions": "- ❌ \"It's just writing documentation\" → ✅ It's specifically structuring info for AI consumption, which differs from human docs\n- ❌ \"One context file is enough\" → ✅ Different tools use different files; you may need several\n- ❌ \"More context is always better\" → ✅ Concise, relevant context beats comprehensive but noisy docs",
+    "codersGuide": {
+      "whatYouCanDo": "Set up your project so AI tools understand it before you ask questions. Write context files that explain your project, your preferences, and your constraints. Get better AI results with less prompt effort.",
+      "howToTry": "1. Create a CLAUDE.md (or README.md) at your project root\n2. Describe what the project does in 2-3 sentences\n3. List your tech stack and key dependencies\n4. Include commands to run, test, and build\n5. Note any preferences or patterns to follow\n6. For Cursor, also create .cursorrules with similar info",
+      "examplePrompt": "A good context file template:\n\n```markdown\n# Project Name\n\n[One sentence: what this project does]\n\n## Tech Stack\n- [Language/framework]\n- [Key libraries]\n- [Database, if any]\n\n## Quick Start\n```bash\nnpm install\nnpm run dev\n```\n\n## Project Structure\n- `src/` - Main source code\n- `tests/` - Test files\n- `docs/` - Documentation\n\n## Coding Preferences\n- [Your patterns, e.g., 'Use TypeScript strict mode']\n- [Your conventions, e.g., 'Prefer named exports']\n- [Things to avoid, e.g., 'No external dependencies without approval']\n\n## Notes for AI\n- [Specific instructions that help AI understand your project]\n```",
+      "commonMistakes": [
+        "Writing too much—context files should be scannable, not exhaustive",
+        "Forgetting to update context when the project changes",
+        "Not including 'how to verify changes work' (test commands)",
+        "Being inconsistent between what context says and what you ask for",
+        "Not tailoring context for different tools (CLAUDE.md vs .cursorrules)"
+      ],
+      "whenToStepIn": "Context engineering is about your judgment:\n- What information actually helps AI understand YOUR project?\n- What mistakes does AI keep making that context could prevent?\n- Is your context file helping or just adding noise?\n- When did you last update it to reflect current project state?"
+    },
+    "plainEnglish": {
+      "whatHappened": "People realized that getting good results from AI coding tools isn't about clever prompts—it's about organizing your project so AI understands it. Files like CLAUDE.md became the 'instruction manual' for AI assistants.",
+      "thinkOfItLike": "When you hire a new employee, you don't explain your company from scratch every conversation. You give them documentation, context, and guidelines. Context engineering does the same for AI.",
+      "howItAffectsYou": "If you use AI coding tools, good context engineering means:\n- Less time explaining things to AI\n- More consistent, better results\n- AI that 'gets' your project faster\n- Fewer mistakes from AI misunderstanding your intent",
+      "watchOutFor": "Context engineering is still evolving. Different tools use different files. What works for Claude might not work for Cursor or Copilot. Expect conventions to keep changing as AI tools mature."
+    }
+  },
   "E2026_WHERE_WE_GO_NEXT": {
     "tldr": "Three AI future scenarios from industry leaders: optimistic, neutral, and concerning.",
     "simpleExplanation": "As we approach the late 2020s, AI stands at a crossroads. The decisions made by researchers, companies, governments, and society in the coming years will shape whether AI becomes humanity's greatest tool or its greatest challenge.\n\nThis milestone isn't about a single event—it's a synthesis of the visions, warnings, and predictions from the people building and studying AI. From Sam Altman's conviction that AGI is imminent to Yann LeCun's skepticism, from Dario Amodei's optimistic scenarios to Geoffrey Hinton's existential warnings, the future remains genuinely uncertain.\n\nWhat follows are three scenarios—optimistic, neutral, and concerning—each grounded in real perspectives from those shaping AI's trajectory.",

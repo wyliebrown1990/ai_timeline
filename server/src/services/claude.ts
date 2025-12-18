@@ -13,20 +13,48 @@ const MAX_TOKENS = 1024;
 
 /**
  * Request logging for cost monitoring
- * In production, this would write to CloudWatch or a logging service
+ * Logs are stored in-memory for real-time stats and written to CloudWatch for historical queries
  */
 interface ChatLogEntry {
   timestamp: string;
+  requestId: string;
   sessionId: string;
+  requestType: 'chat' | 'prerequisites' | 'follow-ups';
   inputTokens: number;
   outputTokens: number;
   model: string;
   duration: number;
   success: boolean;
   error?: string;
+  errorType?: 'rate_limit' | 'api_error' | 'timeout' | 'auth' | 'network' | 'unknown';
+  explainMode?: string;
+  milestoneId?: string;
+  clientIp?: string;
+  userAgent?: string;
 }
 
 const chatLogs: ChatLogEntry[] = [];
+const MAX_IN_MEMORY_LOGS = 500; // Keep recent logs in memory for real-time stats
+
+/**
+ * Generate a simple request ID
+ */
+function generateRequestId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/**
+ * Categorize error into error type
+ */
+function categorizeError(error: string): ChatLogEntry['errorType'] {
+  const lowerError = error.toLowerCase();
+  if (lowerError.includes('rate limit') || lowerError.includes('too many')) return 'rate_limit';
+  if (lowerError.includes('timeout') || lowerError.includes('timed out')) return 'timeout';
+  if (lowerError.includes('api key') || lowerError.includes('unauthorized') || lowerError.includes('401')) return 'auth';
+  if (lowerError.includes('network') || lowerError.includes('connection')) return 'network';
+  if (lowerError.includes('500') || lowerError.includes('api')) return 'api_error';
+  return 'unknown';
+}
 
 /**
  * Logs a chat request for cost monitoring
@@ -34,8 +62,12 @@ const chatLogs: ChatLogEntry[] = [];
 function logChatRequest(entry: ChatLogEntry): void {
   chatLogs.push(entry);
 
-  // In production, send to CloudWatch
-  // Using console.warn for visibility in logs while complying with lint rules
+  // Keep only recent logs in memory
+  if (chatLogs.length > MAX_IN_MEMORY_LOGS) {
+    chatLogs.shift();
+  }
+
+  // Write to CloudWatch via console.warn (structured JSON for Logs Insights queries)
   console.warn('[CHAT_LOG]', JSON.stringify(entry));
 }
 
@@ -88,10 +120,12 @@ export async function sendMessage(
     milestoneContext?: MilestoneContext;
     explainMode?: ExplainMode;
     conversationHistory?: ChatMessage[];
+    clientIp?: string;
+    userAgent?: string;
   } = {}
 ): Promise<ChatResponse> {
   const startTime = Date.now();
-  const { milestoneContext, explainMode = 'plain_english', conversationHistory = [] } = options;
+  const { milestoneContext, explainMode = 'plain_english', conversationHistory = [], clientIp, userAgent } = options;
 
   // Build the system prompt based on mode and context
   const systemPrompt = buildSystemPrompt(explainMode, milestoneContext);
@@ -105,14 +139,21 @@ export async function sendMessage(
     { role: 'user' as const, content: userMessage },
   ];
 
+  const requestId = generateRequestId();
   let logEntry: ChatLogEntry = {
     timestamp: new Date().toISOString(),
+    requestId,
     sessionId,
+    requestType: 'chat',
     inputTokens: 0,
     outputTokens: 0,
     model: CLAUDE_MODEL,
     duration: 0,
     success: false,
+    explainMode,
+    milestoneId: milestoneContext?.id,
+    clientIp,
+    userAgent,
   };
 
   try {
@@ -164,11 +205,13 @@ export async function sendMessage(
       suggestedFollowUps,
     };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logEntry = {
       ...logEntry,
       duration: Date.now() - startTime,
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
+      errorType: categorizeError(errorMessage),
     };
 
     logChatRequest(logEntry);

@@ -13,8 +13,36 @@ import {
 } from '../components/LearningPaths';
 import { MilestoneDetail } from '../components/Timeline/MilestoneDetail';
 import { CheckpointView } from '../components/Checkpoints';
+import { chatApi } from '../services/chatApi';
 import type { LearningPath } from '../types/learningPath';
 import type { Checkpoint } from '../types/checkpoint';
+
+/**
+ * Get AI feedback for explain-back questions using the chat API
+ */
+async function getAIFeedback(
+  concept: string,
+  explanation: string,
+  rubric: string
+): Promise<string> {
+  try {
+    const response = await chatApi.sendMessage({
+      message: `You are evaluating a learner's explanation of "${concept}".
+
+Their explanation: "${explanation}"
+
+Evaluation rubric: ${rubric}
+
+Provide brief, encouraging feedback (2-3 sentences) on their explanation. Be constructive and highlight what they got right while gently noting any gaps. Do not be overly effusive - be honest but kind.`,
+      explainMode: 'plain_english',
+    });
+    return response.response;
+  } catch (error) {
+    console.error('AI feedback error:', error);
+    // Fallback to a generic response if API fails
+    return `Thanks for your explanation of ${concept}! To get personalized AI feedback, please configure your API key in Settings or enable Free Tier.`;
+  }
+}
 
 /**
  * View states for the learning paths page
@@ -505,6 +533,7 @@ function LearningPathsPage() {
                 onComplete={handleCheckpointComplete}
                 onSkip={handleCheckpointSkip}
                 allowSkip={true}
+                getAIFeedback={getAIFeedback}
               />
             </div>
           </div>
