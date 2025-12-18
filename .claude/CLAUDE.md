@@ -1,104 +1,61 @@
 # AI Timeline Atlas
 
-A "reference atlas + guided path" web app for exploring the history and evolution of artificial intelligence.
-
-## Project Vision
-
-Build a beautiful, user-friendly timeline visualization that lets users explore AI history from foundations (1940s) through modern LLMs. The default entry point guides users through: **Transformer (2017) → GPT-3 → ChatGPT → GPT-4**.
-
-Users can zoom (decade → year → month), filter by category, explore concepts with hover definitions, and dive into primary sources through a citation drawer.
-
-## Key References
-
-- @PROJECT_PLAN.md - Full technical plan and content strategy
-- @starter_50_events.json - Initial 50 timeline events with schema examples
-
-## Tech Stack
-
-### Frontend
-- **Framework**: Next.js 14+ with App Router, React 18+, TypeScript 5+
-- **Styling**: Tailwind CSS + shadcn/ui components
-- **Animation**: Framer Motion for smooth transitions
-- **Timeline**: visx or D3.js for semantic zoom timeline
-- **State**: React Query for server state, Zustand for client state
-
-### Backend (AWS)
-- **API**: API Gateway + Lambda (or Lambda Function URLs + CloudFront)
-- **Database**: DynamoDB for events, concepts, people, orgs
-- **Search**: OpenSearch Serverless for full-text search and faceting
-- **Media**: S3 + CloudFront CDN for images and assets
-- **Auth**: Cognito (admin-only at launch)
-- **Observability**: CloudWatch logs, X-Ray tracing
-
-### Content Pipeline
-- **Source of Truth**: YAML/MDX files in Git → CI deploys to DynamoDB
-- **Linting**: CI enforces primary sources, date validation, concept link resolution
-
-## Core UX Principles
-
-1. **Mobile-first responsive** - Beautiful on phone, tablet, and desktop
-2. **Semantic zoom** - Decade → Year → Month with smooth transitions
-3. **Event clustering** - Aggregate when zoomed out, expand when zoomed in
-4. **Concept linking** - `[[ConceptName]]` in markdown renders as interactive tooltips
-5. **Citation-first** - Every event requires at least one primary source
-6. **Accessibility** - WCAG 2.1 AA compliant, keyboard navigable
-
-## Project Structure (Target)
-
-```
-ai_timeline/
-├── .claude/                    # Claude Code configuration
-│   ├── CLAUDE.md              # This file
-│   └── rules/                 # Modular rules by topic
-├── apps/
-│   └── web/                   # Next.js frontend
-│       ├── app/               # App Router pages
-│       ├── components/        # React components
-│       ├── lib/               # Utilities and hooks
-│       └── styles/            # Global styles
-├── packages/
-│   ├── content/               # YAML/MDX content files
-│   │   ├── events/            # Timeline events
-│   │   ├── concepts/          # Concept definitions
-│   │   ├── people/            # Person profiles
-│   │   └── orgs/              # Organization profiles
-│   ├── schemas/               # Zod schemas + TypeScript types
-│   └── ui/                    # Shared UI components
-├── infra/                     # AWS CDK or SAM templates
-├── scripts/                   # Content linting, deployment scripts
-└── starter_50_events.json     # Initial seed data
-```
+Interactive web app for exploring AI history from 1940s through modern LLMs.
 
 ## Commands
 
 ```bash
-# Development
-pnpm dev           # Start Next.js dev server
-pnpm lint          # Run ESLint + Prettier
-pnpm typecheck     # TypeScript type checking
-pnpm test          # Run tests
-
-# Content
-pnpm content:lint  # Validate content files
-pnpm content:sync  # Deploy content to DynamoDB
-
-# Infrastructure
-pnpm infra:deploy  # Deploy AWS infrastructure
+npm run dev          # Start Vite dev server (localhost:5173)
+npm run build        # Production build
+npm run typecheck    # TypeScript checking (run after code changes)
+npm run test         # Jest unit tests
+npm run test:e2e     # Playwright E2E tests
 ```
 
-## Coding Standards
+## Project Structure
 
-- Use TypeScript strict mode everywhere
-- Prefer named exports over default exports
-- Use `type` for type aliases, `interface` for extendable shapes
-- Component files: PascalCase (e.g., `TimelineCanvas.tsx`)
-- Utility files: camelCase (e.g., `formatDate.ts`)
+```
+src/
+├── components/      # React components (PascalCase files)
+├── pages/           # Route pages
+├── hooks/           # Custom React hooks
+├── contexts/        # React Context providers
+├── types/           # Zod schemas + TypeScript types
+├── services/        # API clients
+├── content/         # Static content (milestones, paths, checkpoints)
+└── lib/             # Utilities
+
+development-roadmap/ # Sprint planning documents
+```
+
+## Code Style
+
+- TypeScript strict mode, no `any`
+- Named exports over default exports
+- `type` for aliases, `interface` for extendable shapes
 - Always handle loading, error, and empty states in UI
-- Write meaningful commit messages with conventional commits format
+- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
 
-## Current Phase
+## Key Patterns
 
-**Phase A: Foundations**
-- Define schemas (Event, Concept, Person, Org) and citation structure
-- Build frontend skeleton: Start Here, Timeline, Event panel, Citation drawer
-- Build content linting and CI deployment to DynamoDB
+- **State**: localStorage + React hooks/context (see `useUserProfile`, `useCheckpointProgress`)
+- **Content**: Static JSON in `src/content/`, types in `src/types/`
+- **Modals**: Fixed overlay + backdrop blur + escape key dismiss
+- **Testing**: `data-testid` attributes on interactive elements
+
+## IMPORTANT
+
+- ALWAYS run `npm run typecheck` after making code changes
+- Read existing code patterns before implementing new features
+- Check `src/types/` for Zod schemas before creating new data structures
+- Milestones and learning paths are in `src/content/`
+
+## Rules (Auto-loaded by path)
+
+Detailed standards are in `.claude/rules/`:
+- `data-models.md` - Zod schemas for Event, Concept, Person, Org, Checkpoint
+- `frontend.md` - React, Tailwind, state management patterns
+- `backend.md` - AWS Lambda, DynamoDB, API design
+- `design-system.md` - Colors, typography, component variants
+- `content.md` - Content guidelines and validation
+- `testing.md` - Test patterns and coverage requirements
