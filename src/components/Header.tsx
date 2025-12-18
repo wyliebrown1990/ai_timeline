@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Clock, Home, BookOpen, FileText, Newspaper, Settings, Menu, X } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 
@@ -40,7 +40,7 @@ function Header() {
             className="flex items-center gap-2 text-xl font-bold text-gray-900 transition-colors hover:text-orange-600 dark:text-white dark:hover:text-orange-400"
             onClick={closeMobileMenu}
           >
-            <Clock className="h-6 w-6 text-orange-500 dark:text-orange-400" />
+            <img src="/logo.png" alt="AI Timeline" className="h-8 w-8 rounded-lg" />
             <span className="hidden sm:inline">AI Timeline</span>
             <span className="sm:hidden">AI</span>
           </Link>
