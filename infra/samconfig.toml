@@ -1,0 +1,31 @@
+# SAM CLI Configuration for AI Timeline
+
+version = 0.1
+
+[default.global.parameters]
+stack_name = "ai-timeline-prod"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.deploy.parameters]
+stack_name = "ai-timeline-prod"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM CAPABILITY_AUTO_EXPAND"
+parameter_overrides = "Environment=prod ThrottlingRateLimit=100 ThrottlingBurstLimit=200"
+s3_prefix = "ai-timeline"
+disable_rollback = false
+resolve_s3 = true
+
+[default.validate.parameters]
+lint = true
+
+[default.sync.parameters]
+watch = true
+
+[dev]
+[dev.deploy.parameters]
+stack_name = "ai-timeline-dev"
+parameter_overrides = "Environment=dev ThrottlingRateLimit=50 ThrottlingBurstLimit=100"

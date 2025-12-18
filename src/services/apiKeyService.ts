@@ -17,6 +17,7 @@ const STORAGE_KEYS = {
   API_KEY: 'ai_timeline_api_key',
   OPT_OUT: 'ai_timeline_api_opt_out',
   VALIDATED_AT: 'ai_timeline_api_validated',
+  FREE_TIER: 'ai_timeline_free_tier',
 } as const;
 
 // Anthropic API endpoint for validation
@@ -208,6 +209,57 @@ export const apiKeyService = {
   },
 
   /**
+   * Check if user is using the free tier (backend API)
+   */
+  isUsingFreeTier(): boolean {
+    try {
+      const value = localStorage.getItem(STORAGE_KEYS.FREE_TIER);
+      console.log('[ApiKeyService] isUsingFreeTier check:', value);
+      return value === 'true';
+    } catch (e) {
+      console.error('[ApiKeyService] isUsingFreeTier error:', e);
+      return false;
+    }
+  },
+
+  /**
+   * Enable free tier mode (uses backend API instead of user's key)
+   */
+  enableFreeTier(): void {
+    console.log('[ApiKeyService] enableFreeTier called');
+    try {
+      localStorage.setItem(STORAGE_KEYS.FREE_TIER, 'true');
+      // Clear opt-out since they're choosing to use AI
+      localStorage.removeItem(STORAGE_KEYS.OPT_OUT);
+      console.log('[ApiKeyService] Free tier enabled successfully');
+    } catch (error) {
+      console.error('[ApiKeyService] Failed to enable free tier:', error);
+    }
+  },
+
+  /**
+   * Disable free tier mode
+   */
+  disableFreeTier(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.FREE_TIER);
+    } catch (error) {
+      console.error('Failed to disable free tier:', error);
+    }
+  },
+
+  /**
+   * Check if user has any AI access configured (own key or free tier)
+   */
+  hasAIAccess(): boolean {
+    const hasKey = this.hasKey();
+    const isFreeTier = this.isUsingFreeTier();
+    const result = hasKey || isFreeTier;
+    console.log('[ApiKeyService] hasAIAccess:', { hasKey, isFreeTier, result });
+    return result;
+  },
+
+  /**
    * Get the key fingerprint (last 4 characters) for display
    */
   getKeyFingerprint(): string | null {
@@ -369,6 +421,7 @@ export const apiKeyService = {
       localStorage.removeItem(STORAGE_KEYS.API_KEY);
       localStorage.removeItem(STORAGE_KEYS.OPT_OUT);
       localStorage.removeItem(STORAGE_KEYS.VALIDATED_AT);
+      localStorage.removeItem(STORAGE_KEYS.FREE_TIER);
     } catch (error) {
       console.error('Failed to clear API key data:', error);
     }

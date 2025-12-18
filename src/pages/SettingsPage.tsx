@@ -31,9 +31,11 @@ function ApiKeySettings() {
   const [isFreeTier, setIsFreeTier] = useState(() => apiKeyService.isUsingFreeTier());
 
   const handleEnableFreeTier = () => {
+    console.log('[SettingsPage] handleEnableFreeTier clicked');
     apiKeyService.enableFreeTier();
     setIsFreeTier(true);
     setSuccessMessage('Free tier enabled!');
+    console.log('[SettingsPage] Free tier state updated');
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 

@@ -18,33 +18,28 @@ export function createApp() {
 
   // CORS configuration
   const corsOrigin = process.env.CORS_ORIGIN;
-  const isProduction = process.env.NODE_ENV === 'production';
 
-  // In production, CORS_ORIGIN must be explicitly set
-  if (isProduction && !corsOrigin) {
-    console.error('ERROR: CORS_ORIGIN must be set in production');
-    process.exit(1);
-  }
-
-  // Parse CORS origins (supports comma-separated list)
-  const allowedOrigins = corsOrigin
-    ? corsOrigin.split(',').map((origin) => origin.trim())
-    : ['http://localhost:3000', 'http://localhost:5173'];
+  // Parse CORS origins (supports comma-separated list, or '*' for all)
+  const allowedOrigins = corsOrigin === '*'
+    ? null // Allow all origins
+    : corsOrigin
+      ? corsOrigin.split(',').map((origin) => origin.trim())
+      : ['http://localhost:3000', 'http://localhost:5173'];
 
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow requests with no origin (e.g., mobile apps, curl)
-        // In production, you might want to restrict this
-        if (!origin && !isProduction) {
+        // Allow all origins if configured with '*'
+        if (allowedOrigins === null) {
           return callback(null, true);
         }
 
-        if (!origin && isProduction) {
-          return callback(new Error('Origin header required'), false);
+        // Allow requests with no origin (server-to-server, curl, mobile apps)
+        if (!origin) {
+          return callback(null, true);
         }
 
-        if (allowedOrigins.includes(origin!)) {
+        if (allowedOrigins.includes(origin)) {
           return callback(null, true);
         }
 

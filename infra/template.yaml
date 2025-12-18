@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AI Timeline API - Secure serverless backend with rate limiting
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - prod
+    Description: Deployment environment
+
+  # Rate limiting configuration
+  ThrottlingRateLimit:
+    Type: Number
+    Default: 100
+    Description: Requests per second across all users
+
+  ThrottlingBurstLimit:
+    Type: Number
+    Default: 200
+    Description: Maximum concurrent requests allowed
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs20.x
+    MemorySize: 512
+    Environment:
+      Variables:
+        NODE_ENV: production
+
+Resources:
+  # ============================================
+  # API Gateway with Rate Limiting
+  # ============================================
+  ApiGateway:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub ai-timeline-api-${Environment}
+      StageName: !Ref Environment
+      Description: AI Timeline API with rate limiting
+
+      # Enable CORS
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"  # Will be restricted after CloudFront setup
+
+      # Rate limiting / Throttling
+      MethodSettings:
+        - ResourcePath: "/*"
+          HttpMethod: "*"
+          ThrottlingRateLimit: !Ref ThrottlingRateLimit
+          ThrottlingBurstLimit: !Ref ThrottlingBurstLimit
+          MetricsEnabled: true
+
+      # NOTE: Access logging disabled - requires account-level CloudWatch role setup
+      # To enable: set up API Gateway CloudWatch Logs role in AWS Console
+
+  # ============================================
+  # Lambda Function
+  # ============================================
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ai-timeline-api-${Environment}
+      Description: AI Timeline Express API
+      CodeUri: ../server/src/
+      Handler: lambda.handler
+
+      Environment:
+        Variables:
+          NODE_ENV: production
+          # Secrets from SSM Parameter Store (secure)
+          JWT_SECRET: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/jwt-secret}}'
+          JWT_EXPIRES_IN: '24h'
+          ADMIN_USERNAME: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-username}}'
+          ADMIN_PASSWORD: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-password}}'
+          ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+          CORS_ORIGIN: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/cors-origin}}'
+
+      Events:
+        ApiProxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: ANY
+
+        ApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /
+            Method: ANY
+
+      # IAM permissions
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - lambda.ts
+        External:
+          - '@aws-sdk/*'
+
+  # Lambda log group
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/ai-timeline-api-${Environment}
+      RetentionInDays: 30
+
+  # NOTE: WAF can be added later after initial deployment
+  # For now, API Gateway throttling provides rate limiting
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${Environment}'
+    Export:
+      Name: !Sub ai-timeline-api-endpoint-${Environment}
+
+  ApiId:
+    Description: API Gateway ID
+    Value: !Ref ApiGateway
+    Export:
+      Name: !Sub ai-timeline-api-id-${Environment}
+
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt ApiFunction.Arn
+    Export:
+      Name: !Sub ai-timeline-function-arn-${Environment}

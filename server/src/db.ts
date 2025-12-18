@@ -1,28 +1,42 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { resolve } from 'path';
 
 /**
  * Prisma client singleton for database operations
- * Uses better-sqlite3 adapter for SQLite as required by Prisma 7
+ * Note: SQLite/better-sqlite3 doesn't work in Lambda
+ * Database features are disabled in Lambda environment
  */
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function createPrismaClient() {
-  // Database is in project root (file:./dev.db from .env)
-  const dbPath = resolve(__dirname, '../../dev.db');
-  const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+const IS_LAMBDA = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
 
-  return new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
+function createPrismaClient(): PrismaClient | null {
+  // Skip database initialization in Lambda (SQLite doesn't work there)
+  if (IS_LAMBDA) {
+    console.warn('Database disabled in Lambda environment');
+    return null;
+  }
+
+  try {
+    // Only import sqlite adapter when not in Lambda
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
+
+    // Database is in project root
+    const dbPath = resolve(process.cwd(), 'dev.db');
+    const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+
+    return new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    return null;
+  }
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();

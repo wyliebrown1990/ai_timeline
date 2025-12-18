@@ -23,6 +23,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { useApiKeyContext } from './ApiKeyContext';
+import { apiKeyService } from '../../services/apiKeyService';
 
 /**
  * ApiKeyModal Component
@@ -69,6 +70,14 @@ export function ApiKeyModal() {
     }
     closeModal();
   }, [dontAskAgain, setOptOut, closeModal]);
+
+  // Handle free tier selection
+  const handleUseFreeTier = useCallback(() => {
+    console.log('[ApiKeyModal] handleUseFreeTier clicked');
+    apiKeyService.enableFreeTier();
+    console.log('[ApiKeyModal] Free tier enabled, closing modal');
+    closeModal();
+  }, [closeModal]);
 
   // Handle backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -254,6 +263,23 @@ export function ApiKeyModal() {
           >
             {isValidating ? 'Validating...' : 'Save & Continue'}
           </button>
+
+          {/* Free Tier Option */}
+          <div className="mt-4 p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+            <p className="text-sm font-medium text-orange-800 dark:text-orange-300 mb-2">
+              Don't have an API key?
+            </p>
+            <p className="text-xs text-orange-700 dark:text-orange-400 mb-3">
+              Try AI features for free with limited usage. No API key required.
+            </p>
+            <button
+              type="button"
+              onClick={handleUseFreeTier}
+              className="w-full px-4 py-2.5 bg-orange-500 text-white font-medium rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Use Free Tier
+            </button>
+          </div>
 
           {/* Don't ask again checkbox */}
           <label className="flex items-center gap-2 mt-4 cursor-pointer">

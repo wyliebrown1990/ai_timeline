@@ -7,15 +7,15 @@ import type {
 import type { SearchResponse, FilterQueryParams } from '../types/filters';
 
 /**
- * API base URL - uses relative URL to work with Vite proxy in development
- * or VITE_API_URL in production
+ * API base URL for dynamic endpoints (like milestones CRUD in dev)
+ * Uses relative URL to work with Vite proxy in development
  */
-const API_BASE = import.meta.env.VITE_API_URL || '/api';
+const API_BASE = '/api';
 
 /**
  * Check if we're running with static API (production build or forced via env)
  * In development with VITE_USE_STATIC_API=true, uses static JSON files
- * In production, always uses static files
+ * In production, always uses static files from CloudFront
  */
 const IS_STATIC_API = import.meta.env.PROD || import.meta.env.VITE_USE_STATIC_API === 'true';
 

@@ -114,33 +114,48 @@ Be educational, engaging, and accurate. Reference specific historical milestones
 export const chatApi = {
   /**
    * Send a message to the AI companion
-   * Uses direct Anthropic API if user has provided an API key,
-   * otherwise falls back to backend proxy (if available)
+   * Priority:
+   * 1. User-provided API key (BYOK) - direct to Anthropic
+   * 2. Free tier enabled - use backend proxy
+   * 3. No access - prompt to configure in Settings
    */
   async sendMessage(request: Omit<ChatRequest, 'sessionId'>): Promise<ChatResponse> {
-    // Check for user-provided API key first
+    // Debug logging
+    console.log('[ChatAPI] sendMessage called');
+    console.log('[ChatAPI] API_BASE:', API_BASE);
+    console.log('[ChatAPI] hasKey:', apiKeyService.hasKey());
+    console.log('[ChatAPI] isFreeTier:', apiKeyService.isUsingFreeTier());
+
+    // Check for user-provided API key first (highest priority)
     const userApiKey = await apiKeyService.getKey();
 
     if (userApiKey) {
+      console.log('[ChatAPI] Using direct Anthropic API with user key');
       // Use direct Anthropic API with user's key
       return sendMessageDirect(request, userApiKey);
     }
 
-    // Check if backend is available (only in development with proxy)
-    // In production without a backend, throw a helpful error
-    if (typeof import.meta.env.VITE_API_URL === 'undefined' && import.meta.env.PROD) {
+    // Check if user has enabled free tier
+    const isFreeTier = apiKeyService.isUsingFreeTier();
+
+    // If no key and no free tier, prompt user to configure
+    if (!isFreeTier) {
+      console.log('[ChatAPI] No key and no free tier - throwing 401');
       throw new ApiError(
         401,
-        'Please configure your API key in Settings to use AI features.'
+        'Please configure your API key or enable Free Tier in Settings to use AI features.',
+        { redirectToSettings: true }
       );
     }
 
-    // Fall back to backend proxy
+    // Use backend proxy for free tier users
     const sessionId = getSessionId();
+    const chatUrl = `${API_BASE}/api/chat`;
+    console.log('[ChatAPI] Using free tier backend:', chatUrl);
 
     let response: Response;
     try {
-      response = await fetch(`${API_BASE}/chat`, {
+      response = await fetch(chatUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
