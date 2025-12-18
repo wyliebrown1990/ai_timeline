@@ -72,7 +72,6 @@ export function Timeline({
 
   // Calculate density information
   const {
-    densityByYear,
     getDisplayMode,
     getSpacingMultiplier,
   } = useTimelineDensity(milestones, { isMobile });
@@ -106,30 +105,37 @@ export function Timeline({
     let totalWidth = 0;
     const baseWidthPerYear = containerWidth > 0 ? containerWidth / 10 : 150;
 
-    densityByYear.forEach((segment) => {
-      const multiplier = getSpacingMultiplier(segment.year);
+    // Calculate width for all years in the time range, not just years with milestones
+    const startYear = timeRange[0].getFullYear();
+    const endYear = timeRange[1].getFullYear();
+
+    for (let year = startYear; year <= endYear; year++) {
+      const multiplier = getSpacingMultiplier(year);
       totalWidth += baseWidthPerYear * multiplier;
-    });
+    }
+
+    // Add extra padding at the end to allow scrolling past the last milestone
+    totalWidth += baseWidthPerYear * 2;
 
     // Ensure minimum width
     return Math.max(containerWidth, totalWidth, milestones.length * 80);
-  }, [containerWidth, milestones.length, densityByYear, getSpacingMultiplier, useAdaptiveSpacing]);
+  }, [containerWidth, milestones.length, timeRange, getSpacingMultiplier, useAdaptiveSpacing]);
 
   // Calculate adaptive position based on density-aware spacing
   const calculateAdaptivePosition = useCallback(
     (date: Date): number => {
-      if (!useAdaptiveSpacing || densityByYear.length === 0) {
+      if (!useAdaptiveSpacing) {
         return calculateMilestonePosition(date, timeRange, virtualWidth);
       }
 
       const targetYear = date.getFullYear();
       let accumulatedWidth = 0;
       const baseWidthPerYear = containerWidth > 0 ? containerWidth / 10 : 150;
+      const startYear = timeRange[0].getFullYear();
 
-      // Sum up widths for years before the target
-      for (const segment of densityByYear) {
-        if (segment.year >= targetYear) break;
-        accumulatedWidth += baseWidthPerYear * getSpacingMultiplier(segment.year);
+      // Sum up widths for all years from start to target (not just years with milestones)
+      for (let year = startYear; year < targetYear; year++) {
+        accumulatedWidth += baseWidthPerYear * getSpacingMultiplier(year);
       }
 
       // Add partial year offset
@@ -139,7 +145,7 @@ export function Timeline({
 
       return accumulatedWidth;
     },
-    [containerWidth, densityByYear, getSpacingMultiplier, timeRange, virtualWidth, useAdaptiveSpacing]
+    [containerWidth, getSpacingMultiplier, timeRange, virtualWidth, useAdaptiveSpacing]
   );
 
   // Group milestones by year for clustering
