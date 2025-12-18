@@ -428,5 +428,77 @@
     "relatedTermIds": ["neural-network", "training", "scaling-laws"],
     "relatedMilestoneIds": ["E2020_GPT3"],
     "category": "technical_term"
+  },
+  {
+    "id": "api-first-ai",
+    "term": "API-First AI",
+    "shortDefinition": "AI capabilities accessed through web APIs rather than running models locally.",
+    "fullDefinition": "API-first AI means using AI capabilities by sending requests to remote servers that run the models, rather than deploying models yourself. You send data, get results back, and pay per use. This approach democratized access to powerful AI starting with GPT-3's API in 2020.",
+    "businessContext": "API-first AI lets you use cutting-edge models without ML expertise or GPU infrastructure. Trade-offs include ongoing costs, data privacy considerations, and dependency on the provider's reliability and policies.",
+    "inMeetingExample": "We're taking an API-first approach with Claude so we can launch quickly without building ML infrastructure.",
+    "example": "Instead of training your own language model, you call OpenAI's API and pay $0.002 per 1K tokens.",
+    "relatedTermIds": ["llm", "inference", "token"],
+    "relatedMilestoneIds": ["E2020_GPT3_API"],
+    "category": "business_term"
+  },
+  {
+    "id": "ai-agents",
+    "term": "AI Agents",
+    "shortDefinition": "AI systems that autonomously take actions to complete multi-step tasks.",
+    "fullDefinition": "AI agents are systems that go beyond answering questions—they can take actions, use tools, and complete tasks autonomously. An agent might search the web, write files, call APIs, or interact with other software to achieve a goal. They combine LLM reasoning with the ability to act on the world.",
+    "businessContext": "Agents represent the evolution from AI assistance to AI automation. They can handle customer service, research tasks, and workflow automation, but require careful design around reliability and human oversight.",
+    "inMeetingExample": "We're building AI agents that can resolve tier-1 support tickets without human intervention.",
+    "example": "A customer service agent that can look up orders, process refunds, and update accounts—not just chat about policies.",
+    "relatedTermIds": ["llm", "rag", "prompt-engineering"],
+    "relatedMilestoneIds": ["E2024_AI_AGENTS"],
+    "category": "core_concept"
+  },
+  {
+    "id": "ai-copilot",
+    "term": "AI Copilot",
+    "shortDefinition": "An AI assistant integrated into professional tools to augment human work.",
+    "fullDefinition": "An AI copilot works alongside you in professional software, suggesting next steps, automating routine tasks, and helping you work faster. Unlike standalone AI chatbots, copilots are embedded in the tools you already use—IDEs, Office apps, design software—and understand your work context.",
+    "businessContext": "Copilots change how professionals work by handling routine tasks and suggestions. They're becoming standard in enterprise software, with Microsoft, GitHub, and others embedding AI assistance into everyday tools.",
+    "inMeetingExample": "Our developers are using GitHub Copilot, and we're piloting Microsoft 365 Copilot for the rest of the team.",
+    "example": "GitHub Copilot suggests code as you type; Microsoft 365 Copilot drafts emails based on meeting notes.",
+    "relatedTermIds": ["llm", "enterprise-ai", "prompt-engineering"],
+    "relatedMilestoneIds": ["E2021_COPILOT", "E2023_ENTERPRISE_AI"],
+    "category": "business_term"
+  },
+  {
+    "id": "enterprise-ai",
+    "term": "Enterprise AI",
+    "shortDefinition": "AI solutions designed for business use with security, compliance, and integration features.",
+    "fullDefinition": "Enterprise AI refers to AI products and platforms designed for organizational use. Unlike consumer AI tools, enterprise AI includes data isolation, access controls, audit logging, compliance certifications, and integration with business systems. Major players include Microsoft's Copilot for Microsoft 365, Google's Duet AI, and AWS Bedrock.",
+    "businessContext": "Enterprise AI addresses the gap between exciting AI demos and production business use. It's not just about capability—it's about deploying AI safely within organizational constraints and existing workflows.",
+    "inMeetingExample": "We need enterprise AI solutions that integrate with our SSO and meet our compliance requirements.",
+    "example": "Microsoft 365 Copilot accesses your SharePoint documents but keeps that data separate from general model training.",
+    "relatedTermIds": ["ai-copilot", "rag", "guardrails"],
+    "relatedMilestoneIds": ["E2023_ENTERPRISE_AI"],
+    "category": "business_term"
+  },
+  {
+    "id": "vector-database",
+    "term": "Vector Database",
+    "shortDefinition": "A database optimized for storing and searching AI embeddings (numerical representations of content).",
+    "fullDefinition": "Vector databases store embeddings—numerical representations of text, images, or other data—and enable fast similarity search. When you ask 'find documents similar to this query,' a vector database finds the closest matches by comparing embeddings. This is the foundation of RAG (Retrieval-Augmented Generation) systems.",
+    "businessContext": "Vector databases power most enterprise AI search and knowledge systems. Choosing the right one affects cost, performance, and scalability. Options range from managed services (Pinecone) to open-source (Weaviate, Chroma) to database extensions (pgvector).",
+    "inMeetingExample": "We're evaluating Pinecone versus pgvector for our RAG implementation.",
+    "example": "When you ask a company chatbot a question, it uses a vector database to find relevant internal documents before generating an answer.",
+    "relatedTermIds": ["embedding", "rag", "semantic-search"],
+    "relatedMilestoneIds": ["E2024_RAG_ADOPTION"],
+    "category": "technical_term"
+  },
+  {
+    "id": "guardrails",
+    "term": "Guardrails (AI)",
+    "shortDefinition": "Safety controls that constrain AI system behavior to prevent harmful or off-topic outputs.",
+    "fullDefinition": "AI guardrails are technical and procedural controls that keep AI systems within acceptable boundaries. They can prevent the AI from discussing certain topics, generating harmful content, taking unauthorized actions, or revealing sensitive information. Guardrails are essential for production AI deployments.",
+    "businessContext": "Without guardrails, AI systems can embarrass your company, leak data, or take unintended actions. Implementing effective guardrails is a key part of responsible AI deployment and often a compliance requirement.",
+    "inMeetingExample": "We need to implement guardrails to ensure the chatbot doesn't discuss competitor products or make promises we can't keep.",
+    "example": "A customer service AI has guardrails preventing it from agreeing to refunds over $100 without human approval.",
+    "relatedTermIds": ["alignment", "ai-safety", "enterprise-ai"],
+    "relatedMilestoneIds": ["E2022_CONSTITUTIONAL_AI", "E2024_AI_AGENTS"],
+    "category": "business_term"
   }
 ]

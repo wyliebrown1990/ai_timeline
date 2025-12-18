@@ -190,6 +190,55 @@ export const PlainEnglishContentSchema = z.object({
 export type PlainEnglishContent = z.infer<typeof PlainEnglishContentSchema>;
 
 /**
+ * Executive Brief content for the "AI for Leaders" learning path
+ * Targets executives and managers who need to make AI decisions
+ */
+export const ExecutiveBriefContentSchema = z.object({
+  // Bottom line - 1-2 sentences: what leaders need to know
+  bottomLine: z.string().min(1),
+
+  // Business implications - how this affects strategy and competition
+  businessImplications: z.string().min(1),
+
+  // Questions to ask your team - diagnostic questions for leaders
+  questionsToAsk: z.array(z.string()).min(1),
+
+  // Competitor watch - what competitors might be doing
+  competitorWatch: z.string().min(1),
+
+  // Action items - concrete next steps
+  actionItems: z.array(z.string()).min(1),
+
+  // Further reading - HBR, McKinsey links (optional)
+  furtherReading: z.array(z.string()).optional(),
+});
+
+export type ExecutiveBriefContent = z.infer<typeof ExecutiveBriefContentSchema>;
+
+/**
+ * Applied AI Brief content for the "Applied AI" learning path
+ * Targets business professionals evaluating real-world AI adoption
+ */
+export const AppliedAIBriefContentSchema = z.object({
+  // Real world wins - proven use cases with measurable outcomes
+  realWorldWins: z.string().min(1),
+
+  // Common failures - what goes wrong and why
+  commonFailures: z.string().min(1),
+
+  // Cost considerations - pricing models, TCO, hidden costs
+  costConsiderations: z.string().min(1),
+
+  // Implementation path - how companies typically adopt this
+  implementationPath: z.string().min(1),
+
+  // Vendor landscape - key players and positioning
+  vendorLandscape: z.string().min(1),
+});
+
+export type AppliedAIBriefContent = z.infer<typeof AppliedAIBriefContentSchema>;
+
+/**
  * Layered explanation content for milestones
  *
  * Each milestone can have multiple explanation layers targeting different
@@ -220,6 +269,12 @@ export const MilestoneLayeredContentSchema = z.object({
 
   // Plain English content for everyday life audience (optional)
   plainEnglish: PlainEnglishContentSchema.optional(),
+
+  // Executive brief content for leaders audience (optional)
+  executiveBrief: ExecutiveBriefContentSchema.optional(),
+
+  // Applied AI brief content for practitioners evaluating real-world adoption (optional)
+  appliedAIBrief: AppliedAIBriefContentSchema.optional(),
 });
 
 export type MilestoneLayeredContent = z.infer<typeof MilestoneLayeredContentSchema>;

@@ -35,6 +35,9 @@ import aiImageGenerationPath from './learning-paths/ai-image-generation.json';
 import aiForBusinessPath from './learning-paths/ai-for-business.json';
 import aiGovernancePath from './learning-paths/ai-governance.json';
 import aiForEverydayLifePath from './learning-paths/ai-for-everyday-life.json';
+import aiForLeadersPath from './learning-paths/ai-for-leaders.json';
+import popCulturePath from './learning-paths/pop-culture.json';
+import appliedAIPath from './learning-paths/applied-ai.json';
 import glossaryTermsData from './glossary/terms.json';
 import checkpointQuestionsData from './checkpoints/questions.json';
 import flashcardsData from './checkpoints/flashcards.json';
@@ -48,11 +51,14 @@ import layeredContentData from './milestones/layered-content.json';
 // Validate and store learning paths
 const learningPathsRaw = [
   aiForEverydayLifePath, // Sprint 17: Featured first for 65+ audience
+  aiForLeadersPath, // Sprint 18: For executives and managers
+  appliedAIPath, // Applied AI: How businesses actually use LLMs
   chatgptStoryPath,
   aiFundamentalsPath,
   aiImageGenerationPath,
   aiForBusinessPath,
   aiGovernancePath,
+  popCulturePath, // Sprint 21: AI Pop Culture path
 ];
 let learningPaths: LearningPath[] = [];
 

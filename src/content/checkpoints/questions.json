@@ -637,5 +637,458 @@
         "explanation": "Never share personal information like passwords, social security numbers, or financial details with AI tools. Safe uses include asking questions, getting explanations, or help with writing—nothing that requires sensitive information."
       }
     ]
+  },
+  {
+    "id": "cp-pop-culture-1",
+    "title": "The Shock Heard Round the World",
+    "pathId": "pop-culture",
+    "afterMilestoneId": "E2016_ALPHAGO",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-alphago-significance",
+        "question": "Why was AlphaGo's victory over Lee Sedol considered more significant than Deep Blue beating Kasparov at chess?",
+        "options": [
+          "Go has more possible positions than atoms in the universe, requiring intuition not just calculation",
+          "Lee Sedol was a better player than Kasparov",
+          "Chess was already solved by computers",
+          "AlphaGo used quantum computing"
+        ],
+        "correctIndex": 0,
+        "explanation": "Go's complexity (10^170 possible positions) meant brute-force calculation was impossible. AlphaGo had to develop something resembling intuition, which is why Lee Sedol's creative 'God Move' in Game 4—which briefly confused the AI—became so legendary."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-alphago-cultural",
+        "question": "What made AlphaGo's victory a cultural moment beyond just a technical achievement?",
+        "options": [
+          "It was the first time AI appeared on television",
+          "Go is deeply significant in Asian culture and millions watched the match live",
+          "Lee Sedol became a celebrity afterward",
+          "Google paid viewers to watch"
+        ],
+        "correctIndex": 1,
+        "explanation": "Go holds deep cultural significance in East Asia, particularly in South Korea. The match was watched by over 200 million people worldwide, making it one of the most-watched AI demonstrations in history."
+      }
+    ]
+  },
+  {
+    "id": "cp-pop-culture-2",
+    "title": "AI Gets Creative (and Controversial)",
+    "pathId": "pop-culture",
+    "afterMilestoneId": "E2023_AI_DRAKE_SONG",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-drake-controversy",
+        "question": "What made the AI Drake/Weeknd song 'Heart on My Sleeve' so controversial?",
+        "options": [
+          "It was poorly made",
+          "It demonstrated AI could convincingly mimic specific artists' voices without permission",
+          "Drake and The Weeknd collaborated on it secretly",
+          "It won a Grammy award"
+        ],
+        "correctIndex": 1,
+        "explanation": "The song showed that AI could create convincing imitations of specific artists, raising urgent questions about voice rights, authenticity, and whether AI-generated music should be allowed on streaming platforms."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-ai-creative-rights",
+        "question": "What broader question did the AI Drake song raise for the music industry?",
+        "options": [
+          "Whether streaming services should pay higher royalties",
+          "Whether AI should be allowed to perform live concerts",
+          "Whether artists have rights over AI imitations of their voices and styles",
+          "Whether all music should be free"
+        ],
+        "correctIndex": 2,
+        "explanation": "The incident highlighted a major legal gray area: current copyright law protects songs, but there's no clear protection for an artist's voice or style. This has sparked ongoing debates about AI and creative rights."
+      }
+    ]
+  },
+  {
+    "id": "cp-pop-culture-3",
+    "title": "ChatGPT Changes Everything",
+    "pathId": "pop-culture",
+    "afterMilestoneId": "E2023_HOLLYWOOD_AI_STRIKES",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-hollywood-strike-first",
+        "question": "What historic first did the 2023 Hollywood strikes represent?",
+        "options": [
+          "Longest strike in entertainment history",
+          "First major labor action with AI protections as a central demand",
+          "First time writers and actors struck simultaneously",
+          "First strike to be resolved by AI mediation"
+        ],
+        "correctIndex": 1,
+        "explanation": "The WGA and SAG-AFTRA strikes were the first major labor actions where protections against AI replacement were key demands. The resulting contracts set precedents for how AI can and cannot be used in creative industries."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-hollywood-concerns",
+        "question": "What were writers and actors specifically concerned about regarding AI?",
+        "options": [
+          "AI taking credit for their work",
+          "Being replaced by AI-generated scripts and digital likenesses without consent",
+          "AI making movies too expensive",
+          "AI critics giving bad reviews"
+        ],
+        "correctIndex": 1,
+        "explanation": "Writers feared AI would be used to generate scripts without human writers, while actors worried about studios using their digital likenesses without consent or fair compensation."
+      }
+    ]
+  },
+  {
+    "id": "cp-pop-culture-4",
+    "title": "The Ethics Wars",
+    "pathId": "pop-culture",
+    "afterMilestoneId": "E2023_PAUSE_AI_LETTER",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-pause-letter-meaning",
+        "question": "What does the 'Pause Giant AI' letter represent in the AI safety debate?",
+        "options": [
+          "Universal scientific consensus that AI should be paused",
+          "A prominent example of the tension between AI accelerationists and safety advocates",
+          "A legally binding agreement signed by AI companies",
+          "A letter only signed by people outside the AI industry"
+        ],
+        "correctIndex": 1,
+        "explanation": "The letter crystallized the growing divide between those who want to rapidly advance AI capabilities and those calling for caution. While signed by notable figures like Elon Musk, many AI researchers disagreed, showing the field's lack of consensus on safety."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-gebru-significance",
+        "question": "Why was Timnit Gebru's departure from Google considered significant?",
+        "options": [
+          "She was the CEO of Google",
+          "It highlighted tensions between AI ethics research and corporate interests",
+          "She invented the transformer architecture",
+          "She was the first woman in AI"
+        ],
+        "correctIndex": 1,
+        "explanation": "Gebru's departure sparked industry-wide debate about whether corporations can conduct meaningful AI ethics research while also commercializing AI, and raised questions about diversity and power in tech."
+      }
+    ]
+  },
+  {
+    "id": "cp-pop-culture-5",
+    "title": "Silicon Valley Drama",
+    "pathId": "pop-culture",
+    "afterMilestoneId": "E2023_OPENAI_BOARD_CRISIS",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-openai-crisis-tension",
+        "question": "What fundamental tension did the OpenAI board crisis expose?",
+        "options": [
+          "Disagreements about which programming language to use",
+          "The conflict between nonprofit AI safety governance and commercial pressures",
+          "Personal rivalry between Sam Altman and Elon Musk",
+          "Technical disagreements about transformer architecture"
+        ],
+        "correctIndex": 1,
+        "explanation": "OpenAI was founded as a nonprofit focused on AI safety, but became a capped-profit company with massive commercial interests. The board crisis revealed how difficult it is to balance safety-focused governance with the pressures of being the hottest AI company in the world."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-openai-crisis-outcome",
+        "question": "What did the outcome of the OpenAI crisis suggest about AI company governance?",
+        "options": [
+          "Nonprofit boards are the best way to govern AI companies",
+          "Employees have no power in tech companies",
+          "Commercial interests and talent retention often outweigh governance concerns",
+          "Sam Altman was universally beloved"
+        ],
+        "correctIndex": 2,
+        "explanation": "When 95% of employees threatened to quit and Microsoft offered Altman a job, the board capitulated within days. This showed that in practice, commercial interests and talent retention can overwhelm even well-intentioned governance structures."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-pop-culture-impact",
+        "concept": "AI's cultural impact",
+        "prompt": "Based on what you've learned, why do you think viral moments and celebrity controversies have shaped public perception of AI more than technical papers?",
+        "rubric": "A good response should include: 1) Technical papers are inaccessible to most people, 2) Drama and controversy create emotional engagement and are widely shared, 3) Celebrity involvement brings mainstream media attention, 4) These moments create concrete examples people can relate to. Credit for mentioning specific examples from the path."
+      }
+    ]
+  },
+  {
+    "id": "cp-leaders-1",
+    "title": "Strategic AI Understanding",
+    "pathId": "ai-for-leaders",
+    "afterMilestoneId": "E2020_GPT3",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-leaders-first-movers",
+        "question": "What competitive advantage do early AI adopters typically have?",
+        "options": [
+          "They can charge premium prices for any AI-related product",
+          "They've built workflows, data advantages, and institutional knowledge",
+          "They can prevent competitors from using AI",
+          "They automatically become market leaders"
+        ],
+        "correctIndex": 1,
+        "explanation": "Early adopters don't just have technology—they've built processes, collected feedback data, and developed organizational expertise. Late adopters must build all this from scratch while competitors continue advancing."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-leaders-ai-economics",
+        "question": "What changed about AI economics when GPT-3 introduced API access?",
+        "options": [
+          "AI became free for everyone to use",
+          "Only large tech companies could afford AI",
+          "Organizations could access AI capabilities without building ML teams",
+          "AI costs increased dramatically"
+        ],
+        "correctIndex": 2,
+        "explanation": "API access democratized AI—you could pay per use rather than hiring expensive ML teams. This shifted AI from 'big tech only' to 'accessible for many organizations,' dramatically expanding who could benefit."
+      }
+    ]
+  },
+  {
+    "id": "cp-leaders-2",
+    "title": "AI Adoption Strategy",
+    "pathId": "ai-for-leaders",
+    "afterMilestoneId": "E2022_CHATGPT",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-leaders-shadow-ai",
+        "question": "You discover 40% of employees are using ChatGPT for work without a company policy. What's the best first response?",
+        "options": [
+          "Ban all AI usage immediately",
+          "Do nothing and let employees figure it out",
+          "Create guidelines for safe use while protecting sensitive data",
+          "Wait to see what competitors do"
+        ],
+        "correctIndex": 2,
+        "explanation": "Banning AI often drives it underground (employees use it anyway, just secretly). The best approach acknowledges reality: create clear guidelines that enable productive use while protecting sensitive information."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-leaders-adoption-speed",
+        "question": "ChatGPT reached 100 million users in two months. What does this adoption speed signal for organizations?",
+        "options": [
+          "It's just a consumer fad that won't affect business",
+          "You have years to develop an AI strategy",
+          "Competitive pressure is intense and waiting is risky",
+          "Only tech companies need to pay attention"
+        ],
+        "correctIndex": 2,
+        "explanation": "The fastest product adoption in history signals that customer and employee expectations are shifting rapidly. Organizations without AI strategies risk falling behind competitors who are already integrating these capabilities."
+      }
+    ]
+  },
+  {
+    "id": "cp-leaders-3",
+    "title": "AI Governance and Risk",
+    "pathId": "ai-for-leaders",
+    "afterMilestoneId": "E2024_EU_AI_ACT",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-leaders-eu-compliance",
+        "question": "Your company serves EU customers and uses AI for hiring decisions. Under the EU AI Act, what's required?",
+        "options": [
+          "Nothing—the law only applies to EU-based companies",
+          "Documentation, human oversight, and conformity assessments",
+          "Just a privacy notice on your website",
+          "Approval from EU regulators before any AI use"
+        ],
+        "correctIndex": 1,
+        "explanation": "The EU AI Act applies to any company serving EU customers, regardless of where the company is based. AI used for hiring is classified as 'high-risk' and requires documentation, human oversight, and conformity assessments."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-leaders-ai-risk",
+        "question": "Which approach best describes responsible enterprise AI adoption?",
+        "options": [
+          "Move fast, apologize later if things go wrong",
+          "Wait until AI is completely safe before any adoption",
+          "Start with lower-risk use cases while building governance",
+          "Only use AI if competitors are already using it"
+        ],
+        "correctIndex": 2,
+        "explanation": "The best approach balances opportunity and risk: start with use cases where errors are less consequential, build internal expertise, and develop governance frameworks before expanding to higher-stakes applications."
+      }
+    ]
+  },
+  {
+    "id": "cp-applied-ai-1",
+    "title": "The API Revolution",
+    "pathId": "applied-ai",
+    "afterMilestoneId": "E2020_GPT3_API",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-api-first-advantage",
+        "question": "What business advantage did the GPT-3 API provide over previous AI approaches?",
+        "options": [
+          "It was completely free to use",
+          "It allowed companies to build AI products without ML teams",
+          "It guaranteed 100% accuracy on all tasks",
+          "It replaced the need for any human workers"
+        ],
+        "correctIndex": 1,
+        "explanation": "The GPT-3 API democratized AI by letting any developer build AI-powered products by making API calls. Previously, using cutting-edge AI required expensive ML teams and infrastructure."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-api-cost-model",
+        "question": "How does API-first AI pricing typically work?",
+        "options": [
+          "One-time purchase of the model",
+          "Pay per use based on tokens processed",
+          "Free with advertising",
+          "Fixed monthly fee regardless of usage"
+        ],
+        "correctIndex": 1,
+        "explanation": "API-first AI uses pay-per-use pricing, typically based on tokens (pieces of text) processed. This enables low-cost experimentation but can scale to significant costs at high volume."
+      }
+    ]
+  },
+  {
+    "id": "cp-applied-ai-2",
+    "title": "AI in the Developer Workflow",
+    "pathId": "applied-ai",
+    "afterMilestoneId": "E2021_COPILOT",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-copilot-limitation",
+        "question": "What's a key limitation of AI coding assistants like GitHub Copilot?",
+        "options": [
+          "They only work with Python",
+          "They can suggest buggy or insecure code that requires review",
+          "They're too slow to be practical",
+          "They can only write comments, not code"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI coding assistants frequently suggest code with bugs, security vulnerabilities, or patterns from training data that may not fit your context. Human review remains essential."
+      },
+      {
+        "type": "matching",
+        "id": "q-ai-copilot-match",
+        "prompt": "Match each AI copilot to its primary use case:",
+        "pairs": [
+          {"id": "p1", "left": "GitHub Copilot", "right": "Code completion in IDEs"},
+          {"id": "p2", "left": "Microsoft 365 Copilot", "right": "Office document assistance"},
+          {"id": "p3", "left": "AWS CodeWhisperer", "right": "AWS-integrated code suggestions"}
+        ]
+      }
+    ]
+  },
+  {
+    "id": "cp-applied-ai-3",
+    "title": "Enterprise AI Integration",
+    "pathId": "applied-ai",
+    "afterMilestoneId": "E2023_ENTERPRISE_AI",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-enterprise-vs-consumer",
+        "question": "What distinguishes enterprise AI from consumer AI tools like ChatGPT?",
+        "options": [
+          "Enterprise AI is always more accurate",
+          "Enterprise AI includes data isolation, compliance, and integration features",
+          "Enterprise AI is free for businesses",
+          "Enterprise AI doesn't use the same underlying technology"
+        ],
+        "correctIndex": 1,
+        "explanation": "Enterprise AI isn't just about capability—it's about deploying AI safely with data isolation, access controls, audit logging, compliance certifications, and integration with existing business systems."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-shadow-ai-risk",
+        "question": "You discover employees are using personal ChatGPT accounts for work. What's the primary risk?",
+        "options": [
+          "The AI might give wrong answers",
+          "Sensitive company data could be exposed without proper controls",
+          "It's illegal to use AI at work",
+          "ChatGPT is slower than enterprise alternatives"
+        ],
+        "correctIndex": 1,
+        "explanation": "'Shadow AI' (unauthorized AI use) risks exposing sensitive data to systems without proper security controls. Consumer AI tools may train on user inputs and lack enterprise data protection."
+      }
+    ]
+  },
+  {
+    "id": "cp-applied-ai-4",
+    "title": "AI Agents in Practice",
+    "pathId": "applied-ai",
+    "afterMilestoneId": "E2024_AI_AGENTS",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-agent-vs-chatbot",
+        "question": "What distinguishes an AI agent from a chatbot?",
+        "options": [
+          "Agents are always more accurate",
+          "Agents can take actions and use tools, not just generate text",
+          "Agents don't use language models",
+          "Agents require no human oversight"
+        ],
+        "correctIndex": 1,
+        "explanation": "AI agents go beyond conversation—they can search the web, call APIs, write files, and take other actions to complete tasks. This moves AI from assistant to worker, though with increased complexity and risk."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-agent-failure",
+        "question": "What's a common failure mode when deploying AI agents?",
+        "options": [
+          "They run too fast",
+          "They get stuck in loops or take unintended actions",
+          "They cost less than expected",
+          "They're too transparent about what they're doing"
+        ],
+        "correctIndex": 1,
+        "explanation": "Agents can fail in complex ways: getting stuck repeating ineffective actions, taking actions outside their intended scope, or cascading errors through multi-step processes. Human oversight and clear boundaries are essential."
+      }
+    ]
+  },
+  {
+    "id": "cp-applied-ai-5",
+    "title": "RAG and Enterprise Knowledge",
+    "pathId": "applied-ai",
+    "afterMilestoneId": "E2024_RAG_ADOPTION",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "q-rag-purpose",
+        "question": "What problem does RAG (Retrieval-Augmented Generation) solve?",
+        "options": [
+          "Making AI models smaller",
+          "Connecting AI to current, proprietary data it wasn't trained on",
+          "Eliminating the need for vector databases",
+          "Replacing human oversight entirely"
+        ],
+        "correctIndex": 1,
+        "explanation": "RAG solves the knowledge gap: LLMs know what was in their training data but not your company's latest documents. RAG retrieves relevant information from your knowledge base before generating responses."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "q-rag-misconception",
+        "question": "Which statement about RAG is FALSE?",
+        "options": [
+          "RAG can reduce hallucinations by grounding responses in real documents",
+          "RAG requires a vector database to store document embeddings",
+          "RAG completely eliminates the possibility of AI hallucinations",
+          "RAG is commonly used for enterprise Q&A and knowledge assistants"
+        ],
+        "correctIndex": 2,
+        "explanation": "RAG reduces hallucinations but doesn't eliminate them. The LLM can still misinterpret, ignore, or incorrectly synthesize retrieved information. Human review remains important for critical applications."
+      },
+      {
+        "type": "explain_back",
+        "id": "q-explain-build-vs-buy",
+        "concept": "Build vs. buy for enterprise AI",
+        "prompt": "Based on what you've learned about applied AI, when should a company build custom AI solutions versus buying enterprise AI products?",
+        "rubric": "A good response should consider: 1) Buy when standard use cases apply (office productivity, basic chatbots), 2) Build when differentiation matters or proprietary data/workflows are central, 3) Consider hybrid approaches (APIs + custom integration), 4) Factor in maintenance burden and team expertise. Credit for mentioning specific examples like RAG for knowledge bases or copilots for standard workflows."
+      }
+    ]
   }
 ]
