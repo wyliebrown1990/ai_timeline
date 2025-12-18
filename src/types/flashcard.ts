@@ -133,7 +133,115 @@ export const FLASHCARD_STORAGE_KEYS = {
   PACKS: 'ai-timeline-flashcard-packs',
   STATS: 'ai-timeline-flashcard-stats',
   SESSIONS: 'ai-timeline-flashcard-sessions',
+  HISTORY: 'ai-timeline-flashcard-history',
+  STREAK: 'ai-timeline-flashcard-streak',
 } as const;
+
+// =============================================================================
+// DailyReviewRecord Schema - Daily statistics for graphing
+// =============================================================================
+
+/**
+ * Tracks review activity for a single day.
+ * Used for building review activity charts and calculating retention rates.
+ * Stored as array in localStorage, pruned to last 90 days.
+ */
+export const DailyReviewRecordSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // YYYY-MM-DD format
+  totalReviews: z.number().int().min(0),
+  againCount: z.number().int().min(0), // Quality 0-2 (failed)
+  hardCount: z.number().int().min(0),  // Quality 3
+  goodCount: z.number().int().min(0),  // Quality 4
+  easyCount: z.number().int().min(0),  // Quality 5
+  minutesStudied: z.number().min(0),
+  uniqueCardsReviewed: z.array(z.string()).default([]), // Card IDs reviewed that day
+});
+
+export type DailyReviewRecord = z.infer<typeof DailyReviewRecordSchema>;
+
+/**
+ * Safely validate a daily review record
+ */
+export function safeParseDailyReviewRecord(data: unknown) {
+  return DailyReviewRecordSchema.safeParse(data);
+}
+
+/**
+ * Create an empty daily review record for a given date
+ */
+export function createEmptyDailyRecord(date: string): DailyReviewRecord {
+  return {
+    date,
+    totalReviews: 0,
+    againCount: 0,
+    hardCount: 0,
+    goodCount: 0,
+    easyCount: 0,
+    minutesStudied: 0,
+    uniqueCardsReviewed: [],
+  };
+}
+
+// =============================================================================
+// Streak History Schema - Track streak achievements and milestones
+// =============================================================================
+
+/**
+ * Streak milestone definition.
+ * Milestones are displayed when users hit certain streak thresholds.
+ */
+export const STREAK_MILESTONES = [7, 14, 30, 60, 100, 180, 365] as const;
+
+export type StreakMilestone = (typeof STREAK_MILESTONES)[number];
+
+/**
+ * Records when a user achieves a streak milestone.
+ */
+export const StreakAchievementSchema = z.object({
+  milestone: z.number().int().positive(), // 7, 30, 100, etc.
+  achievedAt: z.string().datetime(),
+});
+
+export type StreakAchievement = z.infer<typeof StreakAchievementSchema>;
+
+/**
+ * Streak history tracking data.
+ * Stores streak-related state beyond just the current value.
+ */
+export const StreakHistorySchema = z.object({
+  /** Current consecutive days with at least 1 review */
+  currentStreak: z.number().int().min(0),
+  /** All-time longest streak achieved */
+  longestStreak: z.number().int().min(0),
+  /** Date of last study session (YYYY-MM-DD format) */
+  lastStudyDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  /** Milestones achieved by the user */
+  achievements: z.array(StreakAchievementSchema).default([]),
+  /** Date the streak system was initialized */
+  initializedAt: z.string().datetime().optional(),
+});
+
+export type StreakHistory = z.infer<typeof StreakHistorySchema>;
+
+/**
+ * Create initial streak history object.
+ */
+export function createInitialStreakHistory(): StreakHistory {
+  return {
+    currentStreak: 0,
+    longestStreak: 0,
+    lastStudyDate: null,
+    achievements: [],
+    initializedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Safely validate streak history data.
+ */
+export function safeParseStreakHistory(data: unknown) {
+  return StreakHistorySchema.safeParse(data);
+}
 
 // =============================================================================
 // Helper Functions - Validation

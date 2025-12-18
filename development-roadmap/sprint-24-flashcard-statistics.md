@@ -10,75 +10,75 @@ Add comprehensive statistics tracking and visualization to help users understand
 ## Tasks
 
 ### 24.1 Statistics Data Collection
-- [ ] Track each review session in localStorage
-- [ ] Store daily review counts for graphing
-- [ ] Calculate rolling retention rate (% correct over last 7/30 days)
-- [ ] Track time spent studying (session durations)
-- [ ] Identify "most challenging" cards (most "Again" ratings)
-- [ ] Keep last 90 days of history, prune older data
+- [x] Track each review session in localStorage
+- [x] Store daily review counts for graphing
+- [x] Calculate rolling retention rate (% correct over last 7/30 days)
+- [x] Track time spent studying (session durations)
+- [x] Identify "most challenging" cards (most "Again" ratings)
+- [x] Keep last 90 days of history, prune older data
 
 ### 24.2 Statistics Page
-- [ ] Create `src/pages/StudyStatsPage.tsx`
-- [ ] Add route `/study/stats`
-- [ ] Add "Stats" tab/link in Study Center navigation
-- [ ] Responsive layout for mobile and desktop
+- [x] Create `src/pages/StudyStatsPage.tsx`
+- [x] Add route `/study/stats`
+- [x] Add "Stats" tab/link in Study Center navigation
+- [x] Responsive layout for mobile and desktop
 
 ### 24.3 Overview Stats Component
-- [ ] Create `src/components/Flashcards/StatsOverview.tsx`
-- [ ] Display total cards in collection
-- [ ] Display cards mastered (interval > 21 days)
-- [ ] Display current streak with longest streak
-- [ ] Display total reviews all-time
-- [ ] Display average retention rate
+- [x] Create `src/components/Flashcards/StatsOverview.tsx`
+- [x] Display total cards in collection
+- [x] Display cards mastered (interval > 21 days)
+- [x] Display current streak with longest streak
+- [x] Display total reviews all-time
+- [x] Display average retention rate
 
 ### 24.4 Review Activity Graph
-- [ ] Create `src/components/Flashcards/ReviewActivityChart.tsx`
-- [ ] Bar chart showing reviews per day (last 30 days)
-- [ ] Color-code by rating distribution (again/hard/good/easy)
-- [ ] Show hover tooltip with exact counts
-- [ ] Handle days with no activity (show zero)
-- [ ] Use simple CSS/SVG (no heavy charting library)
+- [x] Create `src/components/Flashcards/ReviewActivityChart.tsx`
+- [x] Bar chart showing reviews per day (last 30 days)
+- [x] Color-code by rating distribution (again/hard/good/easy)
+- [x] Show hover tooltip with exact counts
+- [x] Handle days with no activity (show zero)
+- [x] Use simple CSS/SVG (no heavy charting library)
 
 ### 24.5 Retention Rate Graph
-- [ ] Create `src/components/Flashcards/RetentionChart.tsx`
-- [ ] Line chart showing % correct over time
-- [ ] 7-day rolling average to smooth data
-- [ ] Target line at 85% (optimal retention)
-- [ ] Show trend indicator (improving/declining)
+- [x] Create `src/components/Flashcards/RetentionChart.tsx`
+- [x] Line chart showing % correct over time
+- [x] 7-day rolling average to smooth data
+- [x] Target line at 85% (optimal retention)
+- [x] Show trend indicator (improving/declining)
 
 ### 24.6 Upcoming Reviews Forecast
-- [ ] Create `src/components/Flashcards/ReviewForecast.tsx`
-- [ ] Calculate cards due per day for next 7 days
-- [ ] Display as simple bar chart or list
-- [ ] Help users plan study time
-- [ ] "Tomorrow: 5 cards, Wednesday: 12 cards..."
+- [x] Create `src/components/Flashcards/ReviewForecast.tsx`
+- [x] Calculate cards due per day for next 7 days
+- [x] Display as simple bar chart or list
+- [x] Help users plan study time
+- [x] "Tomorrow: 5 cards, Wednesday: 12 cards..."
 
 ### 24.7 Card Performance Insights
-- [ ] Create `src/components/Flashcards/CardInsights.tsx`
-- [ ] "Most Challenging" - cards with lowest ease factor
-- [ ] "Well Known" - cards with highest intervals
-- [ ] "Needs Review" - cards overdue by most days
-- [ ] Click card to view or start study session with it
+- [x] Create `src/components/Flashcards/CardInsights.tsx`
+- [x] "Most Challenging" - cards with lowest ease factor
+- [x] "Well Known" - cards with highest intervals
+- [x] "Needs Review" - cards overdue by most days
+- [x] Click card to view or start study session with it
 
 ### 24.8 Category Breakdown
-- [ ] Create `src/components/Flashcards/CategoryBreakdown.tsx`
-- [ ] Pie or bar chart: milestones vs concepts
-- [ ] Breakdown by era (for milestones)
-- [ ] Breakdown by category/topic (for concepts)
-- [ ] Identify gaps in study coverage
+- [x] Create `src/components/Flashcards/CategoryBreakdown.tsx`
+- [x] Pie or bar chart: milestones vs concepts
+- [x] Breakdown by era (for milestones)
+- [x] Breakdown by category/topic (for concepts)
+- [x] Identify gaps in study coverage
 
 ### 24.9 Streak System Enhancement
-- [ ] Calculate streak based on "reviewed at least 1 card"
-- [ ] Reset streak if day missed (no reviews)
-- [ ] Store streak history for display
-- [ ] Show streak milestones (7 days, 30 days, 100 days)
+- [x] Calculate streak based on "reviewed at least 1 card"
+- [x] Reset streak if day missed (no reviews)
+- [x] Store streak history for display
+- [x] Show streak milestones (7 days, 30 days, 100 days)
 - [ ] Optional: "freeze" streak with streak freeze item (future)
 
 ### 24.10 Export & Data Management
-- [ ] "Export Data" button to download JSON of all flashcard data
-- [ ] "Clear All Data" with double confirmation
-- [ ] Useful for backup or transferring to new device
-- [ ] Include all cards, packs, sessions, stats in export
+- [x] "Export Data" button to download JSON of all flashcard data
+- [x] "Clear All Data" with double confirmation
+- [x] Useful for backup or transferring to new device
+- [x] Include all cards, packs, sessions, stats in export
 
 ---
 

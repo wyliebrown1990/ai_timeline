@@ -11,11 +11,14 @@ import {
   type FlashcardPack,
   type FlashcardStats,
   type QualityRating,
+  type DailyReviewRecord,
+  type StreakHistory,
   FLASHCARD_STORAGE_KEYS,
   PACK_COLORS,
   createUserFlashcard,
   createFlashcardPack,
   createInitialStats,
+  createInitialStreakHistory,
   calculateNextReview,
   getNextReviewDate,
   isCardDue,
@@ -24,6 +27,15 @@ import {
   safeParseFlashcardPack,
   safeParseFlashcardStats,
 } from '../types/flashcard';
+import {
+  loadReviewHistory,
+  saveReviewHistory,
+  recordReviewInHistory,
+  addStudyTimeToHistory,
+  loadStreakHistory,
+  saveStreakHistory,
+  updateStreakAfterReview,
+} from '../lib/flashcardStats';
 
 // =============================================================================
 // UUID Generation - Use built-in crypto.randomUUID()
@@ -300,6 +312,8 @@ export interface UseFlashcardStoreReturn {
   cards: UserFlashcard[];
   packs: FlashcardPack[];
   stats: FlashcardStats;
+  reviewHistory: DailyReviewRecord[];
+  streakHistory: StreakHistory;
 
   // Card Operations
   addCard: (
@@ -318,6 +332,9 @@ export interface UseFlashcardStoreReturn {
 
   // Review Operations
   recordReview: (cardId: string, quality: QualityRating) => void;
+
+  // History Operations
+  addStudyTime: (minutes: number) => void;
 
   // Pack Operations
   createPack: (name: string, description?: string, color?: string) => FlashcardPack;
@@ -362,6 +379,8 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
   const [cardsData, setCardsData] = useState<StoredFlashcardData>(DEFAULT_CARDS);
   const [packsData, setPacksData] = useState<StoredPackData>(DEFAULT_PACKS_DATA);
   const [stats, setStats] = useState<FlashcardStats>(createInitialStats());
+  const [reviewHistory, setReviewHistory] = useState<DailyReviewRecord[]>([]);
+  const [streakHistory, setStreakHistory] = useState<StreakHistory>(createInitialStreakHistory());
 
   // Initialize default packs if needed
   const initializeDefaultPacks = useCallback((currentPacks: FlashcardPack[]): FlashcardPack[] => {
@@ -394,6 +413,8 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
     const loadedCards = loadCards();
     const loadedPacks = loadPacks();
     const loadedStats = loadStats();
+    const loadedHistory = loadReviewHistory();
+    const loadedStreak = loadStreakHistory();
 
     // Initialize default packs if needed
     const packsWithDefaults = initializeDefaultPacks(loadedPacks.packs);
@@ -407,6 +428,8 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
 
     setCardsData(loadedCards);
     setStats(loadedStats);
+    setReviewHistory(loadedHistory);
+    setStreakHistory(loadedStreak);
     saveSchemaVersion();
   }, [initializeDefaultPacks]);
 
@@ -428,6 +451,18 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
   const updateStats = useCallback((newStats: FlashcardStats) => {
     setStats(newStats);
     saveStats(newStats);
+  }, []);
+
+  // Update review history and persist
+  const updateHistory = useCallback((newHistory: DailyReviewRecord[]) => {
+    setReviewHistory(newHistory);
+    saveReviewHistory(newHistory);
+  }, []);
+
+  // Update streak history and persist
+  const updateStreak = useCallback((newStreak: StreakHistory) => {
+    setStreakHistory(newStreak);
+    saveStreakHistory(newStreak);
   }, []);
 
   // Recalculate stats based on current cards
@@ -574,31 +609,21 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       newCards[cardIndex] = updatedCard;
       updateCards(newCards);
 
-      // Update stats
+      // Record review in history first (streak calculation depends on it)
+      const updatedHistory = recordReviewInHistory(reviewHistory, cardId, quality);
+      updateHistory(updatedHistory);
+
+      // Update streak history using the new calculation
+      const updatedStreakHistory = updateStreakAfterReview(streakHistory, updatedHistory);
+      updateStreak(updatedStreakHistory);
+
+      // Update stats with streak values from streakHistory
       const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const lastStudyDate = stats.lastStudyDate ? new Date(stats.lastStudyDate) : null;
-
-      let newStreak = stats.currentStreak;
-      if (!lastStudyDate || lastStudyDate < todayStart) {
-        // First review today
-        const yesterday = new Date(todayStart);
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        if (lastStudyDate && lastStudyDate >= yesterday) {
-          // Continued from yesterday
-          newStreak = stats.currentStreak + 1;
-        } else {
-          // Streak broken or new start
-          newStreak = 1;
-        }
-      }
-
       const newStats: FlashcardStats = {
         ...stats,
         cardsReviewedToday: stats.cardsReviewedToday + 1,
-        currentStreak: newStreak,
-        longestStreak: Math.max(stats.longestStreak, newStreak),
+        currentStreak: updatedStreakHistory.currentStreak,
+        longestStreak: updatedStreakHistory.longestStreak,
         masteredCards: newCards.filter((c) => isCardMastered(c)).length,
         cardsDueToday: newCards.filter((c) => isCardDue(c)).length,
         lastStudyDate: now.toISOString(),
@@ -606,7 +631,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
 
       updateStats(newStats);
     },
-    [cardsData.cards, stats, updateCards, updateStats]
+    [cardsData.cards, stats, reviewHistory, streakHistory, updateCards, updateStats, updateHistory, updateStreak]
   );
 
   // ==========================================================================
@@ -752,7 +777,25 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
     updateCards([]);
     updatePacks(defaultPacks);
     updateStats(createInitialStats());
-  }, [initializeDefaultPacks, updateCards, updatePacks, updateStats]);
+    updateHistory([]);
+    updateStreak(createInitialStreakHistory());
+  }, [initializeDefaultPacks, updateCards, updatePacks, updateStats, updateHistory, updateStreak]);
+
+  // ==========================================================================
+  // History Operations
+  // ==========================================================================
+
+  /**
+   * Add study time to today's record.
+   * Called when a study session ends to track total time spent.
+   */
+  const addStudyTime = useCallback(
+    (minutes: number) => {
+      const updatedHistory = addStudyTimeToHistory(reviewHistory, minutes);
+      updateHistory(updatedHistory);
+    },
+    [reviewHistory, updateHistory]
+  );
 
   // ==========================================================================
   // Return Hook Interface
@@ -764,6 +807,8 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       cards: cardsData.cards,
       packs: packsData.packs,
       stats,
+      reviewHistory,
+      streakHistory,
 
       // Card Operations
       addCard,
@@ -775,6 +820,9 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
 
       // Review Operations
       recordReview,
+
+      // History Operations
+      addStudyTime,
 
       // Pack Operations
       createPack,
@@ -792,6 +840,8 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       cardsData.cards,
       packsData.packs,
       stats,
+      reviewHistory,
+      streakHistory,
       addCard,
       removeCard,
       getCardBySource,
@@ -799,6 +849,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       getDueCards,
       getCardsByPack,
       recordReview,
+      addStudyTime,
       createPack,
       deletePack,
       renamePack,

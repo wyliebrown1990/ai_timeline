@@ -18,6 +18,7 @@ import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
 import StudyPage from './pages/StudyPage';
 import StudySessionPage from './pages/StudySessionPage';
+import StudyStatsPage from './pages/StudyStatsPage';
 import PackDetailPage from './pages/PackDetailPage';
 import {
   AdminDashboard,
@@ -25,6 +26,7 @@ import {
   CreateMilestonePage,
   EditMilestonePage,
   LoginPage,
+  ApiMonitoringPage,
 } from './pages/admin';
 
 /**
@@ -80,6 +82,7 @@ function App() {
                   <Route path="news" element={<NewsPage />} />
                   <Route path="glossary" element={<GlossaryPage />} />
                   <Route path="study" element={<StudyPage />} />
+                  <Route path="study/stats" element={<StudyStatsPage />} />
                   <Route path="study/session" element={<StudySessionPage />} />
                   <Route path="study/session/:packId" element={<StudySessionPage />} />
                   <Route path="study/packs/:packId" element={<PackDetailPage />} />
@@ -101,6 +104,7 @@ function App() {
                   <Route path="milestones" element={<MilestonesListPage />} />
                   <Route path="milestones/new" element={<CreateMilestonePage />} />
                   <Route path="milestones/:id/edit" element={<EditMilestonePage />} />
+                  <Route path="api-monitoring" element={<ApiMonitoringPage />} />
                 </Route>
 
                 {/* Admin login route - outside protected wrapper */}

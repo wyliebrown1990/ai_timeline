@@ -8,11 +8,15 @@
  * - Session completion screen with streak display and encouraging messages
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RotateCcw, ChevronRight, Flame } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
+import { useMilestones } from '../../hooks/useMilestones';
+import { useGlossary } from '../../hooks/useContent';
 import type { UserFlashcard, QualityRating } from '../../types/flashcard';
+import type { MilestoneResponse } from '../../types/milestone';
+import type { GlossaryEntry } from '../../types/glossary';
 
 // =============================================================================
 // Helpers
@@ -58,6 +62,30 @@ export function StudySession({ packId }: StudySessionProps) {
   const navigate = useNavigate();
   const { getDueCards, recordReview, packs, stats } = useFlashcardContext();
 
+  // Fetch milestones for content lookup
+  const { data: milestones, isLoading: milestonesLoading } = useMilestones({ limit: 1000 });
+
+  // Fetch glossary terms for content lookup
+  const { data: glossaryTerms } = useGlossary();
+
+  // Create lookup map for milestone data
+  const milestoneMap = useMemo(() => {
+    const map = new Map<string, MilestoneResponse>();
+    if (milestones) {
+      milestones.forEach((m) => map.set(m.id, m));
+    }
+    return map;
+  }, [milestones]);
+
+  // Create lookup map for glossary data
+  const glossaryMap = useMemo(() => {
+    const map = new Map<string, GlossaryEntry>();
+    if (glossaryTerms) {
+      glossaryTerms.forEach((g) => map.set(g.id, g));
+    }
+    return map;
+  }, [glossaryTerms]);
+
   // Session state
   const [sessionCards, setSessionCards] = useState<UserFlashcard[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -82,6 +110,42 @@ export function StudySession({ packId }: StudySessionProps) {
 
   // Current card
   const currentCard = sessionCards[currentIndex];
+
+  // Get content for the current card
+  const getCardContent = useCallback(
+    (card: UserFlashcard | undefined) => {
+      if (!card) return { title: 'Loading...', description: '', date: '' };
+
+      if (card.sourceType === 'milestone') {
+        const milestone = milestoneMap.get(card.sourceId);
+        if (milestone) {
+          return {
+            title: milestone.title,
+            description: milestone.description,
+            date: milestone.date,
+            organization: milestone.organization,
+            category: milestone.category,
+          };
+        }
+      } else if (card.sourceType === 'concept') {
+        const glossaryTerm = glossaryMap.get(card.sourceId);
+        if (glossaryTerm) {
+          return {
+            title: glossaryTerm.term,
+            description: glossaryTerm.fullDefinition,
+            shortDefinition: glossaryTerm.shortDefinition,
+            businessContext: glossaryTerm.businessContext,
+            category: glossaryTerm.category,
+          };
+        }
+      }
+      // Fallback if content not found
+      return { title: card.sourceId, description: 'Content not found', date: '' };
+    },
+    [milestoneMap, glossaryMap]
+  );
+
+  const cardContent = getCardContent(currentCard);
 
   // Handle card flip
   const handleFlip = useCallback(() => {
@@ -281,18 +345,23 @@ export function StudySession({ packId }: StudySessionProps) {
         >
           {/* Card Front */}
           <div
-            className={`absolute inset-0 rounded-xl border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800 ${
+            className={`absolute inset-0 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800 ${
               isFlipped ? 'invisible' : ''
             }`}
-            style={{ backfaceVisibility: 'hidden', minHeight: '300px' }}
+            style={{ backfaceVisibility: 'hidden', height: '320px' }}
           >
             <div className="flex h-full flex-col items-center justify-center text-center">
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 {currentCard?.sourceType === 'milestone' ? '📅 Milestone' : '📖 Concept'}
               </p>
               <p className="mt-4 text-2xl font-bold text-gray-900 dark:text-white">
-                {currentCard?.sourceId || 'Loading...'}
+                {milestonesLoading ? 'Loading...' : cardContent.title}
               </p>
+              {cardContent.date && (
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  {new Date(cardContent.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </p>
+              )}
               <p className="mt-8 text-sm text-gray-500 dark:text-gray-400">
                 (tap or press space to reveal)
               </p>
@@ -301,23 +370,36 @@ export function StudySession({ packId }: StudySessionProps) {
 
           {/* Card Back */}
           <div
-            className={`absolute inset-0 rounded-xl border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800 ${
+            className={`absolute inset-0 rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800 ${
               !isFlipped ? 'invisible' : ''
             }`}
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', minHeight: '300px' }}
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', height: '320px' }}
           >
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <p className="text-lg text-gray-700 dark:text-gray-300">
-                {/* TODO: Load actual milestone/concept content in Sprint 23.6 */}
-                Card content for: {currentCard?.sourceId}
-              </p>
-              <Link
-                to={`/${currentCard?.sourceType === 'milestone' ? 'timeline' : 'glossary'}#${currentCard?.sourceId}`}
+            <div className="flex h-full flex-col text-center">
+              {/* Scrollable content area */}
+              <div
+                className="flex-1 overflow-y-auto px-2"
                 onClick={(e) => e.stopPropagation()}
-                className="mt-4 flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
               >
-                View Details <ChevronRight className="h-4 w-4" />
-              </Link>
+                <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {milestonesLoading ? 'Loading...' : cardContent.description}
+                </p>
+                {cardContent.organization && (
+                  <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                    {cardContent.organization}
+                  </p>
+                )}
+              </div>
+              {/* Fixed footer with link */}
+              <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 shrink-0">
+                <Link
+                  to={`/${currentCard?.sourceType === 'milestone' ? 'timeline' : 'glossary'}?highlight=${currentCard?.sourceId}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300"
+                >
+                  View Details <ChevronRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
           </div>
         </div>

@@ -10,10 +10,11 @@
 
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { GraduationCap, Flame, Plus, Play } from 'lucide-react';
+import { GraduationCap, Flame, Plus, Play, BarChart3, Library } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
 import { PackCard } from './PackCard';
 import { CreatePackModal } from './CreatePackModal';
+import { DeckLibrary } from './DeckLibrary';
 
 /**
  * Study dashboard displaying user's flashcard collection and study options.
@@ -21,6 +22,7 @@ import { CreatePackModal } from './CreatePackModal';
 export function StudyDashboard() {
   const { cards, packs, stats, dueToday, hasCards, getDueCards } = useFlashcardContext();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [showDeckLibrary, setShowDeckLibrary] = useState(false);
 
   // Get mastered cards count (cards with interval > 21 days)
   const masteredCount = stats.masteredCards;
@@ -33,33 +35,72 @@ export function StudyDashboard() {
           <GraduationCap className="h-8 w-8 text-orange-500" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Study Center</h1>
         </div>
-        <button
-          className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          onClick={() => setIsCreateModalOpen(true)}
-          data-testid="new-pack-button"
-        >
-          <Plus className="h-4 w-4" />
-          <span>New Pack</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/study/stats"
+            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            data-testid="stats-link"
+          >
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Stats</span>
+          </Link>
+          <button
+            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            onClick={() => setShowDeckLibrary(!showDeckLibrary)}
+            data-testid="browse-decks-button"
+          >
+            <Library className="h-4 w-4" />
+            <span className="hidden sm:inline">Browse Decks</span>
+          </button>
+          <button
+            className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            onClick={() => setIsCreateModalOpen(true)}
+            data-testid="new-pack-button"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">New Pack</span>
+          </button>
+        </div>
       </div>
+
+      {/* Deck Library Section - Collapsible */}
+      {showDeckLibrary && (
+        <DeckLibrary
+          onDeckAdded={() => setShowDeckLibrary(false)}
+          className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+        />
+      )}
 
       {/* Main Content */}
       {!hasCards ? (
-        /* Empty State */
+        /* Empty State - Enhanced with prebuilt deck suggestion */
         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-800/50">
           <GraduationCap className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
           <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
             No flashcards yet
           </h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Add milestones and concepts to your flashcard collection while browsing the timeline.
+            Build your personal AI knowledge deck by adding milestones and concepts as you explore.
           </p>
-          <Link
-            to="/timeline"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
-          >
-            Explore Timeline
-          </Link>
+          <p className="mt-1 text-gray-600 dark:text-gray-400">
+            Or get started quickly with a curated deck:
+          </p>
+          <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <button
+              onClick={() => setShowDeckLibrary(true)}
+              className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-orange-600"
+              data-testid="empty-state-browse-decks"
+            >
+              <Library className="h-4 w-4" />
+              Browse Prebuilt Decks
+            </button>
+            <Link
+              to="/timeline"
+              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+            >
+              Explore Timeline
+            </Link>
+          </div>
         </div>
       ) : (
         <>
