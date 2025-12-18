@@ -12,13 +12,15 @@ import {
   Shield,
   TrendingUp,
   CheckSquare,
+  Compass,
 } from 'lucide-react';
 import type { MilestoneLayeredContent } from '../../types/milestone';
+import { FutureScenarios } from './FutureScenarios';
 
 /**
  * Tab identifiers for layered explanations
  */
-export type ExplanationTab = 'plain-english' | 'executive' | 'simple' | 'business' | 'technical' | 'historical';
+export type ExplanationTab = 'plain-english' | 'executive' | 'simple' | 'business' | 'technical' | 'historical' | 'future-scenarios';
 
 /**
  * Storage key for user's preferred explanation tab
@@ -68,6 +70,11 @@ const TAB_CONFIG: Record<ExplanationTab, { label: string; icon: typeof BookOpen;
     icon: History,
     description: 'Research lineage and predecessors',
   },
+  'future-scenarios': {
+    label: 'Future Scenarios',
+    icon: Compass,
+    description: 'Explore possible AI futures',
+  },
 };
 
 /**
@@ -116,9 +123,10 @@ export function LayeredExplanationTabs({
     (tab: ExplanationTab): boolean => {
       if (tab === 'plain-english') return content.plainEnglish !== undefined;
       if (tab === 'executive') return content.executiveBrief !== undefined;
+      if (tab === 'future-scenarios') return content.futureScenarios !== undefined;
       return true; // simple, business, technical, historical are always available
     },
-    [content.plainEnglish, content.executiveBrief]
+    [content.plainEnglish, content.executiveBrief, content.futureScenarios]
   );
 
   // Get the best available tab, falling back if preferred isn't available
@@ -182,6 +190,9 @@ export function LayeredExplanationTabs({
     }
     if (tab === 'executive') {
       return content.executiveBrief !== undefined;
+    }
+    if (tab === 'future-scenarios') {
+      return content.futureScenarios !== undefined;
     }
     return true;
   });
@@ -408,6 +419,8 @@ export function LayeredExplanationTabs({
           renderPlainEnglishContent()
         ) : activeTab === 'executive' ? (
           renderExecutiveBriefContent()
+        ) : activeTab === 'future-scenarios' && content.futureScenarios ? (
+          <FutureScenarios scenarios={content.futureScenarios} references={content.references} />
         ) : (
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">

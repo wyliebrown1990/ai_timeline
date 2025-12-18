@@ -1,7 +1,7 @@
 {
   "_description": "Layered explanation content for milestones, keyed by readable milestone ID",
-  "_generatedAt": "2025-12-17",
-  "_totalMilestones": 70,
+  "_generatedAt": "2025-12-18",
+  "_totalMilestones": 71,
   "_note": "All milestones have comprehensive layered explanations with tldr, simpleExplanation, businessImpact, technicalDepth, historicalContext, whyItMattersToday, and commonMisconceptions",
   "E1943_MCCULLOCH_PITTS": {
     "tldr": "First mathematical model showing how brain cells could compute.",

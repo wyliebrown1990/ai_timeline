@@ -238,6 +238,75 @@ export const AppliedAIBriefContentSchema = z.object({
 
 export type AppliedAIBriefContent = z.infer<typeof AppliedAIBriefContentSchema>;
 
+// =============================================================================
+// Future Scenarios Schema (for special "Where We Go Next" milestone)
+// =============================================================================
+
+/**
+ * A timeline event within a future scenario
+ */
+export const ScenarioTimelineEventSchema = z.object({
+  year: z.string(),
+  event: z.string(),
+  description: z.string(),
+});
+
+export type ScenarioTimelineEvent = z.infer<typeof ScenarioTimelineEventSchema>;
+
+/**
+ * A key voice/quote within a scenario
+ */
+export const ScenarioVoiceSchema = z.object({
+  name: z.string(),
+  role: z.string(),
+  quote: z.string(),
+  source: z.string(),
+  sourceUrl: z.string().url(),
+  context: z.string(),
+});
+
+export type ScenarioVoice = z.infer<typeof ScenarioVoiceSchema>;
+
+/**
+ * A single future scenario (optimistic, neutral, or concerning)
+ */
+export const FutureScenarioSchema = z.object({
+  title: z.string(),
+  subtitle: z.string(),
+  probability: z.string(),
+  summary: z.string(),
+  timeline: z.array(ScenarioTimelineEventSchema),
+  keyVoices: z.array(ScenarioVoiceSchema),
+  requirements: z.array(z.string()),
+  mitigations: z.array(z.string()).optional(),
+});
+
+export type FutureScenario = z.infer<typeof FutureScenarioSchema>;
+
+/**
+ * Container for all three future scenarios
+ */
+export const FutureScenariosSchema = z.object({
+  optimistic: FutureScenarioSchema,
+  neutral: FutureScenarioSchema,
+  concerning: FutureScenarioSchema,
+});
+
+export type FutureScenarios = z.infer<typeof FutureScenariosSchema>;
+
+/**
+ * A reference/source for the future scenarios milestone
+ */
+export const ScenarioReferenceSchema = z.object({
+  title: z.string(),
+  author: z.string(),
+  date: z.string(),
+  url: z.string().url(),
+  description: z.string(),
+});
+
+export type ScenarioReference = z.infer<typeof ScenarioReferenceSchema>;
+
 /**
  * Layered explanation content for milestones
  *
@@ -261,8 +330,8 @@ export const MilestoneLayeredContentSchema = z.object({
   // Historical context - 1-2 paragraphs on research lineage and predecessors
   historicalContext: z.string().min(1),
 
-  // Why it matters today - 1-2 sentences connecting to current products
-  whyItMattersToday: z.string().max(300),
+  // Why it matters today - 1-2 sentences connecting to current products (longer for special milestones)
+  whyItMattersToday: z.string().min(1),
 
   // Common misconceptions - bullet points with corrections
   commonMisconceptions: z.string().min(1),
@@ -275,6 +344,12 @@ export const MilestoneLayeredContentSchema = z.object({
 
   // Applied AI brief content for practitioners evaluating real-world adoption (optional)
   appliedAIBrief: AppliedAIBriefContentSchema.optional(),
+
+  // Future scenarios for special "Where We Go Next" milestone (optional)
+  futureScenarios: FutureScenariosSchema.optional(),
+
+  // References for future scenarios (optional)
+  references: z.array(ScenarioReferenceSchema).optional(),
 });
 
 export type MilestoneLayeredContent = z.infer<typeof MilestoneLayeredContentSchema>;
