@@ -15,7 +15,12 @@ import {
 } from 'react';
 
 const AUTH_TOKEN_KEY = 'ai-timeline-admin-token';
-const API_BASE = '/api';
+
+/**
+ * API base URL for auth endpoints
+ * In production, uses the API Gateway URL; in development, uses relative URL with Vite proxy
+ */
+const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 
 interface AuthUser {
   sub: string;

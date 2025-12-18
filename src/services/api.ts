@@ -7,10 +7,15 @@ import type {
 import type { SearchResponse, FilterQueryParams } from '../types/filters';
 
 /**
- * API base URL for dynamic endpoints (like milestones CRUD in dev)
- * Uses relative URL to work with Vite proxy in development
+ * API base URL for static data (served from S3/CloudFront)
  */
-const API_BASE = '/api';
+const STATIC_API_BASE = '/api';
+
+/**
+ * API base URL for dynamic endpoints (auth, CRUD operations)
+ * In production, uses the API Gateway URL; in development, uses relative URL with Vite proxy
+ */
+const DYNAMIC_API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 
 /**
  * Check if we're running with static API (production build or forced via env)
@@ -127,7 +132,7 @@ export const milestonesApi = {
   async getAll(params?: MilestoneQueryParams): Promise<PaginatedResponse<MilestoneResponse>> {
     // In production, ignore pagination params - static file has all data
     if (IS_STATIC_API) {
-      return fetchJson<PaginatedResponse<MilestoneResponse>>(`${API_BASE}/milestones/index.json`);
+      return fetchJson<PaginatedResponse<MilestoneResponse>>(`${STATIC_API_BASE}/milestones/index.json`);
     }
 
     const searchParams = new URLSearchParams();
@@ -135,7 +140,7 @@ export const milestonesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${API_BASE}/milestones${queryString ? `?${queryString}` : ''}`;
+    const url = `${DYNAMIC_API_BASE}/milestones${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(url);
   },
@@ -144,14 +149,14 @@ export const milestonesApi = {
    * Get a single milestone by ID
    */
   async getById(id: string): Promise<MilestoneResponse> {
-    return fetchJson<MilestoneResponse>(`${API_BASE}/milestones/${id}`);
+    return fetchJson<MilestoneResponse>(`${DYNAMIC_API_BASE}/milestones/${id}`);
   },
 
   /**
    * Create a new milestone (requires authentication)
    */
   async create(data: CreateMilestoneDto): Promise<MilestoneResponse> {
-    return fetchJson<MilestoneResponse>(`${API_BASE}/milestones`, {
+    return fetchJson<MilestoneResponse>(`${DYNAMIC_API_BASE}/milestones`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -162,7 +167,7 @@ export const milestonesApi = {
    * Update an existing milestone (requires authentication)
    */
   async update(id: string, data: UpdateMilestoneDto): Promise<MilestoneResponse> {
-    return fetchJson<MilestoneResponse>(`${API_BASE}/milestones/${id}`, {
+    return fetchJson<MilestoneResponse>(`${DYNAMIC_API_BASE}/milestones/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -173,7 +178,7 @@ export const milestonesApi = {
    * Delete a milestone (requires authentication)
    */
   async delete(id: string): Promise<void> {
-    return fetchJson<void>(`${API_BASE}/milestones/${id}`, {
+    return fetchJson<void>(`${DYNAMIC_API_BASE}/milestones/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -191,7 +196,7 @@ export const milestonesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${API_BASE}/milestones/category/${category}${queryString ? `?${queryString}` : ''}`;
+    const url = `${DYNAMIC_API_BASE}/milestones/category/${category}${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(url);
   },
@@ -208,7 +213,7 @@ export const milestonesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${API_BASE}/milestones/year/${year}${queryString ? `?${queryString}` : ''}`;
+    const url = `${DYNAMIC_API_BASE}/milestones/year/${year}${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(url);
   },
@@ -225,7 +230,7 @@ export const milestonesApi = {
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
-    return fetchJson<SearchResponse>(`${API_BASE}/milestones/search?${searchParams.toString()}`);
+    return fetchJson<SearchResponse>(`${DYNAMIC_API_BASE}/milestones/search?${searchParams.toString()}`);
   },
 
   /**
@@ -238,7 +243,7 @@ export const milestonesApi = {
     // In production, fetch all milestones and filter client-side
     if (IS_STATIC_API) {
       const response = await fetchJson<PaginatedResponse<MilestoneResponse>>(
-        `${API_BASE}/milestones/filter.json`
+        `${STATIC_API_BASE}/milestones/filter.json`
       );
 
       // Apply client-side filtering
@@ -286,7 +291,7 @@ export const milestonesApi = {
     if (filters.limit) searchParams.set('limit', String(filters.limit));
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(
-      `${API_BASE}/milestones/filter?${searchParams.toString()}`
+      `${DYNAMIC_API_BASE}/milestones/filter?${searchParams.toString()}`
     );
   },
 
@@ -295,6 +300,6 @@ export const milestonesApi = {
    */
   async getTags(): Promise<{ data: { tag: string; count: number }[] }> {
     const ext = IS_STATIC_API ? '.json' : '';
-    return fetchJson<{ data: { tag: string; count: number }[] }>(`${API_BASE}/milestones/tags${ext}`);
+    return fetchJson<{ data: { tag: string; count: number }[] }>(`${STATIC_API_BASE}/milestones/tags${ext}`);
   },
 };
