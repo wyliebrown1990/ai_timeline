@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler, notFoundHandler } from './middleware/error';
+import { requestLogger } from './middleware/requestLogger';
 import healthRoutes from './routes/health';
 import authRoutes from './routes/auth';
 import milestonesRoutes from './routes/milestones';
@@ -54,6 +55,9 @@ export function createApp() {
   // Body parsing middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // Request logging for CloudWatch
+  app.use(requestLogger);
 
   // API routes
   app.use('/api/health', healthRoutes);
