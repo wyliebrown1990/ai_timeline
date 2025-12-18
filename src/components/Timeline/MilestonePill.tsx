@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { MilestoneResponse } from '../../types/milestone';
 import { MilestoneCategory, SignificanceLevel } from '../../types/milestone';
 import {
@@ -34,6 +34,8 @@ export function MilestonePill({
   showPreview = true,
 }: MilestonePillProps) {
   const [showHoverCard, setShowHoverCard] = useState(false);
+  const [showBelow, setShowBelow] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const categoryColor = categoryBgClasses[milestone.category] || 'bg-gray-500';
   const textColor = categoryTextClasses[milestone.category] || 'text-gray-500';
@@ -52,21 +54,39 @@ export function MilestonePill({
     }
   };
 
+  const handleMouseEnter = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // If pill is within 220px of the top, show card below instead
+      setShowBelow(rect.top < 220);
+    }
+    setShowHoverCard(true);
+  };
+
+  const handleFocus = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setShowBelow(rect.top < 220);
+    }
+    setShowHoverCard(true);
+  };
+
   return (
     <div
       className="relative"
       style={{ zIndex: showHoverCard ? 9999 : 'auto' }}
     >
       <button
+        ref={buttonRef}
         type="button"
         data-testid={`milestone-pill-${milestone.id}`}
         data-category={milestone.category}
         data-significance={milestone.significance}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
-        onMouseEnter={() => setShowHoverCard(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setShowHoverCard(false)}
-        onFocus={() => setShowHoverCard(true)}
+        onFocus={handleFocus}
         onBlur={() => setShowHoverCard(false)}
         className={`
           group relative flex items-center gap-1.5
@@ -103,22 +123,28 @@ export function MilestonePill({
         )}
       </button>
 
-      {/* Hover preview card - positioned using fixed to escape overflow clipping */}
+      {/* Hover preview card - positioned dynamically based on available space */}
       {showPreview && showHoverCard && (
         <div
-          className="
-            absolute left-0 mb-2
+          className={`
+            absolute left-0
             pointer-events-none
-            animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200
-          "
+            animate-in fade-in-0 zoom-in-95 duration-200
+            ${showBelow ? 'slide-in-from-top-2 mt-2' : 'slide-in-from-bottom-2 mb-2'}
+          `}
           style={{
-            bottom: '100%',
+            ...(showBelow ? { top: '100%' } : { bottom: '100%' }),
             zIndex: 9999,
           }}
         >
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-3 w-64">
-            {/* Category bar */}
-            <div className={`h-1 -mx-3 -mt-3 mb-3 rounded-t-lg ${categoryColor}`} />
+            {/* Category bar - at top when card is above, at bottom when card is below */}
+            {!showBelow && (
+              <div className={`h-1 -mx-3 -mt-3 mb-3 rounded-t-lg ${categoryColor}`} />
+            )}
+            {showBelow && (
+              <div className={`h-1 -mx-3 -mb-3 mt-3 rounded-b-lg ${categoryColor} order-last`} />
+            )}
 
             {/* Date */}
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
@@ -140,10 +166,17 @@ export function MilestonePill({
               Click to view details
             </p>
 
-            {/* Arrow */}
-            <div className="absolute top-full left-4 -mt-px">
-              <div className="border-8 border-transparent border-t-white dark:border-t-gray-800 drop-shadow" />
-            </div>
+            {/* Arrow pointing to pill */}
+            {!showBelow && (
+              <div className="absolute top-full left-4 -mt-px">
+                <div className="border-8 border-transparent border-t-white dark:border-t-gray-800 drop-shadow" />
+              </div>
+            )}
+            {showBelow && (
+              <div className="absolute bottom-full left-4 -mb-px">
+                <div className="border-8 border-transparent border-b-white dark:border-b-gray-800 drop-shadow" />
+              </div>
+            )}
           </div>
         </div>
       )}

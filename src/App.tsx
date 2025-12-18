@@ -16,6 +16,9 @@ import LearningPathsPage from './pages/LearningPathsPage';
 import GlossaryPage from './pages/GlossaryPage';
 import NewsPage from './pages/NewsPage';
 import SettingsPage from './pages/SettingsPage';
+import StudyPage from './pages/StudyPage';
+import StudySessionPage from './pages/StudySessionPage';
+import PackDetailPage from './pages/PackDetailPage';
 import {
   AdminDashboard,
   MilestonesListPage,
@@ -76,6 +79,10 @@ function App() {
                   <Route path="learn/:pathId/complete" element={<LearningPathsPage />} />
                   <Route path="news" element={<NewsPage />} />
                   <Route path="glossary" element={<GlossaryPage />} />
+                  <Route path="study" element={<StudyPage />} />
+                  <Route path="study/session" element={<StudySessionPage />} />
+                  <Route path="study/session/:packId" element={<StudySessionPage />} />
+                  <Route path="study/packs/:packId" element={<PackDetailPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
 

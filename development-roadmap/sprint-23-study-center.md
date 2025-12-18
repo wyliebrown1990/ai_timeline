@@ -10,29 +10,29 @@ Build the Study Center - a dedicated section where users review their flashcards
 ## Tasks
 
 ### 23.1 Navigation Integration
-- [ ] Add "Study" link to main navigation header
-- [ ] Show badge with due card count when > 0
-- [ ] Add `/study` route to React Router
-- [ ] Add sub-routes: `/study/session/:packId?`, `/study/packs/:packId`
-- [ ] Mobile: Add Study to bottom navigation or hamburger menu
+- [x] Add "Study" link to main navigation header
+- [x] Show badge with due card count when > 0
+- [x] Add `/study` route to React Router
+- [x] Add sub-routes: `/study/session/:packId?`, `/study/packs/:packId`
+- [x] Mobile: Add Study to bottom navigation or hamburger menu
 
 ### 23.2 Study Dashboard Page
-- [ ] Create `src/pages/StudyPage.tsx` as main Study Center
-- [ ] Create `src/components/Flashcards/StudyDashboard.tsx`
-- [ ] Display "Cards Due Today" prominent call-to-action
-- [ ] Show current streak with fire emoji
-- [ ] Display grid of user's packs with due counts
-- [ ] "Start Studying" button → begins session with all due cards
-- [ ] Empty state for users with no flashcards yet
-- [ ] Quick stats summary (total cards, mastered, etc.)
+- [x] Create `src/pages/StudyPage.tsx` as main Study Center
+- [x] Create `src/components/Flashcards/StudyDashboard.tsx`
+- [x] Display "Cards Due Today" prominent call-to-action
+- [x] Show current streak with fire emoji
+- [x] Display grid of user's packs with due counts
+- [x] "Start Studying" button → begins session with all due cards
+- [x] Empty state for users with no flashcards yet
+- [x] Quick stats summary (total cards, mastered, etc.)
 
 ### 23.3 Pack Cards Display
-- [ ] Create `src/components/Flashcards/PackCard.tsx`
-- [ ] Show pack name with color indicator
-- [ ] Display total cards and due cards count
-- [ ] Click navigates to pack detail or starts study session
-- [ ] "Study This Pack" quick action button
-- [ ] Visual distinction for system vs custom packs
+- [x] Create `src/components/Flashcards/PackCard.tsx`
+- [x] Show pack name with color indicator
+- [x] Display total cards and due cards count
+- [x] Click navigates to pack detail or starts study session
+- [x] "Study This Pack" quick action button
+- [x] Visual distinction for system vs custom packs
 
 ### 23.4 SM-2 Spaced Repetition Algorithm
 - [x] Create `src/lib/spacedRepetition.ts`
@@ -45,62 +45,62 @@ Build the Study Center - a dedicated section where users review their flashcards
 - [x] Write unit tests for algorithm edge cases
 
 ### 23.5 Study Session Page
-- [ ] Create `src/pages/StudySessionPage.tsx`
-- [ ] Create `src/components/Flashcards/StudySession.tsx`
-- [ ] Accept optional `packId` param (null = all due cards)
-- [ ] Fetch due cards for session
-- [ ] Shuffle cards at session start
-- [ ] Track session state: current card index, answers given
+- [x] Create `src/pages/StudySessionPage.tsx`
+- [x] Create `src/components/Flashcards/StudySession.tsx`
+- [x] Accept optional `packId` param (null = all due cards)
+- [x] Fetch due cards for session
+- [x] Shuffle cards at session start
+- [x] Track session state: current card index, answers given
 
 ### 23.6 Flashcard Display Component
-- [ ] Enhance existing `FlashcardDeck.tsx` or create `StudyCard.tsx`
-- [ ] Front: Term/title (+ date for milestones)
+- [x] Enhance existing `FlashcardDeck.tsx` or create `StudyCard.tsx`
+- [x] Front: Term/title (+ date for milestones)
 - [ ] Back: Definition/description + "Why it mattered" for milestones
-- [ ] Flip animation (CSS 3D transform, existing pattern)
-- [ ] Show card source indicator (milestone icon vs concept icon)
-- [ ] "View Full Details" link to original milestone/concept page
+- [x] Flip animation (CSS 3D transform, existing pattern)
+- [x] Show card source indicator (milestone icon vs concept icon)
+- [x] "View Full Details" link to original milestone/concept page
 
 ### 23.7 Answer Rating UI
-- [ ] Create rating buttons: "Again", "Hard", "Good", "Easy"
-- [ ] Show only after card is flipped
-- [ ] Color-code buttons (red, orange, green, blue)
-- [ ] Keyboard shortcuts: 1, 2, 3, 4 for ratings
-- [ ] Brief explanation of each rating on hover/long-press
-- [ ] Record answer and advance to next card
+- [x] Create rating buttons: "Again", "Hard", "Good", "Easy"
+- [x] Show only after card is flipped
+- [x] Color-code buttons (red, orange, green, blue)
+- [x] Keyboard shortcuts: 1, 2, 3, 4 for ratings
+- [x] Brief explanation of each rating on hover/long-press
+- [x] Record answer and advance to next card
 
 ### 23.8 Session Progress Indicator
-- [ ] Show "Card X of Y" progress
-- [ ] Progress bar visualization
-- [ ] Count of cards remaining
-- [ ] Count of "Again" cards (will repeat at end)
+- [x] Show "Card X of Y" progress
+- [x] Progress bar visualization
+- [x] Count of cards remaining
+- [x] Count of "Again" cards (will repeat at end)
 - [ ] Estimated time remaining (avg 10s per card)
 
 ### 23.9 Session Completion Screen
-- [ ] Show when all cards reviewed (including repeats)
-- [ ] Display session stats: total reviewed, correct rate
-- [ ] Show streak update ("5 day streak! 🔥")
-- [ ] "Review Weak Cards" button if any marked "Again"
-- [ ] "Back to Study Center" button
-- [ ] Encouraging message based on performance
+- [x] Show when all cards reviewed (including repeats)
+- [x] Display session stats: total reviewed, correct rate
+- [x] Show streak update ("5 day streak! 🔥")
+- [x] "Review Weak Cards" button if any marked "Again"
+- [x] "Back to Study Center" button
+- [x] Encouraging message based on performance
 - [ ] Save session to history
 
 ### 23.10 Pack Management Page
-- [ ] Create `src/pages/PackDetailPage.tsx`
-- [ ] Create `src/components/Flashcards/PackManager.tsx`
-- [ ] List all cards in pack with preview
-- [ ] Remove card from pack (swipe or button)
+- [x] Create `src/pages/PackDetailPage.tsx`
+- [x] Create `src/components/Flashcards/PackManager.tsx`
+- [x] List all cards in pack with preview
+- [x] Remove card from pack (swipe or button)
 - [ ] Edit pack name and color
-- [ ] Delete pack (with confirmation, moves cards to "All Cards")
-- [ ] "Study This Pack" action button
+- [x] Delete pack (with confirmation, moves cards to "All Cards")
+- [x] "Study This Pack" action button
 - [ ] Sort options: Date added, Next review, Alphabetical
 
 ### 23.11 Create Pack Modal
-- [ ] Create `src/components/Flashcards/CreatePackModal.tsx`
-- [ ] Name input with validation (1-50 chars, unique)
-- [ ] Optional description textarea
-- [ ] Color picker (8 preset colors)
-- [ ] Create button disabled until valid name entered
-- [ ] Success feedback and redirect to pack or close
+- [x] Create `src/components/Flashcards/CreatePackModal.tsx`
+- [x] Name input with validation (1-50 chars, unique)
+- [x] Optional description textarea
+- [x] Color picker (8 preset colors)
+- [x] Create button disabled until valid name entered
+- [x] Success feedback and redirect to pack or close
 
 ---
 
@@ -376,7 +376,7 @@ src/
 - [ ] Streak tracking works correctly
 - [ ] Can view and manage cards in packs
 - [ ] Can delete cards from packs
-- [ ] Can edit and delete custom packs
+- [x] Can edit and delete custom packs
 - [ ] Keyboard shortcuts work
 - [ ] Mobile-friendly (touch to flip, tap ratings)
 

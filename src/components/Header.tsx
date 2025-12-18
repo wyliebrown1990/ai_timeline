@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
+import { useFlashcardContext } from '../contexts/FlashcardContext';
 
 /**
  * Navigation link configuration
@@ -13,6 +14,7 @@ const navLinks = [
   { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
   { to: '/news', label: 'News', icon: Newspaper, exact: true },
   { to: '/learn', label: 'Learn', icon: BookOpen, exact: false },
+  { to: '/study', label: 'Study', icon: GraduationCap, exact: false },
   { to: '/glossary', label: 'Glossary', icon: FileText, exact: true },
 ] as const;
 
@@ -24,6 +26,7 @@ const navLinks = [
 function Header() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { dueToday } = useFlashcardContext();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -53,11 +56,13 @@ function Header() {
                   const isActive = exact
                     ? location.pathname === to
                     : location.pathname.startsWith(to);
+                  // Show badge for Study link when there are cards due
+                  const showBadge = to === '/study' && dueToday > 0;
                   return (
                     <li key={to}>
                       <Link
                         to={to}
-                        className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                           isActive
                             ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
@@ -66,6 +71,15 @@ function Header() {
                       >
                         <Icon className="h-4 w-4" />
                         <span>{label}</span>
+                        {/* Due cards badge */}
+                        {showBadge && (
+                          <span
+                            className="ml-1 inline-flex items-center justify-center rounded-full bg-orange-500 px-1.5 py-0.5 text-xs font-bold text-white"
+                            aria-label={`${dueToday} cards due for review`}
+                          >
+                            {dueToday > 99 ? '99+' : dueToday}
+                          </span>
+                        )}
                       </Link>
                     </li>
                   );
@@ -139,6 +153,8 @@ function Header() {
                 const isActive = exact
                   ? location.pathname === to
                   : location.pathname.startsWith(to);
+                // Show badge for Study link when there are cards due
+                const showBadge = to === '/study' && dueToday > 0;
                 return (
                   <li key={to}>
                     <Link
@@ -153,6 +169,15 @@ function Header() {
                     >
                       <Icon className="h-5 w-5" />
                       <span>{label}</span>
+                      {/* Due cards badge */}
+                      {showBadge && (
+                        <span
+                          className="ml-auto inline-flex items-center justify-center rounded-full bg-orange-500 px-2 py-0.5 text-xs font-bold text-white"
+                          aria-label={`${dueToday} cards due for review`}
+                        >
+                          {dueToday > 99 ? '99+' : dueToday}
+                        </span>
+                      )}
                     </Link>
                   </li>
                 );
