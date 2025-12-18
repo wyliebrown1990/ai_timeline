@@ -8,18 +8,16 @@
  * - Upcoming review forecast
  * - Card performance insights
  * - Category breakdown
+ *
+ * Performance: Heavy chart components are lazy loaded to reduce initial bundle size.
  */
 
+import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Loader2 } from 'lucide-react';
 import { useFlashcardContext } from '../contexts/FlashcardContext';
 import {
   StatsOverview,
-  ReviewActivityChart,
-  RetentionChart,
-  ReviewForecast,
-  CardInsights,
-  CategoryBreakdown,
   StreakDisplay,
   DataManagement,
 } from '../components/Flashcards';
@@ -29,6 +27,45 @@ import {
   getRollingRetentionRates,
   getReviewForecast,
 } from '../lib/flashcardStats';
+
+// Lazy load chart components for better initial page load
+const ReviewActivityChart = lazy(() =>
+  import('../components/Flashcards/ReviewActivityChart').then((m) => ({
+    default: m.ReviewActivityChart,
+  }))
+);
+const RetentionChart = lazy(() =>
+  import('../components/Flashcards/RetentionChart').then((m) => ({
+    default: m.RetentionChart,
+  }))
+);
+const ReviewForecast = lazy(() =>
+  import('../components/Flashcards/ReviewForecast').then((m) => ({
+    default: m.ReviewForecast,
+  }))
+);
+const CardInsights = lazy(() =>
+  import('../components/Flashcards/CardInsights').then((m) => ({
+    default: m.CardInsights,
+  }))
+);
+const CategoryBreakdown = lazy(() =>
+  import('../components/Flashcards/CategoryBreakdown').then((m) => ({
+    default: m.CategoryBreakdown,
+  }))
+);
+
+// Loading fallback for lazy components
+function ChartSkeleton({ height = 128 }: { height?: number }) {
+  return (
+    <div
+      className="flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700/50"
+      style={{ height }}
+    >
+      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+    </div>
+  );
+}
 
 /**
  * Statistics page for flashcard study progress.
@@ -119,7 +156,9 @@ function StudyStatsPage() {
                 <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                   Last 30 days
                 </p>
-                <ReviewActivityChart data={reviewActivity} days={30} height={128} />
+                <Suspense fallback={<ChartSkeleton height={128} />}>
+                  <ReviewActivityChart data={reviewActivity} days={30} height={128} />
+                </Suspense>
               </div>
 
               {/* Retention Trend Chart */}
@@ -130,7 +169,9 @@ function StudyStatsPage() {
                 <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                   7-day rolling average
                 </p>
-                <RetentionChart data={retentionTrend} days={30} height={128} />
+                <Suspense fallback={<ChartSkeleton height={128} />}>
+                  <RetentionChart data={retentionTrend} days={30} height={128} />
+                </Suspense>
               </div>
             </section>
 
@@ -143,7 +184,9 @@ function StudyStatsPage() {
                 <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                   Upcoming Reviews
                 </h3>
-                <ReviewForecast data={forecast} days={7} />
+                <Suspense fallback={<ChartSkeleton height={96} />}>
+                  <ReviewForecast data={forecast} days={7} />
+                </Suspense>
               </div>
 
               {/* Card Insights */}
@@ -151,7 +194,9 @@ function StudyStatsPage() {
                 <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                   Card Insights
                 </h3>
-                <CardInsights cards={cards} limit={3} />
+                <Suspense fallback={<ChartSkeleton height={96} />}>
+                  <CardInsights cards={cards} limit={3} />
+                </Suspense>
               </div>
             </section>
 
@@ -162,7 +207,9 @@ function StudyStatsPage() {
                 <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
                   Category Breakdown
                 </h3>
-                <CategoryBreakdown cards={cards} />
+                <Suspense fallback={<ChartSkeleton height={120} />}>
+                  <CategoryBreakdown cards={cards} />
+                </Suspense>
               </div>
             </section>
 

@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Trophy, Clock, BookOpen, Share2, ArrowRight, RotateCcw, Check, Copy } from 'lucide-react';
+import { Trophy, Clock, BookOpen, Share2, ArrowRight, RotateCcw, Check, Copy, Bookmark } from 'lucide-react';
 import type { LearningPath } from '../../types/learningPath';
 import { useLearningPath } from '../../hooks/useContent';
+import { PathFlashcardsModal } from './PathFlashcardsModal';
 
 interface PathCompletionSummaryProps {
   /** The completed learning path */
@@ -76,6 +77,7 @@ export function PathCompletionSummary({
   const [confetti, setConfetti] = useState<ConfettiParticle[]>([]);
   const [showConfetti, setShowConfetti] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [showFlashcardsModal, setShowFlashcardsModal] = useState(false);
 
   // Generate confetti on mount
   useEffect(() => {
@@ -239,6 +241,16 @@ export function PathCompletionSummary({
 
       {/* Actions */}
       <div className="p-6 space-y-3">
+        {/* Create Flashcards suggestion - non-intrusive per user feedback */}
+        <button
+          onClick={() => setShowFlashcardsModal(true)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors"
+          data-testid="create-flashcards-from-path-button"
+        >
+          <Bookmark className="w-5 h-5" />
+          Create Flashcards from This Path
+        </button>
+
         <button
           onClick={handleShare}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
@@ -280,6 +292,14 @@ export function PathCompletionSummary({
           )}
         </div>
       </div>
+
+      {/* Flashcards Modal */}
+      {showFlashcardsModal && (
+        <PathFlashcardsModal
+          path={path}
+          onClose={() => setShowFlashcardsModal(false)}
+        />
+      )}
 
       {/* CSS for confetti animation */}
       <style>{`

@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { useFlashcardStore } from '../../../src/hooks/useFlashcardStore';
 import { FLASHCARD_STORAGE_KEYS } from '../../../src/types/flashcard';
+import { flushPendingWrites, resetStorageCheck } from '../../../src/lib/storage';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -46,6 +47,7 @@ Object.defineProperty(window, 'crypto', {
 describe('useFlashcardStore', () => {
   beforeEach(() => {
     localStorageMock.clear();
+    resetStorageCheck(); // Reset storage availability check between tests
     // Provide enough UUIDs for multiple operations
     resetMockUUIDs([
       'pack-all-cards-uuid',
@@ -182,6 +184,9 @@ describe('useFlashcardStore', () => {
       act(() => {
         result.current.addCard('milestone', 'E2017_TRANSFORMER');
       });
+
+      // Flush debounced writes before checking localStorage
+      flushPendingWrites();
 
       const stored = JSON.parse(localStorageMock.getItem(FLASHCARD_STORAGE_KEYS.CARDS) || '{}');
       expect(stored.cards).toHaveLength(1);
@@ -654,6 +659,9 @@ describe('useFlashcardStore', () => {
         result.current.addCard('milestone', 'E2017_TRANSFORMER');
       });
 
+      // Flush debounced writes before checking localStorage
+      flushPendingWrites();
+
       // Verify localStorage was updated
       const stored = JSON.parse(localStorageMock.getItem(FLASHCARD_STORAGE_KEYS.CARDS) || '{}');
       expect(stored.cards).toHaveLength(1);
@@ -668,6 +676,9 @@ describe('useFlashcardStore', () => {
         result.current.createPack('Test Pack', 'Description', '#FF0000');
       });
 
+      // Flush debounced writes before checking localStorage
+      flushPendingWrites();
+
       const stored = JSON.parse(localStorageMock.getItem(FLASHCARD_STORAGE_KEYS.PACKS) || '{}');
       expect(stored.packs).toHaveLength(3); // 2 default + 1 custom
       expect(stored.packs.find((p: { name: string }) => p.name === 'Test Pack')).toBeDefined();
@@ -679,6 +690,9 @@ describe('useFlashcardStore', () => {
       act(() => {
         result.current.addCard('milestone', 'E2017_TRANSFORMER');
       });
+
+      // Flush debounced writes before checking localStorage
+      flushPendingWrites();
 
       const stored = JSON.parse(localStorageMock.getItem(FLASHCARD_STORAGE_KEYS.STATS) || '{}');
       expect(stored.totalCards).toBe(1);
@@ -696,6 +710,9 @@ describe('useFlashcardStore', () => {
       act(() => {
         result.current.addCard('concept', 'C_ATTENTION');
       });
+
+      // Flush debounced writes before checking localStorage
+      flushPendingWrites();
 
       // Both should be persisted in localStorage
       const stored = JSON.parse(localStorageMock.getItem(FLASHCARD_STORAGE_KEYS.CARDS) || '{}');

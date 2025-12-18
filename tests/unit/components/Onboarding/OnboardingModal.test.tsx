@@ -429,6 +429,33 @@ describe('OnboardingModal', () => {
       expect(mockOnComplete).toHaveBeenCalled();
       expect(mockOnExploreAll).toHaveBeenCalled();
     });
+
+    it('should show flashcard tip on results screen', () => {
+      goToResults();
+
+      expect(screen.getByTestId('flashcard-tip')).toBeInTheDocument();
+    });
+
+    it('should display flashcard tip with study tip heading', () => {
+      goToResults();
+
+      expect(screen.getByText('Study Tip')).toBeInTheDocument();
+    });
+
+    it('should display flashcard tip text about adding milestones to flashcards', () => {
+      goToResults();
+
+      expect(
+        screen.getByText(/you can add any milestone or concept to flashcards/i)
+      ).toBeInTheDocument();
+    });
+
+    it('should mention the bookmark icon in flashcard tip', () => {
+      goToResults();
+
+      expect(screen.getByText(/look for the/i)).toBeInTheDocument();
+      expect(screen.getByText(/icon as you explore/i)).toBeInTheDocument();
+    });
   });
 
   // ==========================================================================

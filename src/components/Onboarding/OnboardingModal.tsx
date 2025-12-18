@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { X, ChevronRight, ChevronLeft, Sparkles, Clock, Check } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Sparkles, Clock, Check, Bookmark } from 'lucide-react';
 import type {
   UserRole,
   LearningGoal,
@@ -601,6 +601,23 @@ export function OnboardingModal({
                 >
                   Explore All Paths Instead
                 </button>
+              </div>
+
+              {/* Flashcard Tip - Non-intrusive education about flashcard feature */}
+              <div
+                className="mt-4 flex items-start gap-3 rounded-lg bg-orange-50 dark:bg-orange-900/20 p-3 border border-orange-100 dark:border-orange-800/30"
+                data-testid="flashcard-tip"
+              >
+                <Bookmark className="h-5 w-5 flex-shrink-0 text-orange-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-300">
+                    Study Tip
+                  </p>
+                  <p className="mt-0.5 text-sm text-orange-700 dark:text-orange-400">
+                    You can add any milestone or concept to flashcards for spaced repetition review. Look for the{' '}
+                    <Bookmark className="inline h-4 w-4 align-text-bottom" /> icon as you explore!
+                  </p>
+                </div>
               </div>
             </div>
           )}

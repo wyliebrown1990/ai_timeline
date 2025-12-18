@@ -19,6 +19,13 @@ import {
   createEmptyDailyRecord,
   createInitialStreakHistory,
 } from '../types/flashcard';
+import {
+  safeGetJSON,
+  safeSetJSON,
+  notifyStorageError,
+  isStorageAvailable,
+  clearFlashcardStorage,
+} from './storage';
 
 // =============================================================================
 // Constants
@@ -86,48 +93,60 @@ export function getFutureDateString(daysAhead: number): string {
 // =============================================================================
 
 /**
- * Load review history from localStorage
+ * Load review history from localStorage with error handling
  * Returns array of DailyReviewRecord sorted by date (oldest first)
  */
 export function loadReviewHistory(): DailyReviewRecord[] {
-  if (typeof window === 'undefined') return [];
-
-  try {
-    const stored = localStorage.getItem(FLASHCARD_STORAGE_KEYS.HISTORY);
-    if (!stored) return [];
-
-    const data = JSON.parse(stored);
-    if (!Array.isArray(data)) return [];
-
-    // Validate and filter records
-    const validRecords: DailyReviewRecord[] = [];
-    for (const item of data) {
-      const result = safeParseDailyReviewRecord(item);
-      if (result.success) {
-        validRecords.push(result.data);
-      }
-    }
-
-    // Sort by date ascending
-    return validRecords.sort((a, b) => a.date.localeCompare(b.date));
-  } catch (error) {
-    console.error('Failed to load review history:', error);
+  if (typeof window === 'undefined' || !isStorageAvailable()) {
     return [];
   }
+
+  const result = safeGetJSON<unknown[]>(
+    FLASHCARD_STORAGE_KEYS.HISTORY,
+    [],
+    (data) => {
+      if (Array.isArray(data)) {
+        return { success: true, data };
+      }
+      return { success: false, error: 'History data is not an array' };
+    }
+  );
+
+  if (result.error) {
+    notifyStorageError(result.error);
+  }
+
+  if (!Array.isArray(result.data)) {
+    return [];
+  }
+
+  // Validate and filter records
+  const validRecords: DailyReviewRecord[] = [];
+  for (const item of result.data) {
+    const parsed = safeParseDailyReviewRecord(item);
+    if (parsed.success) {
+      validRecords.push(parsed.data);
+    }
+  }
+
+  // Sort by date ascending
+  return validRecords.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**
- * Save review history to localStorage, pruning records older than 90 days
+ * Save review history to localStorage with error handling
+ * Prunes records older than 90 days before saving
  */
 export function saveReviewHistory(history: DailyReviewRecord[]): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    // Prune old records before saving
-    const prunedHistory = pruneOldHistory(history);
-    localStorage.setItem(FLASHCARD_STORAGE_KEYS.HISTORY, JSON.stringify(prunedHistory));
-  } catch (error) {
-    console.error('Failed to save review history:', error);
+  // Prune old records before saving
+  const prunedHistory = pruneOldHistory(history);
+
+  const result = safeSetJSON(FLASHCARD_STORAGE_KEYS.HISTORY, prunedHistory);
+
+  if (result.error) {
+    notifyStorageError(result.error);
   }
 }
 
@@ -515,34 +534,48 @@ export function calculateComputedStats(
 // =============================================================================
 
 /**
- * Load streak history from localStorage
+ * Load streak history from localStorage with error handling
  */
 export function loadStreakHistory(): StreakHistory {
-  if (typeof window === 'undefined') return createInitialStreakHistory();
-
-  try {
-    const stored = localStorage.getItem(FLASHCARD_STORAGE_KEYS.STREAK);
-    if (!stored) return createInitialStreakHistory();
-
-    const data = JSON.parse(stored);
-    const result = safeParseStreakHistory(data);
-    return result.success ? result.data : createInitialStreakHistory();
-  } catch (error) {
-    console.error('Failed to load streak history:', error);
+  if (typeof window === 'undefined' || !isStorageAvailable()) {
     return createInitialStreakHistory();
   }
+
+  const result = safeGetJSON<unknown>(
+    FLASHCARD_STORAGE_KEYS.STREAK,
+    null,
+    (data) => {
+      if (data === null) return { success: true, data: null };
+      const parsed = safeParseStreakHistory(data);
+      if (parsed.success) {
+        return { success: true, data: parsed.data };
+      }
+      return { success: false, error: 'Invalid streak data' };
+    }
+  );
+
+  if (result.error) {
+    notifyStorageError(result.error);
+  }
+
+  if (result.data === null) {
+    return createInitialStreakHistory();
+  }
+
+  const parsed = safeParseStreakHistory(result.data);
+  return parsed.success ? parsed.data : createInitialStreakHistory();
 }
 
 /**
- * Save streak history to localStorage
+ * Save streak history to localStorage with error handling
  */
 export function saveStreakHistory(streakHistory: StreakHistory): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    localStorage.setItem(FLASHCARD_STORAGE_KEYS.STREAK, JSON.stringify(streakHistory));
-  } catch (error) {
-    console.error('Failed to save streak history:', error);
+  const result = safeSetJSON(FLASHCARD_STORAGE_KEYS.STREAK, streakHistory);
+
+  if (result.error) {
+    notifyStorageError(result.error);
   }
 }
 
@@ -862,17 +895,7 @@ export function downloadFlashcardData(): void {
 export function clearAllFlashcardData(): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    localStorage.removeItem(FLASHCARD_STORAGE_KEYS.CARDS);
-    localStorage.removeItem(FLASHCARD_STORAGE_KEYS.PACKS);
-    localStorage.removeItem(FLASHCARD_STORAGE_KEYS.STATS);
-    localStorage.removeItem(FLASHCARD_STORAGE_KEYS.SESSIONS);
-    localStorage.removeItem(FLASHCARD_STORAGE_KEYS.HISTORY);
-    localStorage.removeItem(FLASHCARD_STORAGE_KEYS.STREAK);
-  } catch (error) {
-    console.error('Failed to clear flashcard data:', error);
-    throw error;
-  }
+  clearFlashcardStorage();
 }
 
 /**

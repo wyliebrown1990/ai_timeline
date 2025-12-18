@@ -8,3 +8,5 @@ export { PathCard } from './PathCard';
 export { PathSelector } from './PathSelector';
 export { PathNavigation } from './PathNavigation';
 export { PathCompletionSummary } from './PathCompletionSummary';
+export { PathFlashcardsModal } from './PathFlashcardsModal';
+export type { PathFlashcardsModalProps } from './PathFlashcardsModal';

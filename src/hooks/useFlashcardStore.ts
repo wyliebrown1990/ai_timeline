@@ -36,6 +36,13 @@ import {
   saveStreakHistory,
   updateStreakAfterReview,
 } from '../lib/flashcardStats';
+import {
+  safeGetJSON,
+  safeSetJSON,
+  notifyStorageError,
+  attemptDataRecovery,
+  isStorageAvailable,
+} from '../lib/storage';
 
 // =============================================================================
 // UUID Generation - Use built-in crypto.randomUUID()
@@ -195,112 +202,230 @@ function saveSchemaVersion(): void {
 }
 
 /**
- * Load cards from localStorage with migration support
+ * Load cards from localStorage with migration support and error recovery
  */
 function loadCards(): StoredFlashcardData {
-  if (typeof window === 'undefined') return DEFAULT_CARDS;
+  if (typeof window === 'undefined' || !isStorageAvailable()) {
+    return DEFAULT_CARDS;
+  }
 
+  const storedVersion = getStoredSchemaVersion();
+
+  // First try normal loading with validation
+  const result = safeGetJSON<unknown>(
+    FLASHCARD_STORAGE_KEYS.CARDS,
+    null,
+    (data) => {
+      // Validate the structure
+      if (data === null) return { success: true, data: null };
+      if (typeof data === 'object' && data !== null) {
+        return { success: true, data };
+      }
+      if (Array.isArray(data)) {
+        return { success: true, data };
+      }
+      return { success: false, error: 'Invalid data structure' };
+    }
+  );
+
+  // Notify if there was an error but we got fallback data
+  if (result.error) {
+    notifyStorageError(result.error);
+  }
+
+  if (result.data === null) {
+    return DEFAULT_CARDS;
+  }
+
+  // Try migration
   try {
-    const stored = localStorage.getItem(FLASHCARD_STORAGE_KEYS.CARDS);
-    if (!stored) return DEFAULT_CARDS;
-
-    const data = JSON.parse(stored);
-    const storedVersion = getStoredSchemaVersion();
-
     if (storedVersion < SCHEMA_VERSION) {
-      const migrated = migrateCards(data, storedVersion);
+      const migrated = migrateCards(result.data, storedVersion);
       saveSchemaVersion();
       return migrated;
     }
-
-    return migrateCards(data, storedVersion);
+    return migrateCards(result.data, storedVersion);
   } catch (error) {
-    console.error('Failed to load flashcards:', error);
+    // Migration failed, try recovery
+    console.warn('Migration failed, attempting recovery:', error);
+    const recovery = attemptDataRecovery<unknown[]>(
+      FLASHCARD_STORAGE_KEYS.CARDS,
+      [],
+      (item) => {
+        const parsed = safeParseUserFlashcard(item);
+        return parsed.success;
+      }
+    );
+
+    if (recovery.error) {
+      notifyStorageError(recovery.error);
+    }
+
+    if (Array.isArray(recovery.data) && recovery.data.length > 0) {
+      const validCards: UserFlashcard[] = [];
+      for (const item of recovery.data) {
+        const parsed = safeParseUserFlashcard(item);
+        if (parsed.success) {
+          validCards.push(parsed.data);
+        }
+      }
+      return { cards: validCards, schemaVersion: SCHEMA_VERSION };
+    }
+
     return DEFAULT_CARDS;
   }
 }
 
 /**
- * Save cards to localStorage
+ * Save cards to localStorage with error handling
  */
 function saveCards(data: StoredFlashcardData): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    localStorage.setItem(FLASHCARD_STORAGE_KEYS.CARDS, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save flashcards:', error);
+  const result = safeSetJSON(FLASHCARD_STORAGE_KEYS.CARDS, data);
+
+  if (result.error) {
+    notifyStorageError(result.error);
   }
 }
 
 /**
- * Load packs from localStorage with migration support
+ * Load packs from localStorage with migration support and error recovery
  */
 function loadPacks(): StoredPackData {
-  if (typeof window === 'undefined') return DEFAULT_PACKS_DATA;
+  if (typeof window === 'undefined' || !isStorageAvailable()) {
+    return DEFAULT_PACKS_DATA;
+  }
+
+  const storedVersion = getStoredSchemaVersion();
+
+  const result = safeGetJSON<unknown>(
+    FLASHCARD_STORAGE_KEYS.PACKS,
+    null,
+    (data) => {
+      if (data === null) return { success: true, data: null };
+      if (typeof data === 'object' && data !== null) {
+        return { success: true, data };
+      }
+      if (Array.isArray(data)) {
+        return { success: true, data };
+      }
+      return { success: false, error: 'Invalid data structure' };
+    }
+  );
+
+  if (result.error) {
+    notifyStorageError(result.error);
+  }
+
+  if (result.data === null) {
+    return DEFAULT_PACKS_DATA;
+  }
 
   try {
-    const stored = localStorage.getItem(FLASHCARD_STORAGE_KEYS.PACKS);
-    if (!stored) return DEFAULT_PACKS_DATA;
-
-    const data = JSON.parse(stored);
-    const storedVersion = getStoredSchemaVersion();
-
     if (storedVersion < SCHEMA_VERSION) {
-      const migrated = migratePacks(data, storedVersion);
-      return migrated;
+      return migratePacks(result.data, storedVersion);
+    }
+    return migratePacks(result.data, storedVersion);
+  } catch (error) {
+    console.warn('Pack migration failed, attempting recovery:', error);
+    const recovery = attemptDataRecovery<unknown[]>(
+      FLASHCARD_STORAGE_KEYS.PACKS,
+      [],
+      (item) => {
+        const parsed = safeParseFlashcardPack(item);
+        return parsed.success;
+      }
+    );
+
+    if (recovery.error) {
+      notifyStorageError(recovery.error);
     }
 
-    return migratePacks(data, storedVersion);
-  } catch (error) {
-    console.error('Failed to load flashcard packs:', error);
+    if (Array.isArray(recovery.data) && recovery.data.length > 0) {
+      const validPacks: FlashcardPack[] = [];
+      for (const item of recovery.data) {
+        const parsed = safeParseFlashcardPack(item);
+        if (parsed.success) {
+          validPacks.push(parsed.data);
+        }
+      }
+      return { packs: validPacks, schemaVersion: SCHEMA_VERSION };
+    }
+
     return DEFAULT_PACKS_DATA;
   }
 }
 
 /**
- * Save packs to localStorage
+ * Save packs to localStorage with error handling
  */
 function savePacks(data: StoredPackData): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    localStorage.setItem(FLASHCARD_STORAGE_KEYS.PACKS, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save flashcard packs:', error);
+  const result = safeSetJSON(FLASHCARD_STORAGE_KEYS.PACKS, data);
+
+  if (result.error) {
+    notifyStorageError(result.error);
   }
 }
 
 /**
- * Load stats from localStorage
+ * Load stats from localStorage with error handling
  */
 function loadStats(): FlashcardStats {
-  if (typeof window === 'undefined') return createInitialStats();
-
-  try {
-    const stored = localStorage.getItem(FLASHCARD_STORAGE_KEYS.STATS);
-    if (!stored) return createInitialStats();
-
-    const data = JSON.parse(stored);
-    const result = safeParseFlashcardStats(data);
-    return result.success ? result.data : createInitialStats();
-  } catch (error) {
-    console.error('Failed to load flashcard stats:', error);
+  if (typeof window === 'undefined' || !isStorageAvailable()) {
     return createInitialStats();
   }
+
+  const result = safeGetJSON<unknown>(
+    FLASHCARD_STORAGE_KEYS.STATS,
+    null,
+    (data) => {
+      if (data === null) return { success: true, data: null };
+      const parsed = safeParseFlashcardStats(data);
+      if (parsed.success) {
+        return { success: true, data: parsed.data };
+      }
+      return { success: false, error: 'Invalid stats data' };
+    }
+  );
+
+  if (result.error) {
+    notifyStorageError(result.error);
+  }
+
+  if (result.data === null) {
+    return createInitialStats();
+  }
+
+  // Type narrowing: at this point result.data is FlashcardStats
+  const parsed = safeParseFlashcardStats(result.data);
+  return parsed.success ? parsed.data : createInitialStats();
 }
 
 /**
- * Save stats to localStorage
+ * Save stats to localStorage with error handling
  */
 function saveStats(stats: FlashcardStats): void {
   if (typeof window === 'undefined') return;
 
-  try {
-    localStorage.setItem(FLASHCARD_STORAGE_KEYS.STATS, JSON.stringify(stats));
-  } catch (error) {
-    console.error('Failed to save flashcard stats:', error);
+  const result = safeSetJSON(FLASHCARD_STORAGE_KEYS.STATS, stats);
+
+  if (result.error) {
+    notifyStorageError(result.error);
   }
+}
+
+// =============================================================================
+// Last Review State (for undo functionality)
+// =============================================================================
+
+interface LastReviewState {
+  cardId: string;
+  previousCard: UserFlashcard;
+  previousStats: FlashcardStats;
+  timestamp: number;
 }
 
 // =============================================================================
@@ -332,6 +457,7 @@ export interface UseFlashcardStoreReturn {
 
   // Review Operations
   recordReview: (cardId: string, quality: QualityRating) => void;
+  undoLastReview: (cardId: string) => boolean;
 
   // History Operations
   addStudyTime: (minutes: number) => void;
@@ -343,6 +469,7 @@ export interface UseFlashcardStoreReturn {
   moveCardToPack: (cardId: string, packId: string) => void;
   removeCardFromPack: (cardId: string, packId: string) => void;
   getDefaultPack: () => FlashcardPack | undefined;
+  reorderPacks: (packIds: string[]) => void;
 
   // Utility
   isCardSaved: (sourceType: UserFlashcard['sourceType'], sourceId: string) => boolean;
@@ -381,6 +508,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
   const [stats, setStats] = useState<FlashcardStats>(createInitialStats());
   const [reviewHistory, setReviewHistory] = useState<DailyReviewRecord[]>([]);
   const [streakHistory, setStreakHistory] = useState<StreakHistory>(createInitialStreakHistory());
+  const [lastReviewState, setLastReviewState] = useState<LastReviewState | null>(null);
 
   // Initialize default packs if needed
   const initializeDefaultPacks = useCallback((currentPacks: FlashcardPack[]): FlashcardPack[] => {
@@ -585,6 +713,14 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       const card = cardsData.cards[cardIndex];
       if (!card) return; // Additional safety check for TypeScript
 
+      // Store previous state for undo functionality
+      setLastReviewState({
+        cardId,
+        previousCard: { ...card },
+        previousStats: { ...stats },
+        timestamp: Date.now(),
+      });
+
       const { easeFactor, interval, repetitions } = calculateNextReview(
         quality,
         card.easeFactor,
@@ -632,6 +768,37 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       updateStats(newStats);
     },
     [cardsData.cards, stats, reviewHistory, streakHistory, updateCards, updateStats, updateHistory, updateStreak]
+  );
+
+  /**
+   * Undo the last review for a specific card.
+   * Only works if the card ID matches the last reviewed card.
+   * Returns true if undo was successful, false otherwise.
+   */
+  const undoLastReview = useCallback(
+    (cardId: string): boolean => {
+      // Check if we have a valid last review state for this card
+      if (!lastReviewState || lastReviewState.cardId !== cardId) {
+        return false;
+      }
+
+      const cardIndex = cardsData.cards.findIndex((c) => c.id === cardId);
+      if (cardIndex === -1) return false;
+
+      // Restore the previous card state
+      const newCards = [...cardsData.cards];
+      newCards[cardIndex] = lastReviewState.previousCard;
+      updateCards(newCards);
+
+      // Restore previous stats (decrement review count)
+      updateStats(lastReviewState.previousStats);
+
+      // Clear the last review state so we can't undo twice
+      setLastReviewState(null);
+
+      return true;
+    },
+    [cardsData.cards, lastReviewState, updateCards, updateStats]
   );
 
   // ==========================================================================
@@ -761,6 +928,34 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
     return packsData.packs.find((p) => p.name === 'All Cards' && p.isDefault);
   }, [packsData.packs]);
 
+  /**
+   * Reorder packs by providing an array of pack IDs in the desired order.
+   * Any packs not in the array will be appended at the end.
+   */
+  const reorderPacks = useCallback(
+    (packIds: string[]) => {
+      const packMap = new Map(packsData.packs.map((p) => [p.id, p]));
+      const reordered: FlashcardPack[] = [];
+
+      // Add packs in the specified order
+      for (const id of packIds) {
+        const pack = packMap.get(id);
+        if (pack) {
+          reordered.push(pack);
+          packMap.delete(id);
+        }
+      }
+
+      // Append any remaining packs not in the order list
+      for (const pack of packMap.values()) {
+        reordered.push(pack);
+      }
+
+      updatePacks(reordered);
+    },
+    [packsData.packs, updatePacks]
+  );
+
   // ==========================================================================
   // Utility
   // ==========================================================================
@@ -820,6 +1015,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
 
       // Review Operations
       recordReview,
+      undoLastReview,
 
       // History Operations
       addStudyTime,
@@ -831,6 +1027,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       moveCardToPack,
       removeCardFromPack,
       getDefaultPack,
+      reorderPacks,
 
       // Utility
       isCardSaved,
@@ -849,6 +1046,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       getDueCards,
       getCardsByPack,
       recordReview,
+      undoLastReview,
       addStudyTime,
       createPack,
       deletePack,
@@ -856,6 +1054,7 @@ export function useFlashcardStore(): UseFlashcardStoreReturn {
       moveCardToPack,
       removeCardFromPack,
       getDefaultPack,
+      reorderPacks,
       isCardSaved,
       resetAll,
     ]
