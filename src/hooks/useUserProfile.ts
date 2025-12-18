@@ -61,7 +61,7 @@ export function getRoleDefaultExplanationLevel(role: UserRole): ExplanationLevel
       return 'business';
     case 'developer':
       return 'technical';
-    case 'retiree':
+    case 'everyday_user':
     case 'culture_enthusiast':
     case 'student':
     case 'curious':

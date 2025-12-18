@@ -22,7 +22,7 @@ export const UserRoleSchema = z.enum([
   'operations_hr',      // Operations/HR - process and people focus
   'developer',          // Technical roles - implementation focus
   'student',            // Academic - learning focus
-  'retiree',            // Retiree/65+ - plain English, practical focus
+  'everyday_user',      // Everyday person - plain English, practical focus
   'culture_enthusiast', // Interested in AI drama, headlines, cultural impact
   'curious',            // General interest - exploratory focus
 ]);
@@ -173,7 +173,7 @@ export function safeParseCreateUserProfile(data: unknown) {
  * All user roles with human-readable labels
  */
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  retiree: 'Retiree / Everyday Person',
+  everyday_user: 'Everyday User',
   culture_enthusiast: 'Culture & Headlines Fan',
   executive: 'Executive / Business Leader',
   product_manager: 'Product Manager',
@@ -265,7 +265,7 @@ export const AUDIENCE_TYPE_OPTIONS: Record<AudienceType, {
  * All user roles as a readonly array
  */
 export const USER_ROLES = [
-  'retiree',
+  'everyday_user',
   'culture_enthusiast',
   'executive',
   'product_manager',

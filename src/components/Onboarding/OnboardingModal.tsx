@@ -148,7 +148,7 @@ export function OnboardingModal({
       // If moving to results, generate the plan first
       if (nextStep === 'results') {
         // Use defaults for everyday users who skip role/goals
-        const role = selectedRole || (selectedAudience === 'everyday' ? 'retiree' : 'curious');
+        const role = selectedRole || (selectedAudience === 'everyday' ? 'everyday_user' : 'curious');
         const goals = selectedGoals.length > 0 ? selectedGoals :
           selectedAudience === 'everyday' ? ['stay_informed'] :
           selectedAudience === 'leader' ? ['evaluate_tools'] :
@@ -188,7 +188,7 @@ export function OnboardingModal({
     if (!selectedAudience) return;
 
     // For everyday users, use sensible defaults if they didn't go through all steps
-    const role = selectedRole || (selectedAudience === 'everyday' ? 'retiree' : 'curious');
+    const role = selectedRole || (selectedAudience === 'everyday' ? 'everyday_user' : 'curious');
     const goals = selectedGoals.length > 0 ? selectedGoals :
       selectedAudience === 'everyday' ? ['stay_informed'] as LearningGoal[] :
       selectedAudience === 'leader' ? ['evaluate_tools'] as LearningGoal[] :

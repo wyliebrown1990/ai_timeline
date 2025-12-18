@@ -46,7 +46,7 @@ export interface PersonalizedPlan {
  * Ordered by relevance (most relevant first)
  */
 const rolePathMapping: Record<UserRole, string[]> = {
-  retiree: ['ai-for-everyday-life', 'chatgpt-story', 'pop-culture'],
+  everyday_user: ['ai-for-everyday-life', 'chatgpt-story', 'pop-culture'],
   culture_enthusiast: ['pop-culture', 'chatgpt-story', 'ai-governance'],
   executive: ['ai-for-leaders', 'ai-for-business', 'ai-governance'],
   product_manager: ['chatgpt-story', 'ai-for-business', 'ai-image-generation'],
