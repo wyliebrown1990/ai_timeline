@@ -156,3 +156,30 @@ GET    /api/eras                # Get era definitions for timeline bands
 - Validate and sanitize all inputs
 - Use HTTPS everywhere (CloudFront handles this)
 - Enable CloudTrail for audit logging
+
+## Monitoring (CloudWatch)
+
+**Dashboard:** `AI-Timeline-API-Monitoring`
+```
+https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=AI-Timeline-API-Monitoring
+```
+
+**Log Group:** `/aws/lambda/ai-timeline-api-prod`
+
+**Logs Insights Queries:**
+```sql
+# Chat API requests
+fields @timestamp, method, path, statusCode, durationMs, sessionId
+| filter apiType = 'chat'
+| sort @timestamp desc
+
+# Errors
+fields @timestamp, method, path, statusCode, error
+| filter level = 'ERROR' or level = 'WARN'
+| sort @timestamp desc
+
+# Request count by API type
+stats count(*) by apiType
+```
+
+**Alarm:** `AI-Timeline-API-Errors` - Triggers when errors > 5 in 5 minutes
