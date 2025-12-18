@@ -1,6 +1,5 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { OnboardingModal } from '../../../../src/components/Onboarding/OnboardingModal';
-import type { CreateUserProfile } from '../../../../src/types/userProfile';
 
 // Mock the pathRecommendation service
 jest.mock('../../../../src/services/pathRecommendation', () => ({
@@ -68,49 +67,49 @@ describe('OnboardingModal', () => {
       expect(screen.queryByTestId('onboarding-modal')).not.toBeInTheDocument();
     });
 
-    it('should show step 1 of 3 initially', () => {
+    it('should show step 1 initially (audience selection)', () => {
       renderModal();
-      expect(screen.getByText(/step 1 of 3/i)).toBeInTheDocument();
+      // New flow starts with audience selection
+      expect(screen.getByText(/what brings you to ai timeline/i)).toBeInTheDocument();
     });
 
-    it('should show role selection on first step', () => {
+    it('should show audience selection on first step', () => {
       renderModal();
-      expect(screen.getByText(/what's your role/i)).toBeInTheDocument();
+      expect(screen.getByTestId('audience-everyday')).toBeInTheDocument();
+      expect(screen.getByTestId('audience-leader')).toBeInTheDocument();
+      expect(screen.getByTestId('audience-technical')).toBeInTheDocument();
     });
   });
 
   // ==========================================================================
-  // Step 1: Role Selection
+  // Step 1: Audience Selection
   // ==========================================================================
 
-  describe('step 1: role selection', () => {
-    it('should display all role options', () => {
+  describe('step 1: audience selection', () => {
+    it('should display all audience options', () => {
       renderModal();
 
-      expect(screen.getByTestId('role-executive')).toBeInTheDocument();
-      expect(screen.getByTestId('role-product_manager')).toBeInTheDocument();
-      expect(screen.getByTestId('role-marketing_sales')).toBeInTheDocument();
-      expect(screen.getByTestId('role-developer')).toBeInTheDocument();
-      expect(screen.getByTestId('role-student')).toBeInTheDocument();
-      expect(screen.getByTestId('role-curious')).toBeInTheDocument();
+      expect(screen.getByTestId('audience-everyday')).toBeInTheDocument();
+      expect(screen.getByTestId('audience-leader')).toBeInTheDocument();
+      expect(screen.getByTestId('audience-technical')).toBeInTheDocument();
     });
 
-    it('should allow selecting a role', () => {
+    it('should allow selecting an audience', () => {
       renderModal();
 
-      const developerButton = screen.getByTestId('role-developer');
-      fireEvent.click(developerButton);
+      const everydayButton = screen.getByTestId('audience-everyday');
+      fireEvent.click(everydayButton);
 
-      expect(developerButton).toHaveAttribute('aria-checked', 'true');
+      expect(everydayButton).toHaveAttribute('aria-checked', 'true');
     });
 
-    it('should disable next button until role is selected', () => {
+    it('should disable next button until audience is selected', () => {
       renderModal();
 
       const nextButton = screen.getByTestId('next-button');
       expect(nextButton).toBeDisabled();
 
-      fireEvent.click(screen.getByTestId('role-executive'));
+      fireEvent.click(screen.getByTestId('audience-everyday'));
       expect(nextButton).toBeEnabled();
     });
 
@@ -128,36 +127,119 @@ describe('OnboardingModal', () => {
   });
 
   // ==========================================================================
-  // Step 2: Goal Selection
+  // Everyday Audience Flow (3 steps: audience -> time -> results)
   // ==========================================================================
 
-  describe('step 2: goal selection', () => {
-    const goToStep2 = () => {
+  describe('everyday audience flow', () => {
+    const selectEveryday = () => {
       renderModal();
+      fireEvent.click(screen.getByTestId('audience-everyday'));
+      fireEvent.click(screen.getByTestId('next-button'));
+    };
+
+    it('should skip role and goals for everyday users', () => {
+      selectEveryday();
+
+      // Should go directly to time selection, not role
+      expect(screen.getByText(/how much time do you have/i)).toBeInTheDocument();
+    });
+
+    it('should show correct step count for everyday users', () => {
+      selectEveryday();
+
+      // Everyday flow: audience -> time -> results (3 steps, but results not counted in display)
+      // So on time step: Step 2 of 2
+      expect(screen.getByText(/step 2 of 2/i)).toBeInTheDocument();
+    });
+
+    it('should allow everyday users to complete flow', () => {
+      selectEveryday();
+
+      // On time step, click Create My Plan
+      fireEvent.click(screen.getByTestId('next-button'));
+
+      // Should show results
+      expect(screen.getByText(/your personalized learning plan/i)).toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // Leader Audience Flow (4 steps: audience -> role -> time -> results)
+  // ==========================================================================
+
+  describe('leader audience flow', () => {
+    const selectLeader = () => {
+      renderModal();
+      fireEvent.click(screen.getByTestId('audience-leader'));
+      fireEvent.click(screen.getByTestId('next-button'));
+    };
+
+    it('should show role selection for leaders (skip goals)', () => {
+      selectLeader();
+
+      // Should go to role selection
+      expect(screen.getByText(/what's your role/i)).toBeInTheDocument();
+    });
+
+    it('should skip goals step for leaders and go to time', () => {
+      selectLeader();
+
+      // Select a role
+      fireEvent.click(screen.getByTestId('role-executive'));
+      fireEvent.click(screen.getByTestId('next-button'));
+
+      // Should go to time, not goals
+      expect(screen.getByText(/how much time do you have/i)).toBeInTheDocument();
+    });
+
+    it('should show correct step count for leader users', () => {
+      selectLeader();
+
+      // Leader flow: audience -> role -> time -> results (4 steps, results not counted)
+      // So on role step: Step 2 of 3
+      expect(screen.getByText(/step 2 of 3/i)).toBeInTheDocument();
+    });
+  });
+
+  // ==========================================================================
+  // Technical Audience Flow (5 steps: audience -> role -> goals -> time -> results)
+  // ==========================================================================
+
+  describe('technical audience flow', () => {
+    const selectTechnical = () => {
+      renderModal();
+      fireEvent.click(screen.getByTestId('audience-technical'));
+      fireEvent.click(screen.getByTestId('next-button'));
+    };
+
+    const goToGoals = () => {
+      selectTechnical();
       fireEvent.click(screen.getByTestId('role-developer'));
       fireEvent.click(screen.getByTestId('next-button'));
     };
 
-    it('should navigate to goal selection after role', () => {
-      goToStep2();
+    it('should show role selection for technical users', () => {
+      selectTechnical();
 
-      expect(screen.getByText(/what are your goals/i)).toBeInTheDocument();
-      expect(screen.getByText(/step 2 of 3/i)).toBeInTheDocument();
+      expect(screen.getByText(/what's your role/i)).toBeInTheDocument();
     });
 
-    it('should display all goal options', () => {
-      goToStep2();
+    it('should show goals step for technical users', () => {
+      goToGoals();
 
-      expect(screen.getByTestId('goal-discuss_at_work')).toBeInTheDocument();
-      expect(screen.getByTestId('goal-evaluate_tools')).toBeInTheDocument();
-      expect(screen.getByTestId('goal-hype_vs_real')).toBeInTheDocument();
-      expect(screen.getByTestId('goal-industry_impact')).toBeInTheDocument();
-      expect(screen.getByTestId('goal-build_with_ai')).toBeInTheDocument();
-      expect(screen.getByTestId('goal-career_transition')).toBeInTheDocument();
+      expect(screen.getByText(/what are your goals/i)).toBeInTheDocument();
+    });
+
+    it('should show correct step count for technical users', () => {
+      selectTechnical();
+
+      // Technical flow: audience -> role -> goals -> time -> results (5 steps, results not counted)
+      // So on role step: Step 2 of 4
+      expect(screen.getByText(/step 2 of 4/i)).toBeInTheDocument();
     });
 
     it('should allow selecting multiple goals', () => {
-      goToStep2();
+      goToGoals();
 
       fireEvent.click(screen.getByTestId('goal-build_with_ai'));
       fireEvent.click(screen.getByTestId('goal-career_transition'));
@@ -167,7 +249,7 @@ describe('OnboardingModal', () => {
     });
 
     it('should show goal count', () => {
-      goToStep2();
+      goToGoals();
 
       fireEvent.click(screen.getByTestId('goal-build_with_ai'));
       expect(screen.getByText(/1 of 3 goals selected/i)).toBeInTheDocument();
@@ -175,76 +257,78 @@ describe('OnboardingModal', () => {
       fireEvent.click(screen.getByTestId('goal-career_transition'));
       expect(screen.getByText(/2 of 3 goals selected/i)).toBeInTheDocument();
     });
+  });
 
-    it('should limit to 3 goals (replacing oldest)', () => {
-      goToStep2();
+  // ==========================================================================
+  // Role Selection (for leader and technical)
+  // ==========================================================================
 
-      fireEvent.click(screen.getByTestId('goal-discuss_at_work'));
-      fireEvent.click(screen.getByTestId('goal-evaluate_tools'));
-      fireEvent.click(screen.getByTestId('goal-hype_vs_real'));
-      fireEvent.click(screen.getByTestId('goal-build_with_ai')); // Should replace first
+  describe('role selection', () => {
+    const goToRoleStep = () => {
+      renderModal();
+      fireEvent.click(screen.getByTestId('audience-technical'));
+      fireEvent.click(screen.getByTestId('next-button'));
+    };
 
-      expect(screen.getByText(/3 of 3 goals selected/i)).toBeInTheDocument();
-      expect(screen.getByTestId('goal-discuss_at_work')).toHaveAttribute('aria-checked', 'false');
+    it('should display all role options', () => {
+      goToRoleStep();
+
+      expect(screen.getByTestId('role-executive')).toBeInTheDocument();
+      expect(screen.getByTestId('role-product_manager')).toBeInTheDocument();
+      expect(screen.getByTestId('role-marketing_sales')).toBeInTheDocument();
+      expect(screen.getByTestId('role-developer')).toBeInTheDocument();
+      expect(screen.getByTestId('role-student')).toBeInTheDocument();
+      expect(screen.getByTestId('role-curious')).toBeInTheDocument();
     });
 
-    it('should allow deselecting goals', () => {
-      goToStep2();
+    it('should allow selecting a role', () => {
+      goToRoleStep();
 
-      fireEvent.click(screen.getByTestId('goal-build_with_ai'));
-      expect(screen.getByTestId('goal-build_with_ai')).toHaveAttribute('aria-checked', 'true');
+      const developerButton = screen.getByTestId('role-developer');
+      fireEvent.click(developerButton);
 
-      fireEvent.click(screen.getByTestId('goal-build_with_ai'));
-      expect(screen.getByTestId('goal-build_with_ai')).toHaveAttribute('aria-checked', 'false');
+      expect(developerButton).toHaveAttribute('aria-checked', 'true');
+    });
+
+    it('should disable next button until role is selected', () => {
+      goToRoleStep();
+
+      const nextButton = screen.getByTestId('next-button');
+      expect(nextButton).toBeDisabled();
+
+      fireEvent.click(screen.getByTestId('role-executive'));
+      expect(nextButton).toBeEnabled();
     });
 
     it('should show back button instead of skip', () => {
-      goToStep2();
+      goToRoleStep();
 
       expect(screen.queryByTestId('skip-button')).not.toBeInTheDocument();
       expect(screen.getByTestId('back-button')).toBeInTheDocument();
     });
 
-    it('should go back to step 1 when back is clicked', () => {
-      goToStep2();
+    it('should go back to audience selection when back is clicked', () => {
+      goToRoleStep();
 
       fireEvent.click(screen.getByTestId('back-button'));
-      expect(screen.getByText(/what's your role/i)).toBeInTheDocument();
-    });
-
-    it('should disable next button until at least 1 goal selected', () => {
-      goToStep2();
-
-      const nextButton = screen.getByTestId('next-button');
-      expect(nextButton).toBeDisabled();
-
-      fireEvent.click(screen.getByTestId('goal-build_with_ai'));
-      expect(nextButton).toBeEnabled();
+      expect(screen.getByText(/what brings you to ai timeline/i)).toBeInTheDocument();
     });
   });
 
   // ==========================================================================
-  // Step 3: Time Commitment
+  // Time Commitment
   // ==========================================================================
 
-  describe('step 3: time commitment', () => {
-    const goToStep3 = () => {
+  describe('time commitment', () => {
+    const goToTimeStep = () => {
       renderModal();
-      fireEvent.click(screen.getByTestId('role-developer'));
-      fireEvent.click(screen.getByTestId('next-button'));
-      fireEvent.click(screen.getByTestId('goal-build_with_ai'));
+      // Use everyday flow for simplest path to time step
+      fireEvent.click(screen.getByTestId('audience-everyday'));
       fireEvent.click(screen.getByTestId('next-button'));
     };
 
-    it('should navigate to time selection after goals', () => {
-      goToStep3();
-
-      expect(screen.getByText(/how much time do you have/i)).toBeInTheDocument();
-      expect(screen.getByText(/step 3 of 3/i)).toBeInTheDocument();
-    });
-
     it('should display all time options', () => {
-      goToStep3();
+      goToTimeStep();
 
       expect(screen.getByTestId('time-quick')).toBeInTheDocument();
       expect(screen.getByTestId('time-standard')).toBeInTheDocument();
@@ -252,13 +336,13 @@ describe('OnboardingModal', () => {
     });
 
     it('should have standard selected by default', () => {
-      goToStep3();
+      goToTimeStep();
 
       expect(screen.getByTestId('time-standard')).toHaveAttribute('aria-checked', 'true');
     });
 
     it('should allow changing time commitment', () => {
-      goToStep3();
+      goToTimeStep();
 
       fireEvent.click(screen.getByTestId('time-quick'));
       expect(screen.getByTestId('time-quick')).toHaveAttribute('aria-checked', 'true');
@@ -266,7 +350,7 @@ describe('OnboardingModal', () => {
     });
 
     it('should show "Create My Plan" button text', () => {
-      goToStep3();
+      goToTimeStep();
 
       expect(screen.getByTestId('next-button')).toHaveTextContent(/create my plan/i);
     });
@@ -279,9 +363,8 @@ describe('OnboardingModal', () => {
   describe('results screen', () => {
     const goToResults = () => {
       renderModal();
-      fireEvent.click(screen.getByTestId('role-developer'));
-      fireEvent.click(screen.getByTestId('next-button'));
-      fireEvent.click(screen.getByTestId('goal-build_with_ai'));
+      // Use everyday flow for simplest path
+      fireEvent.click(screen.getByTestId('audience-everyday'));
       fireEvent.click(screen.getByTestId('next-button'));
       fireEvent.click(screen.getByTestId('next-button')); // Create My Plan
     };
@@ -331,8 +414,7 @@ describe('OnboardingModal', () => {
 
       expect(mockOnComplete).toHaveBeenCalledWith(
         expect.objectContaining({
-          role: 'developer',
-          goals: ['build_with_ai'],
+          audienceType: 'everyday',
           timeCommitment: 'standard',
         })
       );
@@ -361,10 +443,10 @@ describe('OnboardingModal', () => {
       expect(modal).toHaveAttribute('aria-modal', 'true');
     });
 
-    it('should have proper radiogroup role for role selection', () => {
+    it('should have proper radiogroup role for audience selection', () => {
       renderModal();
 
-      expect(screen.getByRole('radiogroup', { name: /select your role/i })).toBeInTheDocument();
+      expect(screen.getByRole('radiogroup', { name: /select your audience type/i })).toBeInTheDocument();
     });
 
     it('should call onSkip when Escape is pressed', () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   BookOpen,
   Briefcase,
@@ -109,13 +109,36 @@ export function LayeredExplanationTabs({
   initialTab,
   onTabChange,
 }: LayeredExplanationTabsProps) {
-  // Initialize with provided tab, stored preference, or default to 'simple'
-  const [activeTab, setActiveTab] = useState<ExplanationTab>(() => {
-    if (initialTab) return initialTab;
-    return getStoredTabPreference() || 'simple';
-  });
-
   const [isMisconceptionsOpen, setIsMisconceptionsOpen] = useState(false);
+
+  // Helper to check if a tab is available for this content
+  const isTabAvailable = useCallback(
+    (tab: ExplanationTab): boolean => {
+      if (tab === 'plain-english') return content.plainEnglish !== undefined;
+      if (tab === 'executive') return content.executiveBrief !== undefined;
+      return true; // simple, business, technical, historical are always available
+    },
+    [content.plainEnglish, content.executiveBrief]
+  );
+
+  // Get the best available tab, falling back if preferred isn't available
+  const getBestAvailableTab = useCallback(
+    (preferred: ExplanationTab): ExplanationTab => {
+      if (isTabAvailable(preferred)) return preferred;
+      // Fallback order: simple -> business -> technical
+      if (isTabAvailable('simple')) return 'simple';
+      return 'simple';
+    },
+    [isTabAvailable]
+  );
+
+  // Initialize with provided tab (if available), stored preference, or default to 'simple'
+  const [activeTab, setActiveTab] = useState<ExplanationTab>(() => {
+    if (initialTab) return getBestAvailableTab(initialTab);
+    const stored = getStoredTabPreference();
+    if (stored) return getBestAvailableTab(stored);
+    return 'simple';
+  });
 
   // Handle tab change
   const handleTabChange = (tab: ExplanationTab) => {
@@ -124,12 +147,13 @@ export function LayeredExplanationTabs({
     onTabChange?.(tab);
   };
 
-  // Sync with initialTab prop changes
+  // Sync with initialTab prop changes, but only if the tab is available
   useEffect(() => {
-    if (initialTab && initialTab !== activeTab) {
-      setActiveTab(initialTab);
+    if (initialTab) {
+      const bestTab = getBestAvailableTab(initialTab);
+      setActiveTab((current) => (bestTab !== current ? bestTab : current));
     }
-  }, [initialTab]);
+  }, [initialTab, getBestAvailableTab]);
 
   // Get content for the active tab
   const getTabContent = (tab: ExplanationTab): string => {
