@@ -150,7 +150,7 @@ export const chatApi = {
 
     // Use backend proxy for free tier users
     const sessionId = getSessionId();
-    const chatUrl = `${API_BASE}/api/chat`;
+    const chatUrl = `${API_BASE}/chat`;
     console.log('[ChatAPI] Using free tier backend:', chatUrl);
 
     let response: Response;
