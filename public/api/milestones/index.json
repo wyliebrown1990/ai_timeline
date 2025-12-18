@@ -1365,6 +1365,41 @@
       "updatedAt": "2025-12-17T14:15:41.061Z"
     },
     {
+      "id": "E2022_CHATGPT",
+      "title": "OpenAI launches ChatGPT, reaching 100 million users in 2 months",
+      "description": "OpenAI releases ChatGPT, a conversational AI assistant built on GPT-3.5 and fine-tuned using RLHF. Becomes the fastest-growing consumer application in history, reaching 100 million monthly active users by January 2023. Demonstrates that instruction-tuned language models can serve as general-purpose assistants, igniting global interest in AI capabilities and sparking an industry-wide race to develop competing chatbots.",
+      "date": "2022-11-30",
+      "category": "product_launch",
+      "significance": 1,
+      "era": "Alignment and Instruction Following",
+      "organization": "OpenAI",
+      "contributors": [
+        "OpenAI"
+      ],
+      "sourceUrl": "https://openai.com/blog/chatgpt",
+      "imageUrl": null,
+      "tags": [
+        "LLMs",
+        "Chatbots",
+        "RLHF",
+        "Consumer AI"
+      ],
+      "sources": [
+        {
+          "label": "OpenAI Blog Announcement",
+          "kind": "blog",
+          "url": "https://openai.com/blog/chatgpt"
+        },
+        {
+          "label": "Reuters - Fastest Growing App",
+          "kind": "media",
+          "url": "https://www.reuters.com/technology/chatgpt-sets-record-fastest-growing-user-base-analyst-note-2023-02-01/"
+        }
+      ],
+      "createdAt": "2025-12-17T23:56:00.000Z",
+      "updatedAt": "2025-12-17T23:56:00.000Z"
+    },
+    {
       "id": "E2022_BLOOM",
       "title": "BLOOM released as a large open-access multilingual LM",
       "description": "A major collaborative effort to broaden access to large-scale language models.",
@@ -2388,12 +2423,171 @@
       ],
       "createdAt": "2025-12-17T14:15:41.061Z",
       "updatedAt": "2025-12-17T14:15:41.061Z"
+    },
+    {
+      "id": "E2020_GPT3_API",
+      "title": "OpenAI launches GPT-3 API, democratizing access to large language models",
+      "description": "OpenAI releases GPT-3 as an API, allowing any developer to access the 175 billion parameter language model through simple HTTP requests. This marks the beginning of the AI-as-a-service era, enabling startups to build AI products without ML expertise or infrastructure. Pay-per-use pricing model established the economics of modern AI services.",
+      "date": "2020-06-11",
+      "category": "product",
+      "significance": 4,
+      "era": "Transformers and LLMs",
+      "organization": "OpenAI",
+      "contributors": [
+        "OpenAI",
+        "Sam Altman"
+      ],
+      "sourceUrl": "https://openai.com/blog/openai-api",
+      "imageUrl": null,
+      "tags": [
+        "API",
+        "Large language models",
+        "AI-as-a-service",
+        "GPT-3"
+      ],
+      "sources": [
+        {
+          "label": "OpenAI API announcement",
+          "kind": "primary_doc",
+          "url": "https://openai.com/blog/openai-api"
+        }
+      ],
+      "createdAt": "2025-12-18T00:20:00.000Z",
+      "updatedAt": "2025-12-18T00:20:00.000Z"
+    },
+    {
+      "id": "E2021_COPILOT",
+      "title": "GitHub launches Copilot, AI pair programming assistant",
+      "description": "GitHub releases Copilot, an AI coding assistant powered by OpenAI Codex that suggests code completions in real-time. Trained on public code repositories, it understands context from comments, function names, and surrounding code. Marks the beginning of AI-assisted software development becoming mainstream.",
+      "date": "2021-06-29",
+      "category": "product",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": "GitHub",
+      "contributors": [
+        "GitHub",
+        "OpenAI",
+        "Microsoft"
+      ],
+      "sourceUrl": "https://github.blog/2021-06-29-introducing-github-copilot-ai-pair-programmer/",
+      "imageUrl": null,
+      "tags": [
+        "Code generation",
+        "Developer tools",
+        "AI copilot",
+        "Codex"
+      ],
+      "sources": [
+        {
+          "label": "GitHub Copilot announcement",
+          "kind": "primary_doc",
+          "url": "https://github.blog/2021-06-29-introducing-github-copilot-ai-pair-programmer/"
+        }
+      ],
+      "createdAt": "2025-12-18T00:20:00.000Z",
+      "updatedAt": "2025-12-18T00:20:00.000Z"
+    },
+    {
+      "id": "E2023_ENTERPRISE_AI",
+      "title": "Enterprise AI wave: Microsoft, Google, AWS integrate LLMs into business software",
+      "description": "Major cloud providers integrate large language models into enterprise software stacks. Microsoft launches Copilot for Microsoft 365, Google introduces Duet AI for Workspace, and AWS expands Bedrock. Enterprise AI becomes table stakes as businesses rush to adopt AI following ChatGPT's success.",
+      "date": "2023-03-16",
+      "category": "industry",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Microsoft",
+        "Google",
+        "Amazon"
+      ],
+      "sourceUrl": "https://blogs.microsoft.com/blog/2023/03/16/introducing-microsoft-365-copilot-your-copilot-for-work/",
+      "imageUrl": null,
+      "tags": [
+        "Enterprise AI",
+        "Microsoft 365 Copilot",
+        "Duet AI",
+        "AWS Bedrock"
+      ],
+      "sources": [
+        {
+          "label": "Microsoft 365 Copilot announcement",
+          "kind": "primary_doc",
+          "url": "https://blogs.microsoft.com/blog/2023/03/16/introducing-microsoft-365-copilot-your-copilot-for-work/"
+        }
+      ],
+      "createdAt": "2025-12-18T00:20:00.000Z",
+      "updatedAt": "2025-12-18T00:20:00.000Z"
+    },
+    {
+      "id": "E2024_AI_AGENTS",
+      "title": "AI agents emerge as production-ready technology for autonomous task completion",
+      "description": "AI agents—systems that combine LLMs with tool use and planning capabilities—mature from research demos to production deployments. Frameworks like LangChain, CrewAI, and AutoGen enable businesses to build agents that take actions, use tools, and complete multi-step tasks autonomously.",
+      "date": "2024-01-15",
+      "category": "breakthrough",
+      "significance": 3,
+      "era": "AI Agents",
+      "organization": null,
+      "contributors": [
+        "LangChain",
+        "OpenAI",
+        "Anthropic"
+      ],
+      "sourceUrl": "https://www.langchain.com/langgraph",
+      "imageUrl": null,
+      "tags": [
+        "AI agents",
+        "Autonomous AI",
+        "Tool use",
+        "LangChain"
+      ],
+      "sources": [
+        {
+          "label": "LangGraph announcement",
+          "kind": "primary_doc",
+          "url": "https://www.langchain.com/langgraph"
+        }
+      ],
+      "createdAt": "2025-12-18T00:20:00.000Z",
+      "updatedAt": "2025-12-18T00:20:00.000Z"
+    },
+    {
+      "id": "E2024_RAG_ADOPTION",
+      "title": "RAG becomes the standard architecture for enterprise AI knowledge systems",
+      "description": "Retrieval-Augmented Generation (RAG) emerges as the dominant pattern for connecting LLMs to enterprise data. Vector databases like Pinecone, Weaviate, and pgvector see widespread adoption as companies build AI systems that can answer questions using their proprietary documents without fine-tuning.",
+      "date": "2024-01-01",
+      "category": "industry",
+      "significance": 3,
+      "era": "Transformers and LLMs",
+      "organization": null,
+      "contributors": [
+        "Pinecone",
+        "Weaviate",
+        "LangChain"
+      ],
+      "sourceUrl": "https://www.pinecone.io/learn/retrieval-augmented-generation/",
+      "imageUrl": null,
+      "tags": [
+        "RAG",
+        "Vector databases",
+        "Enterprise AI",
+        "Knowledge retrieval"
+      ],
+      "sources": [
+        {
+          "label": "Pinecone RAG guide",
+          "kind": "article",
+          "url": "https://www.pinecone.io/learn/retrieval-augmented-generation/"
+        }
+      ],
+      "createdAt": "2025-12-18T00:20:00.000Z",
+      "updatedAt": "2025-12-18T00:20:00.000Z"
     }
   ],
   "pagination": {
     "page": 1,
-    "limit": 70,
-    "total": 70,
+    "limit": 75,
+    "total": 75,
     "totalPages": 1
   }
 }
