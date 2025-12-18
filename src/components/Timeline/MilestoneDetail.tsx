@@ -9,13 +9,15 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useMemo } from 'react';
 import { useChatContext } from '../../context/ChatContext';
 import { useLayeredContent } from '../../hooks/useContent';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import type { MilestoneResponse, SignificanceLevel } from '../../types/milestone';
+import type { AudienceType } from '../../types/userProfile';
 import { formatTimelineDate } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
-import { LayeredExplanationTabs } from './LayeredExplanationTabs';
+import { LayeredExplanationTabs, type ExplanationTab } from './LayeredExplanationTabs';
 import { SignificanceBadge } from './SignificanceBadge';
 
 interface MilestoneDetailProps {
@@ -36,8 +38,31 @@ interface MilestoneDetailProps {
 }
 
 /**
+ * Map audience type to default explanation tab (Sprint 19)
+ * - 'everyday' users see plain English explanations
+ * - 'leader' users see executive briefings
+ * - 'technical' users see technical depth
+ * - 'general' users see simple explanations
+ */
+function getDefaultTabForAudience(audienceType: AudienceType | undefined): ExplanationTab {
+  switch (audienceType) {
+    case 'everyday':
+      return 'plain-english';
+    case 'leader':
+      return 'executive';
+    case 'technical':
+      return 'technical';
+    case 'general':
+    default:
+      return 'simple';
+  }
+}
+
+/**
  * Slide-in panel component displaying full milestone details
  * Includes keyboard navigation and escape-to-close
+ *
+ * Sprint 19: Now defaults to audience-appropriate content layer
  */
 export function MilestoneDetail({
   milestone,
@@ -52,6 +77,15 @@ export function MilestoneDetail({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const date = new Date(milestone.date);
   const { explainMilestone } = useChatContext();
+
+  // Get user profile for audience-based content layer (Sprint 19)
+  const { profile } = useUserProfile();
+
+  // Compute default tab based on user's audience type (Sprint 19)
+  const defaultTab = useMemo(
+    () => getDefaultTabForAudience(profile?.audienceType),
+    [profile?.audienceType]
+  );
 
   // Fetch layered content for this milestone
   const { data: layeredContent } = useLayeredContent(milestone.id);
@@ -205,9 +239,10 @@ export function MilestoneDetail({
           )}
 
           {/* Layered Explanations or Basic Description */}
+          {/* Sprint 19: Pass audience-based default tab to LayeredExplanationTabs */}
           <div data-testid="detail-description" className="mb-4">
             {layeredContent ? (
-              <LayeredExplanationTabs content={layeredContent} />
+              <LayeredExplanationTabs content={layeredContent} initialTab={defaultTab} />
             ) : (
               <div className="prose prose-gray dark:prose-invert max-w-none">
                 <p className="text-gray-700 dark:text-gray-300 leading-relaxed">

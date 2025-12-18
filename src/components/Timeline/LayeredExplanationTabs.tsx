@@ -10,13 +10,15 @@ import {
   Lightbulb,
   Home,
   Shield,
+  TrendingUp,
+  CheckSquare,
 } from 'lucide-react';
 import type { MilestoneLayeredContent } from '../../types/milestone';
 
 /**
  * Tab identifiers for layered explanations
  */
-export type ExplanationTab = 'plain-english' | 'simple' | 'business' | 'technical' | 'historical';
+export type ExplanationTab = 'plain-english' | 'executive' | 'simple' | 'business' | 'technical' | 'historical';
 
 /**
  * Storage key for user's preferred explanation tab
@@ -40,6 +42,11 @@ const TAB_CONFIG: Record<ExplanationTab, { label: string; icon: typeof BookOpen;
     label: 'Everyday',
     icon: Home,
     description: 'Plain English for everyone',
+  },
+  executive: {
+    label: 'Executive',
+    icon: TrendingUp,
+    description: 'Strategic briefing for leaders',
   },
   simple: {
     label: 'Simple',
@@ -129,6 +136,8 @@ export function LayeredExplanationTabs({
     switch (tab) {
       case 'plain-english':
         return ''; // Handled separately with custom rendering
+      case 'executive':
+        return ''; // Handled separately with custom rendering
       case 'simple':
         return content.simpleExplanation;
       case 'business':
@@ -142,10 +151,13 @@ export function LayeredExplanationTabs({
     }
   };
 
-  // Get available tabs (only show plain-english if content exists)
+  // Get available tabs (only show audience-specific tabs if content exists)
   const availableTabs = (Object.keys(TAB_CONFIG) as ExplanationTab[]).filter((tab) => {
     if (tab === 'plain-english') {
       return content.plainEnglish !== undefined;
+    }
+    if (tab === 'executive') {
+      return content.executiveBrief !== undefined;
     }
     return true;
   });
@@ -217,6 +229,97 @@ export function LayeredExplanationTabs({
     );
   };
 
+  // Render the executive brief content with its structured format
+  const renderExecutiveBriefContent = () => {
+    if (!content.executiveBrief) return null;
+    const eb = content.executiveBrief;
+
+    return (
+      <div className="space-y-6">
+        {/* Bottom Line */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-400 mb-2">
+            Bottom Line
+          </h4>
+          <p className="text-gray-900 dark:text-white font-medium leading-relaxed">
+            {eb.bottomLine}
+          </p>
+        </div>
+
+        {/* Business Implications */}
+        <div>
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Business Implications
+          </h4>
+          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+            {eb.businessImplications}
+          </div>
+        </div>
+
+        {/* Questions to Ask Your Team */}
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-purple-700 dark:text-purple-400 mb-3">
+            Questions to Ask Your Team
+          </h4>
+          <ul className="space-y-2">
+            {eb.questionsToAsk.map((question, index) => (
+              <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                <span className="text-purple-500 dark:text-purple-400 font-bold">•</span>
+                <span>{question}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Competitor Watch */}
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-100 dark:border-amber-800">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-2">
+            Competitor Watch
+          </h4>
+          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line leading-relaxed">
+            {eb.competitorWatch}
+          </div>
+        </div>
+
+        {/* Action Items */}
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-4 border border-emerald-100 dark:border-emerald-800">
+          <div className="flex items-start gap-2">
+            <CheckSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-3">
+                Action Items
+              </h4>
+              <ul className="space-y-2">
+                {eb.actionItems.map((item, index) => (
+                  <li key={index} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                    <span className="text-emerald-500 dark:text-emerald-400 font-bold">{index + 1}.</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Further Reading (Optional) */}
+        {eb.furtherReading && eb.furtherReading.length > 0 && (
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400 mb-2">
+              Further Reading
+            </h4>
+            <ul className="space-y-1">
+              {eb.furtherReading.map((reading, index) => (
+                <li key={index} className="text-gray-600 dark:text-gray-400 text-sm">
+                  • {reading}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4" data-testid="layered-explanation-tabs">
       {/* TL;DR Section */}
@@ -279,6 +382,8 @@ export function LayeredExplanationTabs({
       >
         {activeTab === 'plain-english' ? (
           renderPlainEnglishContent()
+        ) : activeTab === 'executive' ? (
+          renderExecutiveBriefContent()
         ) : (
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <div className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-line">

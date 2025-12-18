@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as milestonesController from '../controllers/milestones';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -32,13 +33,13 @@ router.get('/year/:year', milestonesController.getMilestonesByYear);
 // GET /api/milestones/:id - Get a single milestone by ID
 router.get('/:id', milestonesController.getMilestoneById);
 
-// POST /api/milestones - Create a new milestone
-router.post('/', milestonesController.createMilestone);
+// POST /api/milestones - Create a new milestone (Admin only)
+router.post('/', requireAdmin, milestonesController.createMilestone);
 
-// PUT /api/milestones/:id - Update an existing milestone
-router.put('/:id', milestonesController.updateMilestone);
+// PUT /api/milestones/:id - Update an existing milestone (Admin only)
+router.put('/:id', requireAdmin, milestonesController.updateMilestone);
 
-// DELETE /api/milestones/:id - Delete a milestone
-router.delete('/:id', milestonesController.deleteMilestone);
+// DELETE /api/milestones/:id - Delete a milestone (Admin only)
+router.delete('/:id', requireAdmin, milestonesController.deleteMilestone);
 
 export default router;

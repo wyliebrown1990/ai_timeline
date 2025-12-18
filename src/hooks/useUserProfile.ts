@@ -12,8 +12,9 @@ import type {
   UpdateUserProfile,
   UserRole,
   ExplanationLevel,
+  AudienceType,
 } from '../types/userProfile';
-import { safeParseUserProfile, validateCreateUserProfile } from '../types/userProfile';
+import { safeParseUserProfile, validateCreateUserProfile, AUDIENCE_TYPE_OPTIONS } from '../types/userProfile';
 
 /**
  * Storage key for user profile data
@@ -60,6 +61,8 @@ export function getRoleDefaultExplanationLevel(role: UserRole): ExplanationLevel
       return 'business';
     case 'developer':
       return 'technical';
+    case 'retiree':
+    case 'culture_enthusiast':
     case 'student':
     case 'curious':
     default:
@@ -69,6 +72,7 @@ export function getRoleDefaultExplanationLevel(role: UserRole): ExplanationLevel
 
 /**
  * Load user data from localStorage
+ * Includes migration for older profiles without audienceType
  */
 function loadUserData(): StoredUserData {
   if (typeof window === 'undefined') return DEFAULT_STORAGE;
@@ -79,6 +83,10 @@ function loadUserData(): StoredUserData {
       const parsed = JSON.parse(stored) as StoredUserData;
       // Validate the profile if it exists
       if (parsed.profile) {
+        // Migrate older profiles without audienceType
+        if (!parsed.profile.audienceType) {
+          parsed.profile.audienceType = 'general';
+        }
         const result = safeParseUserProfile(parsed.profile);
         if (!result.success) {
           console.warn('Invalid stored profile, clearing:', result.error);
@@ -140,6 +148,12 @@ export interface UseUserProfileReturn {
 
   /** Get the current explanation level (from profile or default) */
   getExplanationLevel: () => ExplanationLevel;
+
+  /** Get the user's audience type */
+  getAudienceType: () => AudienceType;
+
+  /** Get the default content layer tab based on audience type */
+  getDefaultContentLayer: () => 'plain-english' | 'executive' | 'technical' | 'simple';
 }
 
 /**
@@ -254,6 +268,17 @@ export function useUserProfile(): UseUserProfileReturn {
     return 'simple';
   }, [userData.profile]);
 
+  // Get the user's audience type
+  const getAudienceType = useCallback((): AudienceType => {
+    return userData.profile?.audienceType || 'general';
+  }, [userData.profile]);
+
+  // Get the default content layer based on audience type
+  const getDefaultContentLayer = useCallback((): 'plain-english' | 'executive' | 'technical' | 'simple' => {
+    const audienceType = userData.profile?.audienceType || 'general';
+    return AUDIENCE_TYPE_OPTIONS[audienceType].defaultContentLayer;
+  }, [userData.profile]);
+
   // Derived state
   const isFirstTimeVisitor = useMemo(() => {
     return !userData.profile && !userData.onboardingCompleted && !userData.onboardingSkipped;
@@ -271,6 +296,8 @@ export function useUserProfile(): UseUserProfileReturn {
       skipOnboarding,
       resetUserData,
       getExplanationLevel,
+      getAudienceType,
+      getDefaultContentLayer,
     }),
     [
       userData.profile,
@@ -283,6 +310,8 @@ export function useUserProfile(): UseUserProfileReturn {
       skipOnboarding,
       resetUserData,
       getExplanationLevel,
+      getAudienceType,
+      getDefaultContentLayer,
     ]
   );
 }

@@ -27,24 +27,24 @@ Create a learning path focused on the drama, personalities, controversies, and c
 - [x] Verify all milestone IDs exist and are valid
 
 ### 21.3 Learning Path Creation
-- [ ] Create `pop-culture.json` learning path file
-- [ ] Define path metadata (title, description, audience, difficulty)
-- [ ] Order milestones for narrative flow
-- [ ] Write key takeaways (5 bullet points)
-- [ ] Define concepts covered
-- [ ] Set suggested next paths
-- [ ] Calculate estimated duration
+- [x] Create `pop-culture.json` learning path file
+- [x] Define path metadata (title, description, audience, difficulty)
+- [x] Order milestones for narrative flow
+- [x] Write key takeaways (5 bullet points)
+- [x] Define concepts covered
+- [x] Set suggested next paths
+- [x] Calculate estimated duration
 
 ### 21.4 Checkpoint Questions
-- [ ] Create checkpoint for Module 1: "The Shock Heard Round the World"
-- [ ] Create checkpoint for Module 2: "AI Gets Creative (and Controversial)"
-- [ ] Create checkpoint for Module 3: "ChatGPT Changes Everything"
-- [ ] Create checkpoint for Module 4: "The Ethics Wars"
-- [ ] Create checkpoint for Module 5: "Silicon Valley Drama"
-- [ ] Add checkpoints to questions.json
+- [x] Create checkpoint for Module 1: "The Shock Heard Round the World"
+- [x] Create checkpoint for Module 2: "AI Gets Creative (and Controversial)"
+- [x] Create checkpoint for Module 3: "ChatGPT Changes Everything"
+- [x] Create checkpoint for Module 4: "The Ethics Wars"
+- [x] Create checkpoint for Module 5: "Silicon Valley Drama"
+- [x] Add checkpoints to questions.json
 
 ### 21.5 Integration & Testing
-- [ ] Import learning path in content/index.ts
+- [x] Import learning path in content/index.ts
 - [ ] Verify path appears in Learning Paths page
 - [ ] Test path navigation through all milestones
 - [ ] Verify progress tracking works
@@ -52,12 +52,12 @@ Create a learning path focused on the drama, personalities, controversies, and c
 - [ ] Verify checkpoints trigger correctly
 
 ### 21.6 Deployment
-- [ ] Run `npm run build` - verify no errors
-- [ ] Run `npm run typecheck` - verify no TypeScript errors
+- [x] Run `npm run build` - verify no errors
+- [x] Run `npm run typecheck` - verify no TypeScript errors
 - [ ] Commit changes to git
 - [ ] Push to origin/main
-- [ ] Deploy to S3: `aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete`
-- [ ] Invalidate CloudFront: `aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"`
+- [x] Deploy to S3: `aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete`
+- [x] Invalidate CloudFront: `aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"`
 - [ ] Verify in production
 
 ---

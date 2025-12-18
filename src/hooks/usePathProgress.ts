@@ -72,6 +72,16 @@ function saveProgress(progress: StoredProgress): void {
 }
 
 /**
+ * Cross-path achievement data (Sprint 19)
+ */
+export interface CrossPathAchievements {
+  completedPathCount: number;
+  completedPathIds: string[];
+  totalMilestonesViewed: number;
+  allViewedMilestoneIds: string[];
+}
+
+/**
  * Hook return type
  */
 export interface UsePathProgressReturn {
@@ -113,6 +123,16 @@ export interface UsePathProgressReturn {
 
   /** Check if a path has been started */
   isPathStarted: (pathId: string) => boolean;
+
+  // Sprint 19: Cross-path progress functions
+  /** Get cross-path achievement data */
+  getCrossPathAchievements: () => CrossPathAchievements;
+
+  /** Check if a milestone has been viewed in ANY path (for deduplication) */
+  isMilestoneViewedInAnyPath: (milestoneId: string) => boolean;
+
+  /** Get suggested next path based on completed paths */
+  getSuggestedNextPath: (availablePathIds: string[]) => string | undefined;
 }
 
 /**
@@ -359,6 +379,62 @@ export function usePathProgress(): UsePathProgressReturn {
     [progress]
   );
 
+  // Sprint 19: Get cross-path achievement data
+  const getCrossPathAchievements = useCallback((): CrossPathAchievements => {
+    const paths = Object.values(progress.paths);
+    const completedPathIds = paths
+      .filter((p) => p.completedAt !== undefined)
+      .map((p) => p.pathId);
+
+    // Collect all unique viewed milestones across all paths
+    const allViewedMilestoneIds = Array.from(
+      new Set(paths.flatMap((p) => p.viewedMilestoneIds))
+    );
+
+    return {
+      completedPathCount: completedPathIds.length,
+      completedPathIds,
+      totalMilestonesViewed: allViewedMilestoneIds.length,
+      allViewedMilestoneIds,
+    };
+  }, [progress]);
+
+  // Sprint 19: Check if a milestone has been viewed in ANY path
+  const isMilestoneViewedInAnyPath = useCallback(
+    (milestoneId: string): boolean => {
+      return Object.values(progress.paths).some((p) =>
+        p.viewedMilestoneIds.includes(milestoneId)
+      );
+    },
+    [progress]
+  );
+
+  // Sprint 19: Get suggested next path based on completed paths
+  const getSuggestedNextPath = useCallback(
+    (availablePathIds: string[]): string | undefined => {
+      // Filter out completed paths
+      const uncompletedPathIds = availablePathIds.filter(
+        (id) => !progress.paths[id]?.completedAt
+      );
+
+      if (uncompletedPathIds.length === 0) return undefined;
+
+      // Prefer paths that have been started but not completed
+      const inProgressPathIds = uncompletedPathIds.filter(
+        (id) => progress.paths[id] && !progress.paths[id]?.completedAt
+      );
+
+      if (inProgressPathIds.length > 0) {
+        // Return the most recently active in-progress path
+        return inProgressPathIds[0];
+      }
+
+      // Otherwise return the first uncompleted path
+      return uncompletedPathIds[0];
+    },
+    [progress]
+  );
+
   return useMemo(
     () => ({
       getPathProgress,
@@ -374,6 +450,10 @@ export function usePathProgress(): UsePathProgressReturn {
       isMilestoneViewed,
       isPathCompleted,
       isPathStarted,
+      // Sprint 19: Cross-path progress functions
+      getCrossPathAchievements,
+      isMilestoneViewedInAnyPath,
+      getSuggestedNextPath,
     }),
     [
       getPathProgress,
@@ -389,6 +469,9 @@ export function usePathProgress(): UsePathProgressReturn {
       isMilestoneViewed,
       isPathCompleted,
       isPathStarted,
+      getCrossPathAchievements,
+      isMilestoneViewedInAnyPath,
+      getSuggestedNextPath,
     ]
   );
 }

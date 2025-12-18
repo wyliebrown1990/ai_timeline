@@ -16,13 +16,15 @@ import { z } from 'zod';
  * User role - helps determine relevant content and framing
  */
 export const UserRoleSchema = z.enum([
-  'executive',       // C-level, VP, Director - strategic focus
-  'product_manager', // PM roles - product and feature focus
-  'marketing_sales', // Marketing/Sales - GTM and customer focus
-  'operations_hr',   // Operations/HR - process and people focus
-  'developer',       // Technical roles - implementation focus
-  'student',         // Academic - learning focus
-  'curious',         // General interest - exploratory focus
+  'executive',          // C-level, VP, Director - strategic focus
+  'product_manager',    // PM roles - product and feature focus
+  'marketing_sales',    // Marketing/Sales - GTM and customer focus
+  'operations_hr',      // Operations/HR - process and people focus
+  'developer',          // Technical roles - implementation focus
+  'student',            // Academic - learning focus
+  'retiree',            // Retiree/65+ - plain English, practical focus
+  'culture_enthusiast', // Interested in AI drama, headlines, cultural impact
+  'curious',            // General interest - exploratory focus
 ]);
 
 export type UserRole = z.infer<typeof UserRoleSchema>;
@@ -37,6 +39,9 @@ export const LearningGoalSchema = z.enum([
   'industry_impact',    // Understand industry-specific AI impact
   'build_with_ai',      // Build products/features using AI
   'career_transition',  // Transition career into AI field
+  'stay_informed',      // Stay informed about AI developments
+  'cultural_impact',    // Understand AI's cultural and social impact
+  'protect_family',     // Help family stay safe from AI scams/misuse
 ]);
 
 export type LearningGoal = z.infer<typeof LearningGoalSchema>;
@@ -63,6 +68,18 @@ export const ExplanationLevelSchema = z.enum([
 
 export type ExplanationLevel = z.infer<typeof ExplanationLevelSchema>;
 
+/**
+ * Audience type - primary user segment for content targeting
+ */
+export const AudienceTypeSchema = z.enum([
+  'everyday',   // General public, 65+, wants plain English
+  'leader',     // Executives/managers, wants strategic briefings
+  'technical',  // Developers/engineers, wants technical depth
+  'general',    // Default, shows all content equally
+]);
+
+export type AudienceType = z.infer<typeof AudienceTypeSchema>;
+
 // =============================================================================
 // User Profile Schema
 // =============================================================================
@@ -76,6 +93,9 @@ export const UserProfileSchema = z.object({
 
   // User's professional role
   role: UserRoleSchema,
+
+  // Primary audience type for content targeting
+  audienceType: AudienceTypeSchema.default('general'),
 
   // User's learning goals (1-3 goals)
   goals: z.array(LearningGoalSchema).min(1).max(3),
@@ -98,6 +118,7 @@ export type UserProfile = z.infer<typeof UserProfileSchema>;
  */
 export const CreateUserProfileSchema = z.object({
   role: UserRoleSchema,
+  audienceType: AudienceTypeSchema.optional().default('general'),
   goals: z.array(LearningGoalSchema).min(1).max(3),
   timeCommitment: TimeCommitmentSchema,
   preferredExplanationLevel: ExplanationLevelSchema,
@@ -152,22 +173,27 @@ export function safeParseCreateUserProfile(data: unknown) {
  * All user roles with human-readable labels
  */
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
-  executive: 'Executive (C-level, VP, Director)',
+  retiree: 'Retiree / Everyday Person',
+  culture_enthusiast: 'Culture & Headlines Fan',
+  executive: 'Executive / Business Leader',
   product_manager: 'Product Manager',
   marketing_sales: 'Marketing & Sales',
   operations_hr: 'Operations & HR',
   developer: 'Developer / Engineer',
   student: 'Student / Academic',
-  curious: 'Curious Explorer',
+  curious: 'Just Curious',
 };
 
 /**
  * All learning goals with human-readable labels
  */
 export const LEARNING_GOAL_LABELS: Record<LearningGoal, string> = {
+  stay_informed: 'Stay informed about AI news',
+  protect_family: 'Protect myself & family from AI scams',
+  cultural_impact: 'Understand AI\'s impact on society',
+  hype_vs_real: 'Distinguish AI hype from reality',
   discuss_at_work: 'Discuss AI confidently at work',
   evaluate_tools: 'Evaluate AI tools for my team',
-  hype_vs_real: 'Distinguish AI hype from reality',
   industry_impact: 'Understand AI impact on my industry',
   build_with_ai: 'Build products using AI',
   career_transition: 'Transition my career into AI',
@@ -201,9 +227,46 @@ export const EXPLANATION_LEVEL_OPTIONS: Record<ExplanationLevel, { label: string
 };
 
 /**
+ * Audience type options with descriptions for onboarding
+ */
+export const AUDIENCE_TYPE_OPTIONS: Record<AudienceType, {
+  label: string;
+  icon: string;
+  description: string;
+  defaultContentLayer: 'plain-english' | 'executive' | 'technical' | 'simple';
+}> = {
+  everyday: {
+    label: 'Everyday',
+    icon: '🏠',
+    description: 'I want to understand what AI is and how it affects my daily life',
+    defaultContentLayer: 'plain-english',
+  },
+  leader: {
+    label: 'Business',
+    icon: '📊',
+    description: 'I need to make AI decisions for my team or organization',
+    defaultContentLayer: 'executive',
+  },
+  technical: {
+    label: 'Technical',
+    icon: '💻',
+    description: 'I want deep technical understanding of how AI actually works',
+    defaultContentLayer: 'technical',
+  },
+  general: {
+    label: 'Explorer',
+    icon: '🔍',
+    description: 'I want to explore all perspectives and decide as I go',
+    defaultContentLayer: 'simple',
+  },
+};
+
+/**
  * All user roles as a readonly array
  */
 export const USER_ROLES = [
+  'retiree',
+  'culture_enthusiast',
   'executive',
   'product_manager',
   'marketing_sales',
@@ -217,9 +280,12 @@ export const USER_ROLES = [
  * All learning goals as a readonly array
  */
 export const LEARNING_GOALS = [
+  'stay_informed',
+  'protect_family',
+  'cultural_impact',
+  'hype_vs_real',
   'discuss_at_work',
   'evaluate_tools',
-  'hype_vs_real',
   'industry_impact',
   'build_with_ai',
   'career_transition',
@@ -234,3 +300,8 @@ export const TIME_COMMITMENTS = ['quick', 'standard', 'deep'] as const;
  * All explanation levels as a readonly array
  */
 export const EXPLANATION_LEVELS = ['simple', 'business', 'technical'] as const;
+
+/**
+ * All audience types as a readonly array
+ */
+export const AUDIENCE_TYPES = ['everyday', 'leader', 'technical', 'general'] as const;

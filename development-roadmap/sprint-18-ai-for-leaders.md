@@ -18,11 +18,11 @@ Create a focused learning path for executives and senior managers (40s-50s) who 
 ## Tasks
 
 ### 18.1 Executive Learning Path Definition
-- [ ] Create `ai-for-leaders.json` path file
-- [ ] Define 6 milestone journey (strategic focus)
-- [ ] Set difficulty: "beginner", duration: 30 min
-- [ ] Write business-focused description
-- [ ] Emphasize ROI of time investment in description
+- [x] Create `ai-for-leaders.json` path file
+- [x] Define 6 milestone journey (strategic focus)
+- [x] Set difficulty: "beginner", duration: 30 min
+- [x] Write business-focused description
+- [x] Emphasize ROI of time investment in description
 
 **Path Structure:**
 ```
@@ -35,10 +35,10 @@ Create a focused learning path for executives and senior managers (40s-50s) who 
 ```
 
 ### 18.2 Executive Content Layer
-- [ ] Add `executiveBrief` field to MilestoneLayeredContent type
-- [ ] Create ExecutiveBriefContent interface
-- [ ] Write executive content for 6 path milestones
-- [ ] Focus on decisions, not explanations
+- [x] Add `executiveBrief` field to MilestoneLayeredContent type
+- [x] Create ExecutiveBriefContent interface
+- [x] Write executive content for 6 path milestones
+- [x] Focus on decisions, not explanations
 
 **ExecutiveBrief Structure:**
 ```typescript
@@ -53,9 +53,9 @@ interface ExecutiveBriefContent {
 ```
 
 ### 18.3 Executive-Style Checkpoints
-- [ ] Create `checkpoints-leaders.json` for this path
-- [ ] Focus on decision-making scenarios
-- [ ] Include "What would you do?" case studies
+- [x] Create `checkpoints-leaders.json` for this path (added to questions.json)
+- [x] Focus on decision-making scenarios
+- [x] Include "What would you do?" case studies
 - [ ] Add self-assessment: "How ready is your org?"
 - [ ] Link to downloadable frameworks/templates
 
@@ -285,29 +285,29 @@ interface ExecutiveBriefContent {
 ---
 
 ## Success Criteria
-- [ ] Path visible and positioned for business users
-- [ ] All 6 milestones have executive brief content
-- [ ] Checkpoints include scenario decisions
+- [x] Path visible and positioned for business users
+- [x] All 6 milestones have executive brief content
+- [x] Checkpoints include scenario decisions
 - [ ] AI Readiness Score calculates correctly
 - [ ] Resource library populated with 10+ items
 - [ ] Shareable summary generates properly
-- [ ] Path completable in under 35 minutes
-- [ ] Mobile-friendly for commute reading
+- [x] Path completable in under 35 minutes
+- [x] Mobile-friendly for commute reading
 
 ---
 
 ## Deployment Checklist
 
 ### Pre-Deployment
-- [ ] Path definition validates against schema
-- [ ] Executive brief content complete for all 6 milestones
-- [ ] Checkpoints functional with scoring
+- [x] Path definition validates against schema
+- [x] Executive brief content complete for all 6 milestones
+- [x] Checkpoints functional with scoring
 - [ ] Resource links verified working
-- [ ] Build succeeds without errors
+- [x] Build succeeds without errors
 
 ### Production Verification
-- [ ] Navigate to Learn page
-- [ ] Find "AI for Leaders" path
+- [x] Navigate to Learn page
+- [x] Find "AI for Leaders" path
 - [ ] Complete full path
 - [ ] Verify readiness score calculation
 - [ ] Test shareable summary export

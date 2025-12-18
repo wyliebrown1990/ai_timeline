@@ -3,6 +3,7 @@ import {
   LearningGoalSchema,
   TimeCommitmentSchema,
   ExplanationLevelSchema,
+  AudienceTypeSchema,
   UserProfileSchema,
   CreateUserProfileSchema,
   UpdateUserProfileSchema,
@@ -14,23 +15,27 @@ import {
   LEARNING_GOAL_LABELS,
   TIME_COMMITMENT_OPTIONS,
   EXPLANATION_LEVEL_OPTIONS,
+  AUDIENCE_TYPE_OPTIONS,
   USER_ROLES,
   LEARNING_GOALS,
   TIME_COMMITMENTS,
   EXPLANATION_LEVELS,
+  AUDIENCE_TYPES,
   type UserRole,
   type LearningGoal,
   type TimeCommitment,
   type ExplanationLevel,
+  type AudienceType,
   type UserProfile,
   type CreateUserProfile,
 } from '../../src/types/userProfile';
 
 describe('UserProfile Types and Validation', () => {
-  // Valid user profile fixture
+  // Valid user profile fixture - includes audienceType for Sprint 19 audience targeting
   const validUserProfile: UserProfile = {
     id: 'user-123',
     role: 'product_manager',
+    audienceType: 'leader',
     goals: ['discuss_at_work', 'evaluate_tools'],
     timeCommitment: 'standard',
     preferredExplanationLevel: 'business',
@@ -40,6 +45,7 @@ describe('UserProfile Types and Validation', () => {
 
   const validCreateProfile: CreateUserProfile = {
     role: 'executive',
+    audienceType: 'leader',
     goals: ['discuss_at_work', 'hype_vs_real'],
     timeCommitment: 'quick',
     preferredExplanationLevel: 'simple',
@@ -99,6 +105,29 @@ describe('UserProfile Types and Validation', () => {
     it('should reject invalid explanation levels', () => {
       expect(ExplanationLevelSchema.safeParse('expert').success).toBe(false);
       expect(ExplanationLevelSchema.safeParse('').success).toBe(false);
+    });
+  });
+
+  // Sprint 19: Audience Type Schema Tests
+  describe('AudienceTypeSchema', () => {
+    it('should accept all valid audience types', () => {
+      for (const audienceType of AUDIENCE_TYPES) {
+        expect(AudienceTypeSchema.safeParse(audienceType).success).toBe(true);
+      }
+    });
+
+    it('should accept specific audience types', () => {
+      expect(AudienceTypeSchema.safeParse('everyday').success).toBe(true);
+      expect(AudienceTypeSchema.safeParse('leader').success).toBe(true);
+      expect(AudienceTypeSchema.safeParse('technical').success).toBe(true);
+      expect(AudienceTypeSchema.safeParse('general').success).toBe(true);
+    });
+
+    it('should reject invalid audience types', () => {
+      expect(AudienceTypeSchema.safeParse('invalid_audience').success).toBe(false);
+      expect(AudienceTypeSchema.safeParse('').success).toBe(false);
+      expect(AudienceTypeSchema.safeParse('EVERYDAY').success).toBe(false);
+      expect(AudienceTypeSchema.safeParse('beginner').success).toBe(false);
     });
   });
 
@@ -212,6 +241,44 @@ describe('UserProfile Types and Validation', () => {
           });
           expect(result.success).toBe(true);
         }
+      });
+    });
+
+    // Sprint 19: Audience Type Field Tests
+    describe('audienceType field', () => {
+      it('should accept all valid audience types', () => {
+        for (const audienceType of AUDIENCE_TYPES) {
+          const result = UserProfileSchema.safeParse({
+            ...validUserProfile,
+            audienceType,
+          });
+          expect(result.success).toBe(true);
+        }
+      });
+
+      it('should default to general when not provided', () => {
+        const profileWithoutAudience = {
+          id: 'user-123',
+          role: 'product_manager',
+          goals: ['discuss_at_work'],
+          timeCommitment: 'standard',
+          preferredExplanationLevel: 'business',
+          createdAt: '2025-01-15T10:00:00.000Z',
+          updatedAt: '2025-01-15T10:00:00.000Z',
+        };
+        const result = UserProfileSchema.safeParse(profileWithoutAudience);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.audienceType).toBe('general');
+        }
+      });
+
+      it('should reject invalid audience type', () => {
+        const result = UserProfileSchema.safeParse({
+          ...validUserProfile,
+          audienceType: 'invalid',
+        });
+        expect(result.success).toBe(false);
       });
     });
 
@@ -390,6 +457,33 @@ describe('UserProfile Types and Validation', () => {
         expect(EXPLANATION_LEVEL_OPTIONS[level].description).toBeDefined();
       }
     });
+
+    // Sprint 19: Audience Type Options Tests
+    it('AUDIENCE_TYPE_OPTIONS should have options for all audience types', () => {
+      expect(Object.keys(AUDIENCE_TYPE_OPTIONS)).toHaveLength(AUDIENCE_TYPES.length);
+      for (const audienceType of AUDIENCE_TYPES) {
+        expect(AUDIENCE_TYPE_OPTIONS[audienceType]).toBeDefined();
+        expect(AUDIENCE_TYPE_OPTIONS[audienceType].label).toBeDefined();
+        expect(AUDIENCE_TYPE_OPTIONS[audienceType].icon).toBeDefined();
+        expect(AUDIENCE_TYPE_OPTIONS[audienceType].description).toBeDefined();
+        expect(AUDIENCE_TYPE_OPTIONS[audienceType].defaultContentLayer).toBeDefined();
+      }
+    });
+
+    it('AUDIENCE_TYPE_OPTIONS should map audience types to correct content layers', () => {
+      expect(AUDIENCE_TYPE_OPTIONS.everyday.defaultContentLayer).toBe('plain-english');
+      expect(AUDIENCE_TYPE_OPTIONS.leader.defaultContentLayer).toBe('executive');
+      expect(AUDIENCE_TYPE_OPTIONS.technical.defaultContentLayer).toBe('technical');
+      expect(AUDIENCE_TYPE_OPTIONS.general.defaultContentLayer).toBe('simple');
+    });
+
+    it('AUDIENCE_TYPES should contain all four types', () => {
+      expect(AUDIENCE_TYPES).toContain('everyday');
+      expect(AUDIENCE_TYPES).toContain('leader');
+      expect(AUDIENCE_TYPES).toContain('technical');
+      expect(AUDIENCE_TYPES).toContain('general');
+      expect(AUDIENCE_TYPES).toHaveLength(4);
+    });
   });
 
   // ==========================================================================
@@ -415,6 +509,12 @@ describe('UserProfile Types and Validation', () => {
     it('should correctly infer ExplanationLevel type', () => {
       const level: ExplanationLevel = 'simple';
       expect(EXPLANATION_LEVELS).toContain(level);
+    });
+
+    // Sprint 19: Audience Type Inference Test
+    it('should correctly infer AudienceType type', () => {
+      const audienceType: AudienceType = 'everyday';
+      expect(AUDIENCE_TYPES).toContain(audienceType);
     });
   });
 });

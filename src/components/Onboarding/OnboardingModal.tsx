@@ -13,6 +13,7 @@ import type {
   LearningGoal,
   TimeCommitment,
   CreateUserProfile,
+  AudienceType,
 } from '../../types/userProfile';
 import {
   USER_ROLE_LABELS,
@@ -20,6 +21,8 @@ import {
   USER_ROLES,
   LEARNING_GOALS,
   TIME_COMMITMENTS,
+  AUDIENCE_TYPE_OPTIONS,
+  AUDIENCE_TYPES,
 } from '../../types/userProfile';
 import { getRoleDefaultExplanationLevel } from '../../hooks/useUserProfile';
 import {
@@ -45,7 +48,8 @@ interface OnboardingModalProps {
   onExploreAll?: () => void;
 }
 
-type OnboardingStep = 'role' | 'goals' | 'time' | 'results';
+// Onboarding step type - 'audience' is the new first step
+type OnboardingStep = 'audience' | 'role' | 'goals' | 'time' | 'results';
 
 // =============================================================================
 // Step Data
@@ -78,7 +82,8 @@ export function OnboardingModal({
   onExploreAll,
 }: OnboardingModalProps) {
   // Form state
-  const [currentStep, setCurrentStep] = useState<OnboardingStep>('role');
+  const [currentStep, setCurrentStep] = useState<OnboardingStep>('audience');
+  const [selectedAudience, setSelectedAudience] = useState<AudienceType | null>(null);
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [selectedGoals, setSelectedGoals] = useState<LearningGoal[]>([]);
   const [selectedTime, setSelectedTime] = useState<TimeCommitment>('standard');
@@ -89,7 +94,8 @@ export function OnboardingModal({
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep('role');
+      setCurrentStep('audience');
+      setSelectedAudience(null);
       setSelectedRole(null);
       setSelectedGoals([]);
       setSelectedTime('standard');
@@ -111,22 +117,48 @@ export function OnboardingModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onSkip]);
 
-  // Step navigation
-  const steps: OnboardingStep[] = ['role', 'goals', 'time', 'results'];
+  // Step navigation - steps vary based on audience type
+  // 'everyday' users get a simplified flow (skip role/goals)
+  // 'leader' users skip detailed goals for fast-track business content
+  // 'technical' and 'general' users see the full flow
+  const getStepsForAudience = useCallback((audience: AudienceType | null): OnboardingStep[] => {
+    if (audience === 'everyday') {
+      // Simplified flow: audience -> time -> results
+      return ['audience', 'time', 'results'];
+    }
+    if (audience === 'leader') {
+      // Business-focused flow: skip detailed goals
+      return ['audience', 'role', 'time', 'results'];
+    }
+    // Full flow for 'technical' and 'general'
+    return ['audience', 'role', 'goals', 'time', 'results'];
+  }, []);
+
+  const steps = getStepsForAudience(selectedAudience);
   const currentStepIndex = steps.indexOf(currentStep);
 
   const goToNextStep = useCallback(() => {
-    const nextIndex = currentStepIndex + 1;
-    const nextStep = steps[nextIndex];
-    if (nextIndex < steps.length && nextStep) {
+    // Re-calculate steps in case audience just changed
+    const currentSteps = getStepsForAudience(selectedAudience);
+    const currentIndex = currentSteps.indexOf(currentStep);
+    const nextIndex = currentIndex + 1;
+    const nextStep = currentSteps[nextIndex];
+
+    if (nextIndex < currentSteps.length && nextStep) {
       // If moving to results, generate the plan first
-      if (nextStep === 'results' && selectedRole && selectedGoals.length > 0) {
-        const generatedPlan = generateRecommendations(selectedRole, selectedGoals, selectedTime);
+      if (nextStep === 'results') {
+        // Use defaults for everyday users who skip role/goals
+        const role = selectedRole || (selectedAudience === 'everyday' ? 'retiree' : 'curious');
+        const goals = selectedGoals.length > 0 ? selectedGoals :
+          selectedAudience === 'everyday' ? ['stay_informed'] :
+          selectedAudience === 'leader' ? ['evaluate_tools'] :
+          ['hype_vs_real'];
+        const generatedPlan = generateRecommendations(role, goals as LearningGoal[], selectedTime);
         setPlan(generatedPlan);
       }
       setCurrentStep(nextStep);
     }
-  }, [currentStepIndex, steps, selectedRole, selectedGoals, selectedTime]);
+  }, [getStepsForAudience, selectedAudience, currentStep, selectedRole, selectedGoals, selectedTime]);
 
   const goToPreviousStep = useCallback(() => {
     const prevIndex = currentStepIndex - 1;
@@ -150,19 +182,28 @@ export function OnboardingModal({
     });
   }, []);
 
-  // Complete onboarding
+  // Complete onboarding - creates profile with audience-appropriate defaults
   const handleComplete = useCallback(() => {
-    if (!selectedRole || selectedGoals.length === 0) return;
+    // Audience must be selected
+    if (!selectedAudience) return;
+
+    // For everyday users, use sensible defaults if they didn't go through all steps
+    const role = selectedRole || (selectedAudience === 'everyday' ? 'retiree' : 'curious');
+    const goals = selectedGoals.length > 0 ? selectedGoals :
+      selectedAudience === 'everyday' ? ['stay_informed'] as LearningGoal[] :
+      selectedAudience === 'leader' ? ['evaluate_tools'] as LearningGoal[] :
+      ['hype_vs_real'] as LearningGoal[];
 
     const profile: CreateUserProfile = {
-      role: selectedRole,
-      goals: selectedGoals,
+      role,
+      audienceType: selectedAudience,
+      goals,
       timeCommitment: selectedTime,
-      preferredExplanationLevel: getRoleDefaultExplanationLevel(selectedRole),
+      preferredExplanationLevel: getRoleDefaultExplanationLevel(role),
     };
 
     onComplete(profile);
-  }, [selectedRole, selectedGoals, selectedTime, onComplete]);
+  }, [selectedAudience, selectedRole, selectedGoals, selectedTime, onComplete]);
 
   // Start learning with the suggested path
   const handleStartLearning = useCallback(() => {
@@ -183,6 +224,8 @@ export function OnboardingModal({
   // Check if can proceed to next step
   const canProceed = useCallback((): boolean => {
     switch (currentStep) {
+      case 'audience':
+        return selectedAudience !== null;
       case 'role':
         return selectedRole !== null;
       case 'goals':
@@ -194,7 +237,7 @@ export function OnboardingModal({
       default:
         return false;
     }
-  }, [currentStep, selectedRole, selectedGoals]);
+  }, [currentStep, selectedAudience, selectedRole, selectedGoals]);
 
   if (!isOpen) return null;
 
@@ -238,7 +281,8 @@ export function OnboardingModal({
               </div>
             ))}
             <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-              {currentStep !== 'results' ? `Step ${currentStepIndex + 1} of 3` : 'Your Plan'}
+              {/* Show step count dynamically based on audience-specific flow */}
+              {currentStep !== 'results' ? `Step ${currentStepIndex + 1} of ${steps.length - 1}` : 'Your Plan'}
             </span>
           </div>
 
@@ -254,7 +298,92 @@ export function OnboardingModal({
 
         {/* Content area */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Step 1: Role Selection */}
+          {/* Step 1: Audience Selection - Visual cards for each audience type */}
+          {currentStep === 'audience' && (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 id="onboarding-title" className="text-xl font-semibold text-gray-900 dark:text-white">
+                  What brings you to AI Timeline?
+                </h2>
+                <p className="mt-2 text-gray-600 dark:text-gray-400">
+                  Choose your path to get personalized content.
+                </p>
+              </div>
+
+              {/* Visual audience cards - displayed in a grid */}
+              <div className="grid gap-4" role="radiogroup" aria-label="Select your audience type">
+                {AUDIENCE_TYPES.filter(type => type !== 'general').map((audienceType) => {
+                  const option = AUDIENCE_TYPE_OPTIONS[audienceType];
+                  const isSelected = selectedAudience === audienceType;
+                  return (
+                    <button
+                      key={audienceType}
+                      onClick={() => setSelectedAudience(audienceType)}
+                      className={`
+                        w-full p-5 text-left rounded-2xl border-2 transition-all
+                        ${
+                          isSelected
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm'
+                        }
+                      `}
+                      role="radio"
+                      aria-checked={isSelected}
+                      data-testid={`audience-${audienceType}`}
+                    >
+                      <div className="flex items-start gap-4">
+                        <span className="text-3xl" role="img" aria-hidden="true">
+                          {option.icon}
+                        </span>
+                        <div className="flex-1">
+                          <div className={`
+                            font-semibold text-lg
+                            ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-900 dark:text-white'}
+                          `}>
+                            {option.label}
+                          </div>
+                          <p className={`
+                            mt-1 text-sm leading-relaxed
+                            ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}
+                          `}>
+                            {option.description}
+                          </p>
+                        </div>
+                        {isSelected && (
+                          <Check className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {/* "Explorer" option (general) - shown as a subtle alternative */}
+                <button
+                  onClick={() => setSelectedAudience('general')}
+                  className={`
+                    w-full p-4 text-center rounded-xl border-2 transition-all
+                    ${
+                      selectedAudience === 'general'
+                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                        : 'border-dashed border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                    }
+                  `}
+                  role="radio"
+                  aria-checked={selectedAudience === 'general'}
+                  data-testid="audience-general"
+                >
+                  <span className={`
+                    text-sm font-medium
+                    ${selectedAudience === 'general' ? 'text-blue-700 dark:text-blue-300' : 'text-gray-500 dark:text-gray-400'}
+                  `}>
+                    {AUDIENCE_TYPE_OPTIONS.general.icon} {AUDIENCE_TYPE_OPTIONS.general.label} - {AUDIENCE_TYPE_OPTIONS.general.description}
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Role Selection */}
           {currentStep === 'role' && (
             <div className="space-y-6">
               <div>
@@ -480,7 +609,8 @@ export function OnboardingModal({
         {/* Footer with navigation */}
         {currentStep !== 'results' && (
           <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            {currentStep === 'role' ? (
+            {/* Show Skip on first step (audience), Back button on others */}
+            {currentStep === 'audience' ? (
               <button
                 onClick={onSkip}
                 className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"

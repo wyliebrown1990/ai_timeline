@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import * as chatController from '../controllers/chat';
+import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -54,7 +55,7 @@ router.get('/status', chatController.getStatus);
 /**
  * GET /api/chat/logs
  * Get recent chat logs for cost monitoring
- * Note: Should be protected in production
+ * Protected endpoint - requires admin authentication
  *
  * Query params:
  * - limit?: number (default: 100)
@@ -72,7 +73,7 @@ router.get('/status', chatController.getStatus);
  *   };
  * }
  */
-router.get('/logs', chatController.getLogs);
+router.get('/logs', requireAdmin, chatController.getLogs);
 
 /**
  * GET /api/chat/health

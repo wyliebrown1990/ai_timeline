@@ -1,8 +1,14 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { useLearningPaths } from '../../hooks/useContent';
 import { usePathProgress } from '../../hooks/usePathProgress';
 import type { LearningPath } from '../../types/learningPath';
+import type { AudienceType } from '../../types/userProfile';
 import { PathCard } from './PathCard';
+import {
+  getPathsByAudience,
+  getAudienceRecommendationReason,
+} from '../../services/pathRecommendation';
 
 interface PathSelectorProps {
   /** Callback when a path is selected */
@@ -13,6 +19,10 @@ interface PathSelectorProps {
   className?: string;
   /** Show only in-progress paths */
   showInProgressOnly?: boolean;
+  /** Audience type for filtering recommendations (Sprint 19) */
+  audienceFilter?: AudienceType;
+  /** Show recommendations section based on audience (Sprint 19) */
+  showRecommendations?: boolean;
 }
 
 /**
@@ -21,12 +31,16 @@ interface PathSelectorProps {
  * Displays a grid of learning path cards with progress indicators.
  * Allows users to browse and select paths, with visual feedback on
  * their progress through each path.
+ *
+ * Sprint 19: Now supports audience-based filtering and recommendations.
  */
 export function PathSelector({
   onSelectPath,
   filterDifficulty,
   className = '',
   showInProgressOnly = false,
+  audienceFilter,
+  showRecommendations = false,
 }: PathSelectorProps) {
   const { data: paths, isLoading } = useLearningPaths();
   const {
@@ -34,6 +48,17 @@ export function PathSelector({
     isPathCompleted,
     isPathStarted,
   } = usePathProgress();
+
+  // State for "Not what you're looking for?" toggle (Sprint 19)
+  const [showOtherPaths, setShowOtherPaths] = useState(false);
+
+  // Get audience-based path groupings (Sprint 19)
+  const audienceGroupedPaths = useMemo(() => {
+    if (!showRecommendations || !audienceFilter) {
+      return { recommended: [], other: paths };
+    }
+    return getPathsByAudience(audienceFilter);
+  }, [showRecommendations, audienceFilter, paths]);
 
   // Filter and sort paths
   const filteredPaths = useMemo(() => {
@@ -132,27 +157,106 @@ export function PathSelector({
         </div>
       )}
 
-      {/* All Paths Section */}
-      <div>
-        {!showInProgressOnly && inProgressPaths.length > 0 && (
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            All Learning Paths
-          </h3>
-        )}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPaths
-            .filter((path) => showInProgressOnly || !inProgressPaths.includes(path))
-            .map((path) => (
-              <PathCard
-                key={path.id}
-                path={path}
-                completionPercentage={getCompletionPercentage(path.id, path.milestoneIds.length)}
-                isCompleted={isPathCompleted(path.id)}
-                onClick={() => onSelectPath(path)}
-              />
-            ))}
+      {/* Recommended for You Section (Sprint 19) */}
+      {showRecommendations && audienceGroupedPaths.recommended.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-5 h-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Recommended for You
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {audienceGroupedPaths.recommended
+              .filter((path) => !inProgressPaths.some((p) => p.id === path.id))
+              .map((path) => (
+                <div key={path.id} className="relative">
+                  <PathCard
+                    path={path}
+                    completionPercentage={getCompletionPercentage(path.id, path.milestoneIds.length)}
+                    isCompleted={isPathCompleted(path.id)}
+                    onClick={() => onSelectPath(path)}
+                  />
+                  {/* Recommendation reason badge */}
+                  {audienceFilter && (
+                    <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 italic">
+                      {getAudienceRecommendationReason(path.id, audienceFilter)}
+                    </div>
+                  )}
+                </div>
+              ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Not what you're looking for? Toggle (Sprint 19) */}
+      {showRecommendations && audienceGroupedPaths.other.length > 0 && (
+        <div className="mb-6">
+          <button
+            onClick={() => setShowOtherPaths(!showOtherPaths)}
+            className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            aria-expanded={showOtherPaths}
+            data-testid="show-other-paths-toggle"
+          >
+            {showOtherPaths ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+            <span>
+              {showOtherPaths
+                ? 'Hide other paths'
+                : `Not what you're looking for? See ${audienceGroupedPaths.other.length} more paths`}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Other Paths Section (collapsed by default when recommendations shown) */}
+      {showRecommendations && showOtherPaths && audienceGroupedPaths.other.length > 0 && (
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Explore Other Paths
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {audienceGroupedPaths.other
+              .filter((path) => !inProgressPaths.some((p) => p.id === path.id))
+              .map((path) => (
+                <PathCard
+                  key={path.id}
+                  path={path}
+                  completionPercentage={getCompletionPercentage(path.id, path.milestoneIds.length)}
+                  isCompleted={isPathCompleted(path.id)}
+                  onClick={() => onSelectPath(path)}
+                />
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* All Paths Section (when recommendations not shown) */}
+      {!showRecommendations && (
+        <div>
+          {!showInProgressOnly && inProgressPaths.length > 0 && (
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+              All Learning Paths
+            </h3>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredPaths
+              .filter((path) => showInProgressOnly || !inProgressPaths.includes(path))
+              .map((path) => (
+                <PathCard
+                  key={path.id}
+                  path={path}
+                  completionPercentage={getCompletionPercentage(path.id, path.milestoneIds.length)}
+                  isCompleted={isPathCompleted(path.id)}
+                  onClick={() => onSelectPath(path)}
+                />
+              ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

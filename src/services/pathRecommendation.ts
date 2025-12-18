@@ -10,6 +10,7 @@ import type {
   UserRole,
   LearningGoal,
   TimeCommitment,
+  AudienceType,
 } from '../types/userProfile';
 import type { LearningPath } from '../types/learningPath';
 import { getLearningPaths } from '../content';
@@ -45,13 +46,15 @@ export interface PersonalizedPlan {
  * Ordered by relevance (most relevant first)
  */
 const rolePathMapping: Record<UserRole, string[]> = {
-  executive: ['ai-for-business', 'chatgpt-story', 'ai-governance'],
+  retiree: ['ai-for-everyday-life', 'chatgpt-story', 'pop-culture'],
+  culture_enthusiast: ['pop-culture', 'chatgpt-story', 'ai-governance'],
+  executive: ['ai-for-leaders', 'ai-for-business', 'ai-governance'],
   product_manager: ['chatgpt-story', 'ai-for-business', 'ai-image-generation'],
   marketing_sales: ['chatgpt-story', 'ai-for-business'],
   operations_hr: ['ai-for-business', 'ai-governance'],
   developer: ['ai-fundamentals', 'chatgpt-story', 'ai-image-generation'],
   student: ['ai-fundamentals', 'chatgpt-story', 'ai-governance'],
-  curious: ['chatgpt-story', 'ai-fundamentals'],
+  curious: ['chatgpt-story', 'ai-fundamentals', 'pop-culture'],
 };
 
 /**
@@ -59,10 +62,13 @@ const rolePathMapping: Record<UserRole, string[]> = {
  * Ordered by relevance (most relevant first)
  */
 const goalPathMapping: Record<LearningGoal, string[]> = {
-  discuss_at_work: ['chatgpt-story', 'ai-for-business'],
-  evaluate_tools: ['ai-for-business', 'chatgpt-story'],
-  hype_vs_real: ['ai-fundamentals', 'ai-governance'],
-  industry_impact: ['ai-for-business', 'ai-governance'],
+  stay_informed: ['ai-for-everyday-life', 'chatgpt-story', 'pop-culture'],
+  protect_family: ['ai-for-everyday-life'],
+  cultural_impact: ['pop-culture', 'ai-governance', 'chatgpt-story'],
+  hype_vs_real: ['ai-fundamentals', 'ai-governance', 'ai-for-everyday-life'],
+  discuss_at_work: ['chatgpt-story', 'ai-for-business', 'ai-for-leaders'],
+  evaluate_tools: ['ai-for-business', 'ai-for-leaders', 'chatgpt-story'],
+  industry_impact: ['ai-for-business', 'ai-governance', 'ai-for-leaders'],
   build_with_ai: ['ai-fundamentals', 'chatgpt-story', 'ai-image-generation'],
   career_transition: ['ai-fundamentals', 'chatgpt-story', 'ai-governance'],
 };
@@ -80,7 +86,25 @@ const timeFilterMinutes: Record<TimeCommitment, number> = {
  * Reason templates for recommendations
  */
 const reasonTemplates: Record<string, Record<string, string>> = {
+  'ai-for-everyday-life': {
+    stay_informed: 'Plain English explanations of what AI can and cannot do',
+    protect_family: 'Learn to spot AI scams and protect yourself',
+    hype_vs_real: 'Cut through the hype with practical, no-jargon explanations',
+    default: 'AI explained in plain English for everyday life',
+  },
+  'pop-culture': {
+    stay_informed: 'The headlines and drama that shaped AI\'s rise',
+    cultural_impact: 'From viral moments to labor strikes - AI\'s cultural story',
+    default: 'The drama, headlines, and controversies behind AI',
+  },
+  'ai-for-leaders': {
+    discuss_at_work: 'Strategic AI knowledge for executive conversations',
+    evaluate_tools: 'Framework for evaluating AI investments',
+    industry_impact: 'How AI transforms industries and creates opportunity',
+    default: 'Strategic AI briefings for business leaders',
+  },
   'chatgpt-story': {
+    stay_informed: 'Understand the technology everyone is talking about',
     discuss_at_work: 'Gives you talking points for AI conversations at work',
     evaluate_tools: 'Understand what powers modern AI assistants',
     build_with_ai: 'Learn the foundations of language models',
@@ -100,10 +124,12 @@ const reasonTemplates: Record<string, Record<string, string>> = {
     default: 'Perfect for business decision-makers',
   },
   'ai-image-generation': {
+    cultural_impact: 'How AI is transforming art and creativity',
     build_with_ai: 'Explore creative AI applications',
     default: 'Discover how AI creates visual content',
   },
   'ai-governance': {
+    cultural_impact: 'The ethics debates and policy battles shaping AI',
     hype_vs_real: 'Learn about AI safety and realistic expectations',
     industry_impact: 'Understand AI regulation and compliance',
     career_transition: 'Essential for AI policy and ethics roles',
@@ -256,4 +282,129 @@ export function getPathDetails(pathId: string): LearningPath | undefined {
  */
 export function getAllPaths(): LearningPath[] {
   return getLearningPaths();
+}
+
+// =============================================================================
+// Audience-Based Path Filtering (Sprint 19)
+// =============================================================================
+
+/**
+ * Map audience types to recommended path IDs
+ * Paths listed are "highly recommended" for this audience
+ */
+const audienceRecommendedPaths: Record<AudienceType, string[]> = {
+  everyday: ['ai-for-everyday-life', 'pop-culture', 'chatgpt-story'],
+  leader: ['ai-for-leaders', 'ai-for-business', 'ai-governance'],
+  technical: ['ai-fundamentals', 'chatgpt-story', 'ai-image-generation'],
+  general: ['chatgpt-story', 'ai-fundamentals', 'pop-culture'],
+};
+
+/**
+ * Map audience types to paths that are NOT recommended (deprioritized)
+ * These paths are shown lower or behind a toggle
+ */
+const audienceNotRecommendedPaths: Record<AudienceType, string[]> = {
+  everyday: ['ai-fundamentals'], // Too technical for everyday users
+  leader: ['ai-for-everyday-life'], // Too basic for leaders
+  technical: ['ai-for-everyday-life', 'pop-culture'], // Too basic for technical users
+  general: [], // General audience sees all paths equally
+};
+
+/**
+ * Check if a path is recommended for a specific audience type
+ */
+export function isPathRecommendedForAudience(
+  pathId: string,
+  audienceType: AudienceType | undefined
+): boolean {
+  if (!audienceType || audienceType === 'general') return true;
+  return audienceRecommendedPaths[audienceType]?.includes(pathId) ?? false;
+}
+
+/**
+ * Check if a path should be deprioritized for a specific audience type
+ */
+export function isPathDeprioritizedForAudience(
+  pathId: string,
+  audienceType: AudienceType | undefined
+): boolean {
+  if (!audienceType || audienceType === 'general') return false;
+  return audienceNotRecommendedPaths[audienceType]?.includes(pathId) ?? false;
+}
+
+/**
+ * Get paths filtered and sorted by audience type
+ * Returns: { recommended: LearningPath[], other: LearningPath[] }
+ */
+export function getPathsByAudience(
+  audienceType: AudienceType | undefined
+): { recommended: LearningPath[]; other: LearningPath[] } {
+  const allPaths = getLearningPaths();
+
+  if (!audienceType || audienceType === 'general') {
+    // For general audience, recommend popular paths
+    const popularPaths = ['chatgpt-story', 'ai-fundamentals', 'pop-culture'];
+    const recommended = allPaths.filter((p) => popularPaths.includes(p.id));
+    const other = allPaths.filter((p) => !popularPaths.includes(p.id));
+    return { recommended, other };
+  }
+
+  const recommendedIds = audienceRecommendedPaths[audienceType] || [];
+  const deprioritizedIds = audienceNotRecommendedPaths[audienceType] || [];
+
+  // Recommended paths in order
+  const recommended = recommendedIds
+    .map((id) => allPaths.find((p) => p.id === id))
+    .filter((p): p is LearningPath => p !== undefined);
+
+  // Other paths (not recommended and not deprioritized) sorted by difficulty
+  const otherNotDeprioritized = allPaths
+    .filter((p) => !recommendedIds.includes(p.id) && !deprioritizedIds.includes(p.id))
+    .sort((a, b) => {
+      const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
+      return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+    });
+
+  // Deprioritized paths at the end
+  const deprioritized = deprioritizedIds
+    .map((id) => allPaths.find((p) => p.id === id))
+    .filter((p): p is LearningPath => p !== undefined);
+
+  return {
+    recommended,
+    other: [...otherNotDeprioritized, ...deprioritized],
+  };
+}
+
+/**
+ * Get a descriptive reason why a path is recommended for an audience
+ */
+export function getAudienceRecommendationReason(
+  pathId: string,
+  audienceType: AudienceType
+): string {
+  const reasons: Record<AudienceType, Record<string, string>> = {
+    everyday: {
+      'ai-for-everyday-life': 'Perfect for understanding AI in plain English',
+      'pop-culture': 'The stories and headlines you\'ve heard about',
+      'chatgpt-story': 'Learn about the AI assistant everyone is talking about',
+    },
+    leader: {
+      'ai-for-leaders': 'Strategic AI knowledge for decision-makers',
+      'ai-for-business': 'How AI transforms business operations',
+      'ai-governance': 'Navigate AI regulation and compliance',
+    },
+    technical: {
+      'ai-fundamentals': 'Deep dive into how AI systems work',
+      'chatgpt-story': 'Understand the technology behind language models',
+      'ai-image-generation': 'Explore creative AI implementations',
+    },
+    general: {
+      'chatgpt-story': 'The most popular introduction to modern AI',
+      'ai-fundamentals': 'Build a solid foundation in AI concepts',
+      'pop-culture': 'AI\'s impact on society and culture',
+    },
+  };
+
+  return reasons[audienceType]?.[pathId] || 'Recommended for your learning journey';
 }

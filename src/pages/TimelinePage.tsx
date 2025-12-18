@@ -155,8 +155,11 @@ function TimelinePage() {
     return [start, end] as [Date, Date];
   }, [zoomLevel]);
 
+  // Track if initial scroll has happened
+  const hasScrolledToDefault = useRef(false);
+
   // Jump to year handler
-  const handleJumpToYear = useCallback((year: number) => {
+  const handleJumpToYear = useCallback((year: number, smooth = true) => {
     if (timelineRef.current) {
       const scrollContainer = timelineRef.current.querySelector('.overflow-x-auto');
       if (scrollContainer) {
@@ -165,10 +168,22 @@ function TimelinePage() {
         const yearRatio = (year - timeRange[0].getFullYear()) /
           (timeRange[1].getFullYear() - timeRange[0].getFullYear());
         const targetScroll = totalWidth * yearRatio - scrollContainer.clientWidth / 2;
-        scrollContainer.scrollTo({ left: Math.max(0, targetScroll), behavior: 'smooth' });
+        scrollContainer.scrollTo({ left: Math.max(0, targetScroll), behavior: smooth ? 'smooth' : 'instant' });
       }
     }
   }, [timeRange]);
+
+  // Scroll to 2017 on initial load (the transformer era)
+  useEffect(() => {
+    if (!isLoading && milestones && milestones.length > 0 && !hasScrolledToDefault.current && viewMode === 'timeline') {
+      // Small delay to ensure the timeline has rendered
+      const timer = setTimeout(() => {
+        handleJumpToYear(2017, false); // instant scroll on load
+        hasScrolledToDefault.current = true;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, milestones, viewMode, handleJumpToYear]);
 
   // Jump to earliest milestone
   const handleJumpToEarliest = useCallback(() => {

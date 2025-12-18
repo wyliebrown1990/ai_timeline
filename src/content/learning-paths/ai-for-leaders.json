@@ -1,0 +1,24 @@
+{
+  "id": "ai-for-leaders",
+  "title": "AI for Business Leaders (Boomer Edition)",
+  "description": "A strategic briefing for executives and managers. Understand what AI means for your business, where to start, and what decisions you need to make—in 30 minutes.",
+  "targetAudience": "Executives and managers who need to make AI decisions for their organizations",
+  "milestoneIds": [
+    "E2017_TRANSFORMER",
+    "E2020_GPT3",
+    "E2022_CHATGPT",
+    "E2023_GPT4",
+    "E2022_INSTRUCTGPT",
+    "E2024_EU_AI_ACT"
+  ],
+  "estimatedMinutes": 30,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["ai-for-business", "ai-governance"],
+  "keyTakeaways": [
+    "Understand what your competitors are likely doing with AI",
+    "Know where to start AI initiatives in your organization",
+    "Make informed decisions about AI investments and policies"
+  ],
+  "conceptsCovered": ["foundation-model", "llm", "rlhf", "ai-governance", "enterprise-ai"],
+  "icon": "📊"
+}
