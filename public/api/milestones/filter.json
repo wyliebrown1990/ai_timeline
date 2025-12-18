@@ -2582,12 +2582,65 @@
       ],
       "createdAt": "2025-12-18T00:20:00.000Z",
       "updatedAt": "2025-12-18T00:20:00.000Z"
+    },
+    {
+      "id": "E2026_WHERE_WE_GO_NEXT",
+      "title": "Where Do We Go Next?",
+      "description": "A deep exploration of AI's possible futures through three scenarios—optimistic, neutral, and concerning—featuring real perspectives from industry leaders like Dario Amodei, Sam Altman, Geoffrey Hinton, Yann LeCun, and Andrej Karpathy. This milestone synthesizes predictions from Anthropic's 'Machines of Loving Grace,' the 'Situational Awareness' report, and interviews with key AI researchers to map possible trajectories for artificial intelligence development.",
+      "date": "2026-12-31",
+      "category": "breakthrough",
+      "significance": 4,
+      "era": "Multimodal & Deployment",
+      "organization": "AI Timeline Atlas",
+      "contributors": [
+        "Dario Amodei",
+        "Sam Altman",
+        "Geoffrey Hinton",
+        "Yann LeCun",
+        "Andrej Karpathy",
+        "Ilya Sutskever",
+        "Leopold Aschenbrenner",
+        "Jensen Huang"
+      ],
+      "sourceUrl": "https://www.darioamodei.com/essay/machines-of-loving-grace",
+      "imageUrl": null,
+      "tags": [
+        "Future Scenarios",
+        "AGI",
+        "AI Safety",
+        "Predictions",
+        "Industry Perspectives"
+      ],
+      "sources": [
+        {
+          "label": "Machines of Loving Grace",
+          "kind": "article",
+          "url": "https://www.darioamodei.com/essay/machines-of-loving-grace"
+        },
+        {
+          "label": "Situational Awareness",
+          "kind": "article",
+          "url": "https://situational-awareness.ai/"
+        },
+        {
+          "label": "Sam Altman Reflections",
+          "kind": "article",
+          "url": "https://blog.samaltman.com/reflections"
+        },
+        {
+          "label": "Hinton Nobel Speech",
+          "kind": "media",
+          "url": "https://www.nobelprize.org/prizes/physics/2024/hinton/speech/"
+        }
+      ],
+      "createdAt": "2025-12-18T15:20:00.000Z",
+      "updatedAt": "2025-12-18T15:20:00.000Z"
     }
   ],
   "pagination": {
     "page": 1,
     "limit": 75,
-    "total": 75,
+    "total": 76,
     "totalPages": 1
   }
 }
