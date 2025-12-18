@@ -3,11 +3,13 @@ import {
   History,
   Home,
   LayoutDashboard,
+  LogOut,
   Menu,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface NavItem {
   label: string;
@@ -55,8 +57,15 @@ function getBreadcrumbs(pathname: string): { label: string; href: string }[] {
  */
 export function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const breadcrumbs = getBreadcrumbs(location.pathname);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login', { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -123,15 +132,34 @@ export function AdminLayout() {
           </ul>
         </nav>
 
-        {/* Back to site link */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
-          >
-            <Home className="h-4 w-4" />
-            Back to Timeline
-          </Link>
+        {/* Bottom section with user info and logout */}
+        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800">
+          {/* User info */}
+          {user && (
+            <div className="px-4 py-3 border-b border-gray-800">
+              <p className="text-xs text-gray-500">Logged in as</p>
+              <p className="text-sm text-gray-300 font-medium">{user.sub}</p>
+            </div>
+          )}
+
+          {/* Action links */}
+          <div className="p-4 space-y-2">
+            <Link
+              to="/"
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              <Home className="h-4 w-4" />
+              Back to Timeline
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-sm text-gray-400 hover:text-red-400 transition-colors w-full"
+              data-testid="logout-button"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
+          </div>
         </div>
       </aside>
 

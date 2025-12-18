@@ -3,8 +3,10 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
 import { ChatProvider } from './context/ChatContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
+import { AuthProvider } from './contexts/AuthContext';
 import { OnboardingWrapper } from './components/Onboarding';
 import { ApiKeyProvider, ApiKeyModal } from './components/ApiKey';
+import { ProtectedRoute } from './components/auth';
 import Layout from './components/Layout';
 import { AdminLayout } from './components/admin/AdminLayout';
 import HomePage from './pages/HomePage';
@@ -18,6 +20,7 @@ import {
   MilestonesListPage,
   CreateMilestonePage,
   EditMilestonePage,
+  LoginPage,
 } from './pages/admin';
 
 /**
@@ -74,13 +77,32 @@ function App() {
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
 
-                {/* Admin routes */}
-                <Route path="/admin" element={<AdminLayout />}>
+                {/* Admin routes - wrapped in AuthProvider for authentication */}
+                <Route
+                  path="/admin"
+                  element={
+                    <AuthProvider>
+                      <ProtectedRoute>
+                        <AdminLayout />
+                      </ProtectedRoute>
+                    </AuthProvider>
+                  }
+                >
                   <Route index element={<AdminDashboard />} />
                   <Route path="milestones" element={<MilestonesListPage />} />
                   <Route path="milestones/new" element={<CreateMilestonePage />} />
                   <Route path="milestones/:id/edit" element={<EditMilestonePage />} />
                 </Route>
+
+                {/* Admin login route - outside protected wrapper */}
+                <Route
+                  path="/admin/login"
+                  element={
+                    <AuthProvider>
+                      <LoginPage />
+                    </AuthProvider>
+                  }
+                />
               </Routes>
             </OnboardingWrapper>
             </ChatProvider>

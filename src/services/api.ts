@@ -20,6 +20,22 @@ const API_BASE = '/api';
 const IS_STATIC_API = import.meta.env.PROD || import.meta.env.VITE_USE_STATIC_API === 'true';
 
 /**
+ * Auth token storage key
+ */
+const AUTH_TOKEN_KEY = 'ai-timeline-admin-token';
+
+/**
+ * Get authorization headers from stored token
+ */
+function getAuthHeaders(): Record<string, string> {
+  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
+/**
  * Paginated response structure from API
  */
 export interface PaginatedResponse<T> {
@@ -132,31 +148,34 @@ export const milestonesApi = {
   },
 
   /**
-   * Create a new milestone
+   * Create a new milestone (requires authentication)
    */
   async create(data: CreateMilestoneDto): Promise<MilestoneResponse> {
     return fetchJson<MilestoneResponse>(`${API_BASE}/milestones`, {
       method: 'POST',
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
   },
 
   /**
-   * Update an existing milestone
+   * Update an existing milestone (requires authentication)
    */
   async update(id: string, data: UpdateMilestoneDto): Promise<MilestoneResponse> {
     return fetchJson<MilestoneResponse>(`${API_BASE}/milestones/${id}`, {
       method: 'PUT',
+      headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
   },
 
   /**
-   * Delete a milestone
+   * Delete a milestone (requires authentication)
    */
   async delete(id: string): Promise<void> {
     return fetchJson<void>(`${API_BASE}/milestones/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
   },
 
