@@ -10,79 +10,79 @@ Build the core flashcard system infrastructure: data models, state management, a
 ## Tasks
 
 ### 22.1 Data Models & Schemas
-- [ ] Create `UserFlashcard` Zod schema with spaced repetition fields
-- [ ] Create `FlashcardPack` Zod schema for custom deck organization
-- [ ] Create `FlashcardReviewSession` schema for session tracking
-- [ ] Create `FlashcardStats` schema for aggregate statistics
-- [ ] Add schemas to `src/types/flashcard.ts`
-- [ ] Export all types from types index
+- [x] Create `UserFlashcard` Zod schema with spaced repetition fields
+- [x] Create `FlashcardPack` Zod schema for custom deck organization
+- [x] Create `FlashcardReviewSession` schema for session tracking
+- [x] Create `FlashcardStats` schema for aggregate statistics
+- [x] Add schemas to `src/types/flashcard.ts`
+- [x] Export all types from types index
 
 ### 22.2 Flashcard Store Hook
-- [ ] Create `useFlashcardStore.ts` hook following `useCheckpointProgress` pattern
-- [ ] Implement localStorage persistence (`ai-timeline-flashcards` key)
-- [ ] Implement `addCard(sourceType, sourceId, packIds?)` action
-- [ ] Implement `removeCard(cardId)` action
-- [ ] Implement `getCardBySource(sourceType, sourceId)` for duplicate detection
-- [ ] Implement `getDueCards(packId?)` for review queue
-- [ ] Add migration support for schema changes
-- [ ] Write unit tests for store operations
+- [x] Create `useFlashcardStore.ts` hook following `useCheckpointProgress` pattern
+- [x] Implement localStorage persistence (`ai-timeline-flashcards` key)
+- [x] Implement `addCard(sourceType, sourceId, packIds?)` action
+- [x] Implement `removeCard(cardId)` action
+- [x] Implement `getCardBySource(sourceType, sourceId)` for duplicate detection
+- [x] Implement `getDueCards(packId?)` for review queue
+- [x] Add migration support for schema changes
+- [x] Write unit tests for store operations
 
 ### 22.3 Pack Management Functions
-- [ ] Implement `createPack(name, description?, color?)` action
-- [ ] Implement `deletePack(packId)` action
-- [ ] Implement `renamePack(packId, name)` action
-- [ ] Implement `moveCardToPack(cardId, packId)` action
-- [ ] Implement `removeCardFromPack(cardId, packId)` action
-- [ ] Create default system packs on first use ("All Cards", "Recently Added")
-- [ ] Persist packs to localStorage (`ai-timeline-flashcard-packs` key)
+- [x] Implement `createPack(name, description?, color?)` action
+- [x] Implement `deletePack(packId)` action
+- [x] Implement `renamePack(packId, name)` action
+- [x] Implement `moveCardToPack(cardId, packId)` action
+- [x] Implement `removeCardFromPack(cardId, packId)` action
+- [x] Create default system packs on first use ("All Cards", "Recently Added")
+- [x] Persist packs to localStorage (`ai-timeline-flashcard-packs` key)
 
 ### 22.4 FlashcardContext Provider
-- [ ] Create `FlashcardContext.tsx` following `UserProfileContext` pattern
-- [ ] Wrap app in provider in `App.tsx`
-- [ ] Export `useFlashcardContext()` hook for component access
-- [ ] Include computed values: `totalCards`, `dueToday`, `hasCards`
-- [ ] Add `isCardSaved(sourceType, sourceId)` helper for UI state
+- [x] Create `FlashcardContext.tsx` following `UserProfileContext` pattern
+- [x] Wrap app in provider in `App.tsx`
+- [x] Export `useFlashcardContext()` hook for component access
+- [x] Include computed values: `totalCards`, `dueToday`, `hasCards`
+- [x] Add `isCardSaved(sourceType, sourceId)` helper for UI state
 
 ### 22.5 AddToFlashcardButton Component
-- [ ] Create `src/components/Flashcards/AddToFlashcardButton.tsx`
-- [ ] Support `variant`: "icon" (just bookmark icon) or "button" (with text)
-- [ ] Support `size`: "sm", "md", "lg" for different contexts
-- [ ] Show filled bookmark if already saved, outline if not
-- [ ] Toggle save/unsave on click (single pack mode)
-- [ ] Add tooltip: "Add to Flashcards" / "Remove from Flashcards"
-- [ ] Include `data-testid` attributes for testing
+- [x] Create `src/components/Flashcards/AddToFlashcardButton.tsx`
+- [x] Support `variant`: "icon" (just bookmark icon) or "button" (with text)
+- [x] Support `size`: "sm", "md", "lg" for different contexts
+- [x] Show filled bookmark if already saved, outline if not
+- [x] Toggle save/unsave on click (single pack mode)
+- [x] Add tooltip: "Add to Flashcards" / "Remove from Flashcards"
+- [x] Include `data-testid` attributes for testing
 
 ### 22.6 PackPicker Popover Component
-- [ ] Create `src/components/Flashcards/PackPicker.tsx`
-- [ ] Show list of user's packs with checkboxes
-- [ ] Allow selecting multiple packs for a card
-- [ ] Include "Create New Pack" option at bottom
-- [ ] Quick pack creation inline (name input + create button)
-- [ ] Show pack colors as badges/dots
-- [ ] Close on outside click or Escape key
+- [x] Create `src/components/Flashcards/PackPicker.tsx`
+- [x] Show list of user's packs with checkboxes
+- [x] Allow selecting multiple packs for a card
+- [x] Include "Create New Pack" option at bottom
+- [x] Quick pack creation inline (name input + create button)
+- [x] Show pack colors as badges/dots
+- [x] Close on outside click or Escape key
 
 ### 22.7 Integration: Event Detail Panel
-- [ ] Add `AddToFlashcardButton` to milestone detail side panel
-- [ ] Position in action bar (alongside share/bookmark if present)
-- [ ] Long-press or right-click opens `PackPicker`
-- [ ] Show which packs milestone is already in
+- [x] Add `AddToFlashcardButton` to milestone detail side panel
+- [x] Position in action bar (alongside share/bookmark if present)
+- [x] Long-press or right-click opens `PackPicker`
+- [x] Show which packs milestone is already in
 
 ### 22.8 Integration: Timeline Cards
-- [ ] Add small bookmark icon to timeline event cards on hover
-- [ ] Icon appears in top-right corner of card
-- [ ] Click adds to default pack ("All Cards")
-- [ ] Shift+click or long-press opens `PackPicker`
+- [x] Add small bookmark icon to timeline event cards on hover
+- [x] Icon appears in top-right corner of card
+- [x] Click adds to default pack ("All Cards")
+- [x] Shift+click or long-press opens `PackPicker`
 
 ### 22.9 Integration: Concept Tooltips
-- [ ] Add "+" button to concept tooltip (when hovering `[[Concept]]` links)
-- [ ] One-click adds concept to default pack
-- [ ] Visual feedback: brief checkmark animation on add
+- [x] Add "+" button to concept tooltip (when hovering `[[Concept]]` links)
+- [x] One-click adds concept to default pack
+- [x] Visual feedback: brief checkmark animation on add
 
 ### 22.10 Integration: Glossary Page
-- [ ] Add `AddToFlashcardButton` to each concept card in glossary
-- [ ] Support multi-select mode for batch adding
-- [ ] "Add Selected to Pack" bulk action button
-- [ ] Show count of selected items
+- [x] Add `AddToFlashcardButton` to each concept card in glossary
+- [x] Support multi-select mode for batch adding
+- [x] "Add Selected to Pack" bulk action button
+- [x] Show count of selected items
 
 ---
 

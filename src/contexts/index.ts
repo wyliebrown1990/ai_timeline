@@ -13,3 +13,10 @@ export {
   CONTENT_LAYERS,
   type ContentLayer,
 } from './ContentLayerContext';
+
+// Flashcard context (Sprint 22)
+export {
+  FlashcardProvider,
+  useFlashcardContext,
+  type FlashcardContextType,
+} from './FlashcardContext';

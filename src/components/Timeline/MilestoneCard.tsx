@@ -1,4 +1,5 @@
 import { Building2, Calendar, ExternalLink, Users } from 'lucide-react';
+import { useState, useCallback, useRef } from 'react';
 import type { MilestoneResponse } from '../../types/milestone';
 import { SignificanceLevel } from '../../types/milestone';
 import {
@@ -8,6 +9,8 @@ import {
 } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
 import { SignificanceIndicator } from './SignificanceBadge';
+import { AddToFlashcardButton, PackPicker } from '../Flashcards';
+import { useFlashcardContext } from '../../contexts/FlashcardContext';
 
 interface MilestoneCardProps {
   /** The milestone data to display */
@@ -41,6 +44,60 @@ export function MilestoneCard({
   const isGroundbreaking = milestone.significance === SignificanceLevel.GROUNDBREAKING;
   const isMajor = milestone.significance >= SignificanceLevel.MAJOR;
 
+  // Flashcard state and context (Sprint 22)
+  const {
+    getCardBySource,
+    moveCardToPack,
+    removeCardFromPack,
+  } = useFlashcardContext();
+  const [showPackPicker, setShowPackPicker] = useState(false);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Get the flashcard for this milestone if it exists
+  const flashcard = getCardBySource('milestone', milestone.id);
+  const selectedPackIds = flashcard?.packIds ?? [];
+
+  // Handle pack toggle in PackPicker
+  const handlePackToggle = useCallback(
+    (packId: string, isSelected: boolean) => {
+      if (!flashcard) return;
+      if (isSelected) {
+        moveCardToPack(flashcard.id, packId);
+      } else {
+        removeCardFromPack(flashcard.id, packId);
+      }
+    },
+    [flashcard, moveCardToPack, removeCardFromPack]
+  );
+
+  // Handle Shift+click to open PackPicker (only if card already saved)
+  const handleFlashcardClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.shiftKey && flashcard) {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowPackPicker(true);
+      }
+    },
+    [flashcard]
+  );
+
+  // Handle long-press start (for mobile) to open PackPicker
+  const handleTouchStart = useCallback(() => {
+    if (!flashcard) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setShowPackPicker(true);
+    }, 500);
+  }, [flashcard]);
+
+  // Handle long-press end
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
+
   const handleClick = () => {
     if (onSelect) {
       onSelect(milestone.id);
@@ -53,6 +110,34 @@ export function MilestoneCard({
       handleClick();
     }
   };
+
+  // Flashcard button overlay component (reused across variants)
+  const FlashcardOverlay = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
+    <div
+      className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+      onClick={handleFlashcardClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+    >
+      <AddToFlashcardButton
+        sourceType="milestone"
+        sourceId={milestone.id}
+        variant="icon"
+        size={size}
+      />
+      {/* PackPicker popover */}
+      {showPackPicker && flashcard && (
+        <div className="absolute top-full right-0 mt-2">
+          <PackPicker
+            selectedPackIds={selectedPackIds}
+            onPackToggle={handlePackToggle}
+            onClose={() => setShowPackPicker(false)}
+          />
+        </div>
+      )}
+    </div>
+  );
 
   // Compact variant for dense timelines
   if (variant === 'compact') {
@@ -75,6 +160,9 @@ export function MilestoneCard({
           ${className}
         `.trim()}
       >
+        {/* Flashcard button overlay (Sprint 22) */}
+        <FlashcardOverlay size="sm" />
+
         {/* Category color indicator */}
         <div className={`absolute left-0 top-0 h-full w-1 rounded-l-lg ${categoryColor}`} />
 
@@ -116,6 +204,9 @@ export function MilestoneCard({
           transform: isExpanded ? 'scale(1.02)' : `scale(${scale})`,
         }}
       >
+        {/* Flashcard button overlay (Sprint 22) */}
+        <FlashcardOverlay size="md" />
+
         {/* Gradient header bar */}
         <div className={`h-2 ${categoryColor}`} />
 
@@ -218,6 +309,9 @@ export function MilestoneCard({
         borderLeftColor: isMajor ? undefined : 'transparent',
       }}
     >
+      {/* Flashcard button overlay (Sprint 22) */}
+      <FlashcardOverlay size="sm" />
+
       {/* Category color indicator */}
       <div
         className={`absolute left-0 top-0 h-full w-1 ${categoryColor} ${isMajor ? 'hidden' : ''}`}

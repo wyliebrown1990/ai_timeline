@@ -35,14 +35,14 @@ Build the Study Center - a dedicated section where users review their flashcards
 - [ ] Visual distinction for system vs custom packs
 
 ### 23.4 SM-2 Spaced Repetition Algorithm
-- [ ] Create `src/lib/spacedRepetition.ts`
-- [ ] Implement SM-2 algorithm for interval calculation
-- [ ] Support quality ratings: Again (0), Hard (3), Good (4), Easy (5)
-- [ ] Calculate new interval based on quality and ease factor
-- [ ] Update ease factor based on performance
-- [ ] Calculate next review date
-- [ ] Handle first review (initial intervals: 1 day, then 3 days)
-- [ ] Write unit tests for algorithm edge cases
+- [x] Create `src/lib/spacedRepetition.ts`
+- [x] Implement SM-2 algorithm for interval calculation
+- [x] Support quality ratings: Again (0), Hard (3), Good (4), Easy (5)
+- [x] Calculate new interval based on quality and ease factor
+- [x] Update ease factor based on performance
+- [x] Calculate next review date
+- [x] Handle first review (initial intervals: 1 day, then 3 days)
+- [x] Write unit tests for algorithm edge cases
 
 ### 23.5 Study Session Page
 - [ ] Create `src/pages/StudySessionPage.tsx`

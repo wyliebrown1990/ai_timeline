@@ -27,3 +27,6 @@ export * from './currentEvent';
 
 // User profiles - preferences and learning context
 export * from './userProfile';
+
+// Flashcard system - user flashcards with spaced repetition
+export * from './flashcard';

@@ -10,20 +10,20 @@ Create curated prebuilt flashcard decks for new users to get started quickly, pl
 ## Tasks
 
 ### 25.1 Prebuilt Deck Content Creation
-- [ ] Create "AI Essentials" deck (15 cards) - core concepts every user should know
-- [ ] Create "Transformer Era" deck (12 cards) - key milestones 2017-2020
-- [ ] Create "LLM Revolution" deck (10 cards) - GPT-3 through ChatGPT
-- [ ] Create "AI Vocabulary" deck (20 cards) - common terms and jargon
-- [ ] Create "Key Figures in AI" deck (10 cards) - important people and orgs
-- [ ] Review all card content for accuracy and clarity
-- [ ] Ensure definitions match existing glossary/milestones
+- [x] Create "AI Essentials" deck (15 cards) - core concepts every user should know
+- [x] Create "Transformer Era" deck (12 cards) - key milestones 2017-2020
+- [x] Create "LLM Revolution" deck (10 cards) - GPT-3 through ChatGPT
+- [x] Create "AI Vocabulary" deck (20 cards) - common terms and jargon
+- [x] Create "Key Figures in AI" deck (10 cards) - important people and orgs
+- [x] Review all card content for accuracy and clarity
+- [x] Ensure definitions match existing glossary/milestones
 
 ### 25.2 Prebuilt Deck Data Structure
-- [ ] Create `src/content/prebuiltDecks.ts` with deck definitions
-- [ ] Define deck metadata (name, description, difficulty, card count)
-- [ ] Reference existing milestone/concept IDs for card content
-- [ ] Add preview cards for deck discovery UI
-- [ ] Mark decks with difficulty level (beginner, intermediate)
+- [x] Create `src/content/prebuiltDecks.ts` with deck definitions
+- [x] Define deck metadata (name, description, difficulty, card count)
+- [x] Reference existing milestone/concept IDs for card content
+- [x] Add preview cards for deck discovery UI
+- [x] Mark decks with difficulty level (beginner, intermediate)
 
 ### 25.3 Deck Discovery UI
 - [ ] Create `src/components/Flashcards/DeckLibrary.tsx`

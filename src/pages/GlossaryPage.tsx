@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Search, BookOpen, Filter, X, Sparkles } from 'lucide-react';
+import { Search, BookOpen, Filter, X, Sparkles, CheckSquare, Square, Bookmark } from 'lucide-react';
 import { useOnboarding } from '../components/Onboarding';
 import { useGlossary } from '../hooks/useContent';
 import { GlossaryTermDetail } from '../components/Glossary/GlossaryTermDetail';
+import { AddToFlashcardButton } from '../components/Flashcards';
+import { useFlashcardContext } from '../contexts/FlashcardContext';
 import { GLOSSARY_CATEGORIES, GLOSSARY_CATEGORY_LABELS, type GlossaryCategory } from '../types/glossary';
 import type { GlossaryEntry } from '../types/glossary';
 
@@ -49,6 +51,13 @@ export default function GlossaryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<GlossaryCategory | 'all'>('all');
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
+
+  // Multi-select mode state (Sprint 22)
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedTermIds, setSelectedTermIds] = useState<Set<string>>(new Set());
+
+  // Flashcard context for batch operations (Sprint 22)
+  const { addCard, isCardSaved } = useFlashcardContext();
 
   // Handle URL hash for direct linking to terms
   useEffect(() => {
@@ -98,6 +107,67 @@ export default function GlossaryPage() {
     setSelectedTermId(null);
     setSearchParams({});
   };
+
+  // Toggle select mode (Sprint 22)
+  const toggleSelectMode = useCallback(() => {
+    setIsSelectMode((prev) => {
+      if (prev) {
+        // Exiting select mode - clear selections
+        setSelectedTermIds(new Set());
+      }
+      return !prev;
+    });
+  }, []);
+
+  // Toggle term selection (Sprint 22)
+  const toggleTermSelection = useCallback((termId: string) => {
+    setSelectedTermIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(termId)) {
+        newSet.delete(termId);
+      } else {
+        newSet.add(termId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Select all filtered terms (Sprint 22)
+  const selectAllFiltered = useCallback(() => {
+    const notSavedIds = filteredTerms
+      .filter((term) => !isCardSaved('concept', term.id))
+      .map((term) => term.id);
+    setSelectedTermIds(new Set(notSavedIds));
+  }, [filteredTerms, isCardSaved]);
+
+  // Clear all selections (Sprint 22)
+  const clearSelections = useCallback(() => {
+    setSelectedTermIds(new Set());
+  }, []);
+
+  // Add selected terms to flashcards (Sprint 22)
+  const addSelectedToFlashcards = useCallback(() => {
+    let addedCount = 0;
+    selectedTermIds.forEach((termId) => {
+      if (!isCardSaved('concept', termId)) {
+        const result = addCard('concept', termId);
+        if (result) addedCount++;
+      }
+    });
+
+    // Clear selections and exit select mode
+    setSelectedTermIds(new Set());
+    setIsSelectMode(false);
+
+    return addedCount;
+  }, [selectedTermIds, isCardSaved, addCard]);
+
+  // Count of terms that can be added (not already saved)
+  const addableCount = useMemo(() => {
+    return Array.from(selectedTermIds).filter(
+      (id) => !isCardSaved('concept', id)
+    ).length;
+  }, [selectedTermIds, isCardSaved]);
 
   // Find the selected term
   const selectedTerm = useMemo(
@@ -156,14 +226,39 @@ export default function GlossaryPage() {
               AI Glossary
             </h1>
           </div>
-          <button
-            onClick={openOnboarding}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            title="Get personalized learning recommendations"
-          >
-            <Sparkles className="h-4 w-4" />
-            <span className="hidden sm:inline">Personalize</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Select Mode Toggle (Sprint 22) */}
+            <button
+              onClick={toggleSelectMode}
+              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                isSelectMode
+                  ? 'border-amber-400 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-900/30 dark:text-amber-300'
+                  : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+              title={isSelectMode ? 'Exit select mode' : 'Select multiple terms to add to flashcards'}
+              data-testid="select-mode-toggle"
+            >
+              {isSelectMode ? (
+                <>
+                  <X className="h-4 w-4" />
+                  <span className="hidden sm:inline">Cancel</span>
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="h-4 w-4" />
+                  <span className="hidden sm:inline">Select</span>
+                </>
+              )}
+            </button>
+            <button
+              onClick={openOnboarding}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              title="Get personalized learning recommendations"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline">Personalize</span>
+            </button>
+          </div>
         </div>
         <p className="text-gray-600 dark:text-gray-400 max-w-2xl">
           Plain-language definitions of AI terms with business context.
@@ -282,30 +377,144 @@ export default function GlossaryPage() {
                 {letter}
               </h2>
               <div className="grid gap-3">
-                {(groupedTerms[letter] ?? []).map((term) => (
-                  <button
-                    key={term.id}
-                    onClick={() => handleTermClick(term)}
-                    className="text-left p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors group"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
-                          {term.term}
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                          {term.shortDefinition}
-                        </p>
-                      </div>
-                      <span className="shrink-0 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                        {GLOSSARY_CATEGORY_LABELS[term.category]}
-                      </span>
+                {(groupedTerms[letter] ?? []).map((term) => {
+                  const isSelected = selectedTermIds.has(term.id);
+                  const isSaved = isCardSaved('concept', term.id);
+
+                  return (
+                    <div
+                      key={term.id}
+                      className={`
+                        relative p-4 rounded-lg border transition-colors group
+                        ${isSelectMode && isSelected
+                          ? 'border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                        }
+                      `}
+                    >
+                      {/* Select mode: checkbox */}
+                      {isSelectMode ? (
+                        <button
+                          onClick={() => toggleTermSelection(term.id)}
+                          className="absolute top-4 left-4 z-10"
+                          aria-label={isSelected ? `Deselect ${term.term}` : `Select ${term.term}`}
+                          disabled={isSaved}
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          ) : isSaved ? (
+                            <CheckSquare className="w-5 h-5 text-green-500 dark:text-green-400" />
+                          ) : (
+                            <Square className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                          )}
+                        </button>
+                      ) : (
+                        /* Normal mode: flashcard button (Sprint 22) */
+                        <div
+                          className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <AddToFlashcardButton
+                            sourceType="concept"
+                            sourceId={term.id}
+                            variant="icon"
+                            size="sm"
+                          />
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => isSelectMode ? toggleTermSelection(term.id) : handleTermClick(term)}
+                        className={`text-left w-full ${isSelectMode ? 'pl-8' : ''}`}
+                        disabled={isSelectMode && isSaved}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                                {term.term}
+                              </h3>
+                              {isSaved && (
+                                <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-0.5">
+                                  <Bookmark className="w-3 h-3 fill-current" />
+                                  Saved
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                              {term.shortDefinition}
+                            </p>
+                          </div>
+                          <span className="shrink-0 px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                            {GLOSSARY_CATEGORY_LABELS[term.category]}
+                          </span>
+                        </div>
+                      </button>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </section>
           ))}
+        </div>
+      )}
+
+      {/* Bulk action bar (Sprint 22) */}
+      {isSelectMode && selectedTermIds.size > 0 && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in slide-in-from-bottom-4 duration-200"
+          data-testid="bulk-action-bar"
+        >
+          <div className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+            {/* Selection count */}
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {selectedTermIds.size} selected
+              {addableCount < selectedTermIds.size && (
+                <span className="text-gray-500 dark:text-gray-400 ml-1">
+                  ({selectedTermIds.size - addableCount} already saved)
+                </span>
+              )}
+            </span>
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Select all button */}
+            <button
+              onClick={selectAllFiltered}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+            >
+              Select all
+            </button>
+
+            {/* Clear button */}
+            <button
+              onClick={clearSelections}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+            >
+              Clear
+            </button>
+
+            {/* Divider */}
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Add to flashcards button */}
+            <button
+              onClick={addSelectedToFlashcards}
+              disabled={addableCount === 0}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors
+                ${addableCount > 0
+                  ? 'bg-amber-500 text-white hover:bg-amber-600'
+                  : 'bg-gray-200 text-gray-400 dark:bg-gray-700 dark:text-gray-500 cursor-not-allowed'
+                }
+              `}
+              data-testid="add-selected-to-flashcards"
+            >
+              <Bookmark className="w-4 h-4" />
+              Add {addableCount > 0 ? addableCount : ''} to Flashcards
+            </button>
+          </div>
         </div>
       )}
 

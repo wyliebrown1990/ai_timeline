@@ -23,6 +23,10 @@ export type {
 export { useUserProfile, getRoleDefaultExplanationLevel } from './useUserProfile';
 export type { StoredUserData, UseUserProfileReturn } from './useUserProfile';
 
+// Flashcard store hook (Sprint 22)
+export { useFlashcardStore } from './useFlashcardStore';
+export type { UseFlashcardStoreReturn } from './useFlashcardStore';
+
 // Content hooks (Sprint 8.5)
 export {
   // Learning Paths

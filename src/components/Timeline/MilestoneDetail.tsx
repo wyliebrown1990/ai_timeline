@@ -9,8 +9,9 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
 import { useChatContext } from '../../context/ChatContext';
+import { useFlashcardContext } from '../../contexts/FlashcardContext';
 import { useLayeredContent } from '../../hooks/useContent';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { MilestoneResponse, SignificanceLevel } from '../../types/milestone';
@@ -19,6 +20,7 @@ import { formatTimelineDate } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
 import { LayeredExplanationTabs, type ExplanationTab } from './LayeredExplanationTabs';
 import { SignificanceBadge } from './SignificanceBadge';
+import { AddToFlashcardButton, PackPicker } from '../Flashcards';
 
 interface MilestoneDetailProps {
   /** The milestone to display */
@@ -75,8 +77,73 @@ export function MilestoneDetail({
 }: MilestoneDetailProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const flashcardButtonRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const date = new Date(milestone.date);
   const { explainMilestone } = useChatContext();
+
+  // Flashcard context for pack management (Sprint 22)
+  const {
+    getCardBySource,
+    packs,
+    moveCardToPack,
+    removeCardFromPack,
+  } = useFlashcardContext();
+
+  // State for PackPicker popover (Sprint 22)
+  const [showPackPicker, setShowPackPicker] = useState(false);
+
+  // Get the card for this milestone if it exists
+  const flashcard = getCardBySource('milestone', milestone.id);
+  const selectedPackIds = flashcard?.packIds ?? [];
+
+  // Get pack names for tooltip display
+  const packNames = useMemo(() => {
+    if (!flashcard || flashcard.packIds.length === 0) return [];
+    return flashcard.packIds
+      .map((packId) => packs.find((p) => p.id === packId)?.name)
+      .filter(Boolean) as string[];
+  }, [flashcard, packs]);
+
+  // Handle pack toggle in PackPicker
+  const handlePackToggle = useCallback(
+    (packId: string, isSelected: boolean) => {
+      if (!flashcard) return;
+      if (isSelected) {
+        moveCardToPack(flashcard.id, packId);
+      } else {
+        removeCardFromPack(flashcard.id, packId);
+      }
+    },
+    [flashcard, moveCardToPack, removeCardFromPack]
+  );
+
+  // Handle right-click to open PackPicker
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (flashcard) {
+        setShowPackPicker(true);
+      }
+    },
+    [flashcard]
+  );
+
+  // Handle long-press start (for mobile)
+  const handleTouchStart = useCallback(() => {
+    if (!flashcard) return;
+    longPressTimerRef.current = setTimeout(() => {
+      setShowPackPicker(true);
+    }, 500); // 500ms long press
+  }, [flashcard]);
+
+  // Handle long-press end
+  const handleTouchEnd = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, []);
 
   // Get user profile for audience-based content layer (Sprint 19)
   const { profile } = useUserProfile();
@@ -186,15 +253,56 @@ export function MilestoneDetail({
             )}
           </div>
 
-          <button
-            ref={closeButtonRef}
-            onClick={onClose}
-            data-testid="detail-close-btn"
-            className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-            aria-label="Close detail view"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          {/* Action buttons - flashcard and close */}
+          <div className="flex items-center gap-1">
+            {/* Flashcard button with PackPicker (Sprint 22) */}
+            <div
+              ref={flashcardButtonRef}
+              className="relative"
+              onContextMenu={handleContextMenu}
+              onTouchStart={handleTouchStart}
+              onTouchEnd={handleTouchEnd}
+              onTouchCancel={handleTouchEnd}
+            >
+              <AddToFlashcardButton
+                sourceType="milestone"
+                sourceId={milestone.id}
+                variant="icon"
+                size="md"
+              />
+
+              {/* Pack indicator - shows which packs the milestone is in */}
+              {packNames.length > 0 && (
+                <div
+                  className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center"
+                  title={`In packs: ${packNames.join(', ')}`}
+                >
+                  {packNames.length}
+                </div>
+              )}
+
+              {/* PackPicker popover */}
+              {showPackPicker && flashcard && (
+                <div className="absolute top-full right-0 mt-2 z-50">
+                  <PackPicker
+                    selectedPackIds={selectedPackIds}
+                    onPackToggle={handlePackToggle}
+                    onClose={() => setShowPackPicker(false)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <button
+              ref={closeButtonRef}
+              onClick={onClose}
+              data-testid="detail-close-btn"
+              className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              aria-label="Close detail view"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

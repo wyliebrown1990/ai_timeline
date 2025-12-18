@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, Check } from 'lucide-react';
 import { useGlossaryTerm } from '../../hooks/useContent';
+import { useFlashcardContext } from '../../contexts/FlashcardContext';
 
 interface GlossaryTermProps {
   /** The glossary term ID to look up */
@@ -30,6 +32,31 @@ export function GlossaryTerm({ termId, children, inline = true }: GlossaryTermPr
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Flashcard context and state (Sprint 22)
+  const { isCardSaved, addCard } = useFlashcardContext();
+  const [showAddedAnimation, setShowAddedAnimation] = useState(false);
+
+  // Check if this concept is already saved as a flashcard
+  const isSaved = isCardSaved('concept', termId);
+
+  // Handle adding concept to flashcards (Sprint 22)
+  const handleAddToFlashcards = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation(); // Prevent navigating to glossary
+      e.preventDefault();
+
+      if (isSaved) return; // Already saved
+
+      const newCard = addCard('concept', termId);
+      if (newCard) {
+        // Show checkmark animation
+        setShowAddedAnimation(true);
+        setTimeout(() => setShowAddedAnimation(false), 1500);
+      }
+    },
+    [isSaved, addCard, termId]
+  );
 
   // Clean up timeout on unmount
   useEffect(() => {
@@ -152,13 +179,50 @@ export function GlossaryTerm({ termId, children, inline = true }: GlossaryTermPr
               ${tooltipPosition.placement === 'top' ? 'mb-2' : 'mt-2'}
             `}
           >
-            <p className="font-semibold text-blue-300 mb-1">{term.term}</p>
+            {/* Header with term name and add button (Sprint 22) */}
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="font-semibold text-blue-300">{term.term}</p>
+
+              {/* Add to Flashcards button */}
+              <button
+                type="button"
+                onClick={handleAddToFlashcards}
+                disabled={isSaved}
+                className={`
+                  flex-shrink-0 p-1 rounded-md
+                  transition-all duration-200
+                  ${
+                    isSaved || showAddedAnimation
+                      ? 'bg-green-500/20 text-green-400 cursor-default'
+                      : 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 hover:text-blue-300'
+                  }
+                `}
+                aria-label={isSaved ? 'Already in flashcards' : 'Add to flashcards'}
+                data-testid={`add-concept-flashcard-${termId}`}
+              >
+                {isSaved || showAddedAnimation ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Plus className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+
             <p className="text-gray-200 text-xs leading-relaxed">
               {term.shortDefinition}
             </p>
-            <p className="text-gray-400 text-xs mt-2">
-              Click to learn more
-            </p>
+
+            {/* Footer with hint text */}
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-gray-400 text-xs">
+                Click to learn more
+              </p>
+              {showAddedAnimation && (
+                <p className="text-green-400 text-xs animate-pulse">
+                  Added!
+                </p>
+              )}
+            </div>
 
             {/* Arrow */}
             <div
