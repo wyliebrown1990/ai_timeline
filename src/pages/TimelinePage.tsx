@@ -93,6 +93,7 @@ function TimelinePage() {
     setDateRange,
     setDatePreset,
     setTags,
+    toggleCategory,
     resetFilters,
     activeFilterCount,
     hasActiveFilters,
@@ -377,7 +378,12 @@ function TimelinePage() {
 
           {/* Category legend and controls */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <CategoryLegend size="sm" className="justify-start" />
+            <CategoryLegend
+              size="sm"
+              className="justify-start"
+              activeCategories={filters.categories.length > 0 ? filters.categories : undefined}
+              onCategoryClick={toggleCategory}
+            />
 
             {viewMode === 'timeline' && (
               <div className="flex items-center gap-4">

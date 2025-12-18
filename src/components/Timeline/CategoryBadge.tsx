@@ -99,23 +99,33 @@ export function CategoryBadge({
 interface CategoryLegendProps {
   /** Categories to display (defaults to all) */
   categories?: MilestoneCategory[];
+  /** Currently selected/active categories */
+  activeCategories?: MilestoneCategory[];
   /** Size of individual badges */
   size?: 'sm' | 'md' | 'lg';
   /** Orientation of the legend */
   orientation?: 'horizontal' | 'vertical';
+  /** Callback when a category is clicked */
+  onCategoryClick?: (category: MilestoneCategory) => void;
   /** Additional CSS classes */
   className?: string;
 }
 
 /**
  * A legend component showing all category badges
+ * Supports clicking to filter by category
  */
 export function CategoryLegend({
   categories = Object.values(MilestoneCategory),
+  activeCategories,
   size = 'sm',
   orientation = 'horizontal',
+  onCategoryClick,
   className = '',
 }: CategoryLegendProps) {
+  const isClickable = !!onCategoryClick;
+  const hasActiveFilter = activeCategories && activeCategories.length > 0;
+
   return (
     <div
       data-testid="category-legend"
@@ -125,9 +135,25 @@ export function CategoryLegend({
         ${className}
       `.trim()}
     >
-      {categories.map((category) => (
-        <CategoryBadge key={category} category={category} size={size} />
-      ))}
+      {categories.map((category) => {
+        const isActive = !hasActiveFilter || activeCategories?.includes(category);
+        return (
+          <button
+            key={category}
+            type="button"
+            onClick={() => onCategoryClick?.(category)}
+            disabled={!isClickable}
+            className={`
+              ${isClickable ? 'cursor-pointer hover:scale-105 transition-transform' : 'cursor-default'}
+              ${!isActive ? 'opacity-40' : ''}
+              disabled:cursor-default
+            `.trim()}
+            title={isClickable ? `Filter by ${categoryLabels[category]}` : undefined}
+          >
+            <CategoryBadge category={category} size={size} />
+          </button>
+        );
+      })}
     </div>
   );
 }
