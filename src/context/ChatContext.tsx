@@ -58,8 +58,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
   // Get user profile for personalized AI responses
   const { profile } = useUserProfileContext();
 
-  // Get API key context for authentication
-  const { promptForKey } = useApiKeyContext();
+  // Get API key context for authentication (unused but keep for potential future use)
+  useApiKeyContext();
 
   // Track if user has AI access (own key OR free tier)
   const [hasAIAccess, setHasAIAccess] = useState(() => apiKeyService.hasAIAccess());
@@ -103,20 +103,20 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
   /**
    * Wrap sendMessage to check for API key first
-   * Prompts user for key if not configured (for own key users)
-   * Free tier users can send directly
+   * Redirects to settings if no API access configured
    */
   const sendMessage = useCallback(
     (message: string) => {
       // Re-check access in case it changed
       const currentAccess = apiKeyService.hasAIAccess();
       if (!currentAccess) {
-        promptForKey();
+        // Redirect to settings page to configure API access
+        window.location.href = '/settings';
         return;
       }
       sendMessageInternal(message);
     },
-    [promptForKey, sendMessageInternal]
+    [sendMessageInternal]
   );
 
   const contextValue: ChatContextValue = {
