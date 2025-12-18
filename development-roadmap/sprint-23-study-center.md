@@ -1,0 +1,402 @@
+# Sprint 23: Study Center & Session UI
+
+**Impact**: High | **Effort**: High | **Dependencies**: Sprint 22 (Flashcard Infrastructure)
+
+## Overview
+Build the Study Center - a dedicated section where users review their flashcards, manage packs, and track progress. Includes the core study session experience with the SM-2 spaced repetition algorithm for optimal learning.
+
+---
+
+## Tasks
+
+### 23.1 Navigation Integration
+- [ ] Add "Study" link to main navigation header
+- [ ] Show badge with due card count when > 0
+- [ ] Add `/study` route to React Router
+- [ ] Add sub-routes: `/study/session/:packId?`, `/study/packs/:packId`
+- [ ] Mobile: Add Study to bottom navigation or hamburger menu
+
+### 23.2 Study Dashboard Page
+- [ ] Create `src/pages/StudyPage.tsx` as main Study Center
+- [ ] Create `src/components/Flashcards/StudyDashboard.tsx`
+- [ ] Display "Cards Due Today" prominent call-to-action
+- [ ] Show current streak with fire emoji
+- [ ] Display grid of user's packs with due counts
+- [ ] "Start Studying" button → begins session with all due cards
+- [ ] Empty state for users with no flashcards yet
+- [ ] Quick stats summary (total cards, mastered, etc.)
+
+### 23.3 Pack Cards Display
+- [ ] Create `src/components/Flashcards/PackCard.tsx`
+- [ ] Show pack name with color indicator
+- [ ] Display total cards and due cards count
+- [ ] Click navigates to pack detail or starts study session
+- [ ] "Study This Pack" quick action button
+- [ ] Visual distinction for system vs custom packs
+
+### 23.4 SM-2 Spaced Repetition Algorithm
+- [ ] Create `src/lib/spacedRepetition.ts`
+- [ ] Implement SM-2 algorithm for interval calculation
+- [ ] Support quality ratings: Again (0), Hard (3), Good (4), Easy (5)
+- [ ] Calculate new interval based on quality and ease factor
+- [ ] Update ease factor based on performance
+- [ ] Calculate next review date
+- [ ] Handle first review (initial intervals: 1 day, then 3 days)
+- [ ] Write unit tests for algorithm edge cases
+
+### 23.5 Study Session Page
+- [ ] Create `src/pages/StudySessionPage.tsx`
+- [ ] Create `src/components/Flashcards/StudySession.tsx`
+- [ ] Accept optional `packId` param (null = all due cards)
+- [ ] Fetch due cards for session
+- [ ] Shuffle cards at session start
+- [ ] Track session state: current card index, answers given
+
+### 23.6 Flashcard Display Component
+- [ ] Enhance existing `FlashcardDeck.tsx` or create `StudyCard.tsx`
+- [ ] Front: Term/title (+ date for milestones)
+- [ ] Back: Definition/description + "Why it mattered" for milestones
+- [ ] Flip animation (CSS 3D transform, existing pattern)
+- [ ] Show card source indicator (milestone icon vs concept icon)
+- [ ] "View Full Details" link to original milestone/concept page
+
+### 23.7 Answer Rating UI
+- [ ] Create rating buttons: "Again", "Hard", "Good", "Easy"
+- [ ] Show only after card is flipped
+- [ ] Color-code buttons (red, orange, green, blue)
+- [ ] Keyboard shortcuts: 1, 2, 3, 4 for ratings
+- [ ] Brief explanation of each rating on hover/long-press
+- [ ] Record answer and advance to next card
+
+### 23.8 Session Progress Indicator
+- [ ] Show "Card X of Y" progress
+- [ ] Progress bar visualization
+- [ ] Count of cards remaining
+- [ ] Count of "Again" cards (will repeat at end)
+- [ ] Estimated time remaining (avg 10s per card)
+
+### 23.9 Session Completion Screen
+- [ ] Show when all cards reviewed (including repeats)
+- [ ] Display session stats: total reviewed, correct rate
+- [ ] Show streak update ("5 day streak! 🔥")
+- [ ] "Review Weak Cards" button if any marked "Again"
+- [ ] "Back to Study Center" button
+- [ ] Encouraging message based on performance
+- [ ] Save session to history
+
+### 23.10 Pack Management Page
+- [ ] Create `src/pages/PackDetailPage.tsx`
+- [ ] Create `src/components/Flashcards/PackManager.tsx`
+- [ ] List all cards in pack with preview
+- [ ] Remove card from pack (swipe or button)
+- [ ] Edit pack name and color
+- [ ] Delete pack (with confirmation, moves cards to "All Cards")
+- [ ] "Study This Pack" action button
+- [ ] Sort options: Date added, Next review, Alphabetical
+
+### 23.11 Create Pack Modal
+- [ ] Create `src/components/Flashcards/CreatePackModal.tsx`
+- [ ] Name input with validation (1-50 chars, unique)
+- [ ] Optional description textarea
+- [ ] Color picker (8 preset colors)
+- [ ] Create button disabled until valid name entered
+- [ ] Success feedback and redirect to pack or close
+
+---
+
+## Data Structures
+
+### SM-2 Algorithm Implementation
+```typescript
+// src/lib/spacedRepetition.ts
+
+export type QualityRating = 0 | 1 | 2 | 3 | 4 | 5
+// 0 = Again (complete failure)
+// 3 = Hard (correct with difficulty)
+// 4 = Good (correct with hesitation)
+// 5 = Easy (perfect response)
+
+export interface SM2Result {
+  easeFactor: number
+  interval: number
+  repetitions: number
+  nextReviewDate: string
+}
+
+export function calculateSM2(
+  quality: QualityRating,
+  currentEaseFactor: number,
+  currentInterval: number,
+  currentRepetitions: number
+): SM2Result {
+  // If quality < 3, reset repetitions (failed recall)
+  if (quality < 3) {
+    return {
+      easeFactor: currentEaseFactor,
+      interval: 1, // Review again tomorrow
+      repetitions: 0,
+      nextReviewDate: addDays(new Date(), 1).toISOString(),
+    }
+  }
+
+  // Update ease factor
+  const newEaseFactor = Math.max(
+    1.3,
+    currentEaseFactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+  )
+
+  // Calculate new interval
+  let newInterval: number
+  if (currentRepetitions === 0) {
+    newInterval = 1
+  } else if (currentRepetitions === 1) {
+    newInterval = 3
+  } else {
+    newInterval = Math.round(currentInterval * newEaseFactor)
+  }
+
+  // Bonus for "Easy"
+  if (quality === 5) {
+    newInterval = Math.round(newInterval * 1.3)
+  }
+
+  return {
+    easeFactor: newEaseFactor,
+    interval: newInterval,
+    repetitions: currentRepetitions + 1,
+    nextReviewDate: addDays(new Date(), newInterval).toISOString(),
+  }
+}
+
+function addDays(date: Date, days: number): Date {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
+```
+
+### Session State
+```typescript
+interface StudySessionState {
+  packId: string | null
+  cards: UserFlashcard[]
+  currentIndex: number
+  isFlipped: boolean
+  answers: Map<string, QualityRating> // cardId -> rating
+  againCards: string[] // cardIds to repeat at end
+  startedAt: string
+  phase: 'studying' | 'reviewing_again' | 'complete'
+}
+```
+
+---
+
+## UI Components
+
+### Study Dashboard
+```
+┌─────────────────────────────────────────────────────────────┐
+│  📚 Study Center                              [+ New Pack]  │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌───────────────────┐                                      │
+│  │       12          │   Today's Progress                   │
+│  │    cards due      │   ████████░░░░░░░░  12/20 reviewed   │
+│  │                   │   🔥 5 day streak                    │
+│  │  [Start Studying] │                                      │
+│  └───────────────────┘                                      │
+│                                                             │
+│  Your Packs                                                 │
+│  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐   │
+│  │ 🔵 All Cards   │ │ 🟣 Transformers│ │ 🟠 Weak Spots  │   │
+│  │    47 cards    │ │    12 cards    │ │    8 cards     │   │
+│  │    5 due       │ │    3 due       │ │    4 due       │   │
+│  │ [Study]        │ │ [Study]        │ │ [Study]        │   │
+│  └────────────────┘ └────────────────┘ └────────────────┘   │
+│                                                             │
+│  Quick Stats                                                │
+│  • 23 cards mastered (review interval > 21 days)           │
+│  • 89% retention this week                                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Study Session - Card Front
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ← Exit          Card 3 of 12          ████████░░░░  25%    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│                                                             │
+│                    📅 Milestone                             │
+│                                                             │
+│                      GPT-3                                  │
+│                    June 2020                                │
+│                                                             │
+│                                                             │
+│                                                             │
+│                                                             │
+│                  (tap to reveal)                            │
+│                                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Study Session - Card Back (Flipped)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ← Exit          Card 3 of 12          ████████░░░░  25%    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  GPT-3: Language Models are Few-Shot Learners               │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│  OpenAI demonstrates that scaling language models to 175B   │
+│  parameters enables "few-shot learning" - the ability to    │
+│  perform tasks from just a few examples without fine-tuning.│
+│                                                             │
+│  Why it mattered: Showed that scale alone could unlock      │
+│  emergent capabilities, fundamentally changing AI research  │
+│  strategy toward bigger models.                             │
+│                                                             │
+│                                           [View Details →]  │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│  How well did you know this?                                │
+│  [Again]     [Hard]      [Good]      [Easy]                 │
+│   < 1 day    < 3 days    < 7 days    < 14 days              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Session Complete
+```
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│                         🎉                                  │
+│                   Session Complete!                         │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│              12 cards reviewed                              │
+│              9 correct (75%)                                │
+│              3 to review again                              │
+│                                                             │
+│              🔥 5 day streak!                               │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│         [Review Weak Cards (3)]                             │
+│         [Back to Study Center]                              │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Pack Manager
+```
+┌─────────────────────────────────────────────────────────────┐
+│  ← Back          🟣 Transformer Era           [Study Pack]  │
+├─────────────────────────────────────────────────────────────┤
+│  12 cards • Created Dec 15                                  │
+│                                                             │
+│  Sort: [Date Added ▾]                                       │
+│  ─────────────────────────────────────────────────────────  │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 📅 Transformer (2017)                          [✕]  │   │
+│  │    Due: Tomorrow                                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 📖 Self-Attention                              [✕]  │   │
+│  │    Due: In 3 days                                    │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ 📅 BERT (2018)                                 [✕]  │   │
+│  │    Due: In 7 days                                    │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ─────────────────────────────────────────────────────────  │
+│  [Edit Pack]                              [Delete Pack]     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## File Structure
+
+```
+src/
+├── pages/
+│   ├── StudyPage.tsx             # Main /study route
+│   ├── StudySessionPage.tsx      # /study/session/:packId?
+│   └── PackDetailPage.tsx        # /study/packs/:packId
+├── components/
+│   └── Flashcards/
+│       ├── StudyDashboard.tsx
+│       ├── StudySession.tsx
+│       ├── StudyCard.tsx
+│       ├── RatingButtons.tsx
+│       ├── SessionProgress.tsx
+│       ├── SessionComplete.tsx
+│       ├── PackCard.tsx
+│       ├── PackManager.tsx
+│       ├── CreatePackModal.tsx
+│       └── index.ts
+├── lib/
+│   └── spacedRepetition.ts       # SM-2 algorithm
+```
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `Space` | Flip card |
+| `1` | Rate "Again" |
+| `2` | Rate "Hard" |
+| `3` | Rate "Good" |
+| `4` | Rate "Easy" |
+| `Escape` | Exit session (with confirmation) |
+
+---
+
+## Success Criteria
+- [ ] Study Center accessible from main navigation
+- [ ] Due card count badge shows in nav when > 0
+- [ ] Can start study session from dashboard
+- [ ] Can study specific pack
+- [ ] Cards flip with animation
+- [ ] Rating buttons appear after flip
+- [ ] SM-2 algorithm correctly updates intervals
+- [ ] "Again" cards repeat at end of session
+- [ ] Session completion shows accurate stats
+- [ ] Streak tracking works correctly
+- [ ] Can view and manage cards in packs
+- [ ] Can delete cards from packs
+- [ ] Can edit and delete custom packs
+- [ ] Keyboard shortcuts work
+- [ ] Mobile-friendly (touch to flip, tap ratings)
+
+---
+
+## Deployment Checklist
+
+### Pre-Deployment
+- [ ] `npm run typecheck` passes
+- [ ] `npm run build` succeeds
+- [ ] SM-2 algorithm has unit tests
+- [ ] All routes accessible
+- [ ] Tested on mobile viewport
+
+### Production Verification
+- [ ] Navigate to /study from main nav
+- [ ] Add some flashcards if needed
+- [ ] Start a study session
+- [ ] Flip cards and rate them
+- [ ] Complete session and verify stats
+- [ ] Check streak updates correctly
+- [ ] Create and manage a custom pack
+- [ ] Test on mobile device
