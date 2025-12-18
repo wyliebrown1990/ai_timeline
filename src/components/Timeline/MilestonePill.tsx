@@ -53,7 +53,10 @@ export function MilestonePill({
   };
 
   return (
-    <div className={`relative ${showHoverCard ? 'z-50' : 'z-0'}`}>
+    <div
+      className="relative"
+      style={{ zIndex: showHoverCard ? 9999 : 'auto' }}
+    >
       <button
         type="button"
         data-testid={`milestone-pill-${milestone.id}`}
@@ -100,14 +103,18 @@ export function MilestonePill({
         )}
       </button>
 
-      {/* Hover preview card */}
+      {/* Hover preview card - positioned using fixed to escape overflow clipping */}
       {showPreview && showHoverCard && (
         <div
           className="
-            absolute bottom-full left-0 mb-2
-            z-50 pointer-events-none
+            absolute left-0 mb-2
+            pointer-events-none
             animate-in fade-in-0 zoom-in-95 slide-in-from-bottom-2 duration-200
           "
+          style={{
+            bottom: '100%',
+            zIndex: 9999,
+          }}
         >
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-3 w-64">
             {/* Category bar */}

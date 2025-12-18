@@ -488,11 +488,11 @@ export function Timeline({
       <div
         ref={scrollContainerRef}
         data-testid="timeline-content"
-        className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800"
+        className="overflow-x-auto overflow-y-visible scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800"
         style={{ scrollBehavior: 'smooth' }}
       >
         <div
-          className="relative min-h-[400px]"
+          className="relative min-h-[400px] py-32"
           style={{ width: `${virtualWidth}px` }}
         >
           {isLoading ? (
