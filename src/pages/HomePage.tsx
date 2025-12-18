@@ -41,6 +41,11 @@ function HomePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-orange-50 to-white py-16 dark:from-gray-800 dark:to-gray-900 sm:py-24">
         <div className="container-main text-center">
+          <img
+            src="/logo.png"
+            alt="AI Timeline"
+            className="mx-auto mb-8 h-24 w-24 rounded-2xl shadow-lg sm:h-32 sm:w-32"
+          />
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
             The History of{' '}
             <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
