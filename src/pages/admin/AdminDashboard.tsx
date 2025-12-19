@@ -1,14 +1,41 @@
-import { BarChart3, Clock, Plus, TrendingUp } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { BarChart3, ClipboardCheck, Clock, Newspaper, Plus, Rss, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAdminMilestones } from '../../hooks/useAdminMilestones';
 import { MilestoneCategory } from '../../types/milestone';
 import { categoryLabels } from '../../utils/timelineUtils';
+import { reviewApi, sourcesApi, type QueueCounts, type NewsSource } from '../../services/api';
 
 /**
  * Admin dashboard with overview statistics and quick actions
  */
 export function AdminDashboard() {
   const { milestones, isLoading } = useAdminMilestones();
+  const [reviewCounts, setReviewCounts] = useState<QueueCounts | null>(null);
+  const [sources, setSources] = useState<NewsSource[]>([]);
+
+  const loadReviewCounts = useCallback(async () => {
+    try {
+      const counts = await reviewApi.getCounts();
+      setReviewCounts(counts);
+    } catch (error) {
+      console.error('Failed to load review counts:', error);
+    }
+  }, []);
+
+  const loadSources = useCallback(async () => {
+    try {
+      const response = await sourcesApi.getAll();
+      setSources(response.data);
+    } catch (error) {
+      console.error('Failed to load sources:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReviewCounts();
+    loadSources();
+  }, [loadReviewCounts, loadSources]);
 
   // Calculate statistics
   const stats = {
@@ -116,6 +143,66 @@ export function AdminDashboard() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Review Queue and Pipeline Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Pending Review */}
+        <Link
+          to="/admin/review"
+          className="bg-white rounded-xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0 p-3 bg-amber-100 rounded-lg">
+              <ClipboardCheck className="h-6 w-6 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Pending Review</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {reviewCounts?.total ?? '—'}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 text-sm text-blue-600 font-medium">
+            Go to Review Queue →
+          </div>
+        </Link>
+
+        {/* Published This Week */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg">
+              <Newspaper className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Published This Week</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {reviewCounts?.publishedThisWeek ?? '—'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Active Sources */}
+        <Link
+          to="/admin/sources"
+          className="bg-white rounded-xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-sm transition-all"
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0 p-3 bg-purple-100 rounded-lg">
+              <Rss className="h-6 w-6 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Active Sources</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {sources.filter(s => s.isActive).length}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 text-sm text-blue-600 font-medium">
+            Manage Sources →
+          </div>
+        </Link>
       </div>
 
       {/* Two column layout */}

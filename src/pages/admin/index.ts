@@ -7,3 +7,4 @@ export { ApiMonitoringPage } from './ApiMonitoringPage';
 export { SourcesPage } from './SourcesPage';
 export { IngestedArticlesPage } from './IngestedArticlesPage';
 export { ArticleDetailPage } from './ArticleDetailPage';
+export { ReviewQueuePage } from './ReviewQueuePage';

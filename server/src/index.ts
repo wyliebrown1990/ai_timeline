@@ -9,6 +9,7 @@ import milestonesRoutes from './routes/milestones';
 import chatRoutes from './routes/chat';
 import sourcesRoutes from './routes/sources';
 import articlesRoutes from './routes/articles';
+import reviewRoutes from './routes/review';
 
 /**
  * Create and configure the Express application
@@ -68,6 +69,7 @@ export function createApp() {
   app.use('/api/chat', chatRoutes);
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
+  app.use('/api/admin/review', reviewRoutes);
 
   // Error handling
   app.use(notFoundHandler);

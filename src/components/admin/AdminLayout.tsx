@@ -1,6 +1,7 @@
 import {
   Activity,
   ChevronRight,
+  ClipboardCheck,
   FileText,
   History,
   Home,
@@ -25,6 +26,11 @@ const navItems: NavItem[] = [
     label: 'Dashboard',
     href: '/admin',
     icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    label: 'Review Queue',
+    href: '/admin/review',
+    icon: <ClipboardCheck className="h-5 w-5" />,
   },
   {
     label: 'Milestones',

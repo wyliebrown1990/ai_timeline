@@ -4,9 +4,9 @@
 
 ## Overview
 
-Complete the automated pipeline with scheduled ingestion, glossary publishing, and monitoring. After this sprint, the system runs autonomously with admin review as the only manual step.
+Complete the automated pipeline with scheduled ingestion, duplicate detection, glossary publishing, and monitoring. After this sprint, the system runs autonomously with admin review as the only manual step.
 
-**Goal**: Fully automated ingestion on schedule, glossary integration, and operational monitoring.
+**Goal**: Fully automated daily ingestion at midnight EST, cross-source duplicate detection, glossary integration, and operational monitoring.
 
 ---
 
@@ -15,12 +15,13 @@ Complete the automated pipeline with scheduled ingestion, glossary publishing, a
 ### 32.1 Scheduled Ingestion - Lambda + EventBridge
 - [ ] Create EventBridge rule for scheduled execution
 - [ ] Create separate Lambda function for ingestion (or reuse existing)
-- [ ] Schedule: Check sources every 60 minutes
+- [ ] **Schedule: Once daily at midnight EST (5:00 AM UTC)**
 - [ ] Logic per run:
   - Get all active sources
-  - Fetch new articles from each
-  - Store new articles
-  - Queue for analysis
+  - Fetch new articles from each source sequentially
+  - Store new articles with `pending` status
+  - After ALL sources complete, trigger duplicate detection
+  - Then queue new articles for analysis
 - [ ] Add CloudWatch logging for monitoring
 
 ```yaml
@@ -29,20 +30,182 @@ IngestionScheduleRule:
   Type: AWS::Events::Rule
   Properties:
     Name: ai-timeline-ingestion-schedule
-    ScheduleExpression: "rate(1 hour)"
+    # Midnight EST = 5:00 AM UTC (or 4:00 AM during daylight saving)
+    ScheduleExpression: "cron(0 5 * * ? *)"
     State: ENABLED
     Targets:
       - Id: IngestionLambda
         Arn: !GetAtt IngestionFunction.Arn
 ```
 
-### 32.2 Scheduled Analysis
-- [ ] After ingestion, trigger analysis for new articles
-- [ ] Or: Separate scheduled job for analysis (every 2 hours)
-- [ ] Rate limit Claude API calls (max N per run)
+### 32.2 Cross-Source Duplicate Detection
+- [ ] Create `server/src/services/ingestion/duplicateDetector.ts`
+- [ ] Run after ALL sources have been fetched (not per-source)
+- [ ] Detection strategy:
+  - Compare articles ingested in the same batch (last 24 hours)
+  - Match by: title similarity (>80% Levenshtein) OR same external URLs referenced
+  - Use AI (Haiku) for fuzzy matching on content if titles differ but content overlaps
+- [ ] Add database fields for duplicate tracking:
+
+```prisma
+model IngestedArticle {
+  // ... existing fields
+
+  // Duplicate detection (Sprint 32)
+  isDuplicate       Boolean   @default(false)
+  duplicateOfId     String?   // Points to the "primary" article
+  duplicateOf       IngestedArticle? @relation("DuplicateOf", fields: [duplicateOfId], references: [id])
+  duplicates        IngestedArticle[] @relation("DuplicateOf")
+  duplicateScore    Float?    // 0-1 similarity score
+  duplicateReason   String?   // "title_match" | "content_match" | "url_match"
+}
+```
+
+- [ ] Duplicate detection logic:
+  1. Fetch all articles from the last ingestion batch
+  2. Group by source (articles from same source can't be duplicates of each other)
+  3. For each pair across sources:
+     - Calculate title similarity
+     - If >80% similar OR same URLs mentioned: mark as potential duplicate
+     - Use Haiku to confirm if content describes same news
+  4. Mark the LATER article as `isDuplicate=true`, pointing to the earlier one
+  5. Both articles remain in pending queue with duplicate flag visible
+
+```typescript
+// server/src/services/ingestion/duplicateDetector.ts
+interface DuplicateMatch {
+  articleId: string;
+  duplicateOfId: string;
+  score: number;
+  reason: 'title_match' | 'content_match' | 'url_match';
+}
+
+async function detectDuplicates(batchDate: Date): Promise<DuplicateMatch[]> {
+  // Get articles from last 24 hours, grouped by source
+  const articles = await prisma.ingestedArticle.findMany({
+    where: {
+      ingestedAt: { gte: batchDate },
+      isDuplicate: false
+    },
+    include: { source: true }
+  });
+
+  // Group by source
+  const bySource = groupBy(articles, a => a.sourceId);
+  const sources = Object.keys(bySource);
+
+  const matches: DuplicateMatch[] = [];
+
+  // Compare across sources only
+  for (let i = 0; i < sources.length; i++) {
+    for (let j = i + 1; j < sources.length; j++) {
+      const sourceA = bySource[sources[i]];
+      const sourceB = bySource[sources[j]];
+
+      for (const articleA of sourceA) {
+        for (const articleB of sourceB) {
+          const similarity = await comparArticles(articleA, articleB);
+          if (similarity.isDuplicate) {
+            // Earlier article is primary, later is duplicate
+            const [primary, duplicate] = articleA.publishedAt < articleB.publishedAt
+              ? [articleA, articleB]
+              : [articleB, articleA];
+
+            matches.push({
+              articleId: duplicate.id,
+              duplicateOfId: primary.id,
+              score: similarity.score,
+              reason: similarity.reason
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return matches;
+}
+```
+
+### 32.3 Duplicate Detection AI Prompt (Haiku)
+- [ ] Create prompt for fuzzy content matching
+- [ ] Only called when title similarity is 50-80% (ambiguous zone)
+
+```typescript
+const DUPLICATE_CHECK_PROMPT = `Compare these two news articles and determine if they describe the SAME news event.
+
+Article A:
+Title: {{titleA}}
+Source: {{sourceA}}
+Published: {{dateA}}
+Content: {{contentA}}
+
+Article B:
+Title: {{titleB}}
+Source: {{sourceB}}
+Published: {{dateB}}
+Content: {{contentB}}
+
+Return JSON:
+{
+  "isSameEvent": <true if both articles describe the same news event>,
+  "confidence": <0.0-1.0>,
+  "reason": "<brief explanation>"
+}
+
+Note: Different sources may use different headlines for the same story.
+Focus on: Is this the SAME news event being reported?`;
+```
+
+### 32.4 Frontend: Duplicate Flagging in Articles List
+- [ ] Add `isDuplicate` indicator to article cards
+- [ ] Show link to the matching article
+- [ ] Add filter: "Show duplicates only"
+- [ ] Visual treatment: slightly dimmed card with "Duplicate" badge
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ ⚠️ DUPLICATE                                    Relevance: 0.85│
+│ "OpenAI Announces GPT-5 Preview"                               │
+│ Source: Forward Future AI • Dec 19, 2024                       │
+│                                                                 │
+│ 🔗 Duplicate of: "GPT-5 Released Today" (The Neuron Daily)     │
+│    Similarity: 92% (title_match)                               │
+│                                                                 │
+│ [View Original]    [Keep This One]    [Delete]                 │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### 32.5 Frontend: Delete from Pending Queue
+- [ ] Add "Delete" button to article cards in pending queue
+- [ ] Confirmation modal: "Delete this article? This cannot be undone."
+- [ ] API endpoint: `DELETE /api/admin/articles/:id`
+- [ ] Deleting a duplicate: removes article and clears duplicate links
+- [ ] Deleting a primary: if duplicates exist, promote oldest duplicate to primary
+- [ ] Bulk delete: "Delete All Duplicates" button (keeps primary articles)
+
+```typescript
+// API Endpoints
+router.delete('/articles/:id', requireAdmin, deleteArticle);
+router.post('/articles/delete-duplicates', requireAdmin, deleteAllDuplicates);
+```
+
+### 32.6 Scheduled Analysis
+- [ ] Run analysis AFTER duplicate detection completes
+- [ ] Skip articles marked as `isDuplicate=true` (don't waste API calls)
+- [ ] Rate limit Claude API calls (max 20 per run)
 - [ ] Skip articles already analyzed
 
-### 32.3 Glossary API - Migrate from Static JSON
+```
+Pipeline Order (Daily at Midnight EST):
+1. Fetch from Source A → Store articles
+2. Fetch from Source B → Store articles
+3. Run duplicate detection → Mark duplicates
+4. Run analysis on non-duplicate pending articles (limit 20)
+5. Log results to CloudWatch
+```
+
+### 32.7 Glossary API - Migrate from Static JSON
 - [ ] Add `GlossaryTerm` model to Prisma schema
 - [ ] Create migration script to import existing terms.json
 - [ ] Create CRUD API endpoints:
@@ -70,7 +233,7 @@ model GlossaryTerm {
 }
 ```
 
-### 32.4 Glossary Publishing
+### 32.8 Glossary Publishing
 - [ ] Update `newsPublisher.ts` pattern for glossary
 - [ ] Create `server/src/services/publishing/glossaryPublisher.ts`
 - [ ] On approve:
@@ -79,7 +242,7 @@ model GlossaryTerm {
   - Insert into database
   - Update draft status
 
-### 32.5 Glossary Admin Page
+### 32.9 Glossary Admin Page
 - [ ] Create `src/pages/admin/GlossaryAdminPage.tsx`
 - [ ] Add route `/admin/glossary`
 - [ ] List all terms with search/filter
@@ -87,9 +250,9 @@ model GlossaryTerm {
 - [ ] Show source (manual vs. AI-generated)
 - [ ] Bulk import from JSON (for migration)
 
-### 32.6 Ingestion Monitoring Dashboard
+### 32.10 Ingestion Monitoring Dashboard
 - [ ] Add ingestion stats to admin dashboard
-- [ ] Show: Last run time, articles fetched, errors
+- [ ] Show: Last run time, articles fetched, duplicates found, errors
 - [ ] Per-source stats: success rate, last checked
 - [ ] Analysis pipeline stats: pending, analyzed, error rate
 - [ ] CloudWatch metrics integration
@@ -98,32 +261,34 @@ model GlossaryTerm {
 ┌────────────────────────────────────────────────────────────────┐
 │ Ingestion Pipeline Status                                       │
 ├────────────────────────────────────────────────────────────────┤
-│ Last run: 15 minutes ago                          [Run Now]    │
+│ Last run: Dec 19 at 12:00 AM EST                   [Run Now]   │
+│ Next run: Dec 20 at 12:00 AM EST                               │
 │                                                                 │
-│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐             │
-│ │ Fetched      │ │ Analyzed     │ │ Pending      │             │
-│ │ Today        │ │ Today        │ │ Review       │             │
-│ │    8         │ │    6         │ │    4         │             │
-│ └──────────────┘ └──────────────┘ └──────────────┘             │
+│ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────┐│
+│ │ Fetched      │ │ Duplicates   │ │ Analyzed     │ │ Pending  ││
+│ │ Today        │ │ Found        │ │ Today        │ │ Review   ││
+│ │    12        │ │    3         │ │    9         │ │    6     ││
+│ └──────────────┘ └──────────────┘ └──────────────┘ └──────────┘│
 │                                                                 │
 │ Source Health                                                   │
-│ ● The Neuron Daily    Last: 15m ago    OK                      │
-│ ● Forward Future AI   Last: 1h ago     OK                      │
+│ ● The Neuron Daily    Last: 12:01 AM    6 articles    OK       │
+│ ● Forward Future AI   Last: 12:02 AM    6 articles    OK       │
 └────────────────────────────────────────────────────────────────┘
 ```
 
-### 32.7 Error Handling & Alerts
+### 32.11 Error Handling & Alerts
 - [ ] Add error tracking for failed fetches
 - [ ] Add error tracking for failed analyses
-- [ ] Retry logic for transient failures
+- [ ] Retry logic for transient failures (max 3 retries)
 - [ ] CloudWatch alarm for sustained failures
 - [ ] (Optional) Email notification on critical errors
 
-### 32.8 Admin Controls
+### 32.12 Admin Controls
 - [ ] Pause/resume ingestion toggle
 - [ ] Pause/resume analysis toggle
 - [ ] Per-source enable/disable
 - [ ] Manual "fetch now" and "analyze now" buttons
+- [ ] Manual "detect duplicates" button
 - [ ] Clear error state button
 
 ---
@@ -133,22 +298,26 @@ model GlossaryTerm {
 ```
 server/src/
 ├── routes/
-│   └── glossary.ts               # NEW
+│   └── glossary.ts                  # NEW
 ├── controllers/
-│   └── glossary.ts               # NEW
+│   ├── glossary.ts                  # NEW
+│   └── articles.ts                  # UPDATE - Add delete endpoints
 ├── services/
-│   ├── glossary.ts               # NEW
+│   ├── glossary.ts                  # NEW
+│   ├── ingestion/
+│   │   └── duplicateDetector.ts     # NEW - Cross-source duplicate detection
 │   └── publishing/
-│       └── glossaryPublisher.ts  # NEW
+│       └── glossaryPublisher.ts     # NEW
 ├── jobs/
-│   └── ingestionJob.ts           # NEW - Scheduled job logic
+│   └── ingestionJob.ts              # NEW - Scheduled job logic
 
 src/pages/admin/
-├── GlossaryAdminPage.tsx         # NEW
-└── AdminDashboard.tsx            # UPDATE - Add pipeline stats
+├── GlossaryAdminPage.tsx            # NEW
+├── IngestedArticlesPage.tsx         # UPDATE - Add duplicate UI, delete
+└── AdminDashboard.tsx               # UPDATE - Add pipeline stats
 
 infra/
-└── template.yaml                 # UPDATE - Add EventBridge rule
+└── template.yaml                    # UPDATE - Add EventBridge rule
 ```
 
 ---
@@ -185,11 +354,14 @@ for (const term of terms) {
 
 ## Success Criteria
 
-- [ ] Ingestion runs automatically every hour
-- [ ] Analysis runs automatically after ingestion
+- [ ] Ingestion runs automatically once daily at midnight EST
+- [ ] Duplicate detection runs after all sources complete
+- [ ] Duplicates are flagged and visible in admin UI
+- [ ] Admin can delete individual articles or bulk delete duplicates
+- [ ] Analysis skips duplicates (saves API costs)
 - [ ] Glossary terms can be managed via admin UI
 - [ ] AI-suggested glossary terms can be approved/published
-- [ ] Dashboard shows pipeline health
+- [ ] Dashboard shows pipeline health including duplicate stats
 - [ ] Errors are logged and visible
 - [ ] Can pause/resume automation
 - [ ] No manual intervention needed for normal operation
@@ -204,6 +376,11 @@ for (const term of terms) {
 3. Try manual "fetch now" from admin
 4. Check Lambda timeout/memory limits
 
+### If duplicate detection fails:
+1. Check CloudWatch logs
+2. Manually run "detect duplicates" from admin
+3. Check if articles have required fields
+
 ### If analysis stops working:
 1. Check Claude API status
 2. Check API key validity
@@ -212,8 +389,9 @@ for (const term of terms) {
 
 ### If review queue is empty but sources have new articles:
 1. Check ingestion last run time
-2. Check analysis pending count
-3. Manually trigger pipeline
+2. Check if duplicates filtered everything
+3. Check analysis pending count
+4. Manually trigger pipeline
 
 ---
 
@@ -222,6 +400,6 @@ for (const term of terms) {
 - [ ] More news sources (easy to add now)
 - [ ] Source quality scoring (based on approval rate)
 - [ ] Auto-archive old news events
-- [ ] Duplicate detection across sources
 - [ ] Weekly digest email of pending reviews
 - [ ] A/B test different analysis prompts
+- [ ] Configurable duplicate threshold in admin UI

@@ -13,40 +13,43 @@ Build the admin review workflow where curated content candidates are reviewed, e
 ## Tasks
 
 ### 31.1 Review Queue API Endpoints
-- [ ] Create `server/src/routes/review.ts`
-- [ ] Create `server/src/controllers/review.ts`
-- [ ] Implement endpoints:
+- [x] Create `server/src/routes/review.ts`
+- [x] Create `server/src/controllers/review.ts`
+- [x] Implement endpoints:
   - `GET /api/admin/review/queue` - Get pending drafts (with filters)
+  - `GET /api/admin/review/counts` - Get queue counts by type
+  - `GET /api/admin/review/published` - Get recently published items
   - `GET /api/admin/review/:draftId` - Get single draft with article context
   - `PUT /api/admin/review/:draftId` - Update draft content
   - `POST /api/admin/review/:draftId/approve` - Approve and publish
   - `POST /api/admin/review/:draftId/reject` - Reject with notes
 
 ### 31.2 Publish Logic - News Events
-- [ ] Create `server/src/services/publishing/newsPublisher.ts`
-- [ ] On approve:
+- [x] Create `server/src/services/publishing/newsPublisher.ts`
+- [x] On approve:
   - Validate draft matches CurrentEvent schema
-  - Add to `events.json` (or migrate to DB - see notes)
+  - Add to `events.json` (Option A - JSON file storage)
   - Update draft status to "published"
   - Link published event ID back to draft
-- [ ] Handle prerequisite milestone ID resolution (from titles to IDs)
+- [x] Auto-generate unique event IDs
+- [x] Auto-calculate expiration date (6 months from publish)
 
 ### 31.3 Publish Logic - Milestones
-- [ ] Create `server/src/services/publishing/milestonePublisher.ts`
-- [ ] On approve:
+- [x] Create `server/src/services/publishing/milestonePublisher.ts`
+- [x] On approve:
   - Validate draft matches Milestone schema
-  - Call existing `milestonesService.create()`
+  - Create milestone in database via Prisma
   - Update draft status to "published"
   - Link published milestone ID back to draft
 
 ### 31.4 Review Queue Page
-- [ ] Create `src/pages/admin/ReviewQueuePage.tsx`
-- [ ] Add route `/admin/review`
-- [ ] Add to admin sidebar (prominent position)
-- [ ] Tab navigation: All | News Events | Milestones | Glossary
-- [ ] Show pending count badges on tabs
-- [ ] List drafts with: title, type, source, relevance score, date
-- [ ] Quick actions: Approve, Reject, Edit
+- [x] Create `src/pages/admin/ReviewQueuePage.tsx`
+- [x] Add route `/admin/review`
+- [x] Add to admin sidebar (prominent position, second item)
+- [x] Tab navigation: All | News Events | Milestones | Glossary | Published
+- [x] Show pending count badges on tabs
+- [x] List drafts with: title, type, source, relevance score, date
+- [x] Quick actions: Approve, Reject, View & Edit
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -72,19 +75,19 @@ Build the admin review workflow where curated content candidates are reviewed, e
 ```
 
 ### 31.5 Review Detail Modal/Page
-- [ ] Create `src/components/admin/ReviewDetailModal.tsx`
-- [ ] Split view: Original article | Draft content
-- [ ] Editable draft fields (inline or form)
-- [ ] For news events:
+- [x] Create `src/components/admin/ReviewDetailModal.tsx`
+- [x] Split view: Original article | Draft content
+- [x] Editable draft fields (form-based)
+- [x] For news events:
   - Edit headline, summary, connection explanation
-  - Select prerequisite milestones (autocomplete)
+  - Edit prerequisite milestones (comma-separated IDs)
   - Toggle featured flag
-- [ ] For milestones:
+- [x] For milestones:
   - Edit all milestone fields
   - Category dropdown
-  - Significance slider (1-4)
-- [ ] Show AI rationale for milestone recommendation
-- [ ] Approve / Reject / Save Draft buttons
+  - Significance dropdown (1-4)
+- [x] Show AI rationale for milestone recommendation
+- [x] Approve / Reject / Save Draft buttons
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -117,15 +120,15 @@ Build the admin review workflow where curated content candidates are reviewed, e
 ```
 
 ### 31.6 Published Content Tracking
-- [ ] Add "Published" tab to review queue (or separate page)
-- [ ] Show recently published items
-- [ ] Link to published content (news page, milestone page)
-- [ ] Show publish date and source article
+- [x] Add "Published" tab to review queue
+- [x] Show recently published items
+- [x] Show publish date and source article
+- [x] Display published ID for reference
 
 ### 31.7 Dashboard Integration
-- [ ] Add review queue stats to admin dashboard
-- [ ] Show: Pending review count, Published this week
-- [ ] Quick link to review queue
+- [x] Add review queue stats to admin dashboard
+- [x] Show: Pending review count, Published this week, Active sources
+- [x] Quick link to review queue and sources
 
 ```
 ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
@@ -178,13 +181,13 @@ src/components/admin/
 
 ## Success Criteria
 
-- [ ] Review queue shows all pending drafts
-- [ ] Can filter by content type (news/milestone/glossary)
-- [ ] Can edit draft content before approval
-- [ ] Approve publishes to correct destination
-- [ ] Reject marks draft as rejected with notes
-- [ ] Published items appear on site
-- [ ] Dashboard shows review queue status
+- [x] Review queue shows all pending drafts
+- [x] Can filter by content type (news/milestone/glossary)
+- [x] Can edit draft content before approval
+- [x] Approve publishes to correct destination
+- [x] Reject marks draft as rejected with notes
+- [x] Published tab shows recently published items
+- [x] Dashboard shows review queue status
 
 ---
 

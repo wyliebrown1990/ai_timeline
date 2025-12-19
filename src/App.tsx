@@ -31,6 +31,7 @@ import {
   SourcesPage,
   IngestedArticlesPage,
   ArticleDetailPage,
+  ReviewQueuePage,
 } from './pages/admin';
 
 /**
@@ -125,6 +126,7 @@ function App() {
                   <Route path="sources" element={<SourcesPage />} />
                   <Route path="articles" element={<IngestedArticlesPage />} />
                   <Route path="articles/:id" element={<ArticleDetailPage />} />
+                  <Route path="review" element={<ReviewQueuePage />} />
                   <Route path="api-monitoring" element={<ApiMonitoringPage />} />
                 </Route>
 

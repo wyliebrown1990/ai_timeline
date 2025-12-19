@@ -572,3 +572,135 @@ export const articlesApi = {
     });
   },
 };
+
+/**
+ * Review queue types
+ */
+export interface QueueCounts {
+  news_event: number;
+  milestone: number;
+  glossary_term: number;
+  total: number;
+  publishedThisWeek: number;
+}
+
+export interface DraftWithArticle extends ContentDraft {
+  article: IngestedArticle;
+}
+
+export interface QueueResponse {
+  drafts: DraftWithArticle[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ApproveResult {
+  message: string;
+  draft: ContentDraft;
+  publishedId: string;
+}
+
+export interface RejectResult {
+  message: string;
+  draft: ContentDraft;
+}
+
+/**
+ * Review Queue API client
+ */
+export const reviewApi = {
+  /**
+   * Get review queue with filters
+   */
+  async getQueue(params?: {
+    type?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<QueueResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+
+    const queryString = searchParams.toString();
+    const url = `${DYNAMIC_API_BASE}/admin/review/queue${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<QueueResponse>(url, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get queue counts by type
+   */
+  async getCounts(): Promise<QueueCounts> {
+    return fetchJson<QueueCounts>(`${DYNAMIC_API_BASE}/admin/review/counts`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get a single draft with article context
+   */
+  async getDraft(id: string): Promise<DraftWithArticle> {
+    return fetchJson<DraftWithArticle>(`${DYNAMIC_API_BASE}/admin/review/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Update draft content
+   */
+  async updateDraft(id: string, draftData: Record<string, unknown>): Promise<DraftWithArticle> {
+    return fetchJson<DraftWithArticle>(`${DYNAMIC_API_BASE}/admin/review/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ draftData }),
+    });
+  },
+
+  /**
+   * Approve and publish a draft
+   */
+  async approve(id: string): Promise<ApproveResult> {
+    return fetchJson<ApproveResult>(`${DYNAMIC_API_BASE}/admin/review/${id}/approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Reject a draft
+   */
+  async reject(id: string, reason?: string): Promise<RejectResult> {
+    return fetchJson<RejectResult>(`${DYNAMIC_API_BASE}/admin/review/${id}/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  /**
+   * Get recently published items
+   */
+  async getPublished(params?: {
+    type?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<QueueResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.offset) searchParams.set('offset', String(params.offset));
+
+    const queryString = searchParams.toString();
+    const url = `${DYNAMIC_API_BASE}/admin/review/published${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<QueueResponse>(url, {
+      headers: getAuthHeaders(),
+    });
+  },
+};
