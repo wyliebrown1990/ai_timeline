@@ -304,3 +304,168 @@ export const milestonesApi = {
     return fetchJson<{ data: { tag: string; count: number }[] }>(`${STATIC_API_BASE}/milestones/tags${ext}`);
   },
 };
+
+/**
+ * News source types
+ */
+export interface NewsSource {
+  id: string;
+  name: string;
+  url: string;
+  feedUrl: string;
+  isActive: boolean;
+  checkFrequency: number;
+  lastCheckedAt: string | null;
+  createdAt: string;
+  articleCount?: number;
+}
+
+export interface CreateSourceDto {
+  name: string;
+  url: string;
+  feedUrl: string;
+  isActive?: boolean;
+  checkFrequency?: number;
+}
+
+export interface UpdateSourceDto {
+  name?: string;
+  url?: string;
+  feedUrl?: string;
+  isActive?: boolean;
+  checkFrequency?: number;
+}
+
+export interface IngestedArticle {
+  id: string;
+  sourceId: string;
+  externalUrl: string;
+  title: string;
+  content: string;
+  publishedAt: string;
+  ingestedAt: string;
+  analysisStatus: string;
+  reviewStatus: string;
+  source: NewsSource;
+}
+
+export interface FetchResult {
+  message: string;
+  created: number;
+  skipped: number;
+  total: number;
+}
+
+/**
+ * News Sources API client
+ */
+export const sourcesApi = {
+  /**
+   * Get all sources with article counts
+   */
+  async getAll(): Promise<{ data: NewsSource[] }> {
+    return fetchJson<{ data: NewsSource[] }>(`${DYNAMIC_API_BASE}/admin/sources`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get a single source by ID
+   */
+  async getById(id: string): Promise<NewsSource> {
+    return fetchJson<NewsSource>(`${DYNAMIC_API_BASE}/admin/sources/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Create a new source
+   */
+  async create(data: CreateSourceDto): Promise<NewsSource> {
+    return fetchJson<NewsSource>(`${DYNAMIC_API_BASE}/admin/sources`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update a source
+   */
+  async update(id: string, data: UpdateSourceDto): Promise<NewsSource> {
+    return fetchJson<NewsSource>(`${DYNAMIC_API_BASE}/admin/sources/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a source
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/sources/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Fetch articles from a specific source
+   */
+  async fetchArticles(id: string): Promise<FetchResult> {
+    return fetchJson<FetchResult>(`${DYNAMIC_API_BASE}/admin/sources/${id}/fetch`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Fetch articles from all active sources
+   */
+  async fetchAllArticles(): Promise<FetchResult & { results: unknown[] }> {
+    return fetchJson<FetchResult & { results: unknown[] }>(`${DYNAMIC_API_BASE}/admin/ingestion/fetch-all`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+};
+
+/**
+ * Ingested Articles API client
+ */
+export const articlesApi = {
+  /**
+   * Get all articles with pagination
+   */
+  async getAll(params?: {
+    page?: number;
+    limit?: number;
+    sourceId?: string;
+    analysisStatus?: string;
+    reviewStatus?: string;
+  }): Promise<PaginatedResponse<IngestedArticle>> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.sourceId) searchParams.set('sourceId', params.sourceId);
+    if (params?.analysisStatus) searchParams.set('analysisStatus', params.analysisStatus);
+    if (params?.reviewStatus) searchParams.set('reviewStatus', params.reviewStatus);
+
+    const queryString = searchParams.toString();
+    const url = `${DYNAMIC_API_BASE}/admin/articles${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<IngestedArticle>>(url, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get a single article by ID
+   */
+  async getById(id: string): Promise<IngestedArticle> {
+    return fetchJson<IngestedArticle>(`${DYNAMIC_API_BASE}/admin/articles/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+};
