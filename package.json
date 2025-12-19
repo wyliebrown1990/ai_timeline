@@ -21,6 +21,7 @@
     "content:validate": "tsx scripts/validate-content.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@aws-sdk/client-cloudwatch-logs": "^3.955.0",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",

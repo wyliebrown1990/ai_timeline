@@ -345,8 +345,62 @@ export interface IngestedArticle {
   publishedAt: string;
   ingestedAt: string;
   analysisStatus: string;
+  analyzedAt?: string;
+  relevanceScore?: number;
+  isMilestoneWorthy: boolean;
+  milestoneRationale?: string;
+  analysisError?: string;
   reviewStatus: string;
   source: NewsSource;
+  drafts?: ContentDraft[];
+}
+
+export interface ContentDraft {
+  id: string;
+  articleId: string;
+  contentType: 'milestone' | 'news_event' | 'glossary_term';
+  draftData: Record<string, unknown>;
+  isValid: boolean;
+  validationErrors?: unknown[];
+  status: 'pending' | 'approved' | 'rejected' | 'published';
+  rejectionReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+  publishedId?: string;
+}
+
+export interface AnalysisStats {
+  articles: {
+    pending: number;
+    analyzing: number;
+    complete: number;
+    error: number;
+    milestoneWorthy: number;
+  };
+  drafts: {
+    total: number;
+    byType: Record<string, number>;
+    byStatus: Record<string, number>;
+  };
+}
+
+export interface AnalyzeResult {
+  message: string;
+  articleId: string;
+  screening: {
+    relevanceScore: number;
+    isMilestoneWorthy: boolean;
+    suggestedCategory: string | null;
+  };
+  draftsCreated: number;
+}
+
+export interface AnalyzePendingResult {
+  message: string;
+  analyzed: number;
+  errors: number;
+  results: Array<{ articleId: string; success: boolean; error?: string }>;
 }
 
 export interface FetchResult {
@@ -461,10 +515,59 @@ export const articlesApi = {
   },
 
   /**
-   * Get a single article by ID
+   * Get a single article by ID with drafts
    */
   async getById(id: string): Promise<IngestedArticle> {
     return fetchJson<IngestedArticle>(`${DYNAMIC_API_BASE}/admin/articles/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get analysis statistics
+   */
+  async getStats(): Promise<AnalysisStats> {
+    return fetchJson<AnalysisStats>(`${DYNAMIC_API_BASE}/admin/articles/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Analyze a single article
+   */
+  async analyze(id: string): Promise<AnalyzeResult> {
+    return fetchJson<AnalyzeResult>(`${DYNAMIC_API_BASE}/admin/articles/${id}/analyze`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Re-analyze an article (delete drafts and redo)
+   */
+  async reanalyze(id: string): Promise<AnalyzeResult> {
+    return fetchJson<AnalyzeResult>(`${DYNAMIC_API_BASE}/admin/articles/${id}/reanalyze`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Analyze all pending articles
+   */
+  async analyzePending(limit?: number): Promise<AnalyzePendingResult> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<AnalyzePendingResult>(`${DYNAMIC_API_BASE}/admin/articles/analyze-pending${params}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get drafts for an article
+   */
+  async getDrafts(id: string): Promise<ContentDraft[]> {
+    return fetchJson<ContentDraft[]>(`${DYNAMIC_API_BASE}/admin/articles/${id}/drafts`, {
       headers: getAuthHeaders(),
     });
   },

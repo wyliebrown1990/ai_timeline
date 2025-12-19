@@ -30,6 +30,7 @@ import {
   ApiMonitoringPage,
   SourcesPage,
   IngestedArticlesPage,
+  ArticleDetailPage,
 } from './pages/admin';
 
 /**
@@ -123,6 +124,7 @@ function App() {
                   <Route path="milestones/:id/edit" element={<EditMilestonePage />} />
                   <Route path="sources" element={<SourcesPage />} />
                   <Route path="articles" element={<IngestedArticlesPage />} />
+                  <Route path="articles/:id" element={<ArticleDetailPage />} />
                   <Route path="api-monitoring" element={<ApiMonitoringPage />} />
                 </Route>
 

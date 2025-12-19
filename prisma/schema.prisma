@@ -60,13 +60,49 @@ model IngestedArticle {
   publishedAt    DateTime
   ingestedAt     DateTime    @default(now())
 
-  // Analysis fields (Sprint 30)
-  analysisStatus String      @default("pending")
+  // Stage 1 Analysis Results (Sprint 30)
+  analysisStatus    String      @default("pending") // pending, screening, generating, complete, error
+  analyzedAt        DateTime?
+  relevanceScore    Float?      // 0-1 scale
+  isMilestoneWorthy Boolean     @default(false)
+  milestoneRationale String?    // Why/why not milestone-worthy
+  analysisError     String?
 
   // Review fields (Sprint 31)
   reviewStatus   String      @default("pending")
 
+  // Relations
+  drafts         ContentDraft[]
+
   @@index([sourceId])
   @@index([publishedAt])
   @@index([analysisStatus])
+  @@index([isMilestoneWorthy])
+}
+
+/// AI-generated content draft awaiting review
+model ContentDraft {
+  id               String           @id @default(cuid())
+  articleId        String
+  article          IngestedArticle  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  contentType      String           // "news_event" | "milestone" | "glossary_term"
+  draftData        String           // JSON matching target schema
+
+  // Validation
+  isValid          Boolean          @default(false)
+  validationErrors String?          // JSON array of validation errors
+
+  // Review status
+  status           String           @default("pending") // pending, approved, rejected, published
+  rejectionReason  String?
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  publishedAt      DateTime?
+  publishedId      String?          // ID of published milestone/event/term
+
+  @@index([articleId])
+  @@index([contentType])
+  @@index([status])
 }

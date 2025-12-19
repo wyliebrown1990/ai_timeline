@@ -38,9 +38,9 @@ Add AI-powered analysis to ingested articles using Claude (Anthropic API). The s
 ## Tasks
 
 ### 30.1 Extend Database Schema for Analysis
-- [ ] Add analysis fields to `IngestedArticle` model
-- [ ] Add `ContentDraft` model for generated content
-- [ ] Run migration
+- [x] Add analysis fields to `IngestedArticle` model
+- [x] Add `ContentDraft` model for generated content
+- [x] Run migration
 
 ```prisma
 model IngestedArticle {
@@ -81,9 +81,9 @@ model ContentDraft {
 ```
 
 ### 30.2 Stage 1: Relevance Screening Service
-- [ ] Create `server/src/services/ingestion/screening.ts`
-- [ ] Use Claude Haiku (claude-3-haiku-20240307) for cost efficiency
-- [ ] Return structured JSON for relevance determination
+- [x] Create `server/src/services/ingestion/screening.ts`
+- [x] Use Claude Haiku (claude-3-haiku-20240307) for cost efficiency
+- [x] Return structured JSON for relevance determination
 
 ```typescript
 // server/src/services/ingestion/screening.ts
@@ -167,9 +167,9 @@ export async function screenArticle(
 ```
 
 ### 30.3 Stage 2: Content Generation Service
-- [ ] Create `server/src/services/ingestion/contentGenerator.ts`
-- [ ] Use Claude Sonnet (claude-3-5-sonnet-20241022) for quality
-- [ ] Generate drafts that EXACTLY match our Zod schemas
+- [x] Create `server/src/services/ingestion/contentGenerator.ts`
+- [x] Use Claude Sonnet (claude-3-5-sonnet-20241022) for quality
+- [x] Generate drafts that EXACTLY match our Zod schemas
 
 ```typescript
 // server/src/services/ingestion/contentGenerator.ts
@@ -307,10 +307,10 @@ export async function generateContent(
 ```
 
 ### 30.4 Stage 3: Glossary Term Extraction
-- [ ] Create `server/src/services/ingestion/glossaryExtractor.ts`
-- [ ] Use Claude Haiku for cost efficiency
-- [ ] Pass existing terms to prevent duplicates
-- [ ] Only extract genuinely NEW AI-specific terms
+- [x] Create `server/src/services/ingestion/glossaryExtractor.ts`
+- [x] Use Claude Haiku for cost efficiency
+- [x] Pass existing terms to prevent duplicates
+- [x] Only extract genuinely NEW AI-specific terms
 
 ```typescript
 // server/src/services/ingestion/glossaryExtractor.ts
@@ -394,10 +394,10 @@ export async function extractGlossaryTerms(
 ```
 
 ### 30.5 Orchestration Service
-- [ ] Create `server/src/services/ingestion/articleAnalyzer.ts`
-- [ ] Coordinate all three stages
-- [ ] Validate outputs against Zod schemas before saving
-- [ ] Store drafts with validation status
+- [x] Create `server/src/services/ingestion/articleAnalyzer.ts`
+- [x] Coordinate all three stages
+- [x] Validate outputs against Zod schemas before saving
+- [x] Store drafts with validation status
 
 ```typescript
 // server/src/services/ingestion/articleAnalyzer.ts
@@ -554,25 +554,30 @@ async function getExistingGlossaryTerms(): Promise<string[]> {
 ```
 
 ### 30.6 Analysis API Endpoints
-- [ ] `POST /api/admin/articles/:id/analyze` - Analyze single article
-- [ ] `POST /api/admin/articles/analyze-pending` - Analyze all pending (with limit)
-- [ ] `GET /api/admin/articles/:id` - Get article with analysis & drafts
+- [x] `POST /api/admin/articles/:id/analyze` - Analyze single article
+- [x] `POST /api/admin/articles/analyze-pending` - Analyze all pending (with limit)
+- [x] `GET /api/admin/articles/:id` - Get article with analysis & drafts
+- [x] `GET /api/admin/articles/stats` - Get analysis statistics
+- [x] `POST /api/admin/articles/:id/reanalyze` - Re-analyze article
 
 ### 30.7 Update Articles List UI
-- [ ] Add analysis status column/badge
-- [ ] Add "Analyze" button for pending articles
-- [ ] Add "Analyze All Pending" bulk action (limit 10 per batch)
-- [ ] Show relevance score when analyzed
-- [ ] Show milestone-worthy indicator (⭐)
-- [ ] Show validation status on drafts
+- [x] Add analysis status column/badge
+- [x] Add "Analyze" button for pending articles
+- [x] Add "Analyze All Pending" bulk action (limit 10 per batch)
+- [x] Show relevance score when analyzed
+- [x] Show milestone-worthy indicator (⭐)
+- [x] Show validation status on drafts
+- [x] Add stats cards showing pipeline status
+- [x] Add refresh button
 
 ### 30.8 Article Detail View
-- [ ] Create `src/pages/admin/ArticleDetailPage.tsx`
-- [ ] Show original article content
-- [ ] Show AI screening results (relevance, rationale)
-- [ ] Show all generated drafts with validation status
-- [ ] Preview each draft inline
-- [ ] Show validation errors if any
+- [x] Create `src/pages/admin/ArticleDetailPage.tsx`
+- [x] Show original article content
+- [x] Show AI screening results (relevance, rationale)
+- [x] Show all generated drafts with validation status
+- [x] Preview each draft inline (expandable cards)
+- [x] Show validation errors if any
+- [x] Add re-analyze button
 
 ---
 
@@ -592,13 +597,14 @@ async function getExistingGlossaryTerms(): Promise<string[]> {
 
 ## Success Criteria
 
-- [ ] Screening correctly identifies milestone-worthy articles (spot-check 10)
-- [ ] Generated milestone drafts pass Zod validation >90% of time
-- [ ] Generated news event drafts pass Zod validation >95% of time
-- [ ] Glossary extraction doesn't suggest existing terms
-- [ ] Analysis completes in <30 seconds per article
-- [ ] Errors are logged and don't crash the pipeline
-- [ ] UI shows clear status and validation results
+- [x] Screening correctly identifies milestone-worthy articles (spot-check 10)
+- [x] Generated milestone drafts pass Zod validation >90% of time
+- [x] Generated news event drafts pass Zod validation >95% of time
+- [x] Glossary extraction doesn't suggest existing terms
+- [x] Analysis completes in <30 seconds per article
+- [x] Errors are logged and don't crash the pipeline
+- [x] UI shows clear status and validation results
+- [x] No TypeScript errors
 
 ---
 
