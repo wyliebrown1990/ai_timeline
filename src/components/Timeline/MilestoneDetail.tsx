@@ -12,7 +12,7 @@ import {
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
 import { useChatContext } from '../../context/ChatContext';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
-import { useLayeredContent } from '../../hooks/useContent';
+import { useAsyncLayeredContent } from '../../hooks/useAsyncContent';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { MilestoneResponse, SignificanceLevel } from '../../types/milestone';
 import type { AudienceType } from '../../types/userProfile';
@@ -154,8 +154,8 @@ export function MilestoneDetail({
     [profile?.audienceType]
   );
 
-  // Fetch layered content for this milestone
-  const { data: layeredContent } = useLayeredContent(milestone.id);
+  // Fetch layered content for this milestone (async lazy-loaded)
+  const { data: layeredContent, isLoading: isLoadingContent } = useAsyncLayeredContent(milestone.id);
 
   // Handle "Explain this" button click
   const handleExplainClick = () => {
@@ -349,7 +349,12 @@ export function MilestoneDetail({
           {/* Layered Explanations or Basic Description */}
           {/* Sprint 19: Pass audience-based default tab to LayeredExplanationTabs */}
           <div data-testid="detail-description" className="mb-4">
-            {layeredContent ? (
+            {isLoadingContent ? (
+              <div className="flex items-center gap-2 py-4 text-gray-500 dark:text-gray-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+                <span className="text-sm">Loading detailed explanation...</span>
+              </div>
+            ) : layeredContent ? (
               <LayeredExplanationTabs content={layeredContent} initialTab={defaultTab} />
             ) : (
               <div className="prose prose-gray dark:prose-invert max-w-none">

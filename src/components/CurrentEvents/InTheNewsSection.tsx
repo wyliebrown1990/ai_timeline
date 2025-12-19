@@ -6,10 +6,10 @@
  * with a prominent "View All" link to the dedicated news page.
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Newspaper, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
-import { useFeaturedCurrentEvents, useCurrentEvents } from '../../hooks/useContent';
+import { useAsyncActiveCurrentEvents } from '../../hooks/useAsyncContent';
 import { CurrentEventCard } from './CurrentEventCard';
 import { NewsContextModal } from './NewsContextModal';
 import type { CurrentEvent } from '../../types/currentEvent';
@@ -40,17 +40,20 @@ export function InTheNewsSection({
   // Ref for horizontal scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch current events data
-  const { data: featuredEvents } = useFeaturedCurrentEvents();
-  const { data: allEvents } = useCurrentEvents();
+  // Fetch current events data (async lazy-loaded)
+  const { data: allEvents, isLoading } = useAsyncActiveCurrentEvents();
 
   // Combine featured (first) and non-featured events, removing duplicates
   // Sort by date (newest first) after combining
-  const featuredIds = new Set(featuredEvents.map((e) => e.id));
-  const nonFeaturedEvents = allEvents.filter((e) => !featuredIds.has(e.id));
-  const combinedEvents = [...featuredEvents, ...nonFeaturedEvents].sort(
-    (a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime()
-  );
+  const combinedEvents = useMemo(() => {
+    if (!allEvents) return [];
+    const featuredEvents = allEvents.filter((e) => e.featured);
+    const featuredIds = new Set(featuredEvents.map((e) => e.id));
+    const nonFeaturedEvents = allEvents.filter((e) => !featuredIds.has(e.id));
+    return [...featuredEvents, ...nonFeaturedEvents].sort(
+      (a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime()
+    );
+  }, [allEvents]);
 
   // Show limited events on homepage
   const eventsToShow = combinedEvents.slice(0, maxEvents);
@@ -76,6 +79,34 @@ export function InTheNewsSection({
   const handleCloseModal = () => {
     setSelectedEvent(null);
   };
+
+  // Show loading state or return null if no events
+  if (isLoading) {
+    return (
+      <section className={`py-12 sm:py-16 dark:bg-gray-900 ${className}`}>
+        <div className="container-main">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+              <Newspaper className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                In The News
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Loading latest stories...
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-lg h-48 animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   // Don't render if no events available
   if (combinedEvents.length === 0) {

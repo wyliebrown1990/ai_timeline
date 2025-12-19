@@ -28,6 +28,7 @@ import { getRoleDefaultExplanationLevel } from '../../hooks/useUserProfile';
 import {
   generateRecommendations,
   getPathDetails,
+  loadPathsAsync,
   type PersonalizedPlan,
 } from '../../services/pathRecommendation';
 
@@ -91,7 +92,7 @@ export function OnboardingModal({
 
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Reset state when modal opens
+  // Reset state and preload paths when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentStep('audience');
@@ -100,6 +101,8 @@ export function OnboardingModal({
       setSelectedGoals([]);
       setSelectedTime('standard');
       setPlan(null);
+      // Preload learning paths for recommendation generation
+      loadPathsAsync().catch(console.error);
     }
   }, [isOpen]);
 

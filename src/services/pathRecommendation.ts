@@ -13,7 +13,27 @@ import type {
   AudienceType,
 } from '../types/userProfile';
 import type { LearningPath } from '../types/learningPath';
-import { getLearningPaths } from '../content';
+import { loadLearningPaths } from '../content/asyncLoaders';
+
+// Cached paths for synchronous access after initial load
+let cachedPaths: LearningPath[] | null = null;
+
+/**
+ * Get paths synchronously from cache, or return empty array if not loaded
+ * Call loadPathsAsync() first to populate the cache
+ */
+function getCachedPaths(): LearningPath[] {
+  return cachedPaths || [];
+}
+
+/**
+ * Load paths asynchronously and cache them
+ */
+export async function loadPathsAsync(): Promise<LearningPath[]> {
+  if (cachedPaths) return cachedPaths;
+  cachedPaths = await loadLearningPaths();
+  return cachedPaths;
+}
 
 // =============================================================================
 // Types
@@ -201,7 +221,7 @@ export function generateRecommendations(
   goals: LearningGoal[],
   timeCommitment: TimeCommitment
 ): PersonalizedPlan {
-  const allPaths = getLearningPaths();
+  const allPaths = getCachedPaths();
   const maxMinutes = timeFilterMinutes[timeCommitment];
 
   // Score all paths
@@ -274,14 +294,14 @@ export function generateRecommendations(
  * Get path details for a recommendation
  */
 export function getPathDetails(pathId: string): LearningPath | undefined {
-  return getLearningPaths().find((p) => p.id === pathId);
+  return getCachedPaths().find((p) => p.id === pathId);
 }
 
 /**
  * Get all available paths (for "Explore all paths" option)
  */
 export function getAllPaths(): LearningPath[] {
-  return getLearningPaths();
+  return getCachedPaths();
 }
 
 // =============================================================================
@@ -339,7 +359,7 @@ export function isPathDeprioritizedForAudience(
 export function getPathsByAudience(
   audienceType: AudienceType | undefined
 ): { recommended: LearningPath[]; other: LearningPath[] } {
-  const allPaths = getLearningPaths();
+  const allPaths = getCachedPaths();
 
   if (!audienceType || audienceType === 'general') {
     // For general audience, recommend popular paths
