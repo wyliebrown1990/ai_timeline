@@ -13,16 +13,16 @@ Complete the automated pipeline with scheduled ingestion, duplicate detection, g
 ## Tasks
 
 ### 32.1 Scheduled Ingestion - Lambda + EventBridge
-- [ ] Create EventBridge rule for scheduled execution
-- [ ] Create separate Lambda function for ingestion (or reuse existing)
-- [ ] **Schedule: Once daily at midnight EST (5:00 AM UTC)**
-- [ ] Logic per run:
+- [x] Create EventBridge rule for scheduled execution
+- [x] Create separate Lambda function for ingestion (or reuse existing)
+- [x] **Schedule: Once daily at midnight EST (5:00 AM UTC)**
+- [x] Logic per run:
   - Get all active sources
   - Fetch new articles from each source sequentially
   - Store new articles with `pending` status
   - After ALL sources complete, trigger duplicate detection
   - Then queue new articles for analysis
-- [ ] Add CloudWatch logging for monitoring
+- [x] Add CloudWatch logging for monitoring
 
 ```yaml
 # infra/template.yaml addition
@@ -39,13 +39,13 @@ IngestionScheduleRule:
 ```
 
 ### 32.2 Cross-Source Duplicate Detection
-- [ ] Create `server/src/services/ingestion/duplicateDetector.ts`
-- [ ] Run after ALL sources have been fetched (not per-source)
-- [ ] Detection strategy:
+- [x] Create `server/src/services/ingestion/duplicateDetector.ts`
+- [x] Run after ALL sources have been fetched (not per-source)
+- [x] Detection strategy:
   - Compare articles ingested in the same batch (last 24 hours)
   - Match by: title similarity (>80% Levenshtein) OR same external URLs referenced
   - Use AI (Haiku) for fuzzy matching on content if titles differ but content overlaps
-- [ ] Add database fields for duplicate tracking:
+- [x] Add database fields for duplicate tracking:
 
 ```prisma
 model IngestedArticle {
@@ -61,7 +61,7 @@ model IngestedArticle {
 }
 ```
 
-- [ ] Duplicate detection logic:
+- [x] Duplicate detection logic:
   1. Fetch all articles from the last ingestion batch
   2. Group by source (articles from same source can't be duplicates of each other)
   3. For each pair across sources:
@@ -128,8 +128,8 @@ async function detectDuplicates(batchDate: Date): Promise<DuplicateMatch[]> {
 ```
 
 ### 32.3 Duplicate Detection AI Prompt (Haiku)
-- [ ] Create prompt for fuzzy content matching
-- [ ] Only called when title similarity is 50-80% (ambiguous zone)
+- [x] Create prompt for fuzzy content matching
+- [x] Only called when title similarity is 50-80% (ambiguous zone)
 
 ```typescript
 const DUPLICATE_CHECK_PROMPT = `Compare these two news articles and determine if they describe the SAME news event.
@@ -158,10 +158,10 @@ Focus on: Is this the SAME news event being reported?`;
 ```
 
 ### 32.4 Frontend: Duplicate Flagging in Articles List
-- [ ] Add `isDuplicate` indicator to article cards
-- [ ] Show link to the matching article
-- [ ] Add filter: "Show duplicates only"
-- [ ] Visual treatment: slightly dimmed card with "Duplicate" badge
+- [x] Add `isDuplicate` indicator to article cards
+- [x] Show link to the matching article
+- [x] Add filter: "Show duplicates only"
+- [x] Visual treatment: slightly dimmed card with "Duplicate" badge
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -177,12 +177,12 @@ Focus on: Is this the SAME news event being reported?`;
 ```
 
 ### 32.5 Frontend: Delete from Pending Queue
-- [ ] Add "Delete" button to article cards in pending queue
-- [ ] Confirmation modal: "Delete this article? This cannot be undone."
-- [ ] API endpoint: `DELETE /api/admin/articles/:id`
-- [ ] Deleting a duplicate: removes article and clears duplicate links
-- [ ] Deleting a primary: if duplicates exist, promote oldest duplicate to primary
-- [ ] Bulk delete: "Delete All Duplicates" button (keeps primary articles)
+- [x] Add "Delete" button to article cards in pending queue
+- [x] Confirmation modal: "Delete this article? This cannot be undone."
+- [x] API endpoint: `DELETE /api/admin/articles/:id`
+- [x] Deleting a duplicate: removes article and clears duplicate links
+- [x] Deleting a primary: if duplicates exist, promote oldest duplicate to primary
+- [x] Bulk delete: "Delete All Duplicates" button (keeps primary articles)
 
 ```typescript
 // API Endpoints
@@ -191,10 +191,10 @@ router.post('/articles/delete-duplicates', requireAdmin, deleteAllDuplicates);
 ```
 
 ### 32.6 Scheduled Analysis
-- [ ] Run analysis AFTER duplicate detection completes
-- [ ] Skip articles marked as `isDuplicate=true` (don't waste API calls)
-- [ ] Rate limit Claude API calls (max 20 per run)
-- [ ] Skip articles already analyzed
+- [x] Run analysis AFTER duplicate detection completes
+- [x] Skip articles marked as `isDuplicate=true` (don't waste API calls)
+- [x] Rate limit Claude API calls (max 20 per run)
+- [x] Skip articles already analyzed
 
 ```
 Pipeline Order (Daily at Midnight EST):
@@ -206,15 +206,15 @@ Pipeline Order (Daily at Midnight EST):
 ```
 
 ### 32.7 Glossary API - Migrate from Static JSON
-- [ ] Add `GlossaryTerm` model to Prisma schema
-- [ ] Create migration script to import existing terms.json
-- [ ] Create CRUD API endpoints:
+- [x] Add `GlossaryTerm` model to Prisma schema
+- [x] Create migration script to import existing terms.json
+- [x] Create CRUD API endpoints:
   - `GET /api/glossary` - List all terms
   - `GET /api/glossary/:id` - Get single term
   - `POST /api/admin/glossary` - Create term (admin)
   - `PUT /api/admin/glossary/:id` - Update term (admin)
   - `DELETE /api/admin/glossary/:id` - Delete term (admin)
-- [ ] Update frontend hooks to use API
+- [x] Update frontend hooks to use API
 
 ```prisma
 model GlossaryTerm {
@@ -234,28 +234,28 @@ model GlossaryTerm {
 ```
 
 ### 32.8 Glossary Publishing
-- [ ] Update `newsPublisher.ts` pattern for glossary
-- [ ] Create `server/src/services/publishing/glossaryPublisher.ts`
-- [ ] On approve:
+- [x] Update `newsPublisher.ts` pattern for glossary
+- [x] Create `server/src/services/publishing/glossaryPublisher.ts`
+- [x] On approve:
   - Validate term matches schema
   - Check for duplicate terms
   - Insert into database
   - Update draft status
 
 ### 32.9 Glossary Admin Page
-- [ ] Create `src/pages/admin/GlossaryAdminPage.tsx`
-- [ ] Add route `/admin/glossary`
-- [ ] List all terms with search/filter
-- [ ] Create/edit/delete terms
-- [ ] Show source (manual vs. AI-generated)
-- [ ] Bulk import from JSON (for migration)
+- [x] Create `src/pages/admin/GlossaryAdminPage.tsx`
+- [x] Add route `/admin/glossary`
+- [x] List all terms with search/filter
+- [x] Create/edit/delete terms
+- [x] Show source (manual vs. AI-generated)
+- [x] Bulk import from JSON (for migration)
 
 ### 32.10 Ingestion Monitoring Dashboard
-- [ ] Add ingestion stats to admin dashboard
-- [ ] Show: Last run time, articles fetched, duplicates found, errors
-- [ ] Per-source stats: success rate, last checked
-- [ ] Analysis pipeline stats: pending, analyzed, error rate
-- [ ] CloudWatch metrics integration
+- [x] Add ingestion stats to admin dashboard
+- [x] Show: Last run time, articles fetched, duplicates found, errors
+- [x] Per-source stats: success rate, last checked
+- [x] Analysis pipeline stats: pending, analyzed, error rate
+- [ ] CloudWatch metrics integration (deferred - requires AWS deployment)
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -277,19 +277,19 @@ model GlossaryTerm {
 ```
 
 ### 32.11 Error Handling & Alerts
-- [ ] Add error tracking for failed fetches
-- [ ] Add error tracking for failed analyses
-- [ ] Retry logic for transient failures (max 3 retries)
-- [ ] CloudWatch alarm for sustained failures
-- [ ] (Optional) Email notification on critical errors
+- [x] Add error tracking for failed fetches
+- [x] Add error tracking for failed analyses
+- [x] Retry logic for transient failures (max 3 retries)
+- [ ] CloudWatch alarm for sustained failures (deferred - requires AWS deployment)
+- [ ] (Optional) Email notification on critical errors (deferred)
 
 ### 32.12 Admin Controls
-- [ ] Pause/resume ingestion toggle
-- [ ] Pause/resume analysis toggle
-- [ ] Per-source enable/disable
-- [ ] Manual "fetch now" and "analyze now" buttons
-- [ ] Manual "detect duplicates" button
-- [ ] Clear error state button
+- [x] Pause/resume ingestion toggle
+- [x] Pause/resume analysis toggle
+- [x] Per-source enable/disable (via Sources admin page)
+- [x] Manual "fetch now" and "analyze now" buttons
+- [x] Manual "detect duplicates" button
+- [x] Clear error state button
 
 ---
 

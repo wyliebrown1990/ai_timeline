@@ -5,6 +5,7 @@ import { useAdminMilestones } from '../../hooks/useAdminMilestones';
 import { MilestoneCategory } from '../../types/milestone';
 import { categoryLabels } from '../../utils/timelineUtils';
 import { reviewApi, sourcesApi, type QueueCounts, type NewsSource } from '../../services/api';
+import { IngestionMonitoringPanel } from '../../components/admin/IngestionMonitoringPanel';
 
 /**
  * Admin dashboard with overview statistics and quick actions
@@ -204,6 +205,9 @@ export function AdminDashboard() {
           </div>
         </Link>
       </div>
+
+      {/* Ingestion Pipeline Monitoring (Sprint 32.10) */}
+      <IngestionMonitoringPanel />
 
       {/* Two column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

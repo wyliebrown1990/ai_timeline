@@ -137,6 +137,83 @@ Resources:
       LogGroupName: !Sub /aws/lambda/ai-timeline-api-${Environment}
       RetentionInDays: 30
 
+  # ============================================
+  # Ingestion Lambda Function (Sprint 32)
+  # ============================================
+  IngestionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ai-timeline-ingestion-${Environment}
+      Description: Scheduled ingestion job - fetches articles from news sources
+      CodeUri: ../server/src/
+      Handler: ingestionLambda.handler
+      Timeout: 300  # 5 minutes - longer timeout for processing multiple sources
+      MemorySize: 512
+
+      Environment:
+        Variables:
+          NODE_ENV: production
+          # Secrets from SSM Parameter Store (secure)
+          ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+
+      # IAM permissions
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+              Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
+
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - ingestionLambda.ts
+        External:
+          - '@aws-sdk/*'
+
+  # Ingestion Lambda log group
+  IngestionFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/ai-timeline-ingestion-${Environment}
+      RetentionInDays: 30
+
+  # ============================================
+  # EventBridge Schedule (Sprint 32)
+  # ============================================
+  IngestionScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ai-timeline-ingestion-schedule-${Environment}
+      Description: Triggers daily ingestion at midnight EST (5:00 AM UTC)
+      # Midnight EST = 5:00 AM UTC (4:00 AM during daylight saving time)
+      ScheduleExpression: "cron(0 5 * * ? *)"
+      State: ENABLED
+      Targets:
+        - Id: IngestionLambdaTarget
+          Arn: !GetAtt IngestionFunction.Arn
+
+  # Permission for EventBridge to invoke the Lambda
+  IngestionSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt IngestionScheduleRule.Arn
+
   # NOTE: WAF can be added later after initial deployment
   # For now, API Gateway throttling provides rate limiting
 
@@ -158,3 +235,15 @@ Outputs:
     Value: !GetAtt ApiFunction.Arn
     Export:
       Name: !Sub ai-timeline-function-arn-${Environment}
+
+  IngestionFunctionArn:
+    Description: Ingestion Lambda function ARN
+    Value: !GetAtt IngestionFunction.Arn
+    Export:
+      Name: !Sub ai-timeline-ingestion-arn-${Environment}
+
+  IngestionScheduleRuleArn:
+    Description: EventBridge schedule rule ARN
+    Value: !GetAtt IngestionScheduleRule.Arn
+    Export:
+      Name: !Sub ai-timeline-ingestion-schedule-arn-${Environment}

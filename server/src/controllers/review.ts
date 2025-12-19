@@ -8,6 +8,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { publishMilestone } from '../services/publishing/milestonePublisher';
 import { publishNewsEvent } from '../services/publishing/newsPublisher';
+import { publishGlossaryTerm } from '../services/publishing/glossaryPublisher';
 
 /**
  * Get review queue with filters
@@ -226,8 +227,9 @@ export async function approveDraft(req: Request, res: Response) {
         publishedId = await publishNewsEvent(draftData);
         break;
       case 'glossary_term':
-        // Glossary publishing deferred to Sprint 32
-        return res.status(400).json({ error: 'Glossary publishing not yet implemented' });
+        // Publish glossary term to database, passing source article ID
+        publishedId = await publishGlossaryTerm(draftData, draft.articleId);
+        break;
       default:
         return res.status(400).json({ error: `Unknown content type: ${draft.contentType}` });
     }

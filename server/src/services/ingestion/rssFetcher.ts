@@ -1,4 +1,5 @@
 import Parser from 'rss-parser';
+import { withRetry } from '../errorTracker';
 
 /**
  * Fetched article from RSS feed
@@ -17,12 +18,13 @@ const parser = new Parser({
   customFields: {
     item: ['content:encoded', 'contentSnippet'],
   },
+  timeout: 30000, // 30 second timeout
 });
 
 /**
- * Fetch articles from an RSS feed
+ * Fetch articles from an RSS feed (internal, no retry)
  */
-export async function fetchFromRSS(feedUrl: string): Promise<FetchedArticle[]> {
+async function fetchFromRSSInternal(feedUrl: string): Promise<FetchedArticle[]> {
   const feed = await parser.parseURL(feedUrl);
 
   return feed.items
@@ -33,6 +35,26 @@ export async function fetchFromRSS(feedUrl: string): Promise<FetchedArticle[]> {
       content: extractContent(item),
       publishedAt: parseDate(item.pubDate || item.isoDate),
     }));
+}
+
+/**
+ * Fetch articles from an RSS feed with retry logic
+ * @param feedUrl - The RSS feed URL to fetch
+ * @param sourceId - Optional source ID for error tracking
+ */
+export async function fetchFromRSS(
+  feedUrl: string,
+  sourceId?: string
+): Promise<FetchedArticle[]> {
+  return withRetry(() => fetchFromRSSInternal(feedUrl), {
+    errorType: 'fetch',
+    sourceId,
+    maxRetries: 3,
+    initialDelayMs: 2000,
+    onRetry: (attempt, error) => {
+      console.log(`[RSS] Retry ${attempt} for ${feedUrl}: ${error.message}`);
+    },
+  });
 }
 
 /**
@@ -86,6 +108,7 @@ function parseDate(dateString: string | undefined): Date {
 /**
  * Fetch and validate a feed URL
  * Returns feed info if valid, throws if invalid
+ * No retry - validation should fail fast
  */
 export async function validateFeedUrl(feedUrl: string): Promise<{
   title: string;

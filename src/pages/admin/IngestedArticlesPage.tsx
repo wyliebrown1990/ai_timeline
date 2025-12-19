@@ -12,6 +12,10 @@ import {
   Loader2,
   BarChart3,
   RefreshCw,
+  Copy,
+  Link,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -39,7 +43,12 @@ export function IngestedArticlesPage() {
   const [filters, setFilters] = useState({
     sourceId: '',
     analysisStatus: '',
+    isDuplicate: '', // '', 'true', 'false'
   });
+  // Delete confirmation state
+  const [deleteArticle, setDeleteArticle] = useState<IngestedArticle | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingAllDuplicates, setIsDeletingAllDuplicates] = useState(false);
 
   const loadArticles = useCallback(async () => {
     setIsLoading(true);
@@ -49,6 +58,7 @@ export function IngestedArticlesPage() {
         limit: 20,
         sourceId: filters.sourceId || undefined,
         analysisStatus: filters.analysisStatus || undefined,
+        isDuplicate: filters.isDuplicate || undefined,
       });
       setArticles(response.data);
       setTotalPages(response.pagination.totalPages);
@@ -128,6 +138,48 @@ export function IngestedArticlesPage() {
     }
   };
 
+  // Handle delete single article
+  const handleDeleteConfirm = async () => {
+    if (!deleteArticle) return;
+
+    setIsDeleting(true);
+    try {
+      const result = await articlesApi.delete(deleteArticle.id);
+      toast.success(result.message);
+      if (result.promotedId) {
+        toast.success(`Promoted another article to primary`);
+      }
+      setDeleteArticle(null);
+      loadArticles();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to delete article:', error);
+      toast.error('Failed to delete article');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Handle delete all duplicates
+  const handleDeleteAllDuplicates = async () => {
+    if (!confirm('Delete all duplicate articles? This keeps primary articles and removes duplicates.')) {
+      return;
+    }
+
+    setIsDeletingAllDuplicates(true);
+    try {
+      const result = await articlesApi.deleteAllDuplicates();
+      toast.success(result.message);
+      loadArticles();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to delete duplicates:', error);
+      toast.error('Failed to delete duplicate articles');
+    } finally {
+      setIsDeletingAllDuplicates(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -173,22 +225,41 @@ export function IngestedArticlesPage() {
             {total} articles from {sources.length} sources
           </p>
         </div>
-        <button
-          onClick={handleAnalyzeAll}
-          disabled={isAnalyzingAll || !stats || stats.articles.pending === 0}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-            isAnalyzingAll || !stats || stats.articles.pending === 0
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          {isAnalyzingAll ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          Analyze Pending ({stats?.articles.pending || 0})
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Delete All Duplicates button - only shown when filtering duplicates or when duplicates exist */}
+          <button
+            onClick={handleDeleteAllDuplicates}
+            disabled={isDeletingAllDuplicates}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              isDeletingAllDuplicates
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
+            }`}
+          >
+            {isDeletingAllDuplicates ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Delete All Duplicates
+          </button>
+          <button
+            onClick={handleAnalyzeAll}
+            disabled={isAnalyzingAll || !stats || stats.articles.pending === 0}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+              isAnalyzingAll || !stats || stats.articles.pending === 0
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
+          >
+            {isAnalyzingAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            Analyze Pending ({stats?.articles.pending || 0})
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -266,6 +337,18 @@ export function IngestedArticlesPage() {
             <option value="complete">Complete</option>
             <option value="error">Error</option>
           </select>
+          <select
+            value={filters.isDuplicate}
+            onChange={(e) => {
+              setFilters({ ...filters, isDuplicate: e.target.value });
+              setPage(1);
+            }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="">All Articles</option>
+            <option value="true">Duplicates Only</option>
+            <option value="false">Non-Duplicates Only</option>
+          </select>
           <button
             onClick={() => {
               loadArticles();
@@ -294,7 +377,7 @@ export function IngestedArticlesPage() {
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No articles found</h3>
           <p className="text-gray-500">
-            {filters.sourceId || filters.analysisStatus
+            {filters.sourceId || filters.analysisStatus || filters.isDuplicate
               ? 'Try adjusting your filters.'
               : 'Fetch articles from your sources to see them here.'}
           </p>
@@ -305,11 +388,22 @@ export function IngestedArticlesPage() {
             {articles.map((article) => (
               <div
                 key={article.id}
-                className="bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 transition-colors"
+                className={`rounded-xl border p-6 transition-colors ${
+                  article.isDuplicate
+                    ? 'bg-gray-50 border-orange-200 opacity-75'
+                    : 'bg-white border-gray-200 hover:border-gray-300'
+                }`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {/* Duplicate badge - shown first for visibility */}
+                      {article.isDuplicate && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800">
+                          <Copy className="h-3 w-3" />
+                          Duplicate
+                        </span>
+                      )}
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${getStatusBadge(
                           article.analysisStatus
@@ -352,6 +446,29 @@ export function IngestedArticlesPage() {
                         Error: {article.analysisError}
                       </p>
                     )}
+                    {/* Duplicate of link - shows original article info */}
+                    {article.isDuplicate && article.duplicateOf && (
+                      <div className="mt-2 p-2 bg-orange-50 rounded-lg border border-orange-100">
+                        <div className="flex items-center gap-2 text-sm text-orange-700">
+                          <Link className="h-4 w-4 flex-shrink-0" />
+                          <span className="font-medium">Duplicate of:</span>
+                          <button
+                            onClick={() => navigate(`/admin/articles/${article.duplicateOfId}`)}
+                            className="text-orange-800 underline hover:text-orange-900 truncate"
+                          >
+                            {article.duplicateOf.title}
+                          </button>
+                          <span className="text-orange-600 flex-shrink-0">
+                            ({article.duplicateOf.source.name})
+                          </span>
+                        </div>
+                        {article.duplicateScore !== undefined && article.duplicateReason && (
+                          <p className="mt-1 text-xs text-orange-600 ml-6">
+                            Similarity: {(article.duplicateScore * 100).toFixed(0)}% ({article.duplicateReason.replace('_', ' ')})
+                          </p>
+                        )}
+                      </div>
+                    )}
                     <div className="mt-2 text-xs text-gray-500">
                       Published: {formatDate(article.publishedAt)}
                       {article.analyzedAt && ` | Analyzed: ${formatDate(article.analyzedAt)}`}
@@ -393,6 +510,14 @@ export function IngestedArticlesPage() {
                       <ExternalLink className="h-4 w-4" />
                       Source
                     </a>
+                    {/* Delete button - available for pending articles and duplicates */}
+                    <button
+                      onClick={() => setDeleteArticle(article)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
@@ -430,6 +555,69 @@ export function IngestedArticlesPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteArticle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !isDeleting && setDeleteArticle(null)}
+          />
+          {/* Modal */}
+          <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <button
+              onClick={() => !isDeleting && setDeleteArticle(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              disabled={isDeleting}
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">Delete Article</h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to delete this article?
+            </p>
+            <p className="text-sm text-gray-500 mb-4 font-medium truncate">
+              "{deleteArticle.title}"
+            </p>
+            {deleteArticle.isDuplicate ? (
+              <p className="text-sm text-gray-500 mb-4">
+                This is a duplicate article. Deleting it will remove the duplicate link.
+              </p>
+            ) : (
+              <p className="text-sm text-orange-600 mb-4">
+                This action cannot be undone. Any drafts associated with this article will also be deleted.
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setDeleteArticle(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

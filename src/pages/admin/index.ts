@@ -8,3 +8,4 @@ export { SourcesPage } from './SourcesPage';
 export { IngestedArticlesPage } from './IngestedArticlesPage';
 export { ArticleDetailPage } from './ArticleDetailPage';
 export { ReviewQueuePage } from './ReviewQueuePage';
+export { GlossaryAdminPage } from './GlossaryAdminPage';

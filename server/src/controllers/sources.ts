@@ -177,8 +177,8 @@ export async function fetchSourceArticles(
       throw ApiError.notFound(`Source with ID ${id} not found`);
     }
 
-    // Fetch articles from RSS
-    const fetchedArticles = await rssFetcher.fetchFromRSS(source.feedUrl);
+    // Fetch articles from RSS (with retry logic and error tracking)
+    const fetchedArticles = await rssFetcher.fetchFromRSS(source.feedUrl, source.id);
 
     // Prepare articles for bulk insert
     const articlesToCreate = fetchedArticles.map((article) => ({
@@ -226,7 +226,8 @@ export async function fetchAllSources(
 
     for (const source of activeSources) {
       try {
-        const fetchedArticles = await rssFetcher.fetchFromRSS(source.feedUrl);
+        // Fetch with retry logic and error tracking
+        const fetchedArticles = await rssFetcher.fetchFromRSS(source.feedUrl, source.id);
 
         const articlesToCreate = fetchedArticles.map((article) => ({
           sourceId: source.id,

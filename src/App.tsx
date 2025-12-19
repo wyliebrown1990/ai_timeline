@@ -32,6 +32,7 @@ import {
   IngestedArticlesPage,
   ArticleDetailPage,
   ReviewQueuePage,
+  GlossaryAdminPage,
 } from './pages/admin';
 
 /**
@@ -127,6 +128,7 @@ function App() {
                   <Route path="articles" element={<IngestedArticlesPage />} />
                   <Route path="articles/:id" element={<ArticleDetailPage />} />
                   <Route path="review" element={<ReviewQueuePage />} />
+                  <Route path="glossary" element={<GlossaryAdminPage />} />
                   <Route path="api-monitoring" element={<ApiMonitoringPage />} />
                 </Route>
 

@@ -336,6 +336,22 @@ export interface UpdateSourceDto {
   checkFrequency?: number;
 }
 
+/**
+ * Duplicate detection reason types
+ */
+export type DuplicateReason = 'title_match' | 'content_match' | 'url_match';
+
+/**
+ * Minimal article info for duplicate reference
+ * Avoids circular reference in full IngestedArticle
+ */
+export interface DuplicateArticleRef {
+  id: string;
+  title: string;
+  source: NewsSource;
+  publishedAt: string;
+}
+
 export interface IngestedArticle {
   id: string;
   sourceId: string;
@@ -353,6 +369,12 @@ export interface IngestedArticle {
   reviewStatus: string;
   source: NewsSource;
   drafts?: ContentDraft[];
+  // Duplicate detection fields (Sprint 32)
+  isDuplicate: boolean;
+  duplicateOfId?: string;
+  duplicateOf?: DuplicateArticleRef;
+  duplicateScore?: number;
+  duplicateReason?: DuplicateReason;
 }
 
 export interface ContentDraft {
@@ -490,7 +512,8 @@ export const sourcesApi = {
  */
 export const articlesApi = {
   /**
-   * Get all articles with pagination
+   * Get all articles with pagination and filters
+   * @param params.isDuplicate - Filter by duplicate status: 'true', 'false', or undefined for all
    */
   async getAll(params?: {
     page?: number;
@@ -498,6 +521,7 @@ export const articlesApi = {
     sourceId?: string;
     analysisStatus?: string;
     reviewStatus?: string;
+    isDuplicate?: string;
   }): Promise<PaginatedResponse<IngestedArticle>> {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
@@ -505,6 +529,7 @@ export const articlesApi = {
     if (params?.sourceId) searchParams.set('sourceId', params.sourceId);
     if (params?.analysisStatus) searchParams.set('analysisStatus', params.analysisStatus);
     if (params?.reviewStatus) searchParams.set('reviewStatus', params.reviewStatus);
+    if (params?.isDuplicate) searchParams.set('isDuplicate', params.isDuplicate);
 
     const queryString = searchParams.toString();
     const url = `${DYNAMIC_API_BASE}/admin/articles${queryString ? `?${queryString}` : ''}`;
@@ -570,6 +595,34 @@ export const articlesApi = {
     return fetchJson<ContentDraft[]>(`${DYNAMIC_API_BASE}/admin/articles/${id}/drafts`, {
       headers: getAuthHeaders(),
     });
+  },
+
+  /**
+   * Delete a single article
+   * If deleting a primary article with duplicates, promotes oldest duplicate
+   */
+  async delete(id: string): Promise<{ message: string; promotedId?: string }> {
+    return fetchJson<{ message: string; promotedId?: string }>(
+      `${DYNAMIC_API_BASE}/admin/articles/${id}`,
+      {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Delete all duplicate articles (keeps primary articles)
+   * Returns count of deleted articles
+   */
+  async deleteAllDuplicates(): Promise<{ message: string; deleted: number }> {
+    return fetchJson<{ message: string; deleted: number }>(
+      `${DYNAMIC_API_BASE}/admin/articles/delete-duplicates`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      }
+    );
   },
 };
 
@@ -700,6 +753,363 @@ export const reviewApi = {
     const url = `${DYNAMIC_API_BASE}/admin/review/published${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<QueueResponse>(url, {
+      headers: getAuthHeaders(),
+    });
+  },
+};
+
+/**
+ * Glossary term types (Sprint 32)
+ */
+export type GlossaryCategory =
+  | 'core_concept'
+  | 'technical_term'
+  | 'business_term'
+  | 'model_architecture'
+  | 'company_product';
+
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  shortDefinition: string;
+  fullDefinition: string;
+  businessContext: string | null;
+  example: string | null;
+  inMeetingExample: string | null;
+  category: GlossaryCategory;
+  relatedTermIds: string[];
+  relatedMilestoneIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  sourceArticleId: string | null;
+}
+
+export interface CreateGlossaryTermDto {
+  term: string;
+  shortDefinition: string;
+  fullDefinition: string;
+  businessContext?: string;
+  example?: string;
+  inMeetingExample?: string;
+  category: GlossaryCategory;
+  relatedTermIds?: string[];
+  relatedMilestoneIds?: string[];
+  sourceArticleId?: string;
+}
+
+export interface UpdateGlossaryTermDto {
+  term?: string;
+  shortDefinition?: string;
+  fullDefinition?: string;
+  businessContext?: string | null;
+  example?: string | null;
+  inMeetingExample?: string | null;
+  category?: GlossaryCategory;
+  relatedTermIds?: string[];
+  relatedMilestoneIds?: string[];
+}
+
+export interface GlossaryStats {
+  total: number;
+  byCategory: Record<string, number>;
+}
+
+/**
+ * Glossary API client (Sprint 32)
+ * Public endpoints for reading, admin endpoints for CRUD
+ */
+export const glossaryApi = {
+  /**
+   * Get all glossary terms with optional filtering
+   */
+  async getAll(params?: {
+    category?: GlossaryCategory;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<GlossaryTerm>> {
+    const searchParams = new URLSearchParams();
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${DYNAMIC_API_BASE}/glossary${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<GlossaryTerm>>(url);
+  },
+
+  /**
+   * Get a single glossary term by ID
+   */
+  async getById(id: string): Promise<GlossaryTerm> {
+    return fetchJson<GlossaryTerm>(`${DYNAMIC_API_BASE}/glossary/${id}`);
+  },
+
+  /**
+   * Get a glossary term by name
+   */
+  async getByName(termName: string): Promise<GlossaryTerm> {
+    return fetchJson<GlossaryTerm>(
+      `${DYNAMIC_API_BASE}/glossary/term/${encodeURIComponent(termName)}`
+    );
+  },
+
+  /**
+   * Search glossary terms
+   */
+  async search(query: string, limit?: number): Promise<{ data: GlossaryTerm[]; total: number }> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', query);
+    if (limit) searchParams.set('limit', String(limit));
+
+    return fetchJson<{ data: GlossaryTerm[]; total: number }>(
+      `${DYNAMIC_API_BASE}/glossary/search?${searchParams.toString()}`
+    );
+  },
+
+  /**
+   * Get glossary statistics (admin)
+   */
+  async getStats(): Promise<GlossaryStats> {
+    return fetchJson<GlossaryStats>(`${DYNAMIC_API_BASE}/admin/glossary/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Create a new glossary term (admin)
+   */
+  async create(data: CreateGlossaryTermDto): Promise<GlossaryTerm> {
+    return fetchJson<GlossaryTerm>(`${DYNAMIC_API_BASE}/admin/glossary`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing glossary term (admin)
+   */
+  async update(id: string, data: UpdateGlossaryTermDto): Promise<GlossaryTerm> {
+    return fetchJson<GlossaryTerm>(`${DYNAMIC_API_BASE}/admin/glossary/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a glossary term (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/glossary/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Bulk create glossary terms (admin, for migration)
+   */
+  async bulkCreate(
+    terms: CreateGlossaryTermDto[]
+  ): Promise<{ message: string; created: number; skipped: number; errors: string[] }> {
+    return fetchJson<{ message: string; created: number; skipped: number; errors: string[] }>(
+      `${DYNAMIC_API_BASE}/admin/glossary/bulk`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ terms }),
+      }
+    );
+  },
+};
+
+/**
+ * Pipeline monitoring types (Sprint 32.10)
+ */
+export interface SourceHealth {
+  id: string;
+  name: string;
+  lastCheckedAt: string | null;
+  articlesToday: number;
+  articlesTotal: number;
+  isActive: boolean;
+  status: 'ok' | 'warning' | 'error';
+}
+
+export interface PipelineSettings {
+  ingestionPaused: boolean;
+  analysisPaused: boolean;
+  lastIngestionRun: string | null;
+  lastAnalysisRun: string | null;
+}
+
+export interface PipelineStats {
+  settings: PipelineSettings;
+  ingestion: {
+    lastRunAt: string | null;
+    nextScheduledAt: string;
+    fetchedToday: number;
+    fetchedYesterday: number;
+    totalArticles: number;
+  };
+  duplicates: {
+    foundToday: number;
+    total: number;
+    byReason: Record<string, number>;
+  };
+  analysis: {
+    pending: number;
+    analyzing: number;
+    analyzedToday: number;
+    totalAnalyzed: number;
+    errors: number;
+    errorRate: number;
+  };
+  sources: SourceHealth[];
+}
+
+export interface DuplicateDetectionResult {
+  message: string;
+  duplicatesFound: number;
+  matches: Array<{
+    articleId: string;
+    duplicateOfId: string;
+    score: number;
+    reason: string;
+  }>;
+}
+
+export interface PipelineError {
+  id: string;
+  errorType: string;
+  message: string;
+  retryCount: number;
+  createdAt: string;
+}
+
+export interface ErrorStats {
+  total: number;
+  unresolved: number;
+  byType: Record<string, number>;
+  recentErrors: PipelineError[];
+}
+
+/**
+ * Pipeline Monitoring API client (Sprint 32.10)
+ */
+export const pipelineApi = {
+  /**
+   * Get comprehensive pipeline monitoring stats
+   */
+  async getStats(): Promise<PipelineStats> {
+    return fetchJson<PipelineStats>(`${DYNAMIC_API_BASE}/admin/pipeline/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Trigger manual ingestion run
+   */
+  async triggerIngestion(): Promise<{ message: string; note?: string }> {
+    return fetchJson<{ message: string; note?: string }>(
+      `${DYNAMIC_API_BASE}/admin/pipeline/ingest`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Trigger manual duplicate detection
+   */
+  async triggerDuplicateDetection(): Promise<DuplicateDetectionResult> {
+    return fetchJson<DuplicateDetectionResult>(
+      `${DYNAMIC_API_BASE}/admin/pipeline/detect-duplicates`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Get pipeline error statistics
+   */
+  async getErrors(): Promise<ErrorStats> {
+    return fetchJson<ErrorStats>(`${DYNAMIC_API_BASE}/admin/pipeline/errors`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Clear all unresolved pipeline errors
+   */
+  async clearErrors(): Promise<{ message: string; cleared: number }> {
+    return fetchJson<{ message: string; cleared: number }>(
+      `${DYNAMIC_API_BASE}/admin/pipeline/errors/clear`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Toggle ingestion pause state
+   */
+  async setIngestionPaused(
+    paused: boolean
+  ): Promise<{ message: string; settings: { ingestionPaused: boolean; analysisPaused: boolean } }> {
+    return fetchJson<{
+      message: string;
+      settings: { ingestionPaused: boolean; analysisPaused: boolean };
+    }>(`${DYNAMIC_API_BASE}/admin/pipeline/ingestion/pause`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ paused }),
+    });
+  },
+
+  /**
+   * Toggle analysis pause state
+   */
+  async setAnalysisPaused(
+    paused: boolean
+  ): Promise<{ message: string; settings: { ingestionPaused: boolean; analysisPaused: boolean } }> {
+    return fetchJson<{
+      message: string;
+      settings: { ingestionPaused: boolean; analysisPaused: boolean };
+    }>(`${DYNAMIC_API_BASE}/admin/pipeline/analysis/pause`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ paused }),
+    });
+  },
+
+  /**
+   * Trigger manual analysis run
+   */
+  async triggerAnalysis(
+    limit?: number
+  ): Promise<{
+    message: string;
+    analyzed: number;
+    errors: number;
+    results: Array<{ articleId: string; success: boolean; error?: string }>;
+  }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{
+      message: string;
+      analyzed: number;
+      errors: number;
+      results: Array<{ articleId: string; success: boolean; error?: string }>;
+    }>(`${DYNAMIC_API_BASE}/admin/pipeline/analyze${params}`, {
+      method: 'POST',
       headers: getAuthHeaders(),
     });
   },

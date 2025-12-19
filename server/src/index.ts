@@ -10,6 +10,8 @@ import chatRoutes from './routes/chat';
 import sourcesRoutes from './routes/sources';
 import articlesRoutes from './routes/articles';
 import reviewRoutes from './routes/review';
+import glossaryRoutes, { adminRouter as glossaryAdminRoutes } from './routes/glossary';
+import pipelineRoutes from './routes/pipeline';
 
 /**
  * Create and configure the Express application
@@ -67,9 +69,12 @@ export function createApp() {
   app.use('/api/auth', authRoutes);
   app.use('/api/milestones', milestonesRoutes);
   app.use('/api/chat', chatRoutes);
+  app.use('/api/glossary', glossaryRoutes); // Public glossary API
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
+  app.use('/api/admin/glossary', glossaryAdminRoutes); // Admin glossary API
+  app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
 
   // Error handling
   app.use(notFoundHandler);

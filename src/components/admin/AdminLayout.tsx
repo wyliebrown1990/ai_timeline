@@ -1,5 +1,6 @@
 import {
   Activity,
+  Book,
   ChevronRight,
   ClipboardCheck,
   FileText,
@@ -46,6 +47,11 @@ const navItems: NavItem[] = [
     label: 'Articles',
     href: '/admin/articles',
     icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    label: 'Glossary',
+    href: '/admin/glossary',
+    icon: <Book className="h-5 w-5" />,
   },
   {
     label: 'API Monitoring',
