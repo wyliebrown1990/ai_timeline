@@ -22,6 +22,19 @@ Parameters:
     Default: 200
     Description: Maximum concurrent requests allowed
 
+  # VPC configuration for RDS access
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for Lambda functions to access RDS
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Private subnets for Lambda (at least 2 AZs for RDS)
+
+  LambdaSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Security group for Lambda functions (must allow outbound to RDS)
+
 Globals:
   Function:
     Timeout: 30
@@ -70,9 +83,17 @@ Resources:
       CodeUri: ../server/src/
       Handler: lambda.handler
 
+      # VPC configuration for RDS access
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Ref SubnetIds
+
       Environment:
         Variables:
           NODE_ENV: production
+          # Database connection (from SSM Parameter Store)
+          DATABASE_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/database-url}}'
           # Secrets from SSM Parameter Store (secure)
           JWT_SECRET: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/jwt-secret}}'
           JWT_EXPIRES_IN: '24h'
@@ -118,6 +139,15 @@ Resources:
                 - logs:GetQueryResults
                 - logs:StopQuery
               Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ai-timeline-api-${Environment}:*'
+            # EC2 permissions for VPC networking (required for RDS access)
+            - Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DeleteNetworkInterface
+                - ec2:AssignPrivateIpAddresses
+                - ec2:UnassignPrivateIpAddresses
+              Resource: '*'
 
     Metadata:
       BuildMethod: esbuild
@@ -150,9 +180,17 @@ Resources:
       Timeout: 300  # 5 minutes - longer timeout for processing multiple sources
       MemorySize: 512
 
+      # VPC configuration for RDS access
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSecurityGroupId
+        SubnetIds: !Ref SubnetIds
+
       Environment:
         Variables:
           NODE_ENV: production
+          # Database connection (from SSM Parameter Store)
+          DATABASE_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/database-url}}'
           # Secrets from SSM Parameter Store (secure)
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
 
@@ -171,6 +209,15 @@ Resources:
                 - ssm:GetParameter
                 - ssm:GetParameters
               Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
+            # EC2 permissions for VPC networking (required for RDS access)
+            - Effect: Allow
+              Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DeleteNetworkInterface
+                - ec2:AssignPrivateIpAddresses
+                - ec2:UnassignPrivateIpAddresses
+              Resource: '*'
 
     Metadata:
       BuildMethod: esbuild

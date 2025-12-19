@@ -2,8 +2,11 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// PostgreSQL for production (RDS) and local development
+// Set DATABASE_URL environment variable to connect
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 /// AI development milestone entity
@@ -97,7 +100,7 @@ model ContentDraft {
   article          IngestedArticle  @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   contentType      String           // "news_event" | "milestone" | "glossary_term"
-  draftData        String           // JSON matching target schema
+  draftData        Json             // JSON matching target schema (native PostgreSQL JSON type)
 
   // Validation
   isValid          Boolean          @default(false)

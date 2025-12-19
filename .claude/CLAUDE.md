@@ -18,7 +18,55 @@ npm run typecheck    # TypeScript checking - run after code changes
 | Custom Domain | letaiexplainai.com |
 | Backend API | API Gateway + Lambda (`ai-timeline-api-prod`) |
 | API Endpoint | https://nhnkwe8o6i.execute-api.us-east-1.amazonaws.com/prod |
+| Database | RDS PostgreSQL (`ai-timeline-db`) in VPC |
 | Region | us-east-1 |
+
+## Database
+
+### Local Development (PostgreSQL via Docker)
+```bash
+# Start local PostgreSQL
+docker run --name ai-timeline-postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=ai_timeline_dev \
+  -p 5432:5432 -d postgres:15
+
+# Set DATABASE_URL in .env (already configured)
+DATABASE_URL="postgresql://postgres:password@localhost:5432/ai_timeline_dev"
+
+# Run migrations
+npx prisma migrate dev
+
+# Seed initial data
+npm run db:seed
+```
+
+### Database Migrations (Production)
+Before deploying code changes that modify the database schema:
+
+```bash
+# 1. Get production DATABASE_URL from SSM
+export DATABASE_URL=$(aws ssm get-parameter \
+  --name "/ai-timeline/prod/database-url" \
+  --with-decryption \
+  --query "Parameter.Value" \
+  --output text)
+
+# 2. Run migrations
+npx prisma migrate deploy
+
+# 3. Then deploy Lambda
+cd infra && sam build && sam deploy --no-confirm-changeset
+```
+
+### SSM Parameters Required
+```bash
+# Database connection (required for Lambda)
+/ai-timeline/prod/database-url  # PostgreSQL connection string
+
+# VPC configuration (required for SAM deploy)
+# Pass as parameters: VpcId, SubnetIds, LambdaSecurityGroupId
+```
 
 ## Deployment
 **Frontend** - Deploy to S3 and invalidate CloudFront:

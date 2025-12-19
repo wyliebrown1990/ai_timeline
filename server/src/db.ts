@@ -1,41 +1,42 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { resolve } from 'path';
 
 /**
  * Prisma client singleton for database operations
- * Note: SQLite/better-sqlite3 doesn't work in Lambda
- * Database features are disabled in Lambda environment
+ * Connects to PostgreSQL via DATABASE_URL environment variable
+ * Works in both local development and Lambda (with RDS) environments
  */
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-const IS_LAMBDA = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+/**
+ * Creates a new Prisma client instance configured for PostgreSQL
+ * DATABASE_URL is required - set via environment variable or SSM in Lambda
+ */
+function createPrismaClient(): PrismaClient {
+  const databaseUrl = process.env.DATABASE_URL;
 
-function createPrismaClient(): PrismaClient | null {
-  // Skip database initialization in Lambda (SQLite doesn't work there)
-  if (IS_LAMBDA) {
-    console.warn('Database disabled in Lambda environment');
-    return null;
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL environment variable is required. ' +
+      'For local development, set it in .env file. ' +
+      'For Lambda, it is resolved from SSM Parameter Store.'
+    );
   }
 
-  try {
-    // Database is in project root
-    const dbPath = resolve(process.cwd(), 'dev.db');
-    const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
-
-    return new PrismaClient({
-      adapter,
-      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    });
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    return null;
-  }
+  return new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    datasources: {
+      db: {
+        url: databaseUrl,
+      },
+    },
+  });
 }
 
+// Export singleton Prisma client instance
+// Reuses existing instance in development to prevent connection pool exhaustion
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {

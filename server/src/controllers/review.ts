@@ -42,10 +42,10 @@ export async function getQueue(req: Request, res: Response) {
       prisma.contentDraft.count({ where }),
     ]);
 
-    // Parse draft data for response
+    // Prepare drafts for response - draftData is already parsed (PostgreSQL Json type)
     const parsedDrafts = drafts.map((draft) => ({
       ...draft,
-      draftData: JSON.parse(draft.draftData),
+      draftData: draft.draftData, // Already an object from PostgreSQL Json type
       validationErrors: draft.validationErrors ? JSON.parse(draft.validationErrors) : null,
     }));
 
@@ -129,7 +129,7 @@ export async function getDraft(req: Request, res: Response) {
 
     return res.json({
       ...draft,
-      draftData: JSON.parse(draft.draftData),
+      draftData: draft.draftData, // Already an object from PostgreSQL Json type
       validationErrors: draft.validationErrors ? JSON.parse(draft.validationErrors) : null,
     });
   } catch (error) {
@@ -165,7 +165,7 @@ export async function updateDraft(req: Request, res: Response) {
     const updated = await prisma.contentDraft.update({
       where: { id },
       data: {
-        draftData: JSON.stringify(draftData),
+        draftData, // Native PostgreSQL Json type - pass object directly
         updatedAt: new Date(),
       },
       include: {
@@ -179,7 +179,7 @@ export async function updateDraft(req: Request, res: Response) {
 
     return res.json({
       ...updated,
-      draftData: JSON.parse(updated.draftData),
+      draftData: updated.draftData, // Already an object from PostgreSQL Json type
       validationErrors: updated.validationErrors ? JSON.parse(updated.validationErrors) : null,
     });
   } catch (error) {
@@ -214,7 +214,8 @@ export async function approveDraft(req: Request, res: Response) {
       return res.status(400).json({ error: 'Draft is not pending' });
     }
 
-    const draftData = JSON.parse(draft.draftData);
+    // draftData is already an object from PostgreSQL Json type
+    const draftData = draft.draftData as Record<string, unknown>;
 
     let publishedId: string;
 
@@ -293,7 +294,7 @@ export async function rejectDraft(req: Request, res: Response) {
       message: 'Draft rejected',
       draft: {
         ...updated,
-        draftData: JSON.parse(updated.draftData),
+        draftData: updated.draftData, // Already an object from PostgreSQL Json type
       },
     });
   } catch (error) {
@@ -334,13 +335,9 @@ export async function getPublished(req: Request, res: Response) {
       prisma.contentDraft.count({ where }),
     ]);
 
-    const parsedDrafts = drafts.map((draft) => ({
-      ...draft,
-      draftData: JSON.parse(draft.draftData),
-    }));
-
+    // draftData is already an object from PostgreSQL Json type
     return res.json({
-      drafts: parsedDrafts,
+      drafts,
       total,
       limit: Number(limit),
       offset: Number(offset),

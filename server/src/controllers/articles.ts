@@ -29,12 +29,12 @@ export async function getArticle(req: Request, res: Response) {
       return res.status(404).json({ error: 'Article not found' });
     }
 
-    // Parse draft data for response
+    // Prepare drafts for response - draftData is already an object (PostgreSQL Json type)
     const articlesWithParsedDrafts = {
       ...article,
       drafts: article.drafts.map((draft) => ({
         ...draft,
-        draftData: JSON.parse(draft.draftData),
+        draftData: draft.draftData, // Already an object from PostgreSQL Json type
         validationErrors: draft.validationErrors ? JSON.parse(draft.validationErrors) : null,
       })),
     };
@@ -176,10 +176,10 @@ export async function getArticleDrafts(req: Request, res: Response) {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Parse draft data for response
+    // draftData is already an object (PostgreSQL Json type)
     const parsedDrafts = drafts.map((draft) => ({
       ...draft,
-      draftData: JSON.parse(draft.draftData),
+      draftData: draft.draftData, // Already an object from PostgreSQL Json type
       validationErrors: draft.validationErrors ? JSON.parse(draft.validationErrors) : null,
     }));
 

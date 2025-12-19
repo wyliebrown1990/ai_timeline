@@ -118,7 +118,8 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         data: {
           articleId,
           contentType: 'milestone',
-          draftData: JSON.stringify(contentGeneration.milestone),
+          // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
+          draftData: contentGeneration.milestone,
           isValid: milestoneValidation.success,
           validationErrors: milestoneValidation.success
             ? null
@@ -140,7 +141,8 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         data: {
           articleId,
           contentType: 'news_event',
-          draftData: JSON.stringify(contentGeneration.newsEvent),
+          // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
+          draftData: contentGeneration.newsEvent,
           isValid: eventValidation.success,
           validationErrors: eventValidation.success
             ? null
@@ -178,7 +180,8 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         data: {
           articleId,
           contentType: 'glossary_term',
-          draftData: JSON.stringify(term),
+          // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
+          draftData: term,
           isValid: validation.success,
           validationErrors: validation.success ? null : JSON.stringify(validation.error.errors),
         },
