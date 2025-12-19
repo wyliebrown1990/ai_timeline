@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import { resolve } from 'path';
 
 /**
@@ -21,10 +22,6 @@ function createPrismaClient(): PrismaClient | null {
   }
 
   try {
-    // Only import sqlite adapter when not in Lambda
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3');
-
     // Database is in project root
     const dbPath = resolve(process.cwd(), 'dev.db');
     const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });

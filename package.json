@@ -21,6 +21,7 @@
     "content:validate": "tsx scripts/validate-content.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudwatch-logs": "^3.955.0",
     "@headlessui/react": "^2.2.9",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.2.2",
@@ -43,6 +44,7 @@
     "react-hot-toast": "^2.6.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.10.1",
+    "rss-parser": "^3.13.0",
     "serverless-http": "^4.0.0",
     "zod": "^4.2.1"
   },

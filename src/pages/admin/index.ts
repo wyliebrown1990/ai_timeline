@@ -4,3 +4,5 @@ export { CreateMilestonePage } from './CreateMilestonePage';
 export { EditMilestonePage } from './EditMilestonePage';
 export { LoginPage } from './LoginPage';
 export { ApiMonitoringPage } from './ApiMonitoringPage';
+export { SourcesPage } from './SourcesPage';
+export { IngestedArticlesPage } from './IngestedArticlesPage';

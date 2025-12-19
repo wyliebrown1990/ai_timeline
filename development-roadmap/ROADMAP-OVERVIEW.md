@@ -113,11 +113,26 @@
 | Sprint | Focus | Impact | Effort |
 |--------|-------|--------|--------|
 | [Sprint 27](./sprint-27-coding-with-ai.md) | "Coding with AI" Path (Vibe Coding) | High | Medium |
+| [Sprint 28](./sprint-28-custom-domain.md) | Custom Domain Setup | High | Low |
 
 **Phase 8 Goal**: Extend from AI understanding to AI creation—teaching users to build with AI tools.
 - **Coding with AI Track**: For curious professionals who want to build software using AI assistants without traditional programming education
 - Introduces "vibe coding" and "context engineering" concepts
 - Hands-on, practical activities with copy-paste prompts
+
+### Phase 9: Automated Content Curation
+| Sprint | Focus | Impact | Effort |
+|--------|-------|--------|--------|
+| [Sprint 29](./sprint-29-news-ingestion-foundation.md) | News Ingestion Foundation | High | Medium |
+| [Sprint 30](./sprint-30-ai-analysis-pipeline.md) | AI Analysis Pipeline | High | Medium |
+| [Sprint 31](./sprint-31-admin-review-queue.md) | Admin Review Queue | High | Medium |
+| [Sprint 32](./sprint-32-automation-and-glossary.md) | Automation & Glossary Integration | Medium | Low |
+
+**Phase 9 Goal**: Automate the content pipeline from news sources to published milestones.
+- **Automated Ingestion**: Monitor curated news sources (The Neuron Daily, Forward Future AI) for new articles
+- **AI Analysis**: Claude evaluates articles for relevance and milestone-worthiness, generates draft content
+- **Admin Review**: Review queue for approving/editing/rejecting AI-generated drafts before publication
+- **Full Automation**: Scheduled ingestion and analysis with admin oversight only for approval
 
 ---
 

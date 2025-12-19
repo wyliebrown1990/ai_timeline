@@ -1,0 +1,11 @@
+# Robots.txt for letaiexplainai.com
+# Allow all crawlers to index the site
+
+User-agent: *
+Allow: /
+
+# Disallow admin routes
+Disallow: /admin/
+
+# Sitemap location
+Sitemap: https://letaiexplainai.com/sitemap.xml

@@ -1,11 +1,13 @@
 import {
   Activity,
   ChevronRight,
+  FileText,
   History,
   Home,
   LayoutDashboard,
   LogOut,
   Menu,
+  Rss,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -28,6 +30,16 @@ const navItems: NavItem[] = [
     label: 'Milestones',
     href: '/admin/milestones',
     icon: <History className="h-5 w-5" />,
+  },
+  {
+    label: 'News Sources',
+    href: '/admin/sources',
+    icon: <Rss className="h-5 w-5" />,
+  },
+  {
+    label: 'Articles',
+    href: '/admin/articles',
+    icon: <FileText className="h-5 w-5" />,
   },
   {
     label: 'API Monitoring',

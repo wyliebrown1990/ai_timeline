@@ -114,33 +114,37 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Guided Path Preview */}
+      {/* Start Your Journey */}
       <section className="bg-orange-50 py-16 dark:bg-gray-800 sm:py-24">
         <div className="container-main">
           <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">Start Your Journey</h2>
-          <p className="mx-auto mt-4 max-w-2xl text-center text-gray-600 dark:text-gray-400">
-            Begin with our guided path through four pivotal moments that defined the modern AI era.
-          </p>
 
-          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-2">
-            {['Transformer', 'GPT-3', 'ChatGPT', 'GPT-4'].map((milestone, index) => (
-              <div key={milestone} className="flex items-center">
-                <div className="rounded-lg bg-white px-4 py-2 font-medium text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white">
-                  {milestone}
-                </div>
-                {index < 3 && (
-                  <ArrowRight className="mx-2 hidden h-4 w-4 text-gray-400 dark:text-gray-500 sm:block" />
-                )}
-              </div>
-            ))}
+          <div className="mx-auto mt-8 max-w-3xl space-y-4 text-center text-gray-600 dark:text-gray-300">
+            <p className="text-lg">
+              When people talk about AI today, they're almost always referring to Large Language Models
+              and AI assistants like ChatGPT. The release of ChatGPT in November 2022 sparked a global
+              conversation about artificial intelligence that continues to accelerate.
+            </p>
+            <p className="text-lg">
+              But AI isn't new—it's been powering consumer products and business applications for decades,
+              from recommendation engines to voice assistants to fraud detection. The foundations were
+              laid in the 1940s and 50s by pioneers like Alan Turing and John McCarthy.
+            </p>
+            <p className="text-lg">
+              <span className="font-semibold text-gray-900 dark:text-white">Let AI Explain AI</span> is
+              a platform that helps anyone—whether you're just curious, a student, or a professional—explore
+              AI's fascinating history, understand how we got here, and dive deeper into the concepts
+              that matter most to you.
+            </p>
           </div>
 
-          <div className="mt-8 text-center">
+          <div className="mt-10 text-center">
             <Link
               to="/timeline"
-              className="text-orange-600 hover:text-orange-700 hover:underline dark:text-orange-400 dark:hover:text-orange-300"
+              className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-8 py-4 text-lg font-medium text-white shadow-lg transition-all hover:bg-orange-600 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2"
             >
-              View the full timeline →
+              <span>Begin on the Timeline</span>
+              <ArrowRight className="h-5 w-5" />
             </Link>
           </div>
         </div>

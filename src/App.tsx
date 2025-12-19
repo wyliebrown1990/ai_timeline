@@ -28,6 +28,8 @@ import {
   EditMilestonePage,
   LoginPage,
   ApiMonitoringPage,
+  SourcesPage,
+  IngestedArticlesPage,
 } from './pages/admin';
 
 /**
@@ -119,6 +121,8 @@ function App() {
                   <Route path="milestones" element={<MilestonesListPage />} />
                   <Route path="milestones/new" element={<CreateMilestonePage />} />
                   <Route path="milestones/:id/edit" element={<EditMilestonePage />} />
+                  <Route path="sources" element={<SourcesPage />} />
+                  <Route path="articles" element={<IngestedArticlesPage />} />
                   <Route path="api-monitoring" element={<ApiMonitoringPage />} />
                 </Route>
 

@@ -9,18 +9,29 @@ npm run build        # Production build (or `npx vite build` to skip typecheck)
 npm run typecheck    # TypeScript checking - run after code changes
 ```
 
-## Deployment - CRITICAL
-Deploy to BOTH S3 buckets and invalidate BOTH CloudFront distributions:
+## AWS Hosting
+**Production URL:** https://letaiexplainai.com (CloudFront: d33f170a3u5yyl.cloudfront.net)
+
+| Component | Resource |
+|-----------|----------|
+| Frontend | S3 (`ai-timeline-frontend-1765916222`) + CloudFront (`E23Z9QNRPDI3HW`) |
+| Custom Domain | letaiexplainai.com |
+| Backend API | API Gateway + Lambda (`ai-timeline-api-prod`) |
+| API Endpoint | https://nhnkwe8o6i.execute-api.us-east-1.amazonaws.com/prod |
+| Region | us-east-1 |
+
+## Deployment
+**Frontend** - Deploy to S3 and invalidate CloudFront:
 ```bash
+npm run build
 aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete
-aws s3 sync dist/ s3://ai-timeline-frontend-prod/ --delete
 aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"
-aws cloudfront create-invalidation --distribution-id E23NUZWAYKEKUN --paths "/*"
 ```
-| CloudFront ID | S3 Bucket |
-|---------------|-----------|
-| E23Z9QNRPDI3HW | ai-timeline-frontend-1765916222 |
-| E23NUZWAYKEKUN | ai-timeline-frontend-prod |
+
+**Backend** - Deploy Lambda via SAM:
+```bash
+cd infra && sam build && sam deploy --no-confirm-changeset
+```
 
 ## Project Structure
 ```

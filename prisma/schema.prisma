@@ -35,3 +35,38 @@ model Milestone {
   @@index([category])
   @@index([era])
 }
+
+/// News source for automated ingestion
+model NewsSource {
+  id             String            @id @default(cuid())
+  name           String
+  url            String            @unique
+  feedUrl        String
+  isActive       Boolean           @default(true)
+  checkFrequency Int               @default(60)
+  lastCheckedAt  DateTime?
+  createdAt      DateTime          @default(now())
+  articles       IngestedArticle[]
+}
+
+/// Article ingested from a news source
+model IngestedArticle {
+  id             String      @id @default(cuid())
+  sourceId       String
+  source         NewsSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  externalUrl    String      @unique
+  title          String
+  content        String
+  publishedAt    DateTime
+  ingestedAt     DateTime    @default(now())
+
+  // Analysis fields (Sprint 30)
+  analysisStatus String      @default("pending")
+
+  // Review fields (Sprint 31)
+  reviewStatus   String      @default("pending")
+
+  @@index([sourceId])
+  @@index([publishedAt])
+  @@index([analysisStatus])
+}
