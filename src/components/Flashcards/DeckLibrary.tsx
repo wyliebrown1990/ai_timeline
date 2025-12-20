@@ -12,16 +12,11 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Library, Plus, Check, Clock, Eye, X, BookOpen, AlertCircle } from 'lucide-react';
+import { Library, Plus, Check, Clock, Eye, X, BookOpen, AlertCircle, Loader2 } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
-import { useGlossary } from '../../hooks';
+import { useGlossary, usePrebuiltDecks } from '../../hooks';
 import { useMilestones } from '../../hooks/useMilestones';
-import {
-  PREBUILT_DECKS,
-  getPreviewCards,
-  type PrebuiltDeck,
-  type PrebuiltCard,
-} from '../../content/prebuiltDecks';
+import type { PrebuiltDeck, PrebuiltDeckCard } from '../../services/api';
 import type { GlossaryEntry } from '../../types/glossary';
 import type { MilestoneResponse } from '../../types/milestone';
 
@@ -73,7 +68,9 @@ interface ConfirmationModalProps {
 /**
  * Displays a colored badge for deck difficulty level.
  */
-function DifficultyBadge({ difficulty }: { difficulty: PrebuiltDeck['difficulty'] }) {
+type DeckDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+function DifficultyBadge({ difficulty }: { difficulty: DeckDifficulty }) {
   const config = {
     beginner: {
       bg: 'bg-green-100 dark:bg-green-900/30',
@@ -433,6 +430,7 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
   const { cards, addCard, createPack, packs, moveCardToPack } = useFlashcardContext();
   const { data: glossaryTerms } = useGlossary();
   const { data: milestones } = useMilestones({ limit: 1000 });
+  const { data: prebuiltDecks, isLoading: isLoadingDecks } = usePrebuiltDecks();
 
   // Modal states
   const [previewDeck, setPreviewDeck] = useState<PrebuiltDeck | null>(null);
@@ -456,14 +454,16 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
   }, [milestones]);
 
   /**
-   * Resolve a PrebuiltCard to its term and definition.
+   * Resolve a PrebuiltDeckCard to its term and definition.
    */
   const resolveCardContent = useCallback(
-    (card: PrebuiltCard): { term: string; definition: string } => {
-      if (card.sourceType === 'custom' && card.term && card.definition) {
-        return { term: card.term, definition: card.definition };
+    (card: PrebuiltDeckCard): { term: string; definition: string } => {
+      // Custom cards have inline content
+      if (card.sourceType === 'custom' && card.customTerm && card.customDefinition) {
+        return { term: card.customTerm, definition: card.customDefinition };
       }
 
+      // Concept cards reference glossary terms
       if (card.sourceType === 'concept' && card.sourceId) {
         const glossaryTerm = glossaryMap.get(card.sourceId);
         if (glossaryTerm) {
@@ -471,6 +471,7 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
         }
       }
 
+      // Milestone cards reference milestones
       if (card.sourceType === 'milestone' && card.sourceId) {
         const milestone = milestoneMap.get(card.sourceId);
         if (milestone) {
@@ -479,7 +480,10 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
       }
 
       // Fallback for unresolved content
-      return { term: card.term || card.sourceId || 'Unknown', definition: card.definition || 'Content not found' };
+      return {
+        term: card.customTerm || card.sourceId || 'Unknown',
+        definition: card.customDefinition || 'Content not found'
+      };
     },
     [glossaryMap, milestoneMap]
   );
@@ -489,9 +493,7 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
    * A deck is considered "added" if a pack with the deck's name exists.
    */
   const isDeckAdded = useCallback(
-    (deckId: string): boolean => {
-      const deck = PREBUILT_DECKS.find((d) => d.id === deckId);
-      if (!deck) return false;
+    (deck: PrebuiltDeck): boolean => {
       // Check if there's a pack with this deck's name
       return packs.some((p) => p.name === deck.name && !p.isDefault);
     },
@@ -503,12 +505,14 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
    */
   const getExistingCardsCount = useCallback(
     (deck: PrebuiltDeck): number => {
-      let count = 0;
-      for (const prebuiltCard of deck.cards) {
-        if (prebuiltCard.sourceType === 'custom') continue;
+      if (!deck.cards) return 0;
 
-        const sourceType = prebuiltCard.sourceType === 'concept' ? 'concept' : 'milestone';
-        const sourceId = prebuiltCard.sourceId || '';
+      let count = 0;
+      for (const deckCard of deck.cards) {
+        if (deckCard.sourceType === 'custom') continue;
+
+        const sourceType = deckCard.sourceType === 'concept' ? 'concept' : 'milestone';
+        const sourceId = deckCard.sourceId || '';
 
         if (!sourceId) continue;
 
@@ -531,6 +535,8 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
    */
   const handleAddDeck = useCallback(
     (deck: PrebuiltDeck, addMissingOnly: boolean = false) => {
+      if (!deck.cards) return;
+
       // Track import statistics
       let newCardsAdded = 0;
       let existingCardsLinked = 0;
@@ -544,18 +550,18 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
       }
 
       // Add each card from the deck
-      for (const prebuiltCard of deck.cards) {
+      for (const deckCard of deck.cards) {
         // Determine sourceType and sourceId for the card
         let sourceType: 'milestone' | 'concept';
         let sourceId: string;
 
-        if (prebuiltCard.sourceType === 'custom') {
+        if (deckCard.sourceType === 'custom') {
           // Custom cards are skipped - they require backend support to persist
           skippedCards++;
           continue;
-        } else if (prebuiltCard.sourceType === 'concept') {
+        } else if (deckCard.sourceType === 'concept') {
           sourceType = 'concept';
-          sourceId = prebuiltCard.sourceId || '';
+          sourceId = deckCard.sourceId || '';
 
           // Verify the concept exists in glossary
           if (!sourceId || !glossaryMap.has(sourceId)) {
@@ -564,7 +570,7 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
           }
         } else {
           sourceType = 'milestone';
-          sourceId = prebuiltCard.sourceId || '';
+          sourceId = deckCard.sourceId || '';
 
           // Verify the milestone exists
           if (!sourceId || !milestoneMap.has(sourceId)) {
@@ -617,14 +623,39 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
 
   /**
    * Get preview cards with resolved content.
+   * Returns the first 3 cards from the deck.
    */
   const getResolvedPreviewCards = useCallback(
     (deck: PrebuiltDeck): Array<{ term: string; definition: string }> => {
-      const previewCardData = getPreviewCards(deck.id);
-      return previewCardData.map(resolveCardContent);
+      if (!deck.cards) return [];
+      // Get first 3 cards for preview
+      const previewCards = deck.cards.slice(0, 3);
+      return previewCards.map(resolveCardContent);
     },
     [resolveCardContent]
   );
+
+  // Loading state
+  if (isLoadingDecks) {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <div className="flex items-center gap-3">
+          <Library className="h-6 w-6 text-orange-500" />
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Deck Library
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Curated flashcard decks to accelerate your learning
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -641,16 +672,23 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
         </div>
       </div>
 
+      {/* Empty state */}
+      {prebuiltDecks.length === 0 && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-800">
+          <p className="text-gray-600 dark:text-gray-400">No decks available yet.</p>
+        </div>
+      )}
+
       {/* Deck grid */}
       <div
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         data-testid="deck-library-grid"
       >
-        {PREBUILT_DECKS.map((deck) => (
+        {prebuiltDecks.map((deck) => (
           <DeckCard
             key={deck.id}
             deck={deck}
-            isAdded={isDeckAdded(deck.id)}
+            isAdded={isDeckAdded(deck)}
             existingCardsCount={getExistingCardsCount(deck)}
             onPreview={() => setPreviewDeck(deck)}
             onAddDeck={(addMissingOnly) => handleAddDeck(deck, addMissingOnly)}
@@ -663,7 +701,7 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
         <PreviewModal
           deck={previewDeck}
           previewCards={getResolvedPreviewCards(previewDeck)}
-          isAdded={isDeckAdded(previewDeck.id)}
+          isAdded={isDeckAdded(previewDeck)}
           existingCardsCount={getExistingCardsCount(previewDeck)}
           onClose={() => setPreviewDeck(null)}
           onAddDeck={(addMissingOnly) => handleAddDeck(previewDeck, addMissingOnly)}

@@ -22,7 +22,7 @@ import {
   Check,
   X as XIcon,
 } from 'lucide-react';
-import { PREBUILT_DECKS } from '../../content/prebuiltDecks';
+import { usePrebuiltDecks } from '../../hooks';
 
 // =============================================================================
 // Types
@@ -146,14 +146,47 @@ function StudyExample() {
 // Featured Deck Card
 // =============================================================================
 
+interface FeaturedDeckCardProps {
+  onBrowseDecks: () => void;
+}
+
 /**
  * Displays a featured prebuilt deck with preview information.
+ * Fetches the first available deck from the API.
  */
-function FeaturedDeckCard({ onBrowseDecks }: { onBrowseDecks: () => void }) {
-  // Get AI Essentials deck (first/recommended deck for beginners)
-  const featuredDeck = PREBUILT_DECKS.find((d) => d.id === 'ai-essentials') || PREBUILT_DECKS[0];
+function FeaturedDeckCard({ onBrowseDecks }: FeaturedDeckCardProps) {
+  const { data: decks, isLoading } = usePrebuiltDecks();
 
-  if (!featuredDeck) return null;
+  // Get AI Essentials deck or fall back to first deck
+  const featuredDeck = decks.find((d) => d.name === 'AI Essentials') || decks[0];
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-900/50">
+        <div className="animate-pulse space-y-3">
+          <div className="h-10 w-10 rounded-lg bg-gray-200 dark:bg-gray-700" />
+          <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-3 w-48 rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!featuredDeck) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-900/50">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No decks available yet.
+        </p>
+        <button
+          onClick={onBrowseDecks}
+          className="mt-3 text-sm font-medium text-orange-500 hover:text-orange-600"
+        >
+          Browse Decks
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50 p-4 dark:border-orange-800 dark:from-orange-950/20 dark:to-amber-950/20">

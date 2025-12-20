@@ -243,6 +243,7 @@ export function useFlashcardsByCategory(
 
 /**
  * Fetch all prebuilt decks from the database API
+ * Fetches each deck with its cards for full functionality
  */
 export function usePrebuiltDecks(
   difficulty?: DeckDifficulty
@@ -272,20 +273,28 @@ export function usePrebuiltDecks(
     setIsLoading(true);
     setError(null);
 
+    // First fetch the deck list, then fetch each deck with cards
     decksApi
       .getAll(difficulty)
-      .then((response) => {
+      .then(async (response) => {
         if (cancelled) return;
 
-        setData(response.data);
+        // Fetch full details (with cards) for each deck
+        const decksWithCards = await Promise.all(
+          response.data.map((deck) => decksApi.getById(deck.id))
+        );
+
+        if (cancelled) return;
+
+        setData(decksWithCards);
         setIsLoading(false);
 
         // Update cache only for unfiltered requests
         if (!difficulty) {
-          deckCache.decks = response.data;
+          deckCache.decks = decksWithCards;
           deckCache.timestamp = Date.now();
           deckCache.byId.clear();
-          response.data.forEach((deck) => deckCache.byId.set(deck.id, deck));
+          decksWithCards.forEach((deck) => deckCache.byId.set(deck.id, deck));
         }
       })
       .catch((err) => {

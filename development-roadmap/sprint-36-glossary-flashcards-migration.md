@@ -899,9 +899,10 @@ export const prebuiltDecksApi = {
 ```
 
 ### 36.18 Update Study Components
-- [ ] Update `src/pages/StudyPage.tsx` to use API (deferred - static content still works)
-- [ ] Update prebuilt deck components (deferred)
-- [ ] Remove static imports from `@/content` (deferred)
+- [x] Update `DeckLibrary.tsx` to use `usePrebuiltDecks` API hook
+- [x] Update `EmptyState.tsx` to use `usePrebuiltDecks` API hook
+- [x] Updated `usePrebuiltDecks` to fetch decks with cards for full functionality
+- [x] Removed static imports from `content/prebuiltDecks.ts`
 
 ### 36.19 Create React Hooks for Flashcards
 - [x] Created `src/hooks/useFlashcardsApi.ts` using useState/useEffect pattern (no React Query)
@@ -974,8 +975,9 @@ export function usePrebuiltDeck(id: string) {
 - [x] Test Flashcards API ✅ (39 cards)
 - [x] Test Decks API ✅ (5 decks)
 - [x] Frontend deployed with new API clients and hooks
-- [ ] Test flashcard UI loads from API (deferred - static content still works)
-- [ ] Test prebuilt decks study session (deferred - static content still works)
+- [x] Study components updated to use database API
+- [x] DeckLibrary fetches decks from API ✅
+- [x] EmptyState fetches featured deck from API ✅
 
 ---
 
