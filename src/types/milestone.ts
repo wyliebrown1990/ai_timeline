@@ -69,6 +69,7 @@ export interface Milestone {
  * Data transfer object for creating a new milestone
  */
 export interface CreateMilestoneDto {
+  id?: string; // Optional custom ID (e.g., E2026_WHERE_WE_GO_NEXT)
   title: string;
   description: string;
   date: string;
@@ -124,6 +125,7 @@ export const MilestoneCategorySchema = z.nativeEnum(MilestoneCategory);
 export const SignificanceLevelSchema = z.nativeEnum(SignificanceLevel);
 
 export const CreateMilestoneDtoSchema = z.object({
+  id: z.string().min(1).max(100).optional(), // Optional custom ID (e.g., E2026_WHERE_WE_GO_NEXT)
   title: z.string().min(1, 'Title is required').max(500, 'Title is too long'),
   description: z.string().min(1, 'Description is required').max(5000, 'Description is too long'),
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {

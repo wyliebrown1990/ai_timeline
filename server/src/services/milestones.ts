@@ -101,6 +101,7 @@ export async function getById(id: string): Promise<MilestoneResponse | null> {
 export async function create(data: CreateMilestoneDto): Promise<MilestoneResponse> {
   const milestone = await prisma.milestone.create({
     data: {
+      ...(data.id && { id: data.id }), // Use custom ID if provided
       title: data.title,
       description: data.description,
       date: new Date(data.date),

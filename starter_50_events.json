@@ -853,5 +853,21 @@
     "sources": [
       { "label": "TechCrunch article", "kind": "media", "url": "https://techcrunch.com/2025/12/11/google-launched-its-deepest-ai-research-agent-yet-on-the-same-day-openai-dropped-gpt-5-2/" }
     ]
+  },
+  {
+    "id": "E2026_WHERE_WE_GO_NEXT",
+    "date": "2026-12-31",
+    "era": "Multimodal & Deployment",
+    "title": "Where Do We Go Next?",
+    "summary": "A deep exploration of AI's possible futures through three scenarios—optimistic, neutral, and concerning—featuring real perspectives from industry leaders like Dario Amodei, Sam Altman, Geoffrey Hinton, Yann LeCun, and Andrej Karpathy. This milestone synthesizes predictions from Anthropic's 'Machines of Loving Grace,' the 'Situational Awareness' report, and interviews with key AI researchers to map possible trajectories for artificial intelligence development.",
+    "guidedStart": true,
+    "coreConcepts": ["Future Scenarios", "AGI", "AI Safety", "Predictions", "Industry Perspectives"],
+    "keyPeople": ["Dario Amodei", "Sam Altman", "Geoffrey Hinton", "Yann LeCun", "Andrej Karpathy", "Ilya Sutskever", "Leopold Aschenbrenner", "Jensen Huang"],
+    "sources": [
+      { "label": "Machines of Loving Grace", "kind": "article", "url": "https://www.darioamodei.com/essay/machines-of-loving-grace" },
+      { "label": "Situational Awareness", "kind": "article", "url": "https://situational-awareness.ai/" },
+      { "label": "Sam Altman Reflections", "kind": "article", "url": "https://blog.samaltman.com/reflections" },
+      { "label": "Hinton Nobel Speech", "kind": "media", "url": "https://www.nobelprize.org/prizes/physics/2024/hinton/speech/" }
+    ]
   }
 ]
