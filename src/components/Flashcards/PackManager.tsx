@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
 import { useMilestones } from '../../hooks/useMilestones';
-import { useGlossary } from '../../hooks/useContent';
+import { useGlossary } from '../../hooks';
 import { SwipeableCard } from './SwipeableCard';
 import { VirtualizedCardList } from './VirtualizedCardList';
 import type { UserFlashcard } from '../../types/flashcard';

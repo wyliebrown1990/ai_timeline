@@ -10,7 +10,7 @@ import {
   ArrowRight,
   Clock,
 } from 'lucide-react';
-import { useGlossary } from '../../hooks/useContent';
+import { useGlossary } from '../../hooks';
 import { GLOSSARY_CATEGORY_LABELS } from '../../types/glossary';
 import type { GlossaryEntry } from '../../types/glossary';
 

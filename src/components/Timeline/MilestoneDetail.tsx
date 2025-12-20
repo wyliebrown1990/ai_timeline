@@ -12,9 +12,8 @@ import {
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
 import { useChatContext } from '../../context/ChatContext';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
-import { useAsyncLayeredContent } from '../../hooks/useAsyncContent';
 import { useUserProfile } from '../../hooks/useUserProfile';
-import type { MilestoneResponse, SignificanceLevel } from '../../types/milestone';
+import type { MilestoneWithLayeredContent, SignificanceLevel } from '../../types/milestone';
 import type { AudienceType } from '../../types/userProfile';
 import { formatTimelineDate } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
@@ -23,8 +22,8 @@ import { SignificanceBadge } from './SignificanceBadge';
 import { AddToFlashcardButton, PackPicker } from '../Flashcards';
 
 interface MilestoneDetailProps {
-  /** The milestone to display */
-  milestone: MilestoneResponse;
+  /** The milestone to display (includes layered content from API) */
+  milestone: MilestoneWithLayeredContent;
   /** Callback when panel is closed */
   onClose: () => void;
   /** Callback to navigate to next milestone */
@@ -154,8 +153,8 @@ export function MilestoneDetail({
     [profile?.audienceType]
   );
 
-  // Fetch layered content for this milestone (async lazy-loaded)
-  const { data: layeredContent, isLoading: isLoadingContent } = useAsyncLayeredContent(milestone.id);
+  // Layered content is now included in the milestone response from the API (Sprint 35)
+  const layeredContent = milestone.layeredContent;
 
   // Handle "Explain this" button click
   const handleExplainClick = () => {
@@ -348,13 +347,9 @@ export function MilestoneDetail({
 
           {/* Layered Explanations or Basic Description */}
           {/* Sprint 19: Pass audience-based default tab to LayeredExplanationTabs */}
+          {/* Sprint 35: Layered content now comes from API response directly */}
           <div data-testid="detail-description" className="mb-4">
-            {isLoadingContent ? (
-              <div className="flex items-center gap-2 py-4 text-gray-500 dark:text-gray-400">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
-                <span className="text-sm">Loading detailed explanation...</span>
-              </div>
-            ) : layeredContent ? (
+            {layeredContent ? (
               <LayeredExplanationTabs content={layeredContent} initialTab={defaultTab} />
             ) : (
               <div className="prose prose-gray dark:prose-invert max-w-none">

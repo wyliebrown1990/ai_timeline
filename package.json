@@ -19,9 +19,11 @@
     "test:e2e:ui": "playwright test --ui",
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:glossary": "tsx scripts/migrateGlossary.ts",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
-    "content:validate": "tsx scripts/validate-content.ts"
+    "content:validate": "tsx scripts/validate-content.ts",
+    "migrate:layered-content": "tsx scripts/migrate-layered-content.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

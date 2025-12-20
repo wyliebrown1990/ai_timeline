@@ -12,6 +12,13 @@ import articlesRoutes from './routes/articles';
 import reviewRoutes from './routes/review';
 import glossaryRoutes, { adminRouter as glossaryAdminRoutes } from './routes/glossary';
 import pipelineRoutes from './routes/pipeline';
+import {
+  flashcardRouter,
+  deckRouter,
+  adminFlashcardRouter,
+  adminDeckRouter,
+} from './routes/flashcard';
+import migrationsRouter from './routes/migrations';
 
 /**
  * Create and configure the Express application
@@ -70,10 +77,15 @@ export function createApp() {
   app.use('/api/milestones', milestonesRoutes);
   app.use('/api/chat', chatRoutes);
   app.use('/api/glossary', glossaryRoutes); // Public glossary API
+  app.use('/api/flashcards', flashcardRouter); // Public flashcard API (Sprint 36)
+  app.use('/api/decks', deckRouter); // Public deck API (Sprint 36)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
   app.use('/api/admin/glossary', glossaryAdminRoutes); // Admin glossary API
+  app.use('/api/admin/flashcards', adminFlashcardRouter); // Admin flashcard API (Sprint 36)
+  app.use('/api/admin/decks', adminDeckRouter); // Admin deck API (Sprint 36)
+  app.use('/api/admin/migrations', migrationsRouter); // Database migrations (Sprint 36)
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
 
   // Error handling

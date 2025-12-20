@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 /**
  * Prisma client singleton for database operations
@@ -12,12 +14,13 @@ const globalForPrisma = globalThis as unknown as {
 
 /**
  * Creates a new Prisma client instance configured for PostgreSQL
+ * Uses PrismaPg adapter with Pool (required for Prisma 7.x)
  * DATABASE_URL is required - set via environment variable or SSM in Lambda
  */
 function createPrismaClient(): PrismaClient {
-  const databaseUrl = process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL;
 
-  if (!databaseUrl) {
+  if (!connectionString) {
     throw new Error(
       'DATABASE_URL environment variable is required. ' +
       'For local development, set it in .env file. ' +
@@ -25,13 +28,16 @@ function createPrismaClient(): PrismaClient {
     );
   }
 
+  // Create PostgreSQL Pool with SSL support for RDS connections
+  const pool = new Pool({
+    connectionString,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+  });
+  const adapter = new PrismaPg(pool);
+
   return new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: databaseUrl,
-      },
-    },
   });
 }
 

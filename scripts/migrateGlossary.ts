@@ -1,8 +1,12 @@
 /**
  * Migration script to import glossary terms from static JSON to database
- * Sprint 32 - Glossary API
+ * Sprint 36 - Glossary Frontend + Flashcards Database Migration
  *
- * Usage: npx tsx scripts/migrateGlossary.ts
+ * This script seeds glossary terms from the static JSON file into the PostgreSQL database.
+ * It skips existing terms (idempotent) so can be run multiple times safely.
+ *
+ * Usage: npm run db:seed:glossary
+ *        or: npx tsx scripts/migrateGlossary.ts
  */
 
 import 'dotenv/config';
@@ -10,13 +14,23 @@ import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Create Prisma adapter with file URL (database is in project root)
-const dbPath = resolve(__dirname, '../dev.db');
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+// Validate DATABASE_URL is set
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
+
+// Create PostgreSQL pool with SSL for RDS connections
+const pool = new Pool({
+  connectionString,
+  ssl: connectionString.includes('localhost') ? undefined : { rejectUnauthorized: false },
+});
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 /**
@@ -36,10 +50,10 @@ interface StaticGlossaryTerm {
 }
 
 async function main() {
-  console.log('Starting glossary migration...\n');
+  console.log('Starting glossary seed...\n');
 
   // Read the static terms.json file
-  const termsPath = 'src/content/glossary/terms.json';
+  const termsPath = resolve(__dirname, '../src/content/glossary/terms.json');
   const rawData = readFileSync(termsPath, 'utf-8');
   const terms: StaticGlossaryTerm[] = JSON.parse(rawData);
 
@@ -87,11 +101,11 @@ async function main() {
     }
   }
 
-  console.log('\n--- Migration Complete ---');
+  console.log('\n--- Glossary Seed Complete ---');
   console.log(`Created: ${created}`);
-  console.log(`Skipped: ${skipped}`);
+  console.log(`Skipped (existing): ${skipped}`);
   console.log(`Errors: ${errors}`);
-  console.log(`Total: ${terms.length}`);
+  console.log(`Total in file: ${terms.length}`);
 
   // Verify count
   const totalInDb = await prisma.glossaryTerm.count();

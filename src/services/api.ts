@@ -7,12 +7,6 @@ import type {
 import type { SearchResponse, FilterQueryParams } from '../types/filters';
 
 /**
- * API base URL for static data (served from S3/CloudFront)
- * Using /data to avoid conflict with /api/* CloudFront route to API Gateway
- */
-const STATIC_API_BASE = '/data';
-
-/**
  * API base URL for dynamic endpoints (auth, CRUD operations)
  * In production, uses the API Gateway URL; in development, uses relative URL with Vite proxy
  */
@@ -124,18 +118,14 @@ export interface MilestoneQueryParams {
 /**
  * Milestone API client
  * Provides methods for all CRUD operations on milestones
+ * Always uses dynamic API to ensure newly approved milestones appear immediately
  */
 export const milestonesApi = {
   /**
    * Get all milestones with pagination
-   * In production, fetches from static /api/milestones/index.json
+   * Always fetches from database API for real-time data
    */
   async getAll(params?: MilestoneQueryParams): Promise<PaginatedResponse<MilestoneResponse>> {
-    // In production, ignore pagination params - static file has all data
-    if (IS_STATIC_API) {
-      return fetchJson<PaginatedResponse<MilestoneResponse>>(`${STATIC_API_BASE}/milestones/index.json`);
-    }
-
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.limit) searchParams.set('limit', String(params.limit));
@@ -236,52 +226,11 @@ export const milestonesApi = {
 
   /**
    * Get filtered milestones with advanced options
-   * In production, returns all milestones (filtering done client-side)
+   * Uses database API for server-side filtering with real-time data
    */
   async getFiltered(
     filters: FilterQueryParams
   ): Promise<PaginatedResponse<MilestoneResponse>> {
-    // In production, fetch all milestones and filter client-side
-    if (IS_STATIC_API) {
-      const response = await fetchJson<PaginatedResponse<MilestoneResponse>>(
-        `${STATIC_API_BASE}/milestones/filter.json`
-      );
-
-      // Apply client-side filtering
-      let filtered = response.data;
-
-      if (filters.categories) {
-        const cats = filters.categories.split(',');
-        filtered = filtered.filter(m => cats.includes(m.category));
-      }
-      if (filters.significance) {
-        const sigs = filters.significance.split(',').map(Number);
-        filtered = filtered.filter(m => sigs.includes(m.significance));
-      }
-      if (filters.dateStart) {
-        filtered = filtered.filter(m => m.date >= filters.dateStart!);
-      }
-      if (filters.dateEnd) {
-        filtered = filtered.filter(m => m.date <= filters.dateEnd!);
-      }
-      if (filters.tags) {
-        const tags = filters.tags.split(',');
-        filtered = filtered.filter(m =>
-          m.tags.some(t => tags.includes(t))
-        );
-      }
-
-      return {
-        data: filtered,
-        pagination: {
-          page: 1,
-          limit: filtered.length,
-          total: filtered.length,
-          totalPages: 1,
-        },
-      };
-    }
-
     const searchParams = new URLSearchParams();
     if (filters.categories) searchParams.set('categories', filters.categories);
     if (filters.significance) searchParams.set('significance', filters.significance);
@@ -298,10 +247,10 @@ export const milestonesApi = {
 
   /**
    * Get all unique tags with counts
+   * Uses database API for real-time tag data
    */
   async getTags(): Promise<{ data: { tag: string; count: number }[] }> {
-    const ext = IS_STATIC_API ? '.json' : '';
-    return fetchJson<{ data: { tag: string; count: number }[] }>(`${STATIC_API_BASE}/milestones/tags${ext}`);
+    return fetchJson<{ data: { tag: string; count: number }[] }>(`${DYNAMIC_API_BASE}/milestones/tags`);
   },
 };
 
@@ -1110,6 +1059,323 @@ export const pipelineApi = {
       results: Array<{ articleId: string; success: boolean; error?: string }>;
     }>(`${DYNAMIC_API_BASE}/admin/pipeline/analyze${params}`, {
       method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+};
+
+// =============================================================================
+// Flashcard API (Sprint 36)
+// =============================================================================
+
+/**
+ * Flashcard category types
+ */
+export type FlashcardCategory =
+  | 'core_concept'
+  | 'technical_term'
+  | 'business_term'
+  | 'model_architecture'
+  | 'company_product';
+
+/**
+ * Flashcard from database
+ */
+export interface Flashcard {
+  id: string;
+  term: string;
+  definition: string;
+  category: FlashcardCategory;
+  relatedMilestoneIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Prebuilt deck difficulty levels
+ */
+export type DeckDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+/**
+ * Card source types in a deck
+ */
+export type CardSourceType = 'milestone' | 'concept' | 'custom' | 'flashcard';
+
+/**
+ * A card within a prebuilt deck
+ */
+export interface PrebuiltDeckCard {
+  id: string;
+  deckId: string;
+  cardId: string;
+  sourceType: CardSourceType;
+  sourceId: string;
+  customTerm: string | null;
+  customDefinition: string | null;
+  sortOrder: number;
+  // Resolved content (when fetched with deck)
+  term?: string;
+  definition?: string;
+}
+
+/**
+ * Prebuilt flashcard deck
+ */
+export interface PrebuiltDeck {
+  id: string;
+  name: string;
+  description: string;
+  difficulty: DeckDifficulty;
+  cardCount: number;
+  estimatedMinutes: number;
+  previewCardIds: string[];
+  createdAt: string;
+  updatedAt: string;
+  cards?: PrebuiltDeckCard[];
+}
+
+/**
+ * Flashcard statistics
+ */
+export interface FlashcardStats {
+  totalCards: number;
+  byCategory: Record<string, number>;
+  totalDecks: number;
+  byDifficulty: Record<string, number>;
+}
+
+/**
+ * DTO for creating a flashcard
+ */
+export interface CreateFlashcardDto {
+  term: string;
+  definition: string;
+  category: FlashcardCategory;
+  relatedMilestoneIds?: string[];
+}
+
+/**
+ * DTO for updating a flashcard
+ */
+export interface UpdateFlashcardDto {
+  term?: string;
+  definition?: string;
+  category?: FlashcardCategory;
+  relatedMilestoneIds?: string[];
+}
+
+/**
+ * Flashcard API client (Sprint 36)
+ * Public endpoints for reading, admin endpoints for CRUD
+ */
+export const flashcardsApi = {
+  /**
+   * Get all flashcards with optional filtering
+   */
+  async getAll(params?: {
+    category?: FlashcardCategory;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<Flashcard>> {
+    const searchParams = new URLSearchParams();
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${DYNAMIC_API_BASE}/flashcards${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<Flashcard>>(url);
+  },
+
+  /**
+   * Get a single flashcard by ID
+   */
+  async getById(id: string): Promise<Flashcard> {
+    return fetchJson<Flashcard>(`${DYNAMIC_API_BASE}/flashcards/${id}`);
+  },
+
+  /**
+   * Get flashcards by category
+   */
+  async getByCategory(category: FlashcardCategory): Promise<{ data: Flashcard[] }> {
+    return fetchJson<{ data: Flashcard[] }>(
+      `${DYNAMIC_API_BASE}/flashcards?category=${category}&limit=200`
+    );
+  },
+
+  /**
+   * Get flashcard statistics (admin)
+   */
+  async getStats(): Promise<FlashcardStats> {
+    return fetchJson<FlashcardStats>(`${DYNAMIC_API_BASE}/admin/flashcards/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Create a new flashcard (admin)
+   */
+  async create(data: CreateFlashcardDto): Promise<Flashcard> {
+    return fetchJson<Flashcard>(`${DYNAMIC_API_BASE}/admin/flashcards`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing flashcard (admin)
+   */
+  async update(id: string, data: UpdateFlashcardDto): Promise<Flashcard> {
+    return fetchJson<Flashcard>(`${DYNAMIC_API_BASE}/admin/flashcards/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a flashcard (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/flashcards/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Bulk create flashcards (admin, for migration)
+   */
+  async bulkCreate(
+    cards: CreateFlashcardDto[]
+  ): Promise<{ message: string; created: number; skipped: number; errors: string[] }> {
+    return fetchJson<{ message: string; created: number; skipped: number; errors: string[] }>(
+      `${DYNAMIC_API_BASE}/admin/flashcards/bulk`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ cards }),
+      }
+    );
+  },
+};
+
+/**
+ * DTO for creating a prebuilt deck
+ */
+export interface CreateDeckDto {
+  name: string;
+  description: string;
+  difficulty: DeckDifficulty;
+  cardCount: number;
+  estimatedMinutes: number;
+  previewCardIds?: string[];
+}
+
+/**
+ * DTO for updating a prebuilt deck
+ */
+export interface UpdateDeckDto {
+  name?: string;
+  description?: string;
+  difficulty?: DeckDifficulty;
+  cardCount?: number;
+  estimatedMinutes?: number;
+  previewCardIds?: string[];
+}
+
+/**
+ * DTO for adding a card to a deck
+ */
+export interface AddCardToDeckDto {
+  cardId: string;
+  sourceType: CardSourceType;
+  sourceId: string;
+  customTerm?: string;
+  customDefinition?: string;
+  sortOrder?: number;
+}
+
+/**
+ * Prebuilt Decks API client (Sprint 36)
+ * Public endpoints for reading, admin endpoints for CRUD
+ */
+export const decksApi = {
+  /**
+   * Get all prebuilt decks
+   */
+  async getAll(difficulty?: DeckDifficulty): Promise<{ data: PrebuiltDeck[] }> {
+    const params = difficulty ? `?difficulty=${difficulty}` : '';
+    return fetchJson<{ data: PrebuiltDeck[] }>(`${DYNAMIC_API_BASE}/decks${params}`);
+  },
+
+  /**
+   * Get a single deck by ID (includes cards)
+   */
+  async getById(id: string): Promise<PrebuiltDeck> {
+    return fetchJson<PrebuiltDeck>(`${DYNAMIC_API_BASE}/decks/${id}`);
+  },
+
+  /**
+   * Get cards for a deck
+   */
+  async getCards(deckId: string): Promise<PrebuiltDeckCard[]> {
+    return fetchJson<PrebuiltDeckCard[]>(`${DYNAMIC_API_BASE}/decks/${deckId}/cards`);
+  },
+
+  /**
+   * Create a new deck (admin)
+   */
+  async create(data: CreateDeckDto): Promise<PrebuiltDeck> {
+    return fetchJson<PrebuiltDeck>(`${DYNAMIC_API_BASE}/admin/decks`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing deck (admin)
+   */
+  async update(id: string, data: UpdateDeckDto): Promise<PrebuiltDeck> {
+    return fetchJson<PrebuiltDeck>(`${DYNAMIC_API_BASE}/admin/decks/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a deck (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/decks/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Add a card to a deck (admin)
+   */
+  async addCard(deckId: string, data: AddCardToDeckDto): Promise<PrebuiltDeckCard> {
+    return fetchJson<PrebuiltDeckCard>(`${DYNAMIC_API_BASE}/admin/decks/${deckId}/cards`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Remove a card from a deck (admin)
+   */
+  async removeCard(deckId: string, cardId: string): Promise<void> {
+    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/decks/${deckId}/cards/${cardId}`, {
+      method: 'DELETE',
       headers: getAuthHeaders(),
     });
   },

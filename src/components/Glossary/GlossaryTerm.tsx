@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Check } from 'lucide-react';
-import { useGlossaryTerm } from '../../hooks/useContent';
+import { useGlossaryTerm } from '../../hooks';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
 
 interface GlossaryTermProps {

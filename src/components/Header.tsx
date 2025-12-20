@@ -43,7 +43,7 @@ function Header() {
             className="flex items-center gap-2 text-xl font-bold text-gray-900 transition-colors hover:text-orange-600 dark:text-white dark:hover:text-orange-400"
             onClick={closeMobileMenu}
           >
-            <img src="/logo.png" alt="Let AI Explain AI" className="h-8 w-8 rounded-lg" />
+            <img src="/ai-logo-animated.svg" alt="Let AI Explain AI" className="h-8 w-8" />
             <span className="hidden sm:inline">Let AI Explain AI</span>
             <span className="sm:hidden">LAEI</span>
           </Link>

@@ -34,7 +34,7 @@ export async function publishMilestone(draftData: MilestoneDraft): Promise<strin
     throw new Error(`Invalid significance: ${draftData.significance}`);
   }
 
-  // Create the milestone
+  // Create the milestone with layered content (Sprint 35)
   const milestone = await prisma.milestone.create({
     data: {
       title: draftData.title,
@@ -47,6 +47,14 @@ export async function publishMilestone(draftData: MilestoneDraft): Promise<strin
       sourceUrl: draftData.sourceUrl || null,
       tags: JSON.stringify(draftData.tags || []),
       sources: JSON.stringify(draftData.sources || []),
+      // Layered content fields for audience-specific explanations
+      tldr: draftData.tldr || null,
+      simpleExplanation: draftData.simpleExplanation || null,
+      technicalDepth: draftData.technicalDepth || null,
+      businessImpact: draftData.businessImpact || null,
+      whyItMattersToday: draftData.whyItMattersToday || null,
+      historicalContext: draftData.historicalContext || null,
+      commonMisconceptions: draftData.commonMisconceptions || null,
     },
   });
 

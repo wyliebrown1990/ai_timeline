@@ -373,3 +373,73 @@ export async function triggerAnalysis(req: Request, res: Response) {
     });
   }
 }
+
+/**
+ * Migrate layered content to milestones (Sprint 35)
+ * One-time migration to populate tldr, simpleExplanation, etc. from JSON
+ */
+export async function migrateLayeredContent(req: Request, res: Response) {
+  try {
+    // Import layered content JSON (bundled with Lambda)
+    const layeredContentData = await import('../../../src/content/milestones/layered-content.json');
+    const contentMap = layeredContentData.default || layeredContentData;
+
+    let updated = 0;
+    let skipped = 0;
+    let notFound = 0;
+
+    // Process each milestone in the JSON
+    for (const [milestoneId, content] of Object.entries(contentMap)) {
+      // Skip metadata fields
+      if (milestoneId.startsWith('_')) continue;
+      if (typeof content !== 'object' || content === null) continue;
+
+      const layered = content as Record<string, string>;
+
+      // Check if milestone exists
+      const milestone = await prisma.milestone.findUnique({
+        where: { id: milestoneId },
+      });
+
+      if (!milestone) {
+        notFound++;
+        continue;
+      }
+
+      // Skip if already has content
+      if (milestone.tldr && milestone.simpleExplanation) {
+        skipped++;
+        continue;
+      }
+
+      // Update with layered content
+      await prisma.milestone.update({
+        where: { id: milestoneId },
+        data: {
+          tldr: layered.tldr || null,
+          simpleExplanation: layered.simpleExplanation || null,
+          technicalDepth: layered.technicalDepth || null,
+          businessImpact: layered.businessImpact || null,
+          whyItMattersToday: layered.whyItMattersToday || null,
+          historicalContext: layered.historicalContext || null,
+          commonMisconceptions: layered.commonMisconceptions || null,
+        },
+      });
+
+      updated++;
+    }
+
+    return res.json({
+      message: 'Layered content migration complete',
+      updated,
+      skipped,
+      notFound,
+    });
+  } catch (error) {
+    console.error('Error migrating layered content:', error);
+    return res.status(500).json({
+      error: 'Failed to migrate layered content',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}

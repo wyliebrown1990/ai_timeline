@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" width="200" height="120">
+  <style>
+    .left-brace {
+      opacity: 0;
+      animation: fadeIn 0.4s ease-out 0s forwards;
+    }
+    .right-brace {
+      opacity: 0;
+      animation: fadeIn 0.4s ease-out 0.3s forwards;
+    }
+    .dot1 {
+      opacity: 0;
+      animation: fadeIn 0.3s ease-out 0.6s forwards;
+    }
+    .dot2 {
+      opacity: 0;
+      animation: fadeIn 0.3s ease-out 0.8s forwards;
+    }
+    .sparkle {
+      opacity: 0;
+      animation: fadeIn 0.3s ease-out 1s forwards, pulse 2s ease-in-out 1.3s infinite;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+
+  <!-- Left curly brace { -->
+  <path class="left-brace" d="M35 25 Q25 25 25 35 L25 50 Q25 60 15 60 Q25 60 25 70 L25 85 Q25 95 35 95"
+        fill="none" stroke="#E5E5E5" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Right curly brace } -->
+  <path class="right-brace" d="M165 25 Q175 25 175 35 L175 50 Q175 60 185 60 Q175 60 175 70 L175 85 Q175 95 165 95"
+        fill="none" stroke="#E5E5E5" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- First orange dot -->
+  <circle class="dot1" cx="70" cy="60" r="12" fill="#F97316"/>
+
+  <!-- Second orange dot -->
+  <circle class="dot2" cx="105" cy="60" r="12" fill="#F97316"/>
+
+  <!-- AI sparkle (4-pointed star) -->
+  <path class="sparkle" d="M140 45 Q143 57 155 60 Q143 63 140 75 Q137 63 125 60 Q137 57 140 45 Z"
+        fill="#F97316"/>
+</svg>

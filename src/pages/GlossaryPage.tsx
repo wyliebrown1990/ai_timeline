@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, BookOpen, Filter, X, Sparkles, CheckSquare, Square, Bookmark } from 'lucide-react';
 import { useOnboarding } from '../components/Onboarding';
-import { useGlossary } from '../hooks/useContent';
+import { useGlossary } from '../hooks';
 import { GlossaryTermDetail } from '../components/Glossary/GlossaryTermDetail';
 import { AddToFlashcardButton } from '../components/Flashcards';
 import { useFlashcardContext } from '../contexts/FlashcardContext';

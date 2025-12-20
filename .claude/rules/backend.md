@@ -1,185 +1,138 @@
 ---
-paths: infra/**/*.{ts,yaml,yml}, apps/api/**/*.ts
+paths: infra/**/*.{ts,yaml,yml}, server/**/*.ts
 ---
 
 # Backend & Infrastructure Rules
 
-## AWS Services Architecture
-
-### API Layer
-- Use **Lambda Function URLs** with CloudFront for simple REST endpoints
-- Or **API Gateway REST API** for more complex routing needs
-- Implement request validation at the API Gateway level
-- Use Lambda Powertools for logging, tracing, and metrics
-
-### Database (DynamoDB)
-- Single-table design pattern for related entities
-- Use GSIs (Global Secondary Indexes) for query patterns
-- Partition key design: balance between distribution and query efficiency
-- Enable Point-in-Time Recovery for production
-
-### Search (OpenSearch Serverless)
-- Index events, concepts, people, orgs for full-text search
-- Use collection policies for cost management
-- Implement faceted search for filters
-- Keep DynamoDB as source of truth, OpenSearch for search
-
-### Media Storage (S3 + CloudFront)
-- Store images, diagrams, and static assets in S3
-- Use CloudFront for global CDN distribution
-- Implement signed URLs for any non-public assets
-- Enable S3 versioning for content recovery
-
-## DynamoDB Table Design
-
-### Primary Table: `AITimelineData`
+## AWS Architecture
 
 ```
-PK (Partition Key)          SK (Sort Key)              Attributes
------------------------     -----------------------    ------------------
-EVENT#<id>                  META                       title, date_start, date_end, era, summary_md, ...
-EVENT#<id>                  CONCEPT#<concept_id>       (relationship)
-EVENT#<id>                  PERSON#<person_id>         (relationship)
-CONCEPT#<id>                META                       name, definition_md, ...
-CONCEPT#<id>                PREREQ#<concept_id>        (relationship)
-PERSON#<id>                 META                       name, bio_md, links, ...
-ORG#<id>                    META                       name, bio_md, links, ...
-ERA#<id>                    META                       name, start_year, end_year, color
+CloudFront → API Gateway → Lambda (VPC) → RDS PostgreSQL
+                                      ↓
+                              NAT Instance → Internet (RSS, Anthropic API)
 ```
 
-### Global Secondary Indexes
-- **GSI1**: For querying events by era and date
-  - GSI1PK: `ERA#<era_id>`, GSI1SK: `DATE#<date>`
-- **GSI2**: For querying by type
-  - GSI2PK: `TYPE#<event_type>`, GSI2SK: `DATE#<date>`
+### Core Resources
+
+| Resource | ID/Name | Notes |
+|----------|---------|-------|
+| API Gateway | nhnkwe8o6i | Rate limited 100 req/s |
+| API Lambda | ai-timeline-api-prod | 30s timeout, 512MB |
+| Ingestion Lambda | ai-timeline-ingestion-prod | 300s timeout |
+| RDS PostgreSQL | ai-timeline-db | db.t3.micro, PostgreSQL 15 |
+| NAT Instance | i-090d928fcfb2841f7 | t3.micro for VPC internet |
+
+### VPC Configuration
+- Lambda runs in private subnets (us-east-1b, us-east-1c)
+- NAT Instance in public subnet (us-east-1a) for outbound internet
+- RDS in private subnet, accessible only from Lambda SG
+
+## Database (PostgreSQL + Prisma)
+
+### Connection
+```typescript
+// server/src/db.ts - Uses Prisma 7.x with PrismaPg adapter
+import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+});
+const adapter = new PrismaPg(pool);
+export const prisma = new PrismaClient({ adapter });
+```
+
+### Migrations
+```bash
+# Local development
+npx prisma migrate dev --name description
+
+# Production (run before Lambda deploy)
+export DATABASE_URL=$(aws ssm get-parameter --name "/ai-timeline/prod/database-url" --with-decryption --query "Parameter.Value" --output text)
+npx prisma migrate deploy
+```
 
 ## Lambda Functions
 
-### Function Structure
-```typescript
-import { Logger } from '@aws-lambda-powertools/logger'
-import { Tracer } from '@aws-lambda-powertools/tracer'
-import type { APIGatewayProxyHandlerV2 } from 'aws-lambda'
+### API Function (`server/src/lambda.ts`)
+- Express app wrapped with `serverless-http`
+- Handles all `/api/*` routes
+- 30s timeout (API Gateway limit)
 
-const logger = new Logger({ serviceName: 'ai-timeline' })
-const tracer = new Tracer({ serviceName: 'ai-timeline' })
+### Ingestion Function (`server/src/ingestionLambda.ts`)
+- Scheduled via EventBridge (daily 5:00 AM UTC)
+- Fetches RSS, runs AI analysis
+- 300s timeout for batch processing
 
-export const handler: APIGatewayProxyHandlerV2 = async (event) => {
-  logger.info('Processing request', { path: event.requestContext.http.path })
-
-  try {
-    // Handler logic
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: result }),
-    }
-  } catch (error) {
-    logger.error('Request failed', { error })
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'Internal server error' }),
-    }
-  }
-}
+### Deployment (SAM)
+```bash
+cd infra
+sam build
+sam deploy --no-confirm-changeset \
+  --parameter-overrides \
+    VpcId=vpc-025e4607eafae104c \
+    SubnetIds=subnet-0a0879f8ada49ff8f,subnet-09f38a0620df0ce1e \
+    LambdaSecurityGroupId=sg-0cf3d578d162c94dc
 ```
-
-### Lambda Best Practices
-- Keep handlers thin; extract business logic to separate modules
-- Use environment variables for configuration
-- Implement proper error handling and logging
-- Set appropriate memory and timeout limits
-- Use Lambda Layers for shared dependencies
-
-## Infrastructure as Code
-
-### AWS CDK (Preferred)
-```typescript
-// Use CDK constructs for infrastructure
-import * as cdk from 'aws-cdk-lib'
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb'
-import * as lambda from 'aws-cdk-lib/aws-lambda-nodejs'
-
-export class AITimelineStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props)
-
-    // Define resources with proper naming and tagging
-    const table = new dynamodb.Table(this, 'DataTable', {
-      tableName: `ai-timeline-${this.stackName}`,
-      partitionKey: { name: 'PK', type: dynamodb.AttributeType.STRING },
-      sortKey: { name: 'SK', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    })
-  }
-}
-```
-
-### Environment Management
-- Use CDK context or SSM Parameter Store for environment-specific config
-- Separate stacks for stateful (DynamoDB, S3) and stateless (Lambda, API) resources
-- Implement proper IAM roles with least-privilege access
 
 ## API Design
 
-### REST Endpoints
+### Public Endpoints
 ```
-GET    /api/events              # List events (with filters, pagination)
-GET    /api/events/:id          # Get single event with related data
-GET    /api/concepts            # List concepts
-GET    /api/concepts/:id        # Get concept with prereqs and related
-GET    /api/people              # List people
-GET    /api/people/:id          # Get person profile
-GET    /api/orgs                # List organizations
-GET    /api/orgs/:id            # Get organization profile
-GET    /api/search              # Full-text search across all entities
-GET    /api/eras                # Get era definitions for timeline bands
+GET  /api/milestones         # Timeline events
+GET  /api/milestones/:id     # Single milestone
+GET  /api/glossary           # AI terminology
+GET  /api/health             # Health check
+```
+
+### Admin Endpoints (require JWT)
+```
+POST /api/auth/login         # Get JWT token
+GET  /api/admin/sources      # News sources
+GET  /api/admin/articles     # Ingested articles
+GET  /api/admin/review/queue # Pending drafts
+GET  /api/admin/pipeline/stats # Pipeline health
 ```
 
 ### Response Format
 ```json
 {
-  "data": { ... },
-  "meta": {
-    "total": 200,
-    "page": 1,
-    "pageSize": 50
-  }
+  "data": [...],
+  "pagination": { "page": 1, "limit": 50, "total": 200 }
 }
 ```
 
 ## Security
 
-- Enable AWS WAF on CloudFront/API Gateway
-- Use Cognito for admin authentication
-- Implement rate limiting at API Gateway
-- Validate and sanitize all inputs
-- Use HTTPS everywhere (CloudFront handles this)
-- Enable CloudTrail for audit logging
+- JWT authentication for admin routes (`server/src/middleware/auth.ts`)
+- Credentials in SSM Parameter Store (not environment variables)
+- API Gateway rate limiting (100 req/s, 200 burst)
+- VPC isolation for database
 
-## Monitoring (CloudWatch)
+## Monitoring
 
-**Dashboard:** `AI-Timeline-API-Monitoring`
+**Dashboard**: `AI-Timeline-Production`
 ```
-https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=AI-Timeline-API-Monitoring
+https://us-east-1.console.aws.amazon.com/cloudwatch/home?region=us-east-1#dashboards:name=AI-Timeline-Production
 ```
 
-**Log Group:** `/aws/lambda/ai-timeline-api-prod`
+**Log Groups**:
+- `/aws/lambda/ai-timeline-api-prod`
+- `/aws/lambda/ai-timeline-ingestion-prod`
 
-**Logs Insights Queries:**
-```sql
-# Chat API requests
-fields @timestamp, method, path, statusCode, durationMs, sessionId
-| filter apiType = 'chat'
-| sort @timestamp desc
+**Alarms**:
+- `AI-Timeline-Lambda-Errors` - API errors > 5 in 5 min
+- `AI-Timeline-Ingestion-Errors` - Any ingestion error
 
-# Errors
-fields @timestamp, method, path, statusCode, error
-| filter level = 'ERROR' or level = 'WARN'
-| sort @timestamp desc
+## SSM Parameters
 
-# Request count by API type
-stats count(*) by apiType
 ```
-
-**Alarm:** `AI-Timeline-API-Errors` - Triggers when errors > 5 in 5 minutes
+/ai-timeline/prod/database-url      # PostgreSQL connection string
+/ai-timeline/prod/jwt-secret        # JWT signing secret
+/ai-timeline/prod/admin-username    # Admin login
+/ai-timeline/prod/admin-password    # Admin password
+/ai-timeline/prod/anthropic-api-key # Claude API key
+/ai-timeline/prod/cors-origin       # Allowed CORS origin
+```

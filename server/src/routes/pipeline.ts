@@ -41,4 +41,7 @@ router.post('/analysis/pause', pipelineController.toggleAnalysisPause);
 // POST /api/admin/pipeline/analyze - Trigger manual analysis run
 router.post('/analyze', pipelineController.triggerAnalysis);
 
+// POST /api/admin/pipeline/migrate-layered-content - One-time migration (Sprint 35)
+router.post('/migrate-layered-content', pipelineController.migrateLayeredContent);
+
 export default router;

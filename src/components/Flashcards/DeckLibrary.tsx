@@ -14,7 +14,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Library, Plus, Check, Clock, Eye, X, BookOpen, AlertCircle } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
-import { useGlossary } from '../../hooks/useContent';
+import { useGlossary } from '../../hooks';
 import { useMilestones } from '../../hooks/useMilestones';
 import {
   PREBUILT_DECKS,

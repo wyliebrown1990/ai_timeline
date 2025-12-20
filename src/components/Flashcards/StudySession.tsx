@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
 import { useMilestones } from '../../hooks/useMilestones';
-import { useGlossary } from '../../hooks/useContent';
+import { useGlossary } from '../../hooks';
 import { useStudySettings } from '../../hooks/useStudySettings';
 import { playSound, initAudio } from '../../lib/studySounds';
 import type { UserFlashcard, QualityRating } from '../../types/flashcard';

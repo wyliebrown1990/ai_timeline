@@ -20,7 +20,7 @@ import {
   Bookmark,
 } from 'lucide-react';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
-import { useGlossary } from '../../hooks/useContent';
+import { useGlossary } from '../../hooks';
 import { useMilestones } from '../../hooks/useMilestones';
 import type { LearningPath } from '../../types/learningPath';
 import type { GlossaryEntry } from '../../types/glossary';

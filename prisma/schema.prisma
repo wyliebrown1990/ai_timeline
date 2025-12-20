@@ -3,10 +3,9 @@ generator client {
 }
 
 // PostgreSQL for production (RDS) and local development
-// Set DATABASE_URL environment variable to connect
+// DATABASE_URL is configured in prisma.config.ts
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 /// AI development milestone entity
@@ -168,4 +167,59 @@ model PipelineSettings {
   lastIngestionRun    DateTime?
   lastAnalysisRun     DateTime?
   updatedAt           DateTime @updatedAt
+}
+
+// =============================================================================
+// Flashcard System (Sprint 36)
+// =============================================================================
+
+/// Flashcard for study/review system
+/// Individual study cards with term and definition
+model Flashcard {
+  id                  String   @id @default(cuid())
+  term                String
+  definition          String
+  category            String   // model_architecture, technical_term, core_concept, etc.
+  relatedMilestoneIds String   @default("[]") // JSON array of milestone IDs
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([category])
+  @@index([term])
+}
+
+/// Prebuilt flashcard deck - curated collections of cards
+/// Decks can reference cards from multiple sources (milestones, glossary, custom)
+model PrebuiltDeck {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  description      String
+  difficulty       String            // beginner, intermediate, advanced
+  cardCount        Int
+  estimatedMinutes Int
+  previewCardIds   String            @default("[]") // JSON array of card IDs for preview
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  cards            PrebuiltDeckCard[]
+
+  @@index([difficulty])
+}
+
+/// Card membership in a prebuilt deck
+/// Links cards to decks with source type tracking
+model PrebuiltDeckCard {
+  id               String       @id @default(cuid())
+  deckId           String
+  deck             PrebuiltDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  cardId           String       // Unique card identifier within deck
+  sourceType       String       // milestone, concept, custom, flashcard
+  sourceId         String       // ID of source (milestone ID, glossary term ID, or flashcard ID)
+  // Custom content (only used when sourceType is 'custom')
+  customTerm       String?
+  customDefinition String?
+  sortOrder        Int          @default(0)
+
+  @@unique([deckId, cardId])
+  @@index([deckId])
+  @@index([sourceType])
 }

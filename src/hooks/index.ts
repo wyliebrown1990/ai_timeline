@@ -33,11 +33,6 @@ export {
   useLearningPaths,
   useLearningPath,
   useLearningPathsByDifficulty,
-  // Glossary
-  useGlossary,
-  useGlossaryTerm,
-  useGlossaryByCategory,
-  useGlossarySearch,
   // Checkpoints
   useCheckpoints,
   useCheckpointsForPath,
@@ -57,3 +52,22 @@ export {
   useMilestonesWithLayeredContent,
   useHasLayeredContent,
 } from './useContent';
+
+// Glossary API hooks (Sprint 36 - migrated from static content to database API)
+export {
+  useGlossary,
+  useGlossaryTerm,
+  useGlossaryTerms,
+  useGlossaryByCategory,
+  useGlossarySearch,
+} from './useGlossaryApi';
+
+// Flashcard API hooks (Sprint 36 - database API for flashcards and decks)
+export {
+  useFlashcards as useFlashcardsApi,
+  useFlashcard as useFlashcardApi,
+  useFlashcardsByCategory as useFlashcardsByCategoryApi,
+  usePrebuiltDecks,
+  usePrebuiltDeck,
+  usePrebuiltDecksByDifficulty,
+} from './useFlashcardsApi';
