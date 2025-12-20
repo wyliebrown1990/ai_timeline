@@ -3,28 +3,43 @@
  *
  * Renders a complete checkpoint with all its questions, handling
  * different question types and tracking progress.
+ *
+ * Supports both API-based checkpoints and local Zod-validated checkpoints.
  */
 
 import { useState, useCallback, useMemo } from 'react';
 import { CheckCircle2, ChevronRight, Award, SkipForward } from 'lucide-react';
 import type {
-  Checkpoint,
-  Question,
+  Checkpoint as ApiCheckpoint,
+  CheckpointQuestion,
+} from '../../services/api';
+import type {
   MultipleChoiceQuestion as MCQuestion,
   OrderingQuestion as OQuestion,
   MatchingQuestion as MQuestion,
   ExplainBackQuestion as EBQuestion,
 } from '../../types/checkpoint';
-import {
-  isMultipleChoice,
-  isOrdering,
-  isMatching,
-  isExplainBack,
-} from '../../types/checkpoint';
 import { MultipleChoiceQuestion } from './MultipleChoiceQuestion';
 import { OrderingQuestion } from './OrderingQuestion';
 import { MatchingQuestion } from './MatchingQuestion';
 import { ExplainBackQuestion } from './ExplainBackQuestion';
+
+// Type guards for API checkpoint questions
+function isMultipleChoice(q: CheckpointQuestion): boolean {
+  return q.type === 'multiple_choice';
+}
+
+function isOrdering(q: CheckpointQuestion): boolean {
+  return q.type === 'ordering';
+}
+
+function isMatching(q: CheckpointQuestion): boolean {
+  return q.type === 'matching';
+}
+
+function isExplainBack(q: CheckpointQuestion): boolean {
+  return q.type === 'explain_back';
+}
 
 /**
  * Result of answering a single question
@@ -35,8 +50,8 @@ interface QuestionResult {
 }
 
 interface CheckpointViewProps {
-  /** The checkpoint to display */
-  checkpoint: Checkpoint;
+  /** The checkpoint to display (API-based) */
+  checkpoint: ApiCheckpoint;
   /** Callback when checkpoint is completed */
   onComplete: (results: QuestionResult[], score: number) => void;
   /** Callback to skip the checkpoint (optional) */
@@ -121,42 +136,83 @@ export function CheckpointView({
 
   // Render the appropriate question component
   // IMPORTANT: Each component needs a unique key to reset state when question changes
-  const renderQuestion = (question: Question) => {
+  // API checkpoint questions are cast to strict types for individual components
+  const renderQuestion = (question: CheckpointQuestion) => {
     if (isMultipleChoice(question)) {
+      // Cast API question to strict MCQuestion type for the component
+      const mcq: MCQuestion = {
+        type: 'multiple_choice',
+        id: question.id,
+        question: question.question || '',
+        options: question.options || [],
+        correctIndex: question.correctIndex ?? 0,
+        explanation: question.explanation || '',
+      };
       return (
         <MultipleChoiceQuestion
           key={question.id}
-          question={question as MCQuestion}
+          question={mcq}
           onAnswer={(_selectedIndex, isCorrect) => handleAnswer(question.id, isCorrect)}
         />
       );
     }
 
     if (isOrdering(question)) {
+      // Cast API question to strict OQuestion type for the component
+      const oq: OQuestion = {
+        type: 'ordering',
+        id: question.id,
+        prompt: question.prompt || '',
+        items: (question.items || []).map((item) => ({
+          id: item.id,
+          label: item.label,
+          date: item.date,
+        })),
+        correctOrder: question.correctOrder || [],
+      };
       return (
         <OrderingQuestion
           key={question.id}
-          question={question as OQuestion}
+          question={oq}
           onAnswer={(_orderedIds, isCorrect) => handleAnswer(question.id, isCorrect)}
         />
       );
     }
 
     if (isMatching(question)) {
+      // Cast API question to strict MQuestion type for the component
+      const mq: MQuestion = {
+        type: 'matching',
+        id: question.id,
+        prompt: question.prompt || '',
+        pairs: (question.pairs || []).map((pair) => ({
+          id: pair.id,
+          left: pair.left,
+          right: pair.right,
+        })),
+      };
       return (
         <MatchingQuestion
           key={question.id}
-          question={question as MQuestion}
+          question={mq}
           onAnswer={(_matches, isCorrect) => handleAnswer(question.id, isCorrect)}
         />
       );
     }
 
     if (isExplainBack(question)) {
+      // Cast API question to strict EBQuestion type for the component
+      const ebq: EBQuestion = {
+        type: 'explain_back',
+        id: question.id,
+        concept: question.concept || '',
+        prompt: question.prompt || '',
+        rubric: question.rubric || '',
+      };
       return (
         <ExplainBackQuestion
           key={question.id}
-          question={question as EBQuestion}
+          question={ebq}
           onAnswer={() => handleAnswer(question.id, true)} // Explain back is always "correct"
           getAIFeedback={getAIFeedback}
         />

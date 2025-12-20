@@ -22,7 +22,7 @@ import {
   X,
   SlidersHorizontal,
 } from 'lucide-react';
-import { useCurrentEvents } from '../hooks/useContent';
+import { useCurrentEvents } from '../hooks/useLearningPathsApi';
 import { CurrentEventCard } from '../components/CurrentEvents/CurrentEventCard';
 import { NewsContextModal } from '../components/CurrentEvents/NewsContextModal';
 import type { CurrentEvent } from '../types/currentEvent';
@@ -57,17 +57,20 @@ export function NewsPage() {
   // Fetch all events
   const { data: allEvents, isLoading } = useCurrentEvents();
 
+  // Safely access events (handle null while loading)
+  const events = allEvents || [];
+
   // Get unique publishers for filter dropdown
-  const publishers = useMemo(() => getUniquePublishers(allEvents), [allEvents]);
+  const publishers = useMemo(() => getUniquePublishers(events), [events]);
 
   // Filter and sort events
   const filteredEvents = useMemo(() => {
-    let events = [...allEvents];
+    let result = [...events];
 
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      events = events.filter(
+      result = result.filter(
         (e) =>
           e.headline.toLowerCase().includes(query) ||
           e.summary.toLowerCase().includes(query) ||
@@ -77,27 +80,27 @@ export function NewsPage() {
 
     // Apply type filter
     if (filterType === 'featured') {
-      events = events.filter((e) => e.featured);
+      result = result.filter((e) => e.featured);
     } else if (filterType === 'recent') {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      events = events.filter((e) => new Date(e.publishedDate) >= thirtyDaysAgo);
+      result = result.filter((e) => new Date(e.publishedDate) >= thirtyDaysAgo);
     }
 
     // Apply publisher filter
     if (selectedPublisher) {
-      events = events.filter((e) => e.sourcePublisher === selectedPublisher);
+      result = result.filter((e) => e.sourcePublisher === selectedPublisher);
     }
 
     // Apply sort
-    events.sort((a, b) => {
+    result.sort((a, b) => {
       const dateA = new Date(a.publishedDate).getTime();
       const dateB = new Date(b.publishedDate).getTime();
       return sortType === 'newest' ? dateB - dateA : dateA - dateB;
     });
 
-    return events;
-  }, [allEvents, searchQuery, filterType, sortType, selectedPublisher]);
+    return result;
+  }, [events, searchQuery, filterType, sortType, selectedPublisher]);
 
   // Count active filters
   const activeFilterCount = [

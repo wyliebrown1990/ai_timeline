@@ -9,7 +9,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Newspaper, ChevronRight, ChevronLeft, ArrowRight } from 'lucide-react';
-import { useAsyncActiveCurrentEvents } from '../../hooks/useAsyncContent';
+import { useCurrentEvents } from '../../hooks/useLearningPathsApi';
 import { CurrentEventCard } from './CurrentEventCard';
 import { NewsContextModal } from './NewsContextModal';
 import type { CurrentEvent } from '../../types/currentEvent';
@@ -40,8 +40,8 @@ export function InTheNewsSection({
   // Ref for horizontal scroll
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch current events data (async lazy-loaded)
-  const { data: allEvents, isLoading } = useAsyncActiveCurrentEvents();
+  // Fetch current events data from API (active events only by default)
+  const { data: allEvents, isLoading } = useCurrentEvents();
 
   // Combine featured (first) and non-featured events, removing duplicates
   // Sort by date (newest first) after combining

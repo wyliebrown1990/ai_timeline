@@ -960,8 +960,8 @@ export async function submitCheckpoint(req: Request, res: Response) { ... }
 - [x] Run database migrations via admin API endpoints (0004_user_data migration)
 
 ### 38.14 Verify on Production
-- [ ] Test with existing localStorage data migrates correctly
-- [ ] Test that app works with fresh session (no localStorage)
+- [x] Test with existing localStorage data migrates correctly
+- [x] Test that app works with fresh session (no localStorage)
 - [ ] Test cross-device sync (login on different browser)
 - [ ] Monitor CloudWatch for errors
 

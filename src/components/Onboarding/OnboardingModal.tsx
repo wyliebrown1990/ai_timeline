@@ -28,9 +28,9 @@ import { getRoleDefaultExplanationLevel } from '../../hooks/useUserProfile';
 import {
   generateRecommendations,
   getPathDetails,
-  loadPathsAsync,
   type PersonalizedPlan,
 } from '../../services/pathRecommendation';
+import { useLearningPaths } from '../../hooks/useLearningPathsApi';
 
 // =============================================================================
 // Types
@@ -92,7 +92,11 @@ export function OnboardingModal({
 
   const modalRef = useRef<HTMLDivElement>(null);
 
-  // Reset state and preload paths when modal opens
+  // Load learning paths from API for recommendations
+  const { data: learningPaths } = useLearningPaths();
+  const paths = learningPaths || [];
+
+  // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentStep('audience');
@@ -101,8 +105,6 @@ export function OnboardingModal({
       setSelectedGoals([]);
       setSelectedTime('standard');
       setPlan(null);
-      // Preload learning paths for recommendation generation
-      loadPathsAsync().catch(console.error);
     }
   }, [isOpen]);
 
@@ -156,12 +158,12 @@ export function OnboardingModal({
           selectedAudience === 'everyday' ? ['stay_informed'] :
           selectedAudience === 'leader' ? ['evaluate_tools'] :
           ['hype_vs_real'];
-        const generatedPlan = generateRecommendations(role, goals as LearningGoal[], selectedTime);
+        const generatedPlan = generateRecommendations(role, goals as LearningGoal[], selectedTime, paths);
         setPlan(generatedPlan);
       }
       setCurrentStep(nextStep);
     }
-  }, [getStepsForAudience, selectedAudience, currentStep, selectedRole, selectedGoals, selectedTime]);
+  }, [getStepsForAudience, selectedAudience, currentStep, selectedRole, selectedGoals, selectedTime, paths]);
 
   const goToPreviousStep = useCallback(() => {
     const prevIndex = currentStepIndex - 1;
@@ -550,7 +552,7 @@ export function OnboardingModal({
 
               <div className="space-y-3">
                 {plan.recommendedPaths.map((rec, index) => {
-                  const pathDetails = getPathDetails(rec.pathId);
+                  const pathDetails = getPathDetails(rec.pathId, paths);
                   if (!pathDetails) return null;
 
                   return (

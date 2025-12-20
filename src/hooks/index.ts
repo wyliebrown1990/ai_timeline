@@ -1,5 +1,8 @@
 /**
  * Central export point for all custom React hooks
+ *
+ * Sprint 39: Cleaned up deprecated static content hooks.
+ * All content now served from database APIs.
  */
 export { useMilestones, useMilestone, useMilestoneMutation } from './useMilestones';
 
@@ -27,33 +30,7 @@ export type { StoredUserData, UseUserProfileReturn } from './useUserProfile';
 export { useFlashcardStore } from './useFlashcardStore';
 export type { UseFlashcardStoreReturn } from './useFlashcardStore';
 
-// Content hooks (Sprint 8.5)
-export {
-  // Learning Paths
-  useLearningPaths,
-  useLearningPath,
-  useLearningPathsByDifficulty,
-  // Checkpoints
-  useCheckpoints,
-  useCheckpointsForPath,
-  useCheckpoint,
-  // Flashcards
-  useFlashcards,
-  useFlashcardsByCategory,
-  useFlashcardsForMilestone,
-  useFlashcardCategories,
-  // Current Events
-  useCurrentEvents,
-  useFeaturedCurrentEvents,
-  useCurrentEvent,
-  useCurrentEventsForMilestone,
-  // Layered Content
-  useLayeredContent,
-  useMilestonesWithLayeredContent,
-  useHasLayeredContent,
-} from './useContent';
-
-// Glossary API hooks (Sprint 36 - migrated from static content to database API)
+// Glossary API hooks (Sprint 36 - database API)
 export {
   useGlossary,
   useGlossaryTerm,
@@ -62,28 +39,28 @@ export {
   useGlossarySearch,
 } from './useGlossaryApi';
 
-// Flashcard API hooks (Sprint 36 - database API for flashcards and decks)
+// Flashcard API hooks (Sprint 36 - database API)
 export {
-  useFlashcards as useFlashcardsApi,
-  useFlashcard as useFlashcardApi,
-  useFlashcardsByCategory as useFlashcardsByCategoryApi,
+  useFlashcards,
+  useFlashcard,
+  useFlashcardsByCategory,
   usePrebuiltDecks,
   usePrebuiltDeck,
   usePrebuiltDecksByDifficulty,
 } from './useFlashcardsApi';
 
-// Learning Paths, Checkpoints, Current Events API hooks (Sprint 37 - database-backed)
+// Learning Paths, Checkpoints, Current Events API hooks (Sprint 37 - database API)
 export {
-  useLearningPaths as useLearningPathsApi,
-  useLearningPath as useLearningPathApi,
-  useLearningPathsByDifficulty as useLearningPathsByDifficultyApi,
-  useCheckpointsForPath as useCheckpointsForPathApi,
-  useCurrentEvents as useCurrentEventsApi,
-  useFeaturedEvents as useFeaturedEventsApi,
-  useEventsForMilestone as useEventsForMilestoneApi,
+  useLearningPaths,
+  useLearningPath,
+  useLearningPathsByDifficulty,
+  useCheckpointsForPath,
+  useCurrentEvents,
+  useFeaturedEvents,
+  useEventsForMilestone,
 } from './useLearningPathsApi';
 
-// Re-export types from Sprint 37 APIs
+// Re-export types from database APIs
 export type {
   LearningPath,
   LearningPathWithCheckpoints,

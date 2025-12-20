@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
-import { useLearningPaths } from '../../hooks/useContent';
+import { useLearningPaths } from '../../hooks/useLearningPathsApi';
 import { usePathProgress } from '../../hooks/usePathProgress';
 import type { LearningPath } from '../../types/learningPath';
 import type { AudienceType } from '../../types/userProfile';
@@ -42,7 +42,7 @@ export function PathSelector({
   audienceFilter,
   showRecommendations = false,
 }: PathSelectorProps) {
-  const { data: paths, isLoading } = useLearningPaths();
+  const { data, isLoading } = useLearningPaths();
   const {
     getCompletionPercentage,
     isPathCompleted,
@@ -54,11 +54,14 @@ export function PathSelector({
 
   // Get audience-based path groupings (Sprint 19)
   const audienceGroupedPaths = useMemo(() => {
-    if (!showRecommendations || !audienceFilter) {
-      return { recommended: [], other: paths };
+    if (!showRecommendations || !audienceFilter || !data) {
+      return { recommended: [], other: data || [] };
     }
-    return getPathsByAudience(audienceFilter);
-  }, [showRecommendations, audienceFilter, paths]);
+    return getPathsByAudience(audienceFilter, data);
+  }, [showRecommendations, audienceFilter, data]);
+
+  // Alias for backwards compatibility
+  const paths = data || [];
 
   // Filter and sort paths
   const filteredPaths = useMemo(() => {

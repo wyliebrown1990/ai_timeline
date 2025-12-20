@@ -86,11 +86,10 @@ cd infra && sam build && sam deploy --no-confirm-changeset
 src/
 ├── components/      # React components (PascalCase)
 ├── pages/           # Route pages
-├── hooks/           # Custom hooks (useUserProfile, useCheckpointProgress)
+├── hooks/           # Custom hooks (API hooks, useUserProfile, useCheckpointProgress)
 ├── contexts/        # React Context providers
 ├── types/           # Zod schemas + TypeScript types
-├── services/        # API clients
-├── content/         # Static content (milestones, paths, checkpoints)
+├── services/        # API clients (all content from database)
 └── lib/             # Utilities
 development-roadmap/ # Sprint planning documents
 ```
@@ -101,7 +100,8 @@ development-roadmap/ # Sprint planning documents
 - Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
 
 ## Key Patterns
-- **State**: localStorage + React hooks/context
+- **Data**: PostgreSQL via API (Sprint 39 - all static JSON removed)
+- **State**: Database (user data) + React hooks (caching)
 - **Modals**: Fixed overlay + backdrop blur + escape key dismiss
 - **Hover cards/tooltips**: MUST use React Portal (`createPortal`) to `document.body` with `position: fixed`. CSS z-index alone cannot escape parent stacking contexts.
 - **Testing**: `data-testid` attributes on interactive elements

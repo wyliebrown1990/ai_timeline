@@ -2,7 +2,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, RotateCcw, X, Sparkles } from 'lucide-react';
 import { useOnboarding } from '../components/Onboarding';
-import { useLearningPath, useCheckpointsForPath } from '../hooks/useContent';
+import {
+  useLearningPath,
+  useCheckpointsForPath,
+  type Checkpoint,
+} from '../hooks/useLearningPathsApi';
 import { usePathProgress } from '../hooks/usePathProgress';
 import { useCheckpointProgress } from '../hooks/useCheckpointProgress';
 import { useMilestone } from '../hooks/useMilestones';
@@ -15,7 +19,6 @@ import { MilestoneDetail } from '../components/Timeline/MilestoneDetail';
 import { CheckpointView } from '../components/Checkpoints';
 import { chatApi } from '../services/chatApi';
 import type { LearningPath } from '../types/learningPath';
-import type { Checkpoint } from '../types/checkpoint';
 
 /**
  * Get AI feedback for explain-back questions using the chat API

@@ -7,17 +7,12 @@ import type {
 import type { SearchResponse, FilterQueryParams } from '../types/filters';
 
 /**
- * API base URL for dynamic endpoints (auth, CRUD operations)
+ * API base URL for all endpoints
  * In production, uses the API Gateway URL; in development, uses relative URL with Vite proxy
+ *
+ * Sprint 39: Removed static JSON fallback - all content now served from database API
  */
-const DYNAMIC_API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
-
-/**
- * Check if we're running with static API (production build or forced via env)
- * In development with VITE_USE_STATIC_API=true, uses static JSON files
- * In production, always uses static files from CloudFront
- */
-const IS_STATIC_API = import.meta.env.PROD || import.meta.env.VITE_USE_STATIC_API === 'true';
+const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 
 /**
  * Auth token storage key
@@ -66,7 +61,7 @@ export class ApiError extends Error {
  * Generic fetch wrapper with error handling
  */
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  console.log('[API] Fetching:', url, '| Static mode:', IS_STATIC_API);
+  console.log('[API] Fetching:', url);
 
   try {
     const response = await fetch(url, {
@@ -131,7 +126,7 @@ export const milestonesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/milestones${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/milestones${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(url);
   },
@@ -140,14 +135,14 @@ export const milestonesApi = {
    * Get a single milestone by ID
    */
   async getById(id: string): Promise<MilestoneResponse> {
-    return fetchJson<MilestoneResponse>(`${DYNAMIC_API_BASE}/milestones/${id}`);
+    return fetchJson<MilestoneResponse>(`${API_BASE}/milestones/${id}`);
   },
 
   /**
    * Create a new milestone (requires authentication)
    */
   async create(data: CreateMilestoneDto): Promise<MilestoneResponse> {
-    return fetchJson<MilestoneResponse>(`${DYNAMIC_API_BASE}/milestones`, {
+    return fetchJson<MilestoneResponse>(`${API_BASE}/milestones`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -158,7 +153,7 @@ export const milestonesApi = {
    * Update an existing milestone (requires authentication)
    */
   async update(id: string, data: UpdateMilestoneDto): Promise<MilestoneResponse> {
-    return fetchJson<MilestoneResponse>(`${DYNAMIC_API_BASE}/milestones/${id}`, {
+    return fetchJson<MilestoneResponse>(`${API_BASE}/milestones/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -169,7 +164,7 @@ export const milestonesApi = {
    * Delete a milestone (requires authentication)
    */
   async delete(id: string): Promise<void> {
-    return fetchJson<void>(`${DYNAMIC_API_BASE}/milestones/${id}`, {
+    return fetchJson<void>(`${API_BASE}/milestones/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -187,7 +182,7 @@ export const milestonesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/milestones/category/${category}${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/milestones/category/${category}${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(url);
   },
@@ -204,7 +199,7 @@ export const milestonesApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/milestones/year/${year}${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/milestones/year/${year}${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(url);
   },
@@ -221,7 +216,7 @@ export const milestonesApi = {
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
-    return fetchJson<SearchResponse>(`${DYNAMIC_API_BASE}/milestones/search?${searchParams.toString()}`);
+    return fetchJson<SearchResponse>(`${API_BASE}/milestones/search?${searchParams.toString()}`);
   },
 
   /**
@@ -241,7 +236,7 @@ export const milestonesApi = {
     if (filters.limit) searchParams.set('limit', String(filters.limit));
 
     return fetchJson<PaginatedResponse<MilestoneResponse>>(
-      `${DYNAMIC_API_BASE}/milestones/filter?${searchParams.toString()}`
+      `${API_BASE}/milestones/filter?${searchParams.toString()}`
     );
   },
 
@@ -250,7 +245,7 @@ export const milestonesApi = {
    * Uses database API for real-time tag data
    */
   async getTags(): Promise<{ data: { tag: string; count: number }[] }> {
-    return fetchJson<{ data: { tag: string; count: number }[] }>(`${DYNAMIC_API_BASE}/milestones/tags`);
+    return fetchJson<{ data: { tag: string; count: number }[] }>(`${API_BASE}/milestones/tags`);
   },
 };
 
@@ -389,7 +384,7 @@ export const sourcesApi = {
    * Get all sources with article counts
    */
   async getAll(): Promise<{ data: NewsSource[] }> {
-    return fetchJson<{ data: NewsSource[] }>(`${DYNAMIC_API_BASE}/admin/sources`, {
+    return fetchJson<{ data: NewsSource[] }>(`${API_BASE}/admin/sources`, {
       headers: getAuthHeaders(),
     });
   },
@@ -398,7 +393,7 @@ export const sourcesApi = {
    * Get a single source by ID
    */
   async getById(id: string): Promise<NewsSource> {
-    return fetchJson<NewsSource>(`${DYNAMIC_API_BASE}/admin/sources/${id}`, {
+    return fetchJson<NewsSource>(`${API_BASE}/admin/sources/${id}`, {
       headers: getAuthHeaders(),
     });
   },
@@ -407,7 +402,7 @@ export const sourcesApi = {
    * Create a new source
    */
   async create(data: CreateSourceDto): Promise<NewsSource> {
-    return fetchJson<NewsSource>(`${DYNAMIC_API_BASE}/admin/sources`, {
+    return fetchJson<NewsSource>(`${API_BASE}/admin/sources`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -418,7 +413,7 @@ export const sourcesApi = {
    * Update a source
    */
   async update(id: string, data: UpdateSourceDto): Promise<NewsSource> {
-    return fetchJson<NewsSource>(`${DYNAMIC_API_BASE}/admin/sources/${id}`, {
+    return fetchJson<NewsSource>(`${API_BASE}/admin/sources/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -429,7 +424,7 @@ export const sourcesApi = {
    * Delete a source
    */
   async delete(id: string): Promise<void> {
-    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/sources/${id}`, {
+    return fetchJson<void>(`${API_BASE}/admin/sources/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -439,7 +434,7 @@ export const sourcesApi = {
    * Fetch articles from a specific source
    */
   async fetchArticles(id: string): Promise<FetchResult> {
-    return fetchJson<FetchResult>(`${DYNAMIC_API_BASE}/admin/sources/${id}/fetch`, {
+    return fetchJson<FetchResult>(`${API_BASE}/admin/sources/${id}/fetch`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -449,7 +444,7 @@ export const sourcesApi = {
    * Fetch articles from all active sources
    */
   async fetchAllArticles(): Promise<FetchResult & { results: unknown[] }> {
-    return fetchJson<FetchResult & { results: unknown[] }>(`${DYNAMIC_API_BASE}/admin/ingestion/fetch-all`, {
+    return fetchJson<FetchResult & { results: unknown[] }>(`${API_BASE}/admin/ingestion/fetch-all`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -481,7 +476,7 @@ export const articlesApi = {
     if (params?.isDuplicate) searchParams.set('isDuplicate', params.isDuplicate);
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/admin/articles${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/admin/articles${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<IngestedArticle>>(url, {
       headers: getAuthHeaders(),
@@ -492,7 +487,7 @@ export const articlesApi = {
    * Get a single article by ID with drafts
    */
   async getById(id: string): Promise<IngestedArticle> {
-    return fetchJson<IngestedArticle>(`${DYNAMIC_API_BASE}/admin/articles/${id}`, {
+    return fetchJson<IngestedArticle>(`${API_BASE}/admin/articles/${id}`, {
       headers: getAuthHeaders(),
     });
   },
@@ -501,7 +496,7 @@ export const articlesApi = {
    * Get analysis statistics
    */
   async getStats(): Promise<AnalysisStats> {
-    return fetchJson<AnalysisStats>(`${DYNAMIC_API_BASE}/admin/articles/stats`, {
+    return fetchJson<AnalysisStats>(`${API_BASE}/admin/articles/stats`, {
       headers: getAuthHeaders(),
     });
   },
@@ -510,7 +505,7 @@ export const articlesApi = {
    * Analyze a single article
    */
   async analyze(id: string): Promise<AnalyzeResult> {
-    return fetchJson<AnalyzeResult>(`${DYNAMIC_API_BASE}/admin/articles/${id}/analyze`, {
+    return fetchJson<AnalyzeResult>(`${API_BASE}/admin/articles/${id}/analyze`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -520,7 +515,7 @@ export const articlesApi = {
    * Re-analyze an article (delete drafts and redo)
    */
   async reanalyze(id: string): Promise<AnalyzeResult> {
-    return fetchJson<AnalyzeResult>(`${DYNAMIC_API_BASE}/admin/articles/${id}/reanalyze`, {
+    return fetchJson<AnalyzeResult>(`${API_BASE}/admin/articles/${id}/reanalyze`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -531,7 +526,7 @@ export const articlesApi = {
    */
   async analyzePending(limit?: number): Promise<AnalyzePendingResult> {
     const params = limit ? `?limit=${limit}` : '';
-    return fetchJson<AnalyzePendingResult>(`${DYNAMIC_API_BASE}/admin/articles/analyze-pending${params}`, {
+    return fetchJson<AnalyzePendingResult>(`${API_BASE}/admin/articles/analyze-pending${params}`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -541,7 +536,7 @@ export const articlesApi = {
    * Get drafts for an article
    */
   async getDrafts(id: string): Promise<ContentDraft[]> {
-    return fetchJson<ContentDraft[]>(`${DYNAMIC_API_BASE}/admin/articles/${id}/drafts`, {
+    return fetchJson<ContentDraft[]>(`${API_BASE}/admin/articles/${id}/drafts`, {
       headers: getAuthHeaders(),
     });
   },
@@ -552,7 +547,7 @@ export const articlesApi = {
    */
   async delete(id: string): Promise<{ message: string; promotedId?: string }> {
     return fetchJson<{ message: string; promotedId?: string }>(
-      `${DYNAMIC_API_BASE}/admin/articles/${id}`,
+      `${API_BASE}/admin/articles/${id}`,
       {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -566,7 +561,7 @@ export const articlesApi = {
    */
   async deleteAllDuplicates(): Promise<{ message: string; deleted: number }> {
     return fetchJson<{ message: string; deleted: number }>(
-      `${DYNAMIC_API_BASE}/admin/articles/delete-duplicates`,
+      `${API_BASE}/admin/articles/delete-duplicates`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -628,7 +623,7 @@ export const reviewApi = {
     if (params?.offset) searchParams.set('offset', String(params.offset));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/admin/review/queue${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/admin/review/queue${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<QueueResponse>(url, {
       headers: getAuthHeaders(),
@@ -639,7 +634,7 @@ export const reviewApi = {
    * Get queue counts by type
    */
   async getCounts(): Promise<QueueCounts> {
-    return fetchJson<QueueCounts>(`${DYNAMIC_API_BASE}/admin/review/counts`, {
+    return fetchJson<QueueCounts>(`${API_BASE}/admin/review/counts`, {
       headers: getAuthHeaders(),
     });
   },
@@ -648,7 +643,7 @@ export const reviewApi = {
    * Get a single draft with article context
    */
   async getDraft(id: string): Promise<DraftWithArticle> {
-    return fetchJson<DraftWithArticle>(`${DYNAMIC_API_BASE}/admin/review/${id}`, {
+    return fetchJson<DraftWithArticle>(`${API_BASE}/admin/review/${id}`, {
       headers: getAuthHeaders(),
     });
   },
@@ -657,7 +652,7 @@ export const reviewApi = {
    * Update draft content
    */
   async updateDraft(id: string, draftData: Record<string, unknown>): Promise<DraftWithArticle> {
-    return fetchJson<DraftWithArticle>(`${DYNAMIC_API_BASE}/admin/review/${id}`, {
+    return fetchJson<DraftWithArticle>(`${API_BASE}/admin/review/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ draftData }),
@@ -668,7 +663,7 @@ export const reviewApi = {
    * Approve and publish a draft
    */
   async approve(id: string): Promise<ApproveResult> {
-    return fetchJson<ApproveResult>(`${DYNAMIC_API_BASE}/admin/review/${id}/approve`, {
+    return fetchJson<ApproveResult>(`${API_BASE}/admin/review/${id}/approve`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -678,7 +673,7 @@ export const reviewApi = {
    * Reject a draft
    */
   async reject(id: string, reason?: string): Promise<RejectResult> {
-    return fetchJson<RejectResult>(`${DYNAMIC_API_BASE}/admin/review/${id}/reject`, {
+    return fetchJson<RejectResult>(`${API_BASE}/admin/review/${id}/reject`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ reason }),
@@ -699,7 +694,7 @@ export const reviewApi = {
     if (params?.offset) searchParams.set('offset', String(params.offset));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/admin/review/published${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/admin/review/published${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<QueueResponse>(url, {
       headers: getAuthHeaders(),
@@ -784,7 +779,7 @@ export const glossaryApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/glossary${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/glossary${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<GlossaryTerm>>(url);
   },
@@ -793,7 +788,7 @@ export const glossaryApi = {
    * Get a single glossary term by ID
    */
   async getById(id: string): Promise<GlossaryTerm> {
-    return fetchJson<GlossaryTerm>(`${DYNAMIC_API_BASE}/glossary/${id}`);
+    return fetchJson<GlossaryTerm>(`${API_BASE}/glossary/${id}`);
   },
 
   /**
@@ -801,7 +796,7 @@ export const glossaryApi = {
    */
   async getByName(termName: string): Promise<GlossaryTerm> {
     return fetchJson<GlossaryTerm>(
-      `${DYNAMIC_API_BASE}/glossary/term/${encodeURIComponent(termName)}`
+      `${API_BASE}/glossary/term/${encodeURIComponent(termName)}`
     );
   },
 
@@ -814,7 +809,7 @@ export const glossaryApi = {
     if (limit) searchParams.set('limit', String(limit));
 
     return fetchJson<{ data: GlossaryTerm[]; total: number }>(
-      `${DYNAMIC_API_BASE}/glossary/search?${searchParams.toString()}`
+      `${API_BASE}/glossary/search?${searchParams.toString()}`
     );
   },
 
@@ -822,7 +817,7 @@ export const glossaryApi = {
    * Get glossary statistics (admin)
    */
   async getStats(): Promise<GlossaryStats> {
-    return fetchJson<GlossaryStats>(`${DYNAMIC_API_BASE}/admin/glossary/stats`, {
+    return fetchJson<GlossaryStats>(`${API_BASE}/admin/glossary/stats`, {
       headers: getAuthHeaders(),
     });
   },
@@ -831,7 +826,7 @@ export const glossaryApi = {
    * Create a new glossary term (admin)
    */
   async create(data: CreateGlossaryTermDto): Promise<GlossaryTerm> {
-    return fetchJson<GlossaryTerm>(`${DYNAMIC_API_BASE}/admin/glossary`, {
+    return fetchJson<GlossaryTerm>(`${API_BASE}/admin/glossary`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -842,7 +837,7 @@ export const glossaryApi = {
    * Update an existing glossary term (admin)
    */
   async update(id: string, data: UpdateGlossaryTermDto): Promise<GlossaryTerm> {
-    return fetchJson<GlossaryTerm>(`${DYNAMIC_API_BASE}/admin/glossary/${id}`, {
+    return fetchJson<GlossaryTerm>(`${API_BASE}/admin/glossary/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -853,7 +848,7 @@ export const glossaryApi = {
    * Delete a glossary term (admin)
    */
   async delete(id: string): Promise<void> {
-    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/glossary/${id}`, {
+    return fetchJson<void>(`${API_BASE}/admin/glossary/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -866,7 +861,7 @@ export const glossaryApi = {
     terms: CreateGlossaryTermDto[]
   ): Promise<{ message: string; created: number; skipped: number; errors: string[] }> {
     return fetchJson<{ message: string; created: number; skipped: number; errors: string[] }>(
-      `${DYNAMIC_API_BASE}/admin/glossary/bulk`,
+      `${API_BASE}/admin/glossary/bulk`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -955,7 +950,7 @@ export const pipelineApi = {
    * Get comprehensive pipeline monitoring stats
    */
   async getStats(): Promise<PipelineStats> {
-    return fetchJson<PipelineStats>(`${DYNAMIC_API_BASE}/admin/pipeline/stats`, {
+    return fetchJson<PipelineStats>(`${API_BASE}/admin/pipeline/stats`, {
       headers: getAuthHeaders(),
     });
   },
@@ -965,7 +960,7 @@ export const pipelineApi = {
    */
   async triggerIngestion(): Promise<{ message: string; note?: string }> {
     return fetchJson<{ message: string; note?: string }>(
-      `${DYNAMIC_API_BASE}/admin/pipeline/ingest`,
+      `${API_BASE}/admin/pipeline/ingest`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -978,7 +973,7 @@ export const pipelineApi = {
    */
   async triggerDuplicateDetection(): Promise<DuplicateDetectionResult> {
     return fetchJson<DuplicateDetectionResult>(
-      `${DYNAMIC_API_BASE}/admin/pipeline/detect-duplicates`,
+      `${API_BASE}/admin/pipeline/detect-duplicates`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -990,7 +985,7 @@ export const pipelineApi = {
    * Get pipeline error statistics
    */
   async getErrors(): Promise<ErrorStats> {
-    return fetchJson<ErrorStats>(`${DYNAMIC_API_BASE}/admin/pipeline/errors`, {
+    return fetchJson<ErrorStats>(`${API_BASE}/admin/pipeline/errors`, {
       headers: getAuthHeaders(),
     });
   },
@@ -1000,7 +995,7 @@ export const pipelineApi = {
    */
   async clearErrors(): Promise<{ message: string; cleared: number }> {
     return fetchJson<{ message: string; cleared: number }>(
-      `${DYNAMIC_API_BASE}/admin/pipeline/errors/clear`,
+      `${API_BASE}/admin/pipeline/errors/clear`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -1017,7 +1012,7 @@ export const pipelineApi = {
     return fetchJson<{
       message: string;
       settings: { ingestionPaused: boolean; analysisPaused: boolean };
-    }>(`${DYNAMIC_API_BASE}/admin/pipeline/ingestion/pause`, {
+    }>(`${API_BASE}/admin/pipeline/ingestion/pause`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ paused }),
@@ -1033,7 +1028,7 @@ export const pipelineApi = {
     return fetchJson<{
       message: string;
       settings: { ingestionPaused: boolean; analysisPaused: boolean };
-    }>(`${DYNAMIC_API_BASE}/admin/pipeline/analysis/pause`, {
+    }>(`${API_BASE}/admin/pipeline/analysis/pause`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify({ paused }),
@@ -1057,7 +1052,7 @@ export const pipelineApi = {
       analyzed: number;
       errors: number;
       results: Array<{ articleId: string; success: boolean; error?: string }>;
-    }>(`${DYNAMIC_API_BASE}/admin/pipeline/analyze${params}`, {
+    }>(`${API_BASE}/admin/pipeline/analyze${params}`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -1185,7 +1180,7 @@ export const flashcardsApi = {
     if (params?.limit) searchParams.set('limit', String(params.limit));
 
     const queryString = searchParams.toString();
-    const url = `${DYNAMIC_API_BASE}/flashcards${queryString ? `?${queryString}` : ''}`;
+    const url = `${API_BASE}/flashcards${queryString ? `?${queryString}` : ''}`;
 
     return fetchJson<PaginatedResponse<Flashcard>>(url);
   },
@@ -1194,7 +1189,7 @@ export const flashcardsApi = {
    * Get a single flashcard by ID
    */
   async getById(id: string): Promise<Flashcard> {
-    return fetchJson<Flashcard>(`${DYNAMIC_API_BASE}/flashcards/${id}`);
+    return fetchJson<Flashcard>(`${API_BASE}/flashcards/${id}`);
   },
 
   /**
@@ -1202,7 +1197,7 @@ export const flashcardsApi = {
    */
   async getByCategory(category: FlashcardCategory): Promise<{ data: Flashcard[] }> {
     return fetchJson<{ data: Flashcard[] }>(
-      `${DYNAMIC_API_BASE}/flashcards?category=${category}&limit=200`
+      `${API_BASE}/flashcards?category=${category}&limit=200`
     );
   },
 
@@ -1210,7 +1205,7 @@ export const flashcardsApi = {
    * Get flashcard statistics (admin)
    */
   async getStats(): Promise<FlashcardStats> {
-    return fetchJson<FlashcardStats>(`${DYNAMIC_API_BASE}/admin/flashcards/stats`, {
+    return fetchJson<FlashcardStats>(`${API_BASE}/admin/flashcards/stats`, {
       headers: getAuthHeaders(),
     });
   },
@@ -1219,7 +1214,7 @@ export const flashcardsApi = {
    * Create a new flashcard (admin)
    */
   async create(data: CreateFlashcardDto): Promise<Flashcard> {
-    return fetchJson<Flashcard>(`${DYNAMIC_API_BASE}/admin/flashcards`, {
+    return fetchJson<Flashcard>(`${API_BASE}/admin/flashcards`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1230,7 +1225,7 @@ export const flashcardsApi = {
    * Update an existing flashcard (admin)
    */
   async update(id: string, data: UpdateFlashcardDto): Promise<Flashcard> {
-    return fetchJson<Flashcard>(`${DYNAMIC_API_BASE}/admin/flashcards/${id}`, {
+    return fetchJson<Flashcard>(`${API_BASE}/admin/flashcards/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1241,7 +1236,7 @@ export const flashcardsApi = {
    * Delete a flashcard (admin)
    */
   async delete(id: string): Promise<void> {
-    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/flashcards/${id}`, {
+    return fetchJson<void>(`${API_BASE}/admin/flashcards/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -1254,7 +1249,7 @@ export const flashcardsApi = {
     cards: CreateFlashcardDto[]
   ): Promise<{ message: string; created: number; skipped: number; errors: string[] }> {
     return fetchJson<{ message: string; created: number; skipped: number; errors: string[] }>(
-      `${DYNAMIC_API_BASE}/admin/flashcards/bulk`,
+      `${API_BASE}/admin/flashcards/bulk`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -1310,28 +1305,28 @@ export const decksApi = {
    */
   async getAll(difficulty?: DeckDifficulty): Promise<{ data: PrebuiltDeck[] }> {
     const params = difficulty ? `?difficulty=${difficulty}` : '';
-    return fetchJson<{ data: PrebuiltDeck[] }>(`${DYNAMIC_API_BASE}/decks${params}`);
+    return fetchJson<{ data: PrebuiltDeck[] }>(`${API_BASE}/decks${params}`);
   },
 
   /**
    * Get a single deck by ID (includes cards)
    */
   async getById(id: string): Promise<PrebuiltDeck> {
-    return fetchJson<PrebuiltDeck>(`${DYNAMIC_API_BASE}/decks/${id}`);
+    return fetchJson<PrebuiltDeck>(`${API_BASE}/decks/${id}`);
   },
 
   /**
    * Get cards for a deck
    */
   async getCards(deckId: string): Promise<PrebuiltDeckCard[]> {
-    return fetchJson<PrebuiltDeckCard[]>(`${DYNAMIC_API_BASE}/decks/${deckId}/cards`);
+    return fetchJson<PrebuiltDeckCard[]>(`${API_BASE}/decks/${deckId}/cards`);
   },
 
   /**
    * Create a new deck (admin)
    */
   async create(data: CreateDeckDto): Promise<PrebuiltDeck> {
-    return fetchJson<PrebuiltDeck>(`${DYNAMIC_API_BASE}/admin/decks`, {
+    return fetchJson<PrebuiltDeck>(`${API_BASE}/admin/decks`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1342,7 +1337,7 @@ export const decksApi = {
    * Update an existing deck (admin)
    */
   async update(id: string, data: UpdateDeckDto): Promise<PrebuiltDeck> {
-    return fetchJson<PrebuiltDeck>(`${DYNAMIC_API_BASE}/admin/decks/${id}`, {
+    return fetchJson<PrebuiltDeck>(`${API_BASE}/admin/decks/${id}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1353,7 +1348,7 @@ export const decksApi = {
    * Delete a deck (admin)
    */
   async delete(id: string): Promise<void> {
-    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/decks/${id}`, {
+    return fetchJson<void>(`${API_BASE}/admin/decks/${id}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -1363,7 +1358,7 @@ export const decksApi = {
    * Add a card to a deck (admin)
    */
   async addCard(deckId: string, data: AddCardToDeckDto): Promise<PrebuiltDeckCard> {
-    return fetchJson<PrebuiltDeckCard>(`${DYNAMIC_API_BASE}/admin/decks/${deckId}/cards`, {
+    return fetchJson<PrebuiltDeckCard>(`${API_BASE}/admin/decks/${deckId}/cards`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -1374,7 +1369,7 @@ export const decksApi = {
    * Remove a card from a deck (admin)
    */
   async removeCard(deckId: string, cardId: string): Promise<void> {
-    return fetchJson<void>(`${DYNAMIC_API_BASE}/admin/decks/${deckId}/cards/${cardId}`, {
+    return fetchJson<void>(`${API_BASE}/admin/decks/${deckId}/cards/${cardId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -1461,21 +1456,21 @@ export const learningPathsApi = {
    */
   async getAll(difficulty?: LearningPathDifficulty): Promise<{ data: LearningPath[] }> {
     const params = difficulty ? `?difficulty=${difficulty}` : '';
-    return fetchJson<{ data: LearningPath[] }>(`${DYNAMIC_API_BASE}/learning-paths${params}`);
+    return fetchJson<{ data: LearningPath[] }>(`${API_BASE}/learning-paths${params}`);
   },
 
   /**
    * Get a single learning path by slug with checkpoints
    */
   async getBySlug(slug: string): Promise<LearningPathWithCheckpoints> {
-    return fetchJson<LearningPathWithCheckpoints>(`${DYNAMIC_API_BASE}/learning-paths/${slug}`);
+    return fetchJson<LearningPathWithCheckpoints>(`${API_BASE}/learning-paths/${slug}`);
   },
 
   /**
    * Get paths by difficulty
    */
   async getByDifficulty(difficulty: LearningPathDifficulty): Promise<{ data: LearningPath[] }> {
-    return fetchJson<{ data: LearningPath[] }>(`${DYNAMIC_API_BASE}/learning-paths/difficulty/${difficulty}`);
+    return fetchJson<{ data: LearningPath[] }>(`${API_BASE}/learning-paths/difficulty/${difficulty}`);
   },
 };
 
@@ -1487,14 +1482,14 @@ export const checkpointsApi = {
    * Get checkpoints for a learning path
    */
   async getForPath(pathSlug: string): Promise<{ data: Checkpoint[] }> {
-    return fetchJson<{ data: Checkpoint[] }>(`${DYNAMIC_API_BASE}/checkpoints/path/${pathSlug}`);
+    return fetchJson<{ data: Checkpoint[] }>(`${API_BASE}/checkpoints/path/${pathSlug}`);
   },
 
   /**
    * Get a single checkpoint by ID
    */
   async getById(id: string): Promise<Checkpoint> {
-    return fetchJson<Checkpoint>(`${DYNAMIC_API_BASE}/checkpoints/${id}`);
+    return fetchJson<Checkpoint>(`${API_BASE}/checkpoints/${id}`);
   },
 };
 
@@ -1507,7 +1502,7 @@ export const currentEventsApi = {
    */
   async getAll(includeExpired?: boolean): Promise<{ data: CurrentEvent[] }> {
     const params = includeExpired ? '?includeExpired=true' : '';
-    return fetchJson<{ data: CurrentEvent[] }>(`${DYNAMIC_API_BASE}/current-events${params}`);
+    return fetchJson<{ data: CurrentEvent[] }>(`${API_BASE}/current-events${params}`);
   },
 
   /**
@@ -1515,21 +1510,21 @@ export const currentEventsApi = {
    */
   async getFeatured(limit?: number): Promise<{ data: CurrentEvent[] }> {
     const params = limit ? `?limit=${limit}` : '';
-    return fetchJson<{ data: CurrentEvent[] }>(`${DYNAMIC_API_BASE}/current-events/featured${params}`);
+    return fetchJson<{ data: CurrentEvent[] }>(`${API_BASE}/current-events/featured${params}`);
   },
 
   /**
    * Get events related to a milestone
    */
   async getForMilestone(milestoneId: string): Promise<{ data: CurrentEvent[] }> {
-    return fetchJson<{ data: CurrentEvent[] }>(`${DYNAMIC_API_BASE}/current-events/milestone/${milestoneId}`);
+    return fetchJson<{ data: CurrentEvent[] }>(`${API_BASE}/current-events/milestone/${milestoneId}`);
   },
 
   /**
    * Get a single event by ID
    */
   async getById(id: string): Promise<CurrentEvent> {
-    return fetchJson<CurrentEvent>(`${DYNAMIC_API_BASE}/current-events/${id}`);
+    return fetchJson<CurrentEvent>(`${API_BASE}/current-events/${id}`);
   },
 };
 
@@ -1661,7 +1656,7 @@ export const userSessionApi = {
    * Get or create a user session by device ID
    */
   async getOrCreateSession(deviceId: string): Promise<UserSessionResponse> {
-    return fetchJson<UserSessionResponse>(`${DYNAMIC_API_BASE}/user/session`, {
+    return fetchJson<UserSessionResponse>(`${API_BASE}/user/session`, {
       method: 'POST',
       body: JSON.stringify({ deviceId }),
     });
@@ -1675,7 +1670,7 @@ export const userSessionApi = {
     data: LocalStorageMigrationData
   ): Promise<{ message: string; sessionId: string; results: { flashcards: number; packs: number } }> {
     return fetchJson<{ message: string; sessionId: string; results: { flashcards: number; packs: number } }>(
-      `${DYNAMIC_API_BASE}/user/migrate`,
+      `${API_BASE}/user/migrate`,
       {
         method: 'POST',
         body: JSON.stringify({ deviceId, data }),
@@ -1687,7 +1682,7 @@ export const userSessionApi = {
    * Get session by ID
    */
   async getSession(sessionId: string): Promise<UserSessionResponse> {
-    return fetchJson<UserSessionResponse>(`${DYNAMIC_API_BASE}/user/${sessionId}`);
+    return fetchJson<UserSessionResponse>(`${API_BASE}/user/${sessionId}`);
   },
 
   /**
@@ -1704,7 +1699,7 @@ export const userSessionApi = {
       expertiseLevel: string | null;
       interests: string[];
       completedOnboarding: boolean;
-    }>(`${DYNAMIC_API_BASE}/user/${sessionId}/profile`);
+    }>(`${API_BASE}/user/${sessionId}/profile`);
   },
 
   /**
@@ -1729,7 +1724,7 @@ export const userSessionApi = {
       expertiseLevel: string | null;
       interests: string[];
       completedOnboarding: boolean;
-    }>(`${DYNAMIC_API_BASE}/user/${sessionId}/profile`, {
+    }>(`${API_BASE}/user/${sessionId}/profile`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -1749,7 +1744,7 @@ export const userFlashcardsApi = {
   ): Promise<{ data: UserFlashcardResponse[] }> {
     const params = packId ? `?packId=${packId}` : '';
     return fetchJson<{ data: UserFlashcardResponse[] }>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards${params}`
+      `${API_BASE}/user/${sessionId}/flashcards${params}`
     );
   },
 
@@ -1762,7 +1757,7 @@ export const userFlashcardsApi = {
   ): Promise<{ data: UserFlashcardResponse[]; count: number }> {
     const params = packId ? `?packId=${packId}` : '';
     return fetchJson<{ data: UserFlashcardResponse[]; count: number }>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/due${params}`
+      `${API_BASE}/user/${sessionId}/flashcards/due${params}`
     );
   },
 
@@ -1771,7 +1766,7 @@ export const userFlashcardsApi = {
    */
   async getFlashcard(sessionId: string, cardId: string): Promise<UserFlashcardResponse> {
     return fetchJson<UserFlashcardResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}`
+      `${API_BASE}/user/${sessionId}/flashcards/${cardId}`
     );
   },
 
@@ -1785,7 +1780,7 @@ export const userFlashcardsApi = {
     packIds?: string[]
   ): Promise<UserFlashcardResponse> {
     return fetchJson<UserFlashcardResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards`,
+      `${API_BASE}/user/${sessionId}/flashcards`,
       {
         method: 'POST',
         body: JSON.stringify({ sourceType, sourceId, packIds }),
@@ -1802,7 +1797,7 @@ export const userFlashcardsApi = {
     quality: number
   ): Promise<ReviewResult> {
     return fetchJson<ReviewResult>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}/review`,
+      `${API_BASE}/user/${sessionId}/flashcards/${cardId}/review`,
       {
         method: 'POST',
         body: JSON.stringify({ quality }),
@@ -1819,7 +1814,7 @@ export const userFlashcardsApi = {
     packIds: string[]
   ): Promise<UserFlashcardResponse> {
     return fetchJson<UserFlashcardResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}/packs`,
+      `${API_BASE}/user/${sessionId}/flashcards/${cardId}/packs`,
       {
         method: 'PUT',
         body: JSON.stringify({ packIds }),
@@ -1832,7 +1827,7 @@ export const userFlashcardsApi = {
    */
   async removeFlashcard(sessionId: string, cardId: string): Promise<void> {
     return fetchJson<void>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}`,
+      `${API_BASE}/user/${sessionId}/flashcards/${cardId}`,
       { method: 'DELETE' }
     );
   },
@@ -1842,7 +1837,7 @@ export const userFlashcardsApi = {
    */
   async getPacks(sessionId: string): Promise<{ data: UserPackResponse[] }> {
     return fetchJson<{ data: UserPackResponse[] }>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/packs`
+      `${API_BASE}/user/${sessionId}/packs`
     );
   },
 
@@ -1856,7 +1851,7 @@ export const userFlashcardsApi = {
     color?: string
   ): Promise<UserPackResponse> {
     return fetchJson<UserPackResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/packs`,
+      `${API_BASE}/user/${sessionId}/packs`,
       {
         method: 'POST',
         body: JSON.stringify({ name, description, color }),
@@ -1873,7 +1868,7 @@ export const userFlashcardsApi = {
     data: { name?: string; description?: string; color?: string }
   ): Promise<UserPackResponse> {
     return fetchJson<UserPackResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/packs/${packId}`,
+      `${API_BASE}/user/${sessionId}/packs/${packId}`,
       {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -1886,7 +1881,7 @@ export const userFlashcardsApi = {
    */
   async deletePack(sessionId: string, packId: string): Promise<void> {
     return fetchJson<void>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/packs/${packId}`,
+      `${API_BASE}/user/${sessionId}/packs/${packId}`,
       { method: 'DELETE' }
     );
   },
@@ -1956,7 +1951,7 @@ export const userProgressApi = {
    */
   async getAllPathProgress(sessionId: string): Promise<{ data: PathProgressResponse[] }> {
     return fetchJson<{ data: PathProgressResponse[] }>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/paths`
+      `${API_BASE}/user/${sessionId}/paths`
     );
   },
 
@@ -1965,7 +1960,7 @@ export const userProgressApi = {
    */
   async getPathProgress(sessionId: string, pathSlug: string): Promise<PathProgressResponse> {
     return fetchJson<PathProgressResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}`
+      `${API_BASE}/user/${sessionId}/paths/${pathSlug}`
     );
   },
 
@@ -1982,7 +1977,7 @@ export const userProgressApi = {
     }
   ): Promise<PathProgressResponse> {
     return fetchJson<PathProgressResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}`,
+      `${API_BASE}/user/${sessionId}/paths/${pathSlug}`,
       {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -1999,7 +1994,7 @@ export const userProgressApi = {
     milestoneId: string
   ): Promise<PathProgressResponse> {
     return fetchJson<PathProgressResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}/milestones`,
+      `${API_BASE}/user/${sessionId}/paths/${pathSlug}/milestones`,
       {
         method: 'POST',
         body: JSON.stringify({ milestoneId }),
@@ -2012,7 +2007,7 @@ export const userProgressApi = {
    */
   async resetPathProgress(sessionId: string, pathSlug: string): Promise<void> {
     return fetchJson<void>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}`,
+      `${API_BASE}/user/${sessionId}/paths/${pathSlug}`,
       { method: 'DELETE' }
     );
   },
@@ -2028,7 +2023,7 @@ export const userProgressApi = {
     sessionId: string
   ): Promise<{ data: CheckpointProgressResponse[] }> {
     return fetchJson<{ data: CheckpointProgressResponse[] }>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints`
+      `${API_BASE}/user/${sessionId}/checkpoints`
     );
   },
 
@@ -2040,7 +2035,7 @@ export const userProgressApi = {
     checkpointId: string
   ): Promise<CheckpointProgressResponse> {
     return fetchJson<CheckpointProgressResponse>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`
+      `${API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`
     );
   },
 
@@ -2053,7 +2048,7 @@ export const userProgressApi = {
     answers: AnswerRecord[]
   ): Promise<CheckpointSubmitResult> {
     return fetchJson<CheckpointSubmitResult>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints/${checkpointId}/submit`,
+      `${API_BASE}/user/${sessionId}/checkpoints/${checkpointId}/submit`,
       {
         method: 'POST',
         body: JSON.stringify({ answers }),
@@ -2066,7 +2061,7 @@ export const userProgressApi = {
    */
   async resetCheckpointProgress(sessionId: string, checkpointId: string): Promise<void> {
     return fetchJson<void>(
-      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`,
+      `${API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`,
       { method: 'DELETE' }
     );
   },

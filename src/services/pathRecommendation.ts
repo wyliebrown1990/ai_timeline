@@ -4,6 +4,9 @@
  * Maps user role and goals to recommended learning paths,
  * filters by time commitment, and generates personalized
  * learning plans.
+ *
+ * Note: This service now expects paths to be passed in from the API hooks
+ * rather than loading from static JSON files.
  */
 
 import type {
@@ -13,27 +16,6 @@ import type {
   AudienceType,
 } from '../types/userProfile';
 import type { LearningPath } from '../types/learningPath';
-import { loadLearningPaths } from '../content/asyncLoaders';
-
-// Cached paths for synchronous access after initial load
-let cachedPaths: LearningPath[] | null = null;
-
-/**
- * Get paths synchronously from cache, or return empty array if not loaded
- * Call loadPathsAsync() first to populate the cache
- */
-function getCachedPaths(): LearningPath[] {
-  return cachedPaths || [];
-}
-
-/**
- * Load paths asynchronously and cache them
- */
-export async function loadPathsAsync(): Promise<LearningPath[]> {
-  if (cachedPaths) return cachedPaths;
-  cachedPaths = await loadLearningPaths();
-  return cachedPaths;
-}
 
 // =============================================================================
 // Types
@@ -215,13 +197,18 @@ function calculateRelevanceScore(
 
 /**
  * Generate personalized path recommendations
+ * @param role - User's role/occupation
+ * @param goals - User's learning goals
+ * @param timeCommitment - How much time user wants to spend
+ * @param paths - Learning paths from API (required)
  */
 export function generateRecommendations(
   role: UserRole,
   goals: LearningGoal[],
-  timeCommitment: TimeCommitment
+  timeCommitment: TimeCommitment,
+  paths: LearningPath[] = []
 ): PersonalizedPlan {
-  const allPaths = getCachedPaths();
+  const allPaths = paths;
   const maxMinutes = timeFilterMinutes[timeCommitment];
 
   // Score all paths
@@ -292,16 +279,19 @@ export function generateRecommendations(
 
 /**
  * Get path details for a recommendation
+ * @param pathId - ID of the path to find
+ * @param paths - Learning paths from API
  */
-export function getPathDetails(pathId: string): LearningPath | undefined {
-  return getCachedPaths().find((p) => p.id === pathId);
+export function getPathDetails(pathId: string, paths: LearningPath[] = []): LearningPath | undefined {
+  return paths.find((p) => p.id === pathId);
 }
 
 /**
  * Get all available paths (for "Explore all paths" option)
+ * @deprecated Use the paths from useLearningPaths() hook directly
  */
-export function getAllPaths(): LearningPath[] {
-  return getCachedPaths();
+export function getAllPaths(paths: LearningPath[] = []): LearningPath[] {
+  return paths;
 }
 
 // =============================================================================
@@ -355,11 +345,14 @@ export function isPathDeprioritizedForAudience(
 /**
  * Get paths filtered and sorted by audience type
  * Returns: { recommended: LearningPath[], other: LearningPath[] }
+ * @param audienceType - The user's audience type
+ * @param paths - Learning paths from API
  */
 export function getPathsByAudience(
-  audienceType: AudienceType | undefined
+  audienceType: AudienceType | undefined,
+  paths: LearningPath[] = []
 ): { recommended: LearningPath[]; other: LearningPath[] } {
-  const allPaths = getCachedPaths();
+  const allPaths = paths;
 
   if (!audienceType || audienceType === 'general') {
     // For general audience, recommend popular paths

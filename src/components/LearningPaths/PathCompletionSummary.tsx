@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Trophy, Clock, BookOpen, Share2, ArrowRight, RotateCcw, Check, Copy, Bookmark } from 'lucide-react';
 import type { LearningPath } from '../../types/learningPath';
-import { useLearningPath } from '../../hooks/useContent';
+import { useLearningPath } from '../../hooks/useLearningPathsApi';
 import { PathFlashcardsModal } from './PathFlashcardsModal';
 
 interface PathCompletionSummaryProps {
