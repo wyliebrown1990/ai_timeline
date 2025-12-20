@@ -223,3 +223,71 @@ model PrebuiltDeckCard {
   @@index([deckId])
   @@index([sourceType])
 }
+
+// =============================================================================
+// Learning Paths, Checkpoints & Current Events (Sprint 37)
+// =============================================================================
+
+/// Learning path - curated sequence of milestones for structured learning
+model LearningPath {
+  id                   String   @id @default(cuid())
+  slug                 String   @unique // URL-friendly ID (e.g., "chatgpt-story")
+  title                String
+  description          String
+  targetAudience       String
+  milestoneIds         String   @default("[]") // JSON array of milestone IDs
+  estimatedMinutes     Int
+  difficulty           String   // beginner, intermediate, advanced
+  suggestedNextPathIds String   @default("[]") // JSON array
+  keyTakeaways         String   @default("[]") // JSON array
+  conceptsCovered      String   @default("[]") // JSON array
+  icon                 String?  // Emoji or icon name
+  sortOrder            Int      @default(0)
+  isPublished          Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  checkpoints          Checkpoint[]
+
+  @@index([slug])
+  @@index([difficulty])
+  @@index([isPublished])
+}
+
+/// Checkpoint - quiz/knowledge check within a learning path
+model Checkpoint {
+  id                String       @id @default(cuid())
+  title             String
+  pathId            String
+  path              LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  afterMilestoneId  String       // Milestone ID this checkpoint follows
+  questions         String       // JSON array of Question objects
+  sortOrder         Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([pathId])
+  @@index([afterMilestoneId])
+}
+
+/// Current event - AI news connected to historical milestones
+model CurrentEvent {
+  id                       String    @id @default(cuid())
+  headline                 String
+  summary                  String
+  sourceUrl                String?
+  sourcePublisher          String?
+  publishedDate            DateTime
+  prerequisiteMilestoneIds String    @default("[]") // JSON array
+  connectionExplanation    String
+  featured                 Boolean   @default(false)
+  expiresAt                DateTime?
+  isPublished              Boolean   @default(true)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@index([featured])
+  @@index([publishedDate])
+  @@index([isPublished])
+  @@index([expiresAt])
+}

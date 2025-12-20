@@ -19,6 +19,9 @@ import {
   adminDeckRouter,
 } from './routes/flashcard';
 import migrationsRouter from './routes/migrations';
+import learningPathsRouter, { adminRouter as learningPathsAdminRouter } from './routes/learningPaths';
+import checkpointsRouter, { adminRouter as checkpointsAdminRouter } from './routes/checkpoints';
+import currentEventsRouter, { adminRouter as currentEventsAdminRouter } from './routes/currentEvents';
 
 /**
  * Create and configure the Express application
@@ -79,12 +82,18 @@ export function createApp() {
   app.use('/api/glossary', glossaryRoutes); // Public glossary API
   app.use('/api/flashcards', flashcardRouter); // Public flashcard API (Sprint 36)
   app.use('/api/decks', deckRouter); // Public deck API (Sprint 36)
+  app.use('/api/learning-paths', learningPathsRouter); // Public learning paths API (Sprint 37)
+  app.use('/api/checkpoints', checkpointsRouter); // Public checkpoints API (Sprint 37)
+  app.use('/api/current-events', currentEventsRouter); // Public current events API (Sprint 37)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
   app.use('/api/admin/glossary', glossaryAdminRoutes); // Admin glossary API
   app.use('/api/admin/flashcards', adminFlashcardRouter); // Admin flashcard API (Sprint 36)
   app.use('/api/admin/decks', adminDeckRouter); // Admin deck API (Sprint 36)
+  app.use('/api/admin/learning-paths', learningPathsAdminRouter); // Admin learning paths API (Sprint 37)
+  app.use('/api/admin/checkpoints', checkpointsAdminRouter); // Admin checkpoints API (Sprint 37)
+  app.use('/api/admin/current-events', currentEventsAdminRouter); // Admin current events API (Sprint 37)
   app.use('/api/admin/migrations', migrationsRouter); // Database migrations (Sprint 36)
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
 

@@ -1380,3 +1380,155 @@ export const decksApi = {
     });
   },
 };
+
+// =============================================================================
+// Learning Paths, Checkpoints & Current Events API (Sprint 37)
+// =============================================================================
+
+export type LearningPathDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+export interface LearningPath {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  targetAudience: string;
+  milestoneIds: string[];
+  estimatedMinutes: number;
+  difficulty: LearningPathDifficulty;
+  suggestedNextPathIds: string[];
+  keyTakeaways: string[];
+  conceptsCovered: string[];
+  icon?: string;
+  sortOrder: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CheckpointQuestion {
+  type: 'multiple_choice' | 'ordering' | 'matching' | 'explain_back';
+  id: string;
+  question?: string;
+  prompt?: string;
+  options?: string[];
+  correctIndex?: number;
+  items?: Array<{ id: string; label: string; date?: string }>;
+  correctOrder?: string[];
+  pairs?: Array<{ id: string; left: string; right: string }>;
+  explanation?: string;
+  rubric?: string;
+  concept?: string;
+}
+
+export interface Checkpoint {
+  id: string;
+  title: string;
+  pathId: string;
+  afterMilestoneId: string;
+  questions: CheckpointQuestion[];
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LearningPathWithCheckpoints extends LearningPath {
+  checkpoints: Checkpoint[];
+}
+
+export interface CurrentEvent {
+  id: string;
+  headline: string;
+  summary: string;
+  sourceUrl?: string;
+  sourcePublisher?: string;
+  publishedDate: string;
+  prerequisiteMilestoneIds: string[];
+  connectionExplanation: string;
+  featured: boolean;
+  expiresAt?: string;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Learning Paths API client
+ */
+export const learningPathsApi = {
+  /**
+   * Get all learning paths
+   */
+  async getAll(difficulty?: LearningPathDifficulty): Promise<{ data: LearningPath[] }> {
+    const params = difficulty ? `?difficulty=${difficulty}` : '';
+    return fetchJson<{ data: LearningPath[] }>(`${DYNAMIC_API_BASE}/learning-paths${params}`);
+  },
+
+  /**
+   * Get a single learning path by slug with checkpoints
+   */
+  async getBySlug(slug: string): Promise<LearningPathWithCheckpoints> {
+    return fetchJson<LearningPathWithCheckpoints>(`${DYNAMIC_API_BASE}/learning-paths/${slug}`);
+  },
+
+  /**
+   * Get paths by difficulty
+   */
+  async getByDifficulty(difficulty: LearningPathDifficulty): Promise<{ data: LearningPath[] }> {
+    return fetchJson<{ data: LearningPath[] }>(`${DYNAMIC_API_BASE}/learning-paths/difficulty/${difficulty}`);
+  },
+};
+
+/**
+ * Checkpoints API client
+ */
+export const checkpointsApi = {
+  /**
+   * Get checkpoints for a learning path
+   */
+  async getForPath(pathSlug: string): Promise<{ data: Checkpoint[] }> {
+    return fetchJson<{ data: Checkpoint[] }>(`${DYNAMIC_API_BASE}/checkpoints/path/${pathSlug}`);
+  },
+
+  /**
+   * Get a single checkpoint by ID
+   */
+  async getById(id: string): Promise<Checkpoint> {
+    return fetchJson<Checkpoint>(`${DYNAMIC_API_BASE}/checkpoints/${id}`);
+  },
+};
+
+/**
+ * Current Events API client
+ */
+export const currentEventsApi = {
+  /**
+   * Get all current events (excluding expired by default)
+   */
+  async getAll(includeExpired?: boolean): Promise<{ data: CurrentEvent[] }> {
+    const params = includeExpired ? '?includeExpired=true' : '';
+    return fetchJson<{ data: CurrentEvent[] }>(`${DYNAMIC_API_BASE}/current-events${params}`);
+  },
+
+  /**
+   * Get featured current events
+   */
+  async getFeatured(limit?: number): Promise<{ data: CurrentEvent[] }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{ data: CurrentEvent[] }>(`${DYNAMIC_API_BASE}/current-events/featured${params}`);
+  },
+
+  /**
+   * Get events related to a milestone
+   */
+  async getForMilestone(milestoneId: string): Promise<{ data: CurrentEvent[] }> {
+    return fetchJson<{ data: CurrentEvent[] }>(`${DYNAMIC_API_BASE}/current-events/milestone/${milestoneId}`);
+  },
+
+  /**
+   * Get a single event by ID
+   */
+  async getById(id: string): Promise<CurrentEvent> {
+    return fetchJson<CurrentEvent>(`${DYNAMIC_API_BASE}/current-events/${id}`);
+  },
+};

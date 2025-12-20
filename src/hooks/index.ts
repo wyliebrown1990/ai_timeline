@@ -71,3 +71,23 @@ export {
   usePrebuiltDeck,
   usePrebuiltDecksByDifficulty,
 } from './useFlashcardsApi';
+
+// Learning Paths, Checkpoints, Current Events API hooks (Sprint 37 - database-backed)
+export {
+  useLearningPaths as useLearningPathsApi,
+  useLearningPath as useLearningPathApi,
+  useLearningPathsByDifficulty as useLearningPathsByDifficultyApi,
+  useCheckpointsForPath as useCheckpointsForPathApi,
+  useCurrentEvents as useCurrentEventsApi,
+  useFeaturedEvents as useFeaturedEventsApi,
+  useEventsForMilestone as useEventsForMilestoneApi,
+} from './useLearningPathsApi';
+
+// Re-export types from Sprint 37 APIs
+export type {
+  LearningPath,
+  LearningPathWithCheckpoints,
+  LearningPathDifficulty,
+  Checkpoint,
+  CurrentEvent,
+} from './useLearningPathsApi';
