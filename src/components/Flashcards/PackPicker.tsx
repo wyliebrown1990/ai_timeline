@@ -125,8 +125,8 @@ export function PackPicker({
     setNameError('');
   }, []);
 
-  // Create new pack
-  const handleCreatePack = useCallback(() => {
+  // Create new pack (async)
+  const handleCreatePack = useCallback(async () => {
     const trimmedName = newPackName.trim();
 
     // Validate name
@@ -149,19 +149,24 @@ export function PackPicker({
       return;
     }
 
-    // Create the pack
-    const newPack = createPack(trimmedName, undefined, selectedColor);
+    try {
+      // Create the pack
+      const newPack = await createPack(trimmedName, undefined, selectedColor);
 
-    // Reset form and exit create mode
-    setIsCreating(false);
-    setNewPackName('');
-    setNameError('');
+      // Reset form and exit create mode
+      setIsCreating(false);
+      setNewPackName('');
+      setNameError('');
 
-    // Notify parent if callback provided
-    onPackCreated?.(newPack);
+      // Notify parent if callback provided
+      onPackCreated?.(newPack);
 
-    // Auto-select the newly created pack
-    onPackToggle(newPack.id, true);
+      // Auto-select the newly created pack
+      onPackToggle(newPack.id, true);
+    } catch (error) {
+      console.error('[PackPicker] Failed to create pack:', error);
+      setNameError('Failed to create pack');
+    }
   }, [newPackName, selectedColor, packs, createPack, onPackCreated, onPackToggle]);
 
   // Handle Enter key in name input

@@ -1532,3 +1532,542 @@ export const currentEventsApi = {
     return fetchJson<CurrentEvent>(`${DYNAMIC_API_BASE}/current-events/${id}`);
   },
 };
+
+// =============================================================================
+// User Session & Flashcards API (Sprint 38)
+// =============================================================================
+
+/**
+ * User session response
+ */
+export interface UserSessionResponse {
+  sessionId: string;
+  deviceId: string;
+  createdAt: string;
+  lastActiveAt: string;
+  stats: {
+    totalCards: number;
+    cardsDueToday: number;
+    cardsReviewedToday: number;
+    currentStreak: number;
+    longestStreak: number;
+    masteredCards: number;
+    lastStudyDate: string | null;
+  } | null;
+  profile: {
+    audienceType: string | null;
+    expertiseLevel: string | null;
+    interests: string[];
+    completedOnboarding: boolean;
+  } | null;
+  streakHistory: {
+    currentStreak: number;
+    longestStreak: number;
+    lastStudyDate: string | null;
+    achievements: string[];
+  } | null;
+}
+
+/**
+ * User flashcard response
+ */
+export interface UserFlashcardResponse {
+  id: string;
+  sourceType: string;
+  sourceId: string;
+  packIds: string[];
+  easeFactor: number;
+  interval: number;
+  repetitions: number;
+  nextReviewDate: string | null;
+  lastReviewedAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * User pack response
+ */
+export interface UserPackResponse {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  isDefault: boolean;
+  cardCount: number;
+  createdAt: string;
+}
+
+/**
+ * SM-2 review result
+ */
+export interface ReviewResult {
+  id: string;
+  easeFactor: number;
+  interval: number;
+  repetitions: number;
+  nextReviewDate: string;
+  isMastered: boolean;
+}
+
+/**
+ * Migration data structure
+ */
+export interface LocalStorageMigrationData {
+  flashcards?: Array<{
+    sourceType: string;
+    sourceId: string;
+    packIds?: string[];
+    easeFactor?: number;
+    interval?: number;
+    repetitions?: number;
+    nextReviewDate?: string | null;
+    lastReviewedAt?: string | null;
+  }>;
+  packs?: Array<{
+    id?: string;
+    name: string;
+    description?: string;
+    color?: string;
+    isDefault?: boolean;
+  }>;
+  stats?: {
+    totalCards?: number;
+    cardsDueToday?: number;
+    cardsReviewedToday?: number;
+    currentStreak?: number;
+    longestStreak?: number;
+    masteredCards?: number;
+    lastStudyDate?: string | null;
+  };
+  streakHistory?: {
+    currentStreak?: number;
+    longestStreak?: number;
+    lastStudyDate?: string | null;
+    achievements?: string[];
+  };
+  profile?: {
+    audienceType?: string;
+    expertiseLevel?: string;
+    interests?: string[];
+    completedOnboarding?: boolean;
+  };
+}
+
+/**
+ * User Session API client (Sprint 38)
+ */
+export const userSessionApi = {
+  /**
+   * Get or create a user session by device ID
+   */
+  async getOrCreateSession(deviceId: string): Promise<UserSessionResponse> {
+    return fetchJson<UserSessionResponse>(`${DYNAMIC_API_BASE}/user/session`, {
+      method: 'POST',
+      body: JSON.stringify({ deviceId }),
+    });
+  },
+
+  /**
+   * Migrate localStorage data to database
+   */
+  async migrateLocalStorageData(
+    deviceId: string,
+    data: LocalStorageMigrationData
+  ): Promise<{ message: string; sessionId: string; results: { flashcards: number; packs: number } }> {
+    return fetchJson<{ message: string; sessionId: string; results: { flashcards: number; packs: number } }>(
+      `${DYNAMIC_API_BASE}/user/migrate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ deviceId, data }),
+      }
+    );
+  },
+
+  /**
+   * Get session by ID
+   */
+  async getSession(sessionId: string): Promise<UserSessionResponse> {
+    return fetchJson<UserSessionResponse>(`${DYNAMIC_API_BASE}/user/${sessionId}`);
+  },
+
+  /**
+   * Get user profile
+   */
+  async getProfile(sessionId: string): Promise<{
+    audienceType: string | null;
+    expertiseLevel: string | null;
+    interests: string[];
+    completedOnboarding: boolean;
+  }> {
+    return fetchJson<{
+      audienceType: string | null;
+      expertiseLevel: string | null;
+      interests: string[];
+      completedOnboarding: boolean;
+    }>(`${DYNAMIC_API_BASE}/user/${sessionId}/profile`);
+  },
+
+  /**
+   * Update user profile
+   */
+  async updateProfile(
+    sessionId: string,
+    data: {
+      audienceType?: string;
+      expertiseLevel?: string;
+      interests?: string[];
+      completedOnboarding?: boolean;
+    }
+  ): Promise<{
+    audienceType: string | null;
+    expertiseLevel: string | null;
+    interests: string[];
+    completedOnboarding: boolean;
+  }> {
+    return fetchJson<{
+      audienceType: string | null;
+      expertiseLevel: string | null;
+      interests: string[];
+      completedOnboarding: boolean;
+    }>(`${DYNAMIC_API_BASE}/user/${sessionId}/profile`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
+/**
+ * User Flashcards API client (Sprint 38)
+ */
+export const userFlashcardsApi = {
+  /**
+   * Get all user flashcards
+   */
+  async getFlashcards(
+    sessionId: string,
+    packId?: string
+  ): Promise<{ data: UserFlashcardResponse[] }> {
+    const params = packId ? `?packId=${packId}` : '';
+    return fetchJson<{ data: UserFlashcardResponse[] }>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards${params}`
+    );
+  },
+
+  /**
+   * Get flashcards due for review
+   */
+  async getDueCards(
+    sessionId: string,
+    packId?: string
+  ): Promise<{ data: UserFlashcardResponse[]; count: number }> {
+    const params = packId ? `?packId=${packId}` : '';
+    return fetchJson<{ data: UserFlashcardResponse[]; count: number }>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/due${params}`
+    );
+  },
+
+  /**
+   * Get a single flashcard
+   */
+  async getFlashcard(sessionId: string, cardId: string): Promise<UserFlashcardResponse> {
+    return fetchJson<UserFlashcardResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}`
+    );
+  },
+
+  /**
+   * Add a flashcard to collection
+   */
+  async addFlashcard(
+    sessionId: string,
+    sourceType: string,
+    sourceId: string,
+    packIds?: string[]
+  ): Promise<UserFlashcardResponse> {
+    return fetchJson<UserFlashcardResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ sourceType, sourceId, packIds }),
+      }
+    );
+  },
+
+  /**
+   * Review a flashcard with SM-2 algorithm
+   */
+  async reviewFlashcard(
+    sessionId: string,
+    cardId: string,
+    quality: number
+  ): Promise<ReviewResult> {
+    return fetchJson<ReviewResult>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}/review`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ quality }),
+      }
+    );
+  },
+
+  /**
+   * Update flashcard pack assignments
+   */
+  async updateFlashcardPacks(
+    sessionId: string,
+    cardId: string,
+    packIds: string[]
+  ): Promise<UserFlashcardResponse> {
+    return fetchJson<UserFlashcardResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}/packs`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ packIds }),
+      }
+    );
+  },
+
+  /**
+   * Remove a flashcard from collection
+   */
+  async removeFlashcard(sessionId: string, cardId: string): Promise<void> {
+    return fetchJson<void>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/flashcards/${cardId}`,
+      { method: 'DELETE' }
+    );
+  },
+
+  /**
+   * Get all user packs
+   */
+  async getPacks(sessionId: string): Promise<{ data: UserPackResponse[] }> {
+    return fetchJson<{ data: UserPackResponse[] }>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/packs`
+    );
+  },
+
+  /**
+   * Create a new pack
+   */
+  async createPack(
+    sessionId: string,
+    name: string,
+    description?: string,
+    color?: string
+  ): Promise<UserPackResponse> {
+    return fetchJson<UserPackResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/packs`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ name, description, color }),
+      }
+    );
+  },
+
+  /**
+   * Update a pack
+   */
+  async updatePack(
+    sessionId: string,
+    packId: string,
+    data: { name?: string; description?: string; color?: string }
+  ): Promise<UserPackResponse> {
+    return fetchJson<UserPackResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/packs/${packId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  /**
+   * Delete a pack
+   */
+  async deletePack(sessionId: string, packId: string): Promise<void> {
+    return fetchJson<void>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/packs/${packId}`,
+      { method: 'DELETE' }
+    );
+  },
+};
+
+// =============================================================================
+// User Progress API Types (Sprint 38)
+// =============================================================================
+
+/**
+ * Path progress response
+ */
+export interface PathProgressResponse {
+  id?: string;
+  pathSlug: string;
+  completedMilestoneIds: string[];
+  currentMilestoneId: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  percentComplete: number;
+}
+
+/**
+ * Checkpoint progress response
+ */
+export interface CheckpointProgressResponse {
+  id?: string;
+  checkpointId: string;
+  completed: boolean;
+  score: number | null;
+  attempts: number;
+  lastAttemptAt: string | null;
+  answers: Array<{
+    questionId: string;
+    selectedAnswer: string;
+    isCorrect: boolean;
+  }>;
+}
+
+/**
+ * Answer record for checkpoint submission
+ */
+export interface AnswerRecord {
+  questionId: string;
+  selectedAnswer: string;
+  isCorrect: boolean;
+}
+
+/**
+ * Checkpoint submit result
+ */
+export interface CheckpointSubmitResult extends CheckpointProgressResponse {
+  passed: boolean;
+  message: string;
+}
+
+/**
+ * User Progress API client (Sprint 38)
+ */
+export const userProgressApi = {
+  // =========================================================================
+  // Path Progress
+  // =========================================================================
+
+  /**
+   * Get all path progress for a session
+   */
+  async getAllPathProgress(sessionId: string): Promise<{ data: PathProgressResponse[] }> {
+    return fetchJson<{ data: PathProgressResponse[] }>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/paths`
+    );
+  },
+
+  /**
+   * Get progress for a specific learning path
+   */
+  async getPathProgress(sessionId: string, pathSlug: string): Promise<PathProgressResponse> {
+    return fetchJson<PathProgressResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}`
+    );
+  },
+
+  /**
+   * Update progress for a learning path
+   */
+  async updatePathProgress(
+    sessionId: string,
+    pathSlug: string,
+    data: {
+      completedMilestoneIds?: string[];
+      currentMilestoneId?: string | null;
+      completed?: boolean;
+    }
+  ): Promise<PathProgressResponse> {
+    return fetchJson<PathProgressResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  /**
+   * Mark a milestone as completed in a path
+   */
+  async completeMilestone(
+    sessionId: string,
+    pathSlug: string,
+    milestoneId: string
+  ): Promise<PathProgressResponse> {
+    return fetchJson<PathProgressResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}/milestones`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ milestoneId }),
+      }
+    );
+  },
+
+  /**
+   * Reset progress for a learning path
+   */
+  async resetPathProgress(sessionId: string, pathSlug: string): Promise<void> {
+    return fetchJson<void>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/paths/${pathSlug}`,
+      { method: 'DELETE' }
+    );
+  },
+
+  // =========================================================================
+  // Checkpoint Progress
+  // =========================================================================
+
+  /**
+   * Get all checkpoint progress for a session
+   */
+  async getAllCheckpointProgress(
+    sessionId: string
+  ): Promise<{ data: CheckpointProgressResponse[] }> {
+    return fetchJson<{ data: CheckpointProgressResponse[] }>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints`
+    );
+  },
+
+  /**
+   * Get progress for a specific checkpoint
+   */
+  async getCheckpointProgress(
+    sessionId: string,
+    checkpointId: string
+  ): Promise<CheckpointProgressResponse> {
+    return fetchJson<CheckpointProgressResponse>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`
+    );
+  },
+
+  /**
+   * Submit answers for a checkpoint quiz
+   */
+  async submitCheckpoint(
+    sessionId: string,
+    checkpointId: string,
+    answers: AnswerRecord[]
+  ): Promise<CheckpointSubmitResult> {
+    return fetchJson<CheckpointSubmitResult>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints/${checkpointId}/submit`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ answers }),
+      }
+    );
+  },
+
+  /**
+   * Reset progress for a checkpoint
+   */
+  async resetCheckpointProgress(sessionId: string, checkpointId: string): Promise<void> {
+    return fetchJson<void>(
+      `${DYNAMIC_API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`,
+      { method: 'DELETE' }
+    );
+  },
+};

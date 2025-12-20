@@ -88,34 +88,44 @@ export function AddToFlashcardButton({
   const { isCardSaved, addCard, removeCard, getCardBySource } = useFlashcardContext();
   const [showTooltip, setShowTooltip] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   const isSaved = isCardSaved(sourceType, sourceId);
   const config = sizeConfig[size];
 
-  // Handle click to toggle save state
+  // Handle click to toggle save state (async)
   const handleClick = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation(); // Prevent triggering parent click handlers
 
-      if (isSaved) {
-        // Remove from flashcards
-        const card = getCardBySource(sourceType, sourceId);
-        if (card) {
-          removeCard(card.id);
-          onToggle?.(false);
+      if (isPending) return; // Prevent double-clicks
+      setIsPending(true);
+
+      try {
+        if (isSaved) {
+          // Remove from flashcards
+          const card = getCardBySource(sourceType, sourceId);
+          if (card) {
+            await removeCard(card.id);
+            onToggle?.(false);
+          }
+        } else {
+          // Add to flashcards
+          const newCard = await addCard(sourceType, sourceId);
+          if (newCard) {
+            // Trigger brief animation
+            setIsAnimating(true);
+            setTimeout(() => setIsAnimating(false), 300);
+            onToggle?.(true);
+          }
         }
-      } else {
-        // Add to flashcards
-        const newCard = addCard(sourceType, sourceId);
-        if (newCard) {
-          // Trigger brief animation
-          setIsAnimating(true);
-          setTimeout(() => setIsAnimating(false), 300);
-          onToggle?.(true);
-        }
+      } catch (error) {
+        console.error('[AddToFlashcardButton] Failed to toggle flashcard:', error);
+      } finally {
+        setIsPending(false);
       }
     },
-    [isSaved, sourceType, sourceId, getCardBySource, removeCard, addCard, onToggle]
+    [isSaved, isPending, sourceType, sourceId, getCardBySource, removeCard, addCard, onToggle]
   );
 
   // Handle keyboard interaction

@@ -2,12 +2,15 @@
  * Flashcard Context
  *
  * Provides app-wide access to flashcard state and operations.
+ * Uses database API for persistence with cross-device sync.
  * Wrap the application root with FlashcardProvider to enable
  * flashcard functionality throughout the app.
+ *
+ * Sprint 38 - Updated to use database API
  */
 
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { useFlashcardStore, type UseFlashcardStoreReturn } from '../hooks/useFlashcardStore';
+import { useFlashcardApiStore, type UseFlashcardApiStoreReturn } from '../hooks/useFlashcardApiStore';
 import type { UserFlashcard } from '../types/flashcard';
 
 // =============================================================================
@@ -15,9 +18,10 @@ import type { UserFlashcard } from '../types/flashcard';
 // =============================================================================
 
 /**
- * Extended context type with computed values for UI convenience
+ * Extended context type with computed values for UI convenience.
+ * Note: Card and pack operations are now async (return Promises).
  */
-export interface FlashcardContextType extends UseFlashcardStoreReturn {
+export interface FlashcardContextType extends UseFlashcardApiStoreReturn {
   /** Total number of flashcards saved */
   totalCards: number;
   /** Number of cards due for review today */
@@ -49,24 +53,28 @@ interface FlashcardProviderProps {
 }
 
 /**
- * Provider component that wraps the application to provide flashcard access
+ * Provider component that wraps the application to provide flashcard access.
+ * Must be nested inside SessionProvider for API access.
  *
  * @example
  * ```tsx
  * // In your App or layout component
+ * import { SessionProvider } from '@/contexts/SessionContext';
  * import { FlashcardProvider } from '@/contexts/FlashcardContext';
  *
  * function App() {
  *   return (
- *     <FlashcardProvider>
- *       <YourAppContent />
- *     </FlashcardProvider>
+ *     <SessionProvider>
+ *       <FlashcardProvider>
+ *         <YourAppContent />
+ *       </FlashcardProvider>
+ *     </SessionProvider>
  *   );
  * }
  * ```
  */
 export function FlashcardProvider({ children }: FlashcardProviderProps) {
-  const store = useFlashcardStore();
+  const store = useFlashcardApiStore();
 
   // Compute derived values for UI convenience
   const contextValue = useMemo<FlashcardContextType>(() => {
@@ -93,25 +101,27 @@ export function FlashcardProvider({ children }: FlashcardProviderProps) {
 // =============================================================================
 
 /**
- * Hook to access flashcard context
+ * Hook to access flashcard context.
  *
  * @throws Error if used outside of FlashcardProvider
  *
  * @example
  * ```tsx
  * function AddToFlashcardsButton({ sourceType, sourceId }) {
- *   const { isCardSaved, addCard, removeCard, getCardBySource } = useFlashcardContext();
+ *   const { isCardSaved, addCard, removeCard, getCardBySource, isLoading } = useFlashcardContext();
  *
  *   const isSaved = isCardSaved(sourceType, sourceId);
  *
- *   const handleClick = () => {
+ *   const handleClick = async () => {
  *     if (isSaved) {
  *       const card = getCardBySource(sourceType, sourceId);
- *       if (card) removeCard(card.id);
+ *       if (card) await removeCard(card.id);
  *     } else {
- *       addCard(sourceType, sourceId);
+ *       await addCard(sourceType, sourceId);
  *     }
  *   };
+ *
+ *   if (isLoading) return <LoadingSpinner />;
  *
  *   return (
  *     <button onClick={handleClick}>
@@ -124,7 +134,11 @@ export function FlashcardProvider({ children }: FlashcardProviderProps) {
  * @example
  * ```tsx
  * function FlashcardStats() {
- *   const { totalCards, dueToday, hasCards, stats } = useFlashcardContext();
+ *   const { totalCards, dueToday, hasCards, stats, isLoading } = useFlashcardContext();
+ *
+ *   if (isLoading) {
+ *     return <LoadingSpinner />;
+ *   }
  *
  *   if (!hasCards) {
  *     return <p>No flashcards yet. Start adding some!</p>;

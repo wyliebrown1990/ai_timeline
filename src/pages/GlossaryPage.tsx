@@ -145,15 +145,20 @@ export default function GlossaryPage() {
     setSelectedTermIds(new Set());
   }, []);
 
-  // Add selected terms to flashcards (Sprint 22)
-  const addSelectedToFlashcards = useCallback(() => {
+  // Add selected terms to flashcards (Sprint 22, async Sprint 38)
+  const addSelectedToFlashcards = useCallback(async () => {
     let addedCount = 0;
-    selectedTermIds.forEach((termId) => {
+
+    for (const termId of selectedTermIds) {
       if (!isCardSaved('concept', termId)) {
-        const result = addCard('concept', termId);
-        if (result) addedCount++;
+        try {
+          const result = await addCard('concept', termId);
+          if (result) addedCount++;
+        } catch (error) {
+          console.error('[GlossaryPage] Failed to add flashcard:', error);
+        }
       }
-    });
+    }
 
     // Clear selections and exit select mode
     setSelectedTermIds(new Set());

@@ -40,19 +40,23 @@ export function GlossaryTerm({ termId, children, inline = true }: GlossaryTermPr
   // Check if this concept is already saved as a flashcard
   const isSaved = isCardSaved('concept', termId);
 
-  // Handle adding concept to flashcards (Sprint 22)
+  // Handle adding concept to flashcards (Sprint 22, async Sprint 38)
   const handleAddToFlashcards = useCallback(
-    (e: React.MouseEvent) => {
+    async (e: React.MouseEvent) => {
       e.stopPropagation(); // Prevent navigating to glossary
       e.preventDefault();
 
       if (isSaved) return; // Already saved
 
-      const newCard = addCard('concept', termId);
-      if (newCard) {
-        // Show checkmark animation
-        setShowAddedAnimation(true);
-        setTimeout(() => setShowAddedAnimation(false), 1500);
+      try {
+        const newCard = await addCard('concept', termId);
+        if (newCard) {
+          // Show checkmark animation
+          setShowAddedAnimation(true);
+          setTimeout(() => setShowAddedAnimation(false), 1500);
+        }
+      } catch (error) {
+        console.error('[GlossaryTerm] Failed to add flashcard:', error);
       }
     },
     [isSaved, addCard, termId]

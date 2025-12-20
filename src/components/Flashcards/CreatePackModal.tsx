@@ -115,24 +115,29 @@ export function CreatePackModal({ isOpen, onClose, onCreated }: CreatePackModalP
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, showSuccess, onClose]);
 
-  // Handle form submission
+  // Handle form submission (async)
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       if (!isValid || isCreating) return;
 
       setIsCreating(true);
 
-      // Create the pack
-      const newPack = createPack(trimmedName, description.trim() || undefined, selectedColor);
+      try {
+        // Create the pack
+        const newPack = await createPack(trimmedName, description.trim() || undefined, selectedColor);
 
-      // Show success feedback
-      setCreatedPackId(newPack.id);
-      setShowSuccess(true);
-      setIsCreating(false);
+        // Show success feedback
+        setCreatedPackId(newPack.id);
+        setShowSuccess(true);
 
-      // Notify parent of creation
-      onCreated?.(newPack.id);
+        // Notify parent of creation
+        onCreated?.(newPack.id);
+      } catch (error) {
+        console.error('[CreatePackModal] Failed to create pack:', error);
+      } finally {
+        setIsCreating(false);
+      }
     },
     [isValid, isCreating, createPack, trimmedName, description, selectedColor, onCreated]
   );

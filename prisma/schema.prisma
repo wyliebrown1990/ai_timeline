@@ -53,36 +53,36 @@ model NewsSource {
 
 /// Article ingested from a news source
 model IngestedArticle {
-  id             String      @id @default(cuid())
-  sourceId       String
-  source         NewsSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
-  externalUrl    String      @unique
-  title          String
-  content        String
-  publishedAt    DateTime
-  ingestedAt     DateTime    @default(now())
+  id          String     @id @default(cuid())
+  sourceId    String
+  source      NewsSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  externalUrl String     @unique
+  title       String
+  content     String
+  publishedAt DateTime
+  ingestedAt  DateTime   @default(now())
 
   // Stage 1 Analysis Results (Sprint 30)
-  analysisStatus    String      @default("pending") // pending, screening, generating, complete, error
-  analyzedAt        DateTime?
-  relevanceScore    Float?      // 0-1 scale
-  isMilestoneWorthy Boolean     @default(false)
-  milestoneRationale String?    // Why/why not milestone-worthy
-  analysisError     String?
+  analysisStatus     String    @default("pending") // pending, screening, generating, complete, error
+  analyzedAt         DateTime?
+  relevanceScore     Float? // 0-1 scale
+  isMilestoneWorthy  Boolean   @default(false)
+  milestoneRationale String? // Why/why not milestone-worthy
+  analysisError      String?
 
   // Review fields (Sprint 31)
-  reviewStatus   String      @default("pending")
+  reviewStatus String @default("pending")
 
   // Duplicate detection (Sprint 32)
-  isDuplicate       Boolean   @default(false)
-  duplicateOfId     String?   // Points to the "primary" article
-  duplicateOf       IngestedArticle?  @relation("DuplicateOf", fields: [duplicateOfId], references: [id])
-  duplicates        IngestedArticle[] @relation("DuplicateOf")
-  duplicateScore    Float?    // 0-1 similarity score
-  duplicateReason   String?   // "title_match" | "content_match" | "url_match"
+  isDuplicate     Boolean           @default(false)
+  duplicateOfId   String? // Points to the "primary" article
+  duplicateOf     IngestedArticle?  @relation("DuplicateOf", fields: [duplicateOfId], references: [id])
+  duplicates      IngestedArticle[] @relation("DuplicateOf")
+  duplicateScore  Float? // 0-1 similarity score
+  duplicateReason String? // "title_match" | "content_match" | "url_match"
 
   // Relations
-  drafts         ContentDraft[]
+  drafts ContentDraft[]
 
   @@index([sourceId])
   @@index([publishedAt])
@@ -94,25 +94,25 @@ model IngestedArticle {
 
 /// AI-generated content draft awaiting review
 model ContentDraft {
-  id               String           @id @default(cuid())
-  articleId        String
-  article          IngestedArticle  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  id        String          @id @default(cuid())
+  articleId String
+  article   IngestedArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
-  contentType      String           // "news_event" | "milestone" | "glossary_term"
-  draftData        Json             // JSON matching target schema (native PostgreSQL JSON type)
+  contentType String // "news_event" | "milestone" | "glossary_term"
+  draftData   Json // JSON matching target schema (native PostgreSQL JSON type)
 
   // Validation
-  isValid          Boolean          @default(false)
-  validationErrors String?          // JSON array of validation errors
+  isValid          Boolean @default(false)
+  validationErrors String? // JSON array of validation errors
 
   // Review status
-  status           String           @default("pending") // pending, approved, rejected, published
-  rejectionReason  String?
+  status          String  @default("pending") // pending, approved, rejected, published
+  rejectionReason String?
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  publishedAt      DateTime?
-  publishedId      String?          // ID of published milestone/event/term
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+  publishedId String? // ID of published milestone/event/term
 
   @@index([articleId])
   @@index([contentType])
@@ -123,17 +123,17 @@ model ContentDraft {
 model GlossaryTerm {
   id                  String   @id @default(cuid())
   term                String   @unique
-  shortDefinition     String   // For tooltips (max 200 chars)
-  fullDefinition      String   // 2-3 sentences
-  businessContext     String?  // Why it matters to business professionals
-  example             String?  // Real-world example
-  inMeetingExample    String?  // Practical usage example
-  category            String   // core_concept, technical_term, business_term, model_architecture, company_product
+  shortDefinition     String // For tooltips (max 200 chars)
+  fullDefinition      String // 2-3 sentences
+  businessContext     String? // Why it matters to business professionals
+  example             String? // Real-world example
+  inMeetingExample    String? // Practical usage example
+  category            String // core_concept, technical_term, business_term, model_architecture, company_product
   relatedTermIds      String   @default("[]") // JSON array of glossary term IDs
   relatedMilestoneIds String   @default("[]") // JSON array of milestone event IDs
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  sourceArticleId     String?  // Link to ingested article if AI-generated
+  sourceArticleId     String? // Link to ingested article if AI-generated
 
   @@index([term])
   @@index([category])
@@ -141,18 +141,18 @@ model GlossaryTerm {
 
 /// Pipeline error tracking (Sprint 32.11)
 model IngestionError {
-  id            String   @id @default(cuid())
-  errorType     String   // "fetch" | "analysis" | "duplicate_detection"
-  sourceId      String?  // For fetch errors, links to NewsSource
-  articleId     String?  // For analysis errors, links to IngestedArticle
-  message       String
-  stackTrace    String?
-  retryCount    Int      @default(0)
-  maxRetries    Int      @default(3)
-  resolved      Boolean  @default(false)
-  resolvedAt    DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String    @id @default(cuid())
+  errorType  String // "fetch" | "analysis" | "duplicate_detection"
+  sourceId   String? // For fetch errors, links to NewsSource
+  articleId  String? // For analysis errors, links to IngestedArticle
+  message    String
+  stackTrace String?
+  retryCount Int       @default(0)
+  maxRetries Int       @default(3)
+  resolved   Boolean   @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([errorType])
   @@index([resolved])
@@ -161,12 +161,12 @@ model IngestionError {
 
 /// Pipeline settings for admin controls (Sprint 32.12)
 model PipelineSettings {
-  id                  String   @id @default("default")
-  ingestionPaused     Boolean  @default(false)
-  analysisPaused      Boolean  @default(false)
-  lastIngestionRun    DateTime?
-  lastAnalysisRun     DateTime?
-  updatedAt           DateTime @updatedAt
+  id               String    @id @default("default")
+  ingestionPaused  Boolean   @default(false)
+  analysisPaused   Boolean   @default(false)
+  lastIngestionRun DateTime?
+  lastAnalysisRun  DateTime?
+  updatedAt        DateTime  @updatedAt
 }
 
 // =============================================================================
@@ -179,7 +179,7 @@ model Flashcard {
   id                  String   @id @default(cuid())
   term                String
   definition          String
-  category            String   // model_architecture, technical_term, core_concept, etc.
+  category            String // model_architecture, technical_term, core_concept, etc.
   relatedMilestoneIds String   @default("[]") // JSON array of milestone IDs
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -191,15 +191,15 @@ model Flashcard {
 /// Prebuilt flashcard deck - curated collections of cards
 /// Decks can reference cards from multiple sources (milestones, glossary, custom)
 model PrebuiltDeck {
-  id               String            @id @default(cuid())
-  name             String            @unique
+  id               String             @id @default(cuid())
+  name             String             @unique
   description      String
-  difficulty       String            // beginner, intermediate, advanced
+  difficulty       String // beginner, intermediate, advanced
   cardCount        Int
   estimatedMinutes Int
-  previewCardIds   String            @default("[]") // JSON array of card IDs for preview
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  previewCardIds   String             @default("[]") // JSON array of card IDs for preview
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
   cards            PrebuiltDeckCard[]
 
   @@index([difficulty])
@@ -211,9 +211,9 @@ model PrebuiltDeckCard {
   id               String       @id @default(cuid())
   deckId           String
   deck             PrebuiltDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
-  cardId           String       // Unique card identifier within deck
-  sourceType       String       // milestone, concept, custom, flashcard
-  sourceId         String       // ID of source (milestone ID, glossary term ID, or flashcard ID)
+  cardId           String // Unique card identifier within deck
+  sourceType       String // milestone, concept, custom, flashcard
+  sourceId         String // ID of source (milestone ID, glossary term ID, or flashcard ID)
   // Custom content (only used when sourceType is 'custom')
   customTerm       String?
   customDefinition String?
@@ -237,17 +237,17 @@ model LearningPath {
   targetAudience       String
   milestoneIds         String   @default("[]") // JSON array of milestone IDs
   estimatedMinutes     Int
-  difficulty           String   // beginner, intermediate, advanced
+  difficulty           String // beginner, intermediate, advanced
   suggestedNextPathIds String   @default("[]") // JSON array
   keyTakeaways         String   @default("[]") // JSON array
   conceptsCovered      String   @default("[]") // JSON array
-  icon                 String?  // Emoji or icon name
+  icon                 String? // Emoji or icon name
   sortOrder            Int      @default(0)
   isPublished          Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  checkpoints          Checkpoint[]
+  checkpoints Checkpoint[]
 
   @@index([slug])
   @@index([difficulty])
@@ -256,15 +256,15 @@ model LearningPath {
 
 /// Checkpoint - quiz/knowledge check within a learning path
 model Checkpoint {
-  id                String       @id @default(cuid())
-  title             String
-  pathId            String
-  path              LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
-  afterMilestoneId  String       // Milestone ID this checkpoint follows
-  questions         String       // JSON array of Question objects
-  sortOrder         Int          @default(0)
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  title            String
+  pathId           String
+  path             LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  afterMilestoneId String // Milestone ID this checkpoint follows
+  questions        String // JSON array of Question objects
+  sortOrder        Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   @@index([pathId])
   @@index([afterMilestoneId])
@@ -290,4 +290,195 @@ model CurrentEvent {
   @@index([publishedDate])
   @@index([isPublished])
   @@index([expiresAt])
+}
+
+// =============================================================================
+// User Data Models (Sprint 38) - localStorage to Database Migration
+// =============================================================================
+
+/// User session - can be anonymous (device-based) or authenticated (future)
+/// Stores a unique session per browser/device for cross-device sync
+model UserSession {
+  id           String   @id @default(cuid())
+  deviceId     String   @unique // Browser fingerprint or generated UUID
+  userId       String? // Optional link to future User model for authentication
+  createdAt    DateTime @default(now())
+  lastActiveAt DateTime @default(now())
+
+  // Relations - all user data is linked to a session
+  flashcards         UserFlashcard[]
+  packs              UserFlashcardPack[]
+  stats              UserStudyStats?
+  studySessions      UserStudySession[]
+  dailyRecords       UserDailyRecord[]
+  streakHistory      UserStreakHistory?
+  profile            UserProfile?
+  pathProgress       UserPathProgress[]
+  checkpointProgress UserCheckpointProgress[]
+
+  @@index([deviceId])
+  @@index([lastActiveAt])
+}
+
+/// User's saved flashcard with SM-2 spaced repetition data
+/// Tracks individual card progress across study sessions
+model UserFlashcard {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  sourceType String // milestone, concept, flashcard
+  sourceId   String // ID of source content (milestone ID, glossary term ID, etc.)
+  packIds    String @default("[]") // JSON array of pack IDs this card belongs to
+
+  // SM-2 spaced repetition algorithm fields
+  easeFactor     Float     @default(2.5) // Ease factor (1.3 to 3.0)
+  interval       Int       @default(0) // Days until next review
+  repetitions    Int       @default(0) // Consecutive correct answers
+  nextReviewDate DateTime? // When card is due for review
+  lastReviewedAt DateTime? // Last review timestamp
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, sourceType, sourceId])
+  @@index([sessionId])
+  @@index([nextReviewDate])
+}
+
+/// User's custom flashcard pack/deck for organizing cards
+model UserFlashcardPack {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  color       String  @default("#3B82F6") // Tailwind blue-500
+  isDefault   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+/// Aggregate study statistics for a user session
+model UserStudyStats {
+  id        String      @id @default(cuid())
+  sessionId String      @unique
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  totalCards         Int       @default(0) // Total cards in collection
+  cardsDueToday      Int       @default(0) // Cards due for review today
+  cardsReviewedToday Int       @default(0) // Cards reviewed today
+  currentStreak      Int       @default(0) // Current study streak (days)
+  longestStreak      Int       @default(0) // Best streak achieved
+  masteredCards      Int       @default(0) // Cards with interval > 21 days
+  lastStudyDate      DateTime? // Last study activity
+
+  updatedAt DateTime @updatedAt
+}
+
+/// Individual study session record
+/// Tracks a single review session's performance
+model UserStudySession {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  packId        String? // null = all due cards across packs
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  cardsReviewed Int       @default(0) // Total cards reviewed
+  cardsCorrect  Int       @default(0) // Cards answered correctly
+  cardsToReview Int       @default(0) // Cards marked "Review Again"
+
+  @@index([sessionId])
+  @@index([startedAt])
+}
+
+/// Daily review activity record for charts and analytics
+/// Stores aggregated daily metrics for review patterns
+model UserDailyRecord {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  date                DateTime // Date only (YYYY-MM-DD)
+  totalReviews        Int      @default(0)
+  againCount          Int      @default(0) // "Again" button presses
+  hardCount           Int      @default(0) // "Hard" button presses
+  goodCount           Int      @default(0) // "Good" button presses
+  easyCount           Int      @default(0) // "Easy" button presses
+  minutesStudied      Float    @default(0) // Time spent studying
+  uniqueCardsReviewed String   @default("[]") // JSON array of card IDs
+
+  @@unique([sessionId, date])
+  @@index([sessionId])
+  @@index([date])
+}
+
+/// Streak history and achievements tracking
+model UserStreakHistory {
+  id        String      @id @default(cuid())
+  sessionId String      @unique
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
+  lastStudyDate DateTime?
+  achievements  String    @default("[]") // JSON array of achievement records
+
+  initializedAt DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+/// User profile and preferences from onboarding
+model UserProfile {
+  id        String      @id @default(cuid())
+  sessionId String      @unique
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  audienceType        String? // everyday, professional, leader, developer
+  expertiseLevel      String? // beginner, intermediate, advanced
+  interests           String  @default("[]") // JSON array of interest topics
+  completedOnboarding Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Learning path progress tracking
+/// Tracks which milestones a user has completed in each learning path
+model UserPathProgress {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  pathSlug              String // Learning path slug (e.g., "chatgpt-story")
+  completedMilestoneIds String    @default("[]") // JSON array of milestone IDs
+  currentMilestoneId    String? // Current milestone in progress
+  startedAt             DateTime  @default(now())
+  completedAt           DateTime? // When entire path was completed
+
+  @@unique([sessionId, pathSlug])
+  @@index([sessionId])
+}
+
+/// Checkpoint quiz progress tracking
+/// Stores quiz attempts and scores for learning path checkpoints
+model UserCheckpointProgress {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  checkpointId  String
+  completed     Boolean   @default(false)
+  score         Int? // Percentage score (0-100)
+  attempts      Int       @default(0)
+  lastAttemptAt DateTime?
+  answers       String    @default("[]") // JSON array of answer records
+
+  @@unique([sessionId, checkpointId])
+  @@index([sessionId])
 }

@@ -34,8 +34,8 @@ Migrate user-generated data from localStorage to the database. This enables:
 ## Phase 1: Database Schema for User Data
 
 ### 38.1 Design User Session Model
-- [ ] Users can be anonymous (session-based) or authenticated (future)
-- [ ] Anonymous sessions use a device fingerprint or generated UUID
+- [x] Users can be anonymous (session-based) or authenticated (future)
+- [x] Anonymous sessions use a device fingerprint or generated UUID
 
 ```prisma
 /// User session - can be anonymous or authenticated
@@ -221,8 +221,8 @@ model UserCheckpointProgress {
 ```
 
 ### 38.2 Run Database Migration
-- [ ] Run migration: `npx prisma migrate dev --name add_user_data_models`
-- [ ] Verify tables created
+- [x] Run migration: `npx prisma migrate dev --name add_user_data_models`
+- [ ] Verify tables created (requires Docker/PostgreSQL)
 - [ ] Run migration on production
 
 ---
@@ -230,7 +230,7 @@ model UserCheckpointProgress {
 ## Phase 2: User Session Management
 
 ### 38.3 Create Device ID Generation Utility
-- [ ] Create `src/lib/deviceId.ts`
+- [x] Create `src/lib/deviceId.ts`
 
 ```typescript
 // src/lib/deviceId.ts
@@ -275,7 +275,7 @@ export function clearDeviceId(): void {
 ```
 
 ### 38.4 Create User Session API
-- [ ] Create `server/src/controllers/userSession.ts`
+- [x] Create `server/src/controllers/userSession.ts`
 
 ```typescript
 // server/src/controllers/userSession.ts
@@ -526,7 +526,7 @@ export async function migrateLocalStorageData(req: Request, res: Response) {
 ```
 
 ### 38.5 Create User Session Routes
-- [ ] Create `server/src/routes/userSession.ts`
+- [x] Create `server/src/routes/userSession.ts`
 
 ```typescript
 // server/src/routes/userSession.ts
@@ -546,7 +546,7 @@ export default router;
 ## Phase 3: User Flashcard API
 
 ### 38.6 Create User Flashcard Controller
-- [ ] Create `server/src/controllers/userFlashcards.ts`
+- [x] Create `server/src/controllers/userFlashcards.ts`
 
 ```typescript
 // server/src/controllers/userFlashcards.ts
@@ -807,14 +807,14 @@ export async function removeFlashcard(req: Request, res: Response) {
 ```
 
 ### 38.7 Create User Flashcard Routes
-- [ ] Create `server/src/routes/userFlashcards.ts`
+- [x] Create `server/src/routes/userFlashcards.ts`
 
 ---
 
 ## Phase 4: Update Frontend Hooks
 
 ### 38.8 Create Session Context
-- [ ] Create `src/contexts/SessionContext.tsx`
+- [x] Create `src/contexts/SessionContext.tsx`
 
 ```typescript
 // src/contexts/SessionContext.tsx
@@ -891,7 +891,17 @@ async function migrateLocalStorageData(deviceId: string) {
 ```
 
 ### 38.9 Update Flashcard Hooks to Use API
-- [ ] Refactor `src/hooks/useFlashcardContext.tsx` to use API
+- [x] Refactor `src/hooks/useFlashcardContext.tsx` to use API
+- [x] Created `src/hooks/useFlashcardApiStore.ts` - database-backed flashcard store
+- [x] Updated `src/contexts/FlashcardContext.tsx` to use API store
+- [x] Updated components to handle async operations:
+  - `AddToFlashcardButton.tsx`
+  - `CreatePackModal.tsx`
+  - `PackPicker.tsx`
+  - `DeckLibrary.tsx`
+  - `GlossaryTerm.tsx`
+  - `GlossaryPage.tsx`
+  - `PathFlashcardsModal.tsx`
 
 ```typescript
 // Replace localStorage operations with API calls
@@ -912,16 +922,17 @@ async function addCard(sourceType: string, sourceId: string) {
 ```
 
 ### 38.10 Update Study Components
-- [ ] Update all study-related components to use API hooks
-- [ ] Handle loading states during API calls
-- [ ] Add offline fallback (optional)
+- [x] Update all study-related components to use API hooks (completed in 38.9)
+- [x] Handle loading states during API calls (added isPending state in components)
+- [ ] Add offline fallback (optional - deferred)
 
 ---
 
 ## Phase 5: Learning Progress API
 
 ### 38.11 Create Path Progress Controller
-- [ ] Create `server/src/controllers/userProgress.ts`
+- [x] Create `server/src/services/userProgress.ts` - database operations
+- [x] Create `server/src/controllers/userProgress.ts` - API endpoints
 
 ```typescript
 // Endpoints for learning path and checkpoint progress
@@ -932,7 +943,9 @@ export async function submitCheckpoint(req: Request, res: Response) { ... }
 ```
 
 ### 38.12 Create Progress Routes
-- [ ] Create `server/src/routes/userProgress.ts`
+- [x] Create `server/src/routes/userProgress.ts`
+- [x] Register routes in `server/src/index.ts`
+- [x] Add `userProgressApi` client to `src/services/api.ts`
 
 ---
 
@@ -941,10 +954,10 @@ export async function submitCheckpoint(req: Request, res: Response) { ... }
 **Note**: Skip local testing. Deploy directly to AWS and test on production.
 
 ### 38.13 Deploy to Production
-- [ ] Build and deploy Lambda: `cd infra && sam build && sam deploy --no-confirm-changeset`
-- [ ] Build and deploy frontend: `npm run build && aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete`
-- [ ] Invalidate CloudFront: `aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"`
-- [ ] Run database migrations via admin API endpoints
+- [x] Build and deploy Lambda: `cd infra && sam build && sam deploy --no-confirm-changeset`
+- [x] Build and deploy frontend: `npm run build && aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete`
+- [x] Invalidate CloudFront: `aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"`
+- [x] Run database migrations via admin API endpoints (0004_user_data migration)
 
 ### 38.14 Verify on Production
 - [ ] Test with existing localStorage data migrates correctly

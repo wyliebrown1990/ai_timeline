@@ -22,6 +22,9 @@ import migrationsRouter from './routes/migrations';
 import learningPathsRouter, { adminRouter as learningPathsAdminRouter } from './routes/learningPaths';
 import checkpointsRouter, { adminRouter as checkpointsAdminRouter } from './routes/checkpoints';
 import currentEventsRouter, { adminRouter as currentEventsAdminRouter } from './routes/currentEvents';
+import userSessionRouter from './routes/userSession'; // Sprint 38 - User Data Migration
+import userFlashcardsRouter from './routes/userFlashcards'; // Sprint 38 - User Flashcards
+import userProgressRouter from './routes/userProgress'; // Sprint 38 - User Progress
 
 /**
  * Create and configure the Express application
@@ -85,6 +88,9 @@ export function createApp() {
   app.use('/api/learning-paths', learningPathsRouter); // Public learning paths API (Sprint 37)
   app.use('/api/checkpoints', checkpointsRouter); // Public checkpoints API (Sprint 37)
   app.use('/api/current-events', currentEventsRouter); // Public current events API (Sprint 37)
+  app.use('/api/user', userSessionRouter); // User session management API (Sprint 38)
+  app.use('/api/user', userFlashcardsRouter); // User flashcards API (Sprint 38)
+  app.use('/api/user', userProgressRouter); // User progress API (Sprint 38)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);

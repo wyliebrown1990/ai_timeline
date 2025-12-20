@@ -528,13 +528,13 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
   );
 
   /**
-   * Add a prebuilt deck to the user's collection.
+   * Add a prebuilt deck to the user's collection (async Sprint 38).
    * Creates a new pack and adds all cards to it.
    * @param deck - The prebuilt deck to add
    * @param addMissingOnly - If true, only adds cards not already in collection (no new pack)
    */
   const handleAddDeck = useCallback(
-    (deck: PrebuiltDeck, addMissingOnly: boolean = false) => {
+    async (deck: PrebuiltDeck, addMissingOnly: boolean = false) => {
       if (!deck.cards) return;
 
       // Track import statistics
@@ -542,81 +542,85 @@ export function DeckLibrary({ onDeckAdded, className = '' }: DeckLibraryProps) {
       let existingCardsLinked = 0;
       let skippedCards = 0;
 
-      // Create a new pack for this deck (unless adding missing only to existing cards)
-      let packId: string | null = null;
-      if (!addMissingOnly) {
-        const newPack = createPack(deck.name, deck.description);
-        packId = newPack.id;
-      }
+      try {
+        // Create a new pack for this deck (unless adding missing only to existing cards)
+        let packId: string | null = null;
+        if (!addMissingOnly) {
+          const newPack = await createPack(deck.name, deck.description);
+          packId = newPack.id;
+        }
 
-      // Add each card from the deck
-      for (const deckCard of deck.cards) {
-        // Determine sourceType and sourceId for the card
-        let sourceType: 'milestone' | 'concept';
-        let sourceId: string;
+        // Add each card from the deck
+        for (const deckCard of deck.cards) {
+          // Determine sourceType and sourceId for the card
+          let sourceType: 'milestone' | 'concept';
+          let sourceId: string;
 
-        if (deckCard.sourceType === 'custom') {
-          // Custom cards are skipped - they require backend support to persist
-          skippedCards++;
-          continue;
-        } else if (deckCard.sourceType === 'concept') {
-          sourceType = 'concept';
-          sourceId = deckCard.sourceId || '';
-
-          // Verify the concept exists in glossary
-          if (!sourceId || !glossaryMap.has(sourceId)) {
+          if (deckCard.sourceType === 'custom') {
+            // Custom cards are skipped - they require backend support to persist
             skippedCards++;
             continue;
+          } else if (deckCard.sourceType === 'concept') {
+            sourceType = 'concept';
+            sourceId = deckCard.sourceId || '';
+
+            // Verify the concept exists in glossary
+            if (!sourceId || !glossaryMap.has(sourceId)) {
+              skippedCards++;
+              continue;
+            }
+          } else {
+            sourceType = 'milestone';
+            sourceId = deckCard.sourceId || '';
+
+            // Verify the milestone exists
+            if (!sourceId || !milestoneMap.has(sourceId)) {
+              skippedCards++;
+              continue;
+            }
           }
-        } else {
-          sourceType = 'milestone';
-          sourceId = deckCard.sourceId || '';
 
-          // Verify the milestone exists
-          if (!sourceId || !milestoneMap.has(sourceId)) {
-            skippedCards++;
-            continue;
+          // Check if card already exists in user's collection
+          const existingCard = cards.find(
+            (c) => c.sourceType === sourceType && c.sourceId === sourceId
+          );
+
+          if (existingCard) {
+            // Card exists - link it to the new pack if we created one
+            if (packId && !existingCard.packIds.includes(packId)) {
+              await moveCardToPack(existingCard.id, packId);
+              existingCardsLinked++;
+            }
+          } else {
+            // Add new card to the collection
+            const newCard = await addCard(sourceType, sourceId, packId ? [packId] : undefined);
+            if (newCard) {
+              newCardsAdded++;
+            }
           }
         }
 
-        // Check if card already exists in user's collection
-        const existingCard = cards.find(
-          (c) => c.sourceType === sourceType && c.sourceId === sourceId
-        );
+        // Close preview modal
+        setPreviewDeck(null);
 
-        if (existingCard) {
-          // Card exists - link it to the new pack if we created one
-          if (packId && !existingCard.packIds.includes(packId)) {
-            moveCardToPack(existingCard.id, packId);
-            existingCardsLinked++;
-          }
-        } else {
-          // Add new card to the collection
-          const newCard = addCard(sourceType, sourceId, packId ? [packId] : undefined);
-          if (newCard) {
-            newCardsAdded++;
-          }
-        }
+        // Create result object
+        const result: DeckImportResult = {
+          deckId: deck.id,
+          deckName: deck.name,
+          newCardsAdded,
+          existingCardsLinked,
+          skippedCards,
+          totalCards: deck.cardCount,
+        };
+
+        // Show confirmation modal
+        setImportResult(result);
+
+        // Notify caller
+        onDeckAdded?.(result);
+      } catch (error) {
+        console.error('[DeckLibrary] Failed to add deck:', error);
       }
-
-      // Close preview modal
-      setPreviewDeck(null);
-
-      // Create result object
-      const result: DeckImportResult = {
-        deckId: deck.id,
-        deckName: deck.name,
-        newCardsAdded,
-        existingCardsLinked,
-        skippedCards,
-        totalCards: deck.cardCount,
-      };
-
-      // Show confirmation modal
-      setImportResult(result);
-
-      // Notify caller
-      onDeckAdded?.(result);
     },
     [cards, addCard, createPack, moveCardToPack, glossaryMap, milestoneMap, onDeckAdded]
   );

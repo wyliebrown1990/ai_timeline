@@ -154,54 +154,59 @@ export function PathFlashcardsModal({
   const newCardsCount = items.filter((i) => i.selected && !i.alreadySaved).length;
   const existingCardsCount = items.filter((i) => i.selected && i.alreadySaved).length;
 
-  // Create flashcards from selected items
-  const handleCreateFlashcards = useCallback(() => {
+  // Create flashcards from selected items (async Sprint 38)
+  const handleCreateFlashcards = useCallback(async () => {
     setIsCreating(true);
 
-    // Create a new pack named after the path
-    const packName = `${path.title} Flashcards`;
-    const newPack = createPack(packName, `Flashcards from completing "${path.title}"`);
+    try {
+      // Create a new pack named after the path
+      const packName = `${path.title} Flashcards`;
+      const newPack = await createPack(packName, `Flashcards from completing "${path.title}"`);
 
-    let cardsAdded = 0;
-    let cardsLinked = 0;
+      let cardsAdded = 0;
+      let cardsLinked = 0;
 
-    // Add selected items as flashcards
-    for (const item of items) {
-      if (!item.selected) continue;
+      // Add selected items as flashcards
+      for (const item of items) {
+        if (!item.selected) continue;
 
-      const sourceType = item.type;
-      const sourceId = item.id;
+        const sourceType = item.type;
+        const sourceId = item.id;
 
-      // Check if card already exists
-      const existingCard = cards.find(
-        (c) => c.sourceType === sourceType && c.sourceId === sourceId
-      );
+        // Check if card already exists
+        const existingCard = cards.find(
+          (c) => c.sourceType === sourceType && c.sourceId === sourceId
+        );
 
-      if (existingCard) {
-        // Link existing card to the new pack
-        if (!existingCard.packIds.includes(newPack.id)) {
-          moveCardToPack(existingCard.id, newPack.id);
-          cardsLinked++;
-        }
-      } else {
-        // Add new card
-        const newCard = addCard(sourceType, sourceId, [newPack.id]);
-        if (newCard) {
-          cardsAdded++;
+        if (existingCard) {
+          // Link existing card to the new pack
+          if (!existingCard.packIds.includes(newPack.id)) {
+            await moveCardToPack(existingCard.id, newPack.id);
+            cardsLinked++;
+          }
+        } else {
+          // Add new card
+          const newCard = await addCard(sourceType, sourceId, [newPack.id]);
+          if (newCard) {
+            cardsAdded++;
+          }
         }
       }
+
+      setCreationResult({
+        packId: newPack.id,
+        cardsAdded,
+        cardsLinked,
+      });
+      setShowSuccess(true);
+
+      // Notify parent
+      onFlashcardsCreated?.(newPack.id, cardsAdded + cardsLinked);
+    } catch (error) {
+      console.error('[PathFlashcardsModal] Failed to create flashcards:', error);
+    } finally {
+      setIsCreating(false);
     }
-
-    setCreationResult({
-      packId: newPack.id,
-      cardsAdded,
-      cardsLinked,
-    });
-    setShowSuccess(true);
-    setIsCreating(false);
-
-    // Notify parent
-    onFlashcardsCreated?.(newPack.id, cardsAdded + cardsLinked);
   }, [items, path.title, cards, addCard, createPack, moveCardToPack, onFlashcardsCreated]);
 
   // Handle escape key

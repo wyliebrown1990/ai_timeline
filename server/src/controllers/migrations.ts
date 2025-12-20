@@ -201,6 +201,265 @@ END $$;
 `;
 
 /**
+ * Migration: Add User Data Tables
+ * Sprint 38 - User Data Migration (localStorage to Database)
+ * Creates UserSession, UserFlashcard, UserFlashcardPack, UserStudyStats,
+ * UserStudySession, UserDailyRecord, UserStreakHistory, UserProfile,
+ * UserPathProgress, UserCheckpointProgress tables
+ */
+const MIGRATION_0004_USER_DATA = `
+-- UserSession table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserSession') THEN
+        CREATE TABLE "UserSession" (
+            "id" TEXT NOT NULL,
+            "deviceId" TEXT NOT NULL,
+            "userId" TEXT,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "lastActiveAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "UserSession_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserSession_deviceId_key" ON "UserSession"("deviceId");
+        CREATE INDEX "UserSession_deviceId_idx" ON "UserSession"("deviceId");
+        CREATE INDEX "UserSession_lastActiveAt_idx" ON "UserSession"("lastActiveAt");
+        RAISE NOTICE 'Created UserSession table';
+    ELSE
+        RAISE NOTICE 'UserSession table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserFlashcard table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserFlashcard') THEN
+        CREATE TABLE "UserFlashcard" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "sourceType" TEXT NOT NULL,
+            "sourceId" TEXT NOT NULL,
+            "packIds" TEXT NOT NULL DEFAULT '[]',
+            "easeFactor" DOUBLE PRECISION NOT NULL DEFAULT 2.5,
+            "interval" INTEGER NOT NULL DEFAULT 0,
+            "repetitions" INTEGER NOT NULL DEFAULT 0,
+            "nextReviewDate" TIMESTAMP(3),
+            "lastReviewedAt" TIMESTAMP(3),
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "UserFlashcard_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserFlashcard_sessionId_sourceType_sourceId_key" ON "UserFlashcard"("sessionId", "sourceType", "sourceId");
+        CREATE INDEX "UserFlashcard_sessionId_idx" ON "UserFlashcard"("sessionId");
+        CREATE INDEX "UserFlashcard_nextReviewDate_idx" ON "UserFlashcard"("nextReviewDate");
+        ALTER TABLE "UserFlashcard" ADD CONSTRAINT "UserFlashcard_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserFlashcard table';
+    ELSE
+        RAISE NOTICE 'UserFlashcard table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserFlashcardPack table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserFlashcardPack') THEN
+        CREATE TABLE "UserFlashcardPack" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "name" TEXT NOT NULL,
+            "description" TEXT,
+            "color" TEXT NOT NULL DEFAULT '#3B82F6',
+            "isDefault" BOOLEAN NOT NULL DEFAULT false,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "UserFlashcardPack_pkey" PRIMARY KEY ("id")
+        );
+        CREATE INDEX "UserFlashcardPack_sessionId_idx" ON "UserFlashcardPack"("sessionId");
+        ALTER TABLE "UserFlashcardPack" ADD CONSTRAINT "UserFlashcardPack_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserFlashcardPack table';
+    ELSE
+        RAISE NOTICE 'UserFlashcardPack table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserStudyStats table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserStudyStats') THEN
+        CREATE TABLE "UserStudyStats" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "totalCards" INTEGER NOT NULL DEFAULT 0,
+            "cardsDueToday" INTEGER NOT NULL DEFAULT 0,
+            "cardsReviewedToday" INTEGER NOT NULL DEFAULT 0,
+            "currentStreak" INTEGER NOT NULL DEFAULT 0,
+            "longestStreak" INTEGER NOT NULL DEFAULT 0,
+            "masteredCards" INTEGER NOT NULL DEFAULT 0,
+            "lastStudyDate" TIMESTAMP(3),
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "UserStudyStats_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserStudyStats_sessionId_key" ON "UserStudyStats"("sessionId");
+        ALTER TABLE "UserStudyStats" ADD CONSTRAINT "UserStudyStats_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserStudyStats table';
+    ELSE
+        RAISE NOTICE 'UserStudyStats table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserStudySession table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserStudySession') THEN
+        CREATE TABLE "UserStudySession" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "packId" TEXT,
+            "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "completedAt" TIMESTAMP(3),
+            "cardsReviewed" INTEGER NOT NULL DEFAULT 0,
+            "cardsCorrect" INTEGER NOT NULL DEFAULT 0,
+            "cardsToReview" INTEGER NOT NULL DEFAULT 0,
+            CONSTRAINT "UserStudySession_pkey" PRIMARY KEY ("id")
+        );
+        CREATE INDEX "UserStudySession_sessionId_idx" ON "UserStudySession"("sessionId");
+        CREATE INDEX "UserStudySession_startedAt_idx" ON "UserStudySession"("startedAt");
+        ALTER TABLE "UserStudySession" ADD CONSTRAINT "UserStudySession_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserStudySession table';
+    ELSE
+        RAISE NOTICE 'UserStudySession table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserDailyRecord table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserDailyRecord') THEN
+        CREATE TABLE "UserDailyRecord" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "date" TIMESTAMP(3) NOT NULL,
+            "totalReviews" INTEGER NOT NULL DEFAULT 0,
+            "againCount" INTEGER NOT NULL DEFAULT 0,
+            "hardCount" INTEGER NOT NULL DEFAULT 0,
+            "goodCount" INTEGER NOT NULL DEFAULT 0,
+            "easyCount" INTEGER NOT NULL DEFAULT 0,
+            "minutesStudied" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "uniqueCardsReviewed" TEXT NOT NULL DEFAULT '[]',
+            CONSTRAINT "UserDailyRecord_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserDailyRecord_sessionId_date_key" ON "UserDailyRecord"("sessionId", "date");
+        CREATE INDEX "UserDailyRecord_sessionId_idx" ON "UserDailyRecord"("sessionId");
+        CREATE INDEX "UserDailyRecord_date_idx" ON "UserDailyRecord"("date");
+        ALTER TABLE "UserDailyRecord" ADD CONSTRAINT "UserDailyRecord_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserDailyRecord table';
+    ELSE
+        RAISE NOTICE 'UserDailyRecord table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserStreakHistory table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserStreakHistory') THEN
+        CREATE TABLE "UserStreakHistory" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "currentStreak" INTEGER NOT NULL DEFAULT 0,
+            "longestStreak" INTEGER NOT NULL DEFAULT 0,
+            "lastStudyDate" TIMESTAMP(3),
+            "achievements" TEXT NOT NULL DEFAULT '[]',
+            "initializedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "UserStreakHistory_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserStreakHistory_sessionId_key" ON "UserStreakHistory"("sessionId");
+        ALTER TABLE "UserStreakHistory" ADD CONSTRAINT "UserStreakHistory_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserStreakHistory table';
+    ELSE
+        RAISE NOTICE 'UserStreakHistory table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserProfile table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserProfile') THEN
+        CREATE TABLE "UserProfile" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "audienceType" TEXT,
+            "expertiseLevel" TEXT,
+            "interests" TEXT NOT NULL DEFAULT '[]',
+            "completedOnboarding" BOOLEAN NOT NULL DEFAULT false,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "UserProfile_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserProfile_sessionId_key" ON "UserProfile"("sessionId");
+        ALTER TABLE "UserProfile" ADD CONSTRAINT "UserProfile_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserProfile table';
+    ELSE
+        RAISE NOTICE 'UserProfile table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserPathProgress table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserPathProgress') THEN
+        CREATE TABLE "UserPathProgress" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "pathSlug" TEXT NOT NULL,
+            "completedMilestoneIds" TEXT NOT NULL DEFAULT '[]',
+            "currentMilestoneId" TEXT,
+            "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "completedAt" TIMESTAMP(3),
+            CONSTRAINT "UserPathProgress_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserPathProgress_sessionId_pathSlug_key" ON "UserPathProgress"("sessionId", "pathSlug");
+        CREATE INDEX "UserPathProgress_sessionId_idx" ON "UserPathProgress"("sessionId");
+        ALTER TABLE "UserPathProgress" ADD CONSTRAINT "UserPathProgress_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserPathProgress table';
+    ELSE
+        RAISE NOTICE 'UserPathProgress table already exists, skipping';
+    END IF;
+END $$;
+
+-- UserCheckpointProgress table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'UserCheckpointProgress') THEN
+        CREATE TABLE "UserCheckpointProgress" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "checkpointId" TEXT NOT NULL,
+            "completed" BOOLEAN NOT NULL DEFAULT false,
+            "score" INTEGER,
+            "attempts" INTEGER NOT NULL DEFAULT 0,
+            "lastAttemptAt" TIMESTAMP(3),
+            "answers" TEXT NOT NULL DEFAULT '[]',
+            CONSTRAINT "UserCheckpointProgress_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "UserCheckpointProgress_sessionId_checkpointId_key" ON "UserCheckpointProgress"("sessionId", "checkpointId");
+        CREATE INDEX "UserCheckpointProgress_sessionId_idx" ON "UserCheckpointProgress"("sessionId");
+        ALTER TABLE "UserCheckpointProgress" ADD CONSTRAINT "UserCheckpointProgress_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created UserCheckpointProgress table';
+    ELSE
+        RAISE NOTICE 'UserCheckpointProgress table already exists, skipping';
+    END IF;
+END $$;
+`;
+
+/**
  * POST /api/admin/migrations/run
  * Run pending database migrations (admin only)
  */
@@ -216,7 +475,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -243,6 +502,25 @@ export async function runMigrations(
         message: 'Migration 0003_learning_paths completed successfully',
         tables: ['LearningPath', 'Checkpoint', 'CurrentEvent'],
       });
+    } else if (migration === '0004_user_data') {
+      await prisma.$executeRawUnsafe(MIGRATION_0004_USER_DATA);
+      console.log('[Migrations] Migration 0004_user_data completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0004_user_data completed successfully',
+        tables: [
+          'UserSession',
+          'UserFlashcard',
+          'UserFlashcardPack',
+          'UserStudyStats',
+          'UserStudySession',
+          'UserDailyRecord',
+          'UserStreakHistory',
+          'UserProfile',
+          'UserPathProgress',
+          'UserCheckpointProgress',
+        ],
+      });
     }
   } catch (error) {
     console.error('[Migrations] Migration failed:', error);
@@ -268,7 +546,13 @@ export async function getMigrationStatus(
     const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`
       SELECT tablename FROM pg_tables
       WHERE schemaname = 'public'
-      AND tablename IN ('Flashcard', 'PrebuiltDeck', 'PrebuiltDeckCard', 'Milestone', 'GlossaryTerm', 'LearningPath', 'Checkpoint', 'CurrentEvent')
+      AND tablename IN (
+        'Flashcard', 'PrebuiltDeck', 'PrebuiltDeckCard', 'Milestone', 'GlossaryTerm',
+        'LearningPath', 'Checkpoint', 'CurrentEvent',
+        'UserSession', 'UserFlashcard', 'UserFlashcardPack', 'UserStudyStats',
+        'UserStudySession', 'UserDailyRecord', 'UserStreakHistory', 'UserProfile',
+        'UserPathProgress', 'UserCheckpointProgress'
+      )
       ORDER BY tablename
     `;
 
@@ -294,6 +578,7 @@ export async function getMigrationStatus(
         '0001_init_postgresql': existingTables.includes('Milestone'),
         '0002_flashcard_system': existingTables.includes('Flashcard'),
         '0003_learning_paths': existingTables.includes('LearningPath'),
+        '0004_user_data': existingTables.includes('UserSession'),
       },
     });
   } catch (error) {

@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { ThemeProvider } from './context/ThemeContext';
 import { ChatProvider } from './context/ChatContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
+import { SessionProvider } from './contexts/SessionContext';
 import { FlashcardProvider } from './contexts/FlashcardContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { OnboardingWrapper } from './components/Onboarding';
@@ -67,8 +68,9 @@ function App() {
       <BrowserRouter>
         <ScrollToTop />
         <UserProfileProvider>
-          <FlashcardProvider>
-            <ApiKeyProvider>
+          <SessionProvider>
+            <FlashcardProvider>
+              <ApiKeyProvider>
               <ChatProvider>
               {/* API Key Modal - shown when AI features require key */}
               <ApiKeyModal />
@@ -160,8 +162,9 @@ function App() {
               </Suspense>
             </OnboardingWrapper>
               </ChatProvider>
-            </ApiKeyProvider>
-          </FlashcardProvider>
+              </ApiKeyProvider>
+            </FlashcardProvider>
+          </SessionProvider>
         </UserProfileProvider>
       </BrowserRouter>
     </ThemeProvider>
