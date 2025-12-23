@@ -25,6 +25,14 @@ import currentEventsRouter, { adminRouter as currentEventsAdminRouter } from './
 import userSessionRouter from './routes/userSession'; // Sprint 38 - User Data Migration
 import userFlashcardsRouter from './routes/userFlashcards'; // Sprint 38 - User Flashcards
 import userProgressRouter from './routes/userProgress'; // Sprint 38 - User Progress
+import sitemapRouter from './routes/sitemap'; // Dynamic sitemap for SEO
+import keyFiguresRouter, {
+  adminRouter as keyFiguresAdminRouter,
+  milestoneContributorRouter,
+  adminMilestoneContributorRouter,
+} from './routes/keyFigures'; // Sprint 45 - Key Figures
+import keyFigureDraftsRouter from './routes/keyFigureDrafts'; // Sprint 46 - Key Figure Drafts
+import searchRouter from './routes/search'; // Sprint 47 - Global Search
 
 /**
  * Create and configure the Express application
@@ -78,6 +86,7 @@ export function createApp() {
   app.use(requestLogger);
 
   // API routes
+  app.use('/api/sitemap.xml', sitemapRouter); // Dynamic sitemap (no auth)
   app.use('/api/health', healthRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/milestones', milestonesRoutes);
@@ -91,6 +100,9 @@ export function createApp() {
   app.use('/api/user', userSessionRouter); // User session management API (Sprint 38)
   app.use('/api/user', userFlashcardsRouter); // User flashcards API (Sprint 38)
   app.use('/api/user', userProgressRouter); // User progress API (Sprint 38)
+  app.use('/api/key-figures', keyFiguresRouter); // Public key figures API (Sprint 45)
+  app.use('/api/milestones', milestoneContributorRouter); // Milestone contributors (Sprint 45)
+  app.use('/api/search', searchRouter); // Global search API (Sprint 47)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
@@ -100,6 +112,9 @@ export function createApp() {
   app.use('/api/admin/learning-paths', learningPathsAdminRouter); // Admin learning paths API (Sprint 37)
   app.use('/api/admin/checkpoints', checkpointsAdminRouter); // Admin checkpoints API (Sprint 37)
   app.use('/api/admin/current-events', currentEventsAdminRouter); // Admin current events API (Sprint 37)
+  app.use('/api/admin/key-figures', keyFiguresAdminRouter); // Admin key figures API (Sprint 45)
+  app.use('/api/admin/key-figure-drafts', keyFigureDraftsRouter); // Admin key figure drafts API (Sprint 46)
+  app.use('/api/admin/milestones', adminMilestoneContributorRouter); // Admin milestone contributors (Sprint 45)
   app.use('/api/admin/migrations', migrationsRouter); // Database migrations (Sprint 36)
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
 

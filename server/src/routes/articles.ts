@@ -19,6 +19,13 @@ router.get('/stats', articlesController.getAnalysisStats);
 // POST /api/admin/articles/analyze-pending - Analyze all pending articles
 router.post('/analyze-pending', articlesController.analyzePending);
 
+// POST /api/admin/articles/submit - Submit article manually (paste content + source URL)
+// Must be before /:id routes to avoid matching "submit" as an ID
+router.post('/submit', articlesController.submitArticle);
+
+// POST /api/admin/articles/scrape - Scrape article content from URL
+router.post('/scrape', articlesController.scrapeArticleUrl);
+
 // GET /api/admin/articles/:id - Get single article with drafts
 router.get('/:id', articlesController.getArticle);
 

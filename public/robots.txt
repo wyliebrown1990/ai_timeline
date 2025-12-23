@@ -7,5 +7,5 @@ Allow: /
 # Disallow admin routes
 Disallow: /admin/
 
-# Sitemap location
-Sitemap: https://letaiexplainai.com/sitemap.xml
+# Dynamic sitemap (auto-updated with new content)
+Sitemap: https://nhnkwe8o6i.execute-api.us-east-1.amazonaws.com/prod/api/sitemap.xml

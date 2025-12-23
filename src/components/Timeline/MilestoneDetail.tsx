@@ -15,11 +15,15 @@ import { useFlashcardContext } from '../../contexts/FlashcardContext';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { MilestoneWithLayeredContent, SignificanceLevel } from '../../types/milestone';
 import type { AudienceType } from '../../types/userProfile';
+import type { KeyFigure } from '../../types/keyFigure';
 import { formatTimelineDate } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
 import { LayeredExplanationTabs, type ExplanationTab } from './LayeredExplanationTabs';
 import { SignificanceBadge } from './SignificanceBadge';
 import { AddToFlashcardButton, PackPicker } from '../Flashcards';
+import { ContributorChip, UnlinkedContributorChip } from './ContributorChip';
+import { KeyFigureModal } from '../Glossary/KeyFigureModal';
+import { keyFiguresApi, type KeyFigureWithContribution } from '../../services/api';
 
 interface MilestoneDetailProps {
   /** The milestone to display (includes layered content from API) */
@@ -92,6 +96,11 @@ export function MilestoneDetail({
   // State for PackPicker popover (Sprint 22)
   const [showPackPicker, setShowPackPicker] = useState(false);
 
+  // State for linked key figures (Sprint 47)
+  const [linkedFigures, setLinkedFigures] = useState<KeyFigureWithContribution[]>([]);
+  const [isLoadingFigures, setIsLoadingFigures] = useState(false);
+  const [selectedFigure, setSelectedFigure] = useState<KeyFigure | null>(null);
+
   // Get the card for this milestone if it exists
   const flashcard = getCardBySource('milestone', milestone.id);
   const selectedPackIds = flashcard?.packIds ?? [];
@@ -152,6 +161,24 @@ export function MilestoneDetail({
     () => getDefaultTabForAudience(profile?.audienceType),
     [profile?.audienceType]
   );
+
+  // Fetch linked key figures when milestone changes (Sprint 47)
+  useEffect(() => {
+    async function fetchLinkedFigures() {
+      try {
+        setIsLoadingFigures(true);
+        const response = await keyFiguresApi.getMilestoneContributors(milestone.id);
+        setLinkedFigures(response.data);
+      } catch (err) {
+        console.error('[MilestoneDetail] Failed to fetch linked figures:', err);
+        setLinkedFigures([]);
+      } finally {
+        setIsLoadingFigures(false);
+      }
+    }
+
+    fetchLinkedFigures();
+  }, [milestone.id]);
 
   // Layered content is now included in the milestone response from the API (Sprint 35)
   const layeredContent = milestone.layeredContent;
@@ -385,22 +412,54 @@ export function MilestoneDetail({
             </div>
           )}
 
-          {/* Contributors */}
-          {milestone.contributors.length > 0 && (
+          {/* Contributors - Sprint 47: Show linked key figures with hover cards */}
+          {(linkedFigures.length > 0 || milestone.contributors.length > 0) && (
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-2 text-gray-600 dark:text-gray-400">
                 <Users className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <span className="font-medium">Key Contributors</span>
+                {isLoadingFigures && (
+                  <span className="text-xs text-gray-400">(loading...)</span>
+                )}
               </div>
               <div className="flex flex-wrap gap-2 pl-7">
-                {milestone.contributors.map((contributor) => (
-                  <span
-                    key={contributor}
-                    className="inline-flex items-center rounded-full bg-blue-50 dark:bg-blue-900/30 px-3 py-1 text-sm text-blue-700 dark:text-blue-300"
-                  >
-                    {contributor}
-                  </span>
-                ))}
+                {/* Linked key figures with hover cards */}
+                {linkedFigures.map((item) => {
+                  // Map API response to KeyFigure type (handle null -> undefined)
+                  const figure: KeyFigure = {
+                    ...item.keyFigure,
+                    fullBio: item.keyFigure.fullBio ?? undefined,
+                    primaryOrg: item.keyFigure.primaryOrg ?? undefined,
+                    imageUrl: item.keyFigure.imageUrl ?? undefined,
+                    wikipediaUrl: item.keyFigure.wikipediaUrl ?? undefined,
+                    linkedInUrl: item.keyFigure.linkedInUrl ?? undefined,
+                    twitterHandle: item.keyFigure.twitterHandle ?? undefined,
+                    sourceArticleId: item.keyFigure.sourceArticleId ?? undefined,
+                  };
+                  return (
+                    <ContributorChip
+                      key={item.keyFigure.id}
+                      figure={figure}
+                      onViewProfile={() => setSelectedFigure(figure)}
+                    />
+                  );
+                })}
+
+                {/* Unlinked legacy contributors (not yet matched to key figures) */}
+                {milestone.contributors
+                  .filter(
+                    (name) =>
+                      !linkedFigures.some(
+                        (lf) =>
+                          lf.keyFigure.canonicalName.toLowerCase() === name.toLowerCase() ||
+                          lf.keyFigure.aliases.some(
+                            (alias) => alias.toLowerCase() === name.toLowerCase()
+                          )
+                      )
+                  )
+                  .map((contributor) => (
+                    <UnlinkedContributorChip key={contributor} name={contributor} />
+                  ))}
               </div>
             </div>
           )}
@@ -497,20 +556,30 @@ export function MilestoneDetail({
 
   // Modal mode: wrap in fixed overlay with backdrop
   return (
-    <div
-      className="fixed inset-0 z-50 flex justify-end"
-      onClick={handleBackdropClick}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="milestone-detail-title"
-    >
-      {/* Backdrop */}
+    <>
       <div
-        className="absolute inset-0 bg-black/50 transition-opacity duration-300"
-        aria-hidden="true"
-      />
-      {panelContent}
-    </div>
+        className="fixed inset-0 z-50 flex justify-end"
+        onClick={handleBackdropClick}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="milestone-detail-title"
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/50 transition-opacity duration-300"
+          aria-hidden="true"
+        />
+        {panelContent}
+      </div>
+
+      {/* Key Figure Modal (Sprint 47) */}
+      {selectedFigure && (
+        <KeyFigureModal
+          figure={selectedFigure}
+          onClose={() => setSelectedFigure(null)}
+        />
+      )}
+    </>
   );
 }
 

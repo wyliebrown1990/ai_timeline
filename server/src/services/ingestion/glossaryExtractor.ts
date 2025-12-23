@@ -69,7 +69,7 @@ export async function extractGlossaryTerms(
 
   const response = await client.messages.create({
     model: 'claude-3-haiku-20240307',
-    max_tokens: 1500,
+    max_tokens: 2500, // Increased to prevent truncation
     messages: [
       {
         role: 'user',
@@ -80,16 +80,22 @@ export async function extractGlossaryTerms(
 
   const text = response.content[0].type === 'text' ? response.content[0].text : '';
 
+  console.log('[GlossaryExtractor] Response length:', text.length, 'stop_reason:', response.stop_reason);
+
   // Try to extract JSON array from the response
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
     // No array found - could be empty response or error
     console.log('[GlossaryExtractor] No JSON array in response, returning empty');
+    console.log('[GlossaryExtractor] Full response:', text.slice(0, 1000));
     return [];
   }
 
   try {
-    const terms = JSON.parse(jsonMatch[0]) as GlossaryTermDraft[];
+    // Attempt to repair common JSON issues from LLM responses
+    const repairedJson = repairJsonArray(jsonMatch[0]);
+    console.log('[GlossaryExtractor] Attempting to parse JSON, length:', repairedJson.length);
+    const terms = JSON.parse(repairedJson) as GlossaryTermDraft[];
 
     if (!Array.isArray(terms)) {
       return [];
@@ -115,6 +121,39 @@ export async function extractGlossaryTerms(
     });
   } catch (parseError) {
     console.error('[GlossaryExtractor] Failed to parse response:', parseError);
+    console.error('[GlossaryExtractor] Raw JSON (first 2000 chars):', jsonMatch[0].slice(0, 2000));
     return [];
   }
+}
+
+/**
+ * Repair common JSON issues from LLM responses
+ * Handles: trailing commas, missing closing brackets, unescaped newlines in strings
+ */
+function repairJsonArray(json: string): string {
+  let repaired = json;
+
+  // Remove trailing commas before closing brackets
+  repaired = repaired.replace(/,(\s*[\]}])/g, '$1');
+
+  // Fix truncated JSON - try to close any unclosed brackets
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/\]/g) || []).length;
+  const openBraces = (repaired.match(/\{/g) || []).length;
+  const closeBraces = (repaired.match(/\}/g) || []).length;
+
+  // If truncated, try to close the JSON properly
+  if (openBraces > closeBraces || openBrackets > closeBrackets) {
+    // Find the last complete object and truncate there
+    const lastCompleteMatch = repaired.match(/^([\s\S]*\})\s*,?\s*\{[^}]*$/);
+    if (lastCompleteMatch) {
+      repaired = lastCompleteMatch[1] + ']';
+    } else {
+      // Just add missing closing brackets
+      repaired += '}'.repeat(openBraces - closeBraces);
+      repaired += ']'.repeat(openBrackets - closeBrackets);
+    }
+  }
+
+  return repaired;
 }

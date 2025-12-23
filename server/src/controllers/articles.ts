@@ -7,6 +7,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { analyzeArticle, analyzeAllPending } from '../services/ingestion/articleAnalyzer';
+import { scrapeUrl } from '../services/scraper/urlScraper';
 
 /**
  * Get a single article with its drafts
@@ -191,14 +192,115 @@ export async function getArticleDrafts(req: Request, res: Response) {
 }
 
 /**
+ * Submit an article manually (paste content + source URL)
+ * Creates an IngestedArticle without a NewsSource and optionally triggers analysis
+ */
+export async function submitArticle(req: Request, res: Response) {
+  try {
+    const { sourceUrl, title, content, analyzeImmediately = true } = req.body;
+
+    // Validate required fields
+    if (!sourceUrl || typeof sourceUrl !== 'string') {
+      return res.status(400).json({ error: 'sourceUrl is required' });
+    }
+    if (!content || typeof content !== 'string') {
+      return res.status(400).json({ error: 'content is required' });
+    }
+
+    // Check for duplicate by URL
+    const existing = await prisma.ingestedArticle.findUnique({
+      where: { externalUrl: sourceUrl },
+    });
+    if (existing) {
+      return res.status(409).json({
+        error: 'Article with this URL already exists',
+        existingId: existing.id,
+      });
+    }
+
+    // Create the article (sourceId is null for manual submissions)
+    const article = await prisma.ingestedArticle.create({
+      data: {
+        externalUrl: sourceUrl,
+        title: title || 'Manual Submission',
+        content: content,
+        publishedAt: new Date(),
+        analysisStatus: 'pending',
+        // sourceId is null - indicates manual submission
+      },
+    });
+
+    let analysisResult = null;
+    let drafts: Array<{ id: string; contentType: string }> = [];
+
+    // Optionally run analysis immediately
+    if (analyzeImmediately) {
+      try {
+        analysisResult = await analyzeArticle(article.id);
+
+        // Fetch created drafts
+        const createdDrafts = await prisma.contentDraft.findMany({
+          where: { articleId: article.id },
+          select: { id: true, contentType: true },
+        });
+        drafts = createdDrafts;
+      } catch (analysisError) {
+        console.error('Analysis failed:', analysisError);
+        // Article was created, just analysis failed
+        return res.status(200).json({
+          success: true,
+          articleId: article.id,
+          analysisStatus: 'error',
+          message: 'Article created but analysis failed. You can retry analysis later.',
+          error: analysisError instanceof Error ? analysisError.message : 'Unknown error',
+        });
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      articleId: article.id,
+      analysisStatus: analyzeImmediately ? 'complete' : 'pending',
+      screening: analysisResult
+        ? {
+            relevanceScore: analysisResult.screening.relevanceScore,
+            isMilestoneWorthy: analysisResult.screening.isMilestoneWorthy,
+            suggestedCategory: analysisResult.screening.suggestedCategory,
+          }
+        : null,
+      drafts,
+    });
+  } catch (error) {
+    console.error('Error submitting article:', error);
+    return res.status(500).json({
+      error: 'Failed to submit article',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
  * Re-analyze an article (reset and analyze again)
+ * Sprint 43: Changed to async reset - doesn't run analysis synchronously
+ * to avoid 30s API Gateway timeout. Analysis runs via next ingestion Lambda.
  */
 export async function reanalyzeArticle(req: Request, res: Response) {
   try {
     const { id } = req.params;
+    const { runSync = false } = req.query;
+
+    // Verify article exists
+    const article = await prisma.ingestedArticle.findUnique({
+      where: { id },
+      select: { id: true, title: true },
+    });
+
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
 
     // Delete existing drafts
-    await prisma.contentDraft.deleteMany({
+    const deletedDrafts = await prisma.contentDraft.deleteMany({
       where: { articleId: id },
     });
 
@@ -215,23 +317,143 @@ export async function reanalyzeArticle(req: Request, res: Response) {
       },
     });
 
-    // Run analysis
-    const result = await analyzeArticle(id);
+    // If runSync=true, attempt synchronous analysis (may timeout for long articles)
+    if (runSync === 'true') {
+      try {
+        const result = await analyzeArticle(id);
+        return res.json({
+          message: 'Re-analysis complete',
+          articleId: id,
+          screening: {
+            relevanceScore: result.screening.relevanceScore,
+            isMilestoneWorthy: result.screening.isMilestoneWorthy,
+            suggestedCategory: result.screening.suggestedCategory,
+          },
+          draftsCreated: result.draftsCreated,
+        });
+      } catch (syncError) {
+        // If sync fails (timeout), article is still reset to pending
+        console.warn('[ReanalyzeArticle] Sync analysis failed, article reset to pending:', syncError);
+      }
+    }
 
+    // Default: Just reset, don't run analysis synchronously
     return res.json({
-      message: 'Re-analysis complete',
+      message: 'Article reset to pending for re-analysis',
       articleId: id,
-      screening: {
-        relevanceScore: result.screening.relevanceScore,
-        isMilestoneWorthy: result.screening.isMilestoneWorthy,
-        suggestedCategory: result.screening.suggestedCategory,
-      },
-      draftsCreated: result.draftsCreated,
+      title: article.title,
+      draftsDeleted: deletedDrafts.count,
+      note: 'Analysis will run on next ingestion Lambda invocation, or invoke Lambda manually',
     });
   } catch (error) {
     console.error('Error re-analyzing article:', error);
     return res.status(500).json({
       error: 'Failed to re-analyze article',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Scrape article content from a URL using Jina Reader API
+ * Sprint 41: URL Scraper Integration
+ */
+export async function scrapeArticleUrl(req: Request, res: Response) {
+  try {
+    const { url, submitForAnalysis = false } = req.body;
+
+    // Validate URL
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ error: 'url is required' });
+    }
+
+    // Scrape the URL
+    const result = await scrapeUrl(url);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || 'Failed to scrape URL',
+      });
+    }
+
+    // If submitForAnalysis is true, create article and run analysis
+    if (submitForAnalysis && result.content) {
+      // Check for duplicate
+      const existing = await prisma.ingestedArticle.findUnique({
+        where: { externalUrl: url },
+      });
+      if (existing) {
+        return res.status(409).json({
+          success: true,
+          title: result.title,
+          content: result.content,
+          wordCount: result.wordCount,
+          error: 'Article with this URL already exists',
+          existingId: existing.id,
+        });
+      }
+
+      // Create article
+      const article = await prisma.ingestedArticle.create({
+        data: {
+          externalUrl: url,
+          title: result.title || 'Scraped Article',
+          content: result.content,
+          publishedAt: new Date(),
+          analysisStatus: 'pending',
+        },
+      });
+
+      // Run analysis
+      try {
+        const analysisResult = await analyzeArticle(article.id);
+        const drafts = await prisma.contentDraft.findMany({
+          where: { articleId: article.id },
+          select: { id: true, contentType: true },
+        });
+
+        return res.json({
+          success: true,
+          title: result.title,
+          content: result.content,
+          wordCount: result.wordCount,
+          articleId: article.id,
+          analysisStatus: 'complete',
+          screening: {
+            relevanceScore: analysisResult.screening.relevanceScore,
+            isMilestoneWorthy: analysisResult.screening.isMilestoneWorthy,
+            suggestedCategory: analysisResult.screening.suggestedCategory,
+          },
+          drafts,
+        });
+      } catch (analysisError) {
+        console.error('Analysis failed:', analysisError);
+        return res.json({
+          success: true,
+          title: result.title,
+          content: result.content,
+          wordCount: result.wordCount,
+          articleId: article.id,
+          analysisStatus: 'error',
+          message: 'Article created but analysis failed',
+          error: analysisError instanceof Error ? analysisError.message : 'Unknown error',
+        });
+      }
+    }
+
+    // Just return scraped content
+    return res.json({
+      success: true,
+      title: result.title,
+      content: result.content,
+      wordCount: result.wordCount,
+    });
+  } catch (error) {
+    console.error('Error scraping URL:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to scrape URL',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }

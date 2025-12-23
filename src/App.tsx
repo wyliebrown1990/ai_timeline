@@ -44,6 +44,14 @@ const IngestedArticlesPage = lazy(() => import('./pages/admin/IngestedArticlesPa
 const ArticleDetailPage = lazy(() => import('./pages/admin/ArticleDetailPage'));
 const ReviewQueuePage = lazy(() => import('./pages/admin/ReviewQueuePage'));
 const GlossaryAdminPage = lazy(() => import('./pages/admin/GlossaryAdminPage'));
+const SubmitArticlePage = lazy(() => import('./pages/admin/SubmitArticlePage'));
+const CreateNewsEventPage = lazy(() => import('./pages/admin/CreateNewsEventPage'));
+const CreateGlossaryTermPage = lazy(() => import('./pages/admin/CreateGlossaryTermPage'));
+const KeyFiguresPage = lazy(() => import('./pages/admin/KeyFiguresPage'));
+const CreateKeyFigurePage = lazy(() => import('./pages/admin/CreateKeyFigurePage'));
+const EditKeyFigurePage = lazy(() => import('./pages/admin/EditKeyFigurePage'));
+const KeyFigureDraftsPage = lazy(() => import('./pages/admin/KeyFigureDraftsPage'));
+const MergeKeyFiguresPage = lazy(() => import('./pages/admin/MergeKeyFiguresPage'));
 
 /**
  * Scrolls to top of page on route change
@@ -146,7 +154,15 @@ function App() {
                     <Route path="articles/:id" element={<ArticleDetailPage />} />
                     <Route path="review" element={<ReviewQueuePage />} />
                     <Route path="glossary" element={<GlossaryAdminPage />} />
+                    <Route path="glossary/new" element={<CreateGlossaryTermPage />} />
+                    <Route path="news-events/new" element={<CreateNewsEventPage />} />
+                    <Route path="submit-article" element={<SubmitArticlePage />} />
                     <Route path="api-monitoring" element={<ApiMonitoringPage />} />
+                    <Route path="key-figures" element={<KeyFiguresPage />} />
+                    <Route path="key-figures/new" element={<CreateKeyFigurePage />} />
+                    <Route path="key-figures/:id/edit" element={<EditKeyFigurePage />} />
+                    <Route path="key-figures/review" element={<KeyFigureDraftsPage />} />
+                    <Route path="key-figures/merge" element={<MergeKeyFiguresPage />} />
                   </Route>
 
                   {/* Admin login route - outside protected wrapper */}

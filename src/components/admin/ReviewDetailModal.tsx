@@ -110,7 +110,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={(draftData.headline as string) || ''}
           onChange={(e) => handleFieldChange('headline', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div>
@@ -119,7 +119,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           value={(draftData.summary as string) || ''}
           onChange={(e) => handleFieldChange('summary', e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div>
@@ -130,7 +130,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={((draftData.prerequisiteMilestoneIds as string[]) || []).join(', ')}
           onChange={(e) => handleArrayFieldChange('prerequisiteMilestoneIds', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
           placeholder="E2017_TRANSFORMER, E2022_CHATGPT"
         />
       </div>
@@ -140,7 +140,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           value={(draftData.connectionExplanation as string) || ''}
           onChange={(e) => handleFieldChange('connectionExplanation', e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={(draftData.title as string) || ''}
           onChange={(e) => handleFieldChange('title', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div>
@@ -175,7 +175,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           value={(draftData.description as string) || ''}
           onChange={(e) => handleFieldChange('description', e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -185,7 +185,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
             type="date"
             value={(draftData.date as string) || ''}
             onChange={(e) => handleFieldChange('date', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
           />
         </div>
         <div>
@@ -193,7 +193,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           <select
             value={(draftData.category as string) || ''}
             onChange={(e) => handleFieldChange('category', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
           >
             <option value="research">Research</option>
             <option value="model_release">Model Release</option>
@@ -210,7 +210,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           <select
             value={String((draftData.significance as number) || 2)}
             onChange={(e) => handleFieldChange('significance', parseInt(e.target.value))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
           >
             <option value="1">1 - Minor</option>
             <option value="2">2 - Moderate</option>
@@ -224,7 +224,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
             type="text"
             value={(draftData.organization as string) || ''}
             onChange={(e) => handleFieldChange('organization', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
           />
         </div>
       </div>
@@ -234,7 +234,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={((draftData.tags as string[]) || []).join(', ')}
           onChange={(e) => handleArrayFieldChange('tags', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
           placeholder="llm, transformer, openai"
         />
       </div>
@@ -249,7 +249,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={(draftData.term as string) || ''}
           onChange={(e) => handleFieldChange('term', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div>
@@ -258,7 +258,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={(draftData.shortDefinition as string) || ''}
           onChange={(e) => handleFieldChange('shortDefinition', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div>
@@ -267,7 +267,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           value={(draftData.fullDefinition as string) || ''}
           onChange={(e) => handleFieldChange('fullDefinition', e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
       <div>
@@ -276,7 +276,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
           type="text"
           value={(draftData.category as string) || ''}
           onChange={(e) => handleFieldChange('category', e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
         />
       </div>
     </div>
@@ -311,7 +311,10 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
                 Review: {draft.contentType === 'news_event' ? 'News Event' :
                         draft.contentType === 'milestone' ? 'Milestone' : 'Glossary Term'}
               </h2>
-              <p className="text-sm text-gray-500">{draft.article.source.name}</p>
+              <p className="text-sm text-gray-500">
+                {draft.article.source?.name ||
+                  new URL(draft.article.externalUrl).hostname.replace('www.', '')}
+              </p>
             </div>
           </div>
           <button
@@ -386,7 +389,7 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Reason for rejecting this draft..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm text-gray-900 bg-white"
             />
           </div>
         </div>

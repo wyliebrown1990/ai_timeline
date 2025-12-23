@@ -20,6 +20,7 @@
     "typecheck": "tsc --noEmit",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:glossary": "tsx scripts/migrateGlossary.ts",
+    "db:seed:key-figures": "tsx prisma/seedKeyFigures.ts",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force && npm run db:seed",
     "content:validate": "tsx scripts/validate-content.ts",

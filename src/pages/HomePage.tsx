@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Clock, BookOpen, GraduationCap, Sparkles } from 'lucide-react';
 import { useOnboarding } from '../components/Onboarding';
 import { InTheNewsSection } from '../components/CurrentEvents';
+import { AnimatedLogo } from '../components/AnimatedLogo';
+import { AnimatedTitle } from '../components/AnimatedTitle';
 
 /**
  * Feature card data for the home page
@@ -44,17 +46,12 @@ function HomePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-orange-50 to-white py-16 dark:from-gray-800 dark:to-gray-900 sm:py-24">
         <div className="container-main text-center">
-          <img
-            src="/ai-logo-animated.svg"
-            alt="AI Timeline"
-            className="mx-auto mb-8 h-24 w-24 sm:h-32 sm:w-32"
+          <AnimatedLogo className="mx-auto mb-8" size={128} />
+          <AnimatedTitle
+            className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
+            startDelay={1200}
+            typeSpeed={45}
           />
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-5xl lg:text-6xl">
-            The History of{' '}
-            <span className="bg-gradient-to-r from-orange-500 to-red-500 bg-clip-text text-transparent">
-              Artificial Intelligence
-            </span>
-          </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-600 dark:text-gray-300">
             An interactive atlas and guided journey through the milestones that shaped AI—from
             Turing's foundations to GPT-4 and beyond.
@@ -69,9 +66,9 @@ function HomePage() {
             </Link>
             <button
               onClick={openOnboarding}
-              className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+              className="group inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-              <Sparkles className="h-4 w-4" />
+              <Sparkles className="h-4 w-4 transition-colors group-hover:fill-orange-400 group-hover:text-orange-500" />
               <span>Personalize Your Journey</span>
             </button>
           </div>

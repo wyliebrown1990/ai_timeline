@@ -12,7 +12,6 @@ export interface ScreeningResult {
   isMilestoneWorthy: boolean; // Does this qualify as a historical milestone?
   milestoneRationale: string; // 2-3 sentences explaining the decision
   suggestedCategory: string | null; // If milestone-worthy, which category
-  hasNewGlossaryTerms: boolean; // Worth checking for new terms?
 }
 
 const SCREENING_PROMPT = `You are a curator for "Let AI Explain AI", an educational platform tracking significant AI developments from 1940s to present.
@@ -52,8 +51,7 @@ Content: {{content}}
   "relevanceScore": <0.0-1.0 how relevant to AI developments>,
   "isMilestoneWorthy": <true or false>,
   "milestoneRationale": "<2-3 sentences explaining your decision>",
-  "suggestedCategory": "<category if milestone-worthy, null otherwise>",
-  "hasNewGlossaryTerms": <true if article introduces AI terminology worth defining>
+  "suggestedCategory": "<category if milestone-worthy, null otherwise>"
 }`;
 
 export async function screenArticle(
@@ -104,9 +102,6 @@ export async function screenArticle(
     }
     if (typeof result.milestoneRationale !== 'string') {
       result.milestoneRationale = 'Unable to determine rationale';
-    }
-    if (typeof result.hasNewGlossaryTerms !== 'boolean') {
-      result.hasNewGlossaryTerms = false;
     }
 
     // Ensure relevanceScore is within bounds

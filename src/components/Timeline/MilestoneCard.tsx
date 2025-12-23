@@ -2,6 +2,7 @@ import { Building2, Calendar, ExternalLink, Users } from 'lucide-react';
 import { useState, useCallback, useRef } from 'react';
 import type { MilestoneResponse } from '../../types/milestone';
 import { SignificanceLevel } from '../../types/milestone';
+import type { KeyFigure, ContributionType } from '../../types/keyFigure';
 import {
   categoryBgClasses,
   formatTimelineDate,
@@ -9,8 +10,15 @@ import {
 } from '../../utils/timelineUtils';
 import { CategoryBadge } from './CategoryBadge';
 import { SignificanceIndicator } from './SignificanceBadge';
+import { ContributorChip } from './ContributorChip';
 import { AddToFlashcardButton, PackPicker } from '../Flashcards';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
+
+/** Linked key figure with contribution type */
+interface LinkedKeyFigure {
+  keyFigure: KeyFigure;
+  contributionType?: ContributionType;
+}
 
 interface MilestoneCardProps {
   /** The milestone data to display */
@@ -23,6 +31,10 @@ interface MilestoneCardProps {
   variant?: 'default' | 'compact' | 'featured';
   /** Additional CSS classes */
   className?: string;
+  /** Linked key figures for this milestone (Sprint 47) */
+  keyFigures?: LinkedKeyFigure[];
+  /** Callback when a key figure chip is clicked (Sprint 47) */
+  onViewFigure?: (figure: KeyFigure) => void;
 }
 
 /**
@@ -35,6 +47,8 @@ export function MilestoneCard({
   onSelect,
   variant = 'default',
   className = '',
+  keyFigures = [],
+  onViewFigure,
 }: MilestoneCardProps) {
   const date = new Date(milestone.date);
   const scale = significanceScale[milestone.significance as SignificanceLevel] || 1;
@@ -242,7 +256,27 @@ export function MilestoneCard({
                 <span>{milestone.organization}</span>
               </div>
             )}
-            {milestone.contributors.length > 0 && (
+            {/* Key figures (Sprint 47) or legacy contributors */}
+            {keyFigures.length > 0 ? (
+              <div
+                className="flex items-center gap-2 flex-wrap"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Users className="h-4 w-4 shrink-0" />
+                {keyFigures.slice(0, 3).map((lf) => (
+                  <ContributorChip
+                    key={lf.keyFigure.id}
+                    figure={lf.keyFigure}
+                    onViewProfile={() => onViewFigure?.(lf.keyFigure)}
+                  />
+                ))}
+                {keyFigures.length > 3 && (
+                  <span className="text-xs text-gray-400">
+                    +{keyFigures.length - 3} more
+                  </span>
+                )}
+              </div>
+            ) : milestone.contributors.length > 0 ? (
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
                 <span>
@@ -251,7 +285,7 @@ export function MilestoneCard({
                     ` +${milestone.contributors.length - 2}`}
                 </span>
               </div>
-            )}
+            ) : null}
             {milestone.sourceUrl && (
               <a
                 href={milestone.sourceUrl}
@@ -346,14 +380,31 @@ export function MilestoneCard({
         {/* Description */}
         <p className="mt-1.5 text-sm text-gray-600 line-clamp-2">{milestone.description}</p>
 
-        {/* Contributors (if available) */}
-        {milestone.contributors.length > 0 && (
+        {/* Key figures (Sprint 47) or legacy contributors */}
+        {keyFigures.length > 0 ? (
+          <div
+            className="mt-2 flex flex-wrap items-center gap-1.5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-xs font-medium text-gray-500">Key people:</span>
+            {keyFigures.slice(0, 3).map((lf) => (
+              <ContributorChip
+                key={lf.keyFigure.id}
+                figure={lf.keyFigure}
+                onViewProfile={() => onViewFigure?.(lf.keyFigure)}
+              />
+            ))}
+            {keyFigures.length > 3 && (
+              <span className="text-xs text-gray-400">+{keyFigures.length - 3}</span>
+            )}
+          </div>
+        ) : milestone.contributors.length > 0 ? (
           <p className="mt-2 text-xs text-gray-500">
             <span className="font-medium">Key people:</span>{' '}
             {milestone.contributors.slice(0, 3).join(', ')}
             {milestone.contributors.length > 3 && '...'}
           </p>
-        )}
+        ) : null}
 
         {/* Tags */}
         {milestone.tags.length > 0 && (

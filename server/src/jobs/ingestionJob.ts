@@ -18,12 +18,18 @@ import { detectDuplicates } from '../services/ingestion/duplicateDetector';
 // Constants for rate limiting analysis
 const MAX_ARTICLES_TO_ANALYZE = 20;
 
+// Only process articles published within this window (in hours)
+// Use 48 hours to account for timezone differences and delayed RSS updates
+const ARTICLE_AGE_LIMIT_HOURS = 48;
+
 /**
  * Result from a single source fetch
  */
 interface SourceFetchResult {
   sourceId: string;
   sourceName: string;
+  fetched: number;
+  filtered: number;
   created: number;
   skipped: number;
   error?: string;
@@ -38,6 +44,7 @@ export interface IngestionJobResult {
   durationMs: number;
   sourcesProcessed: number;
   totalFetched: number;
+  totalFiltered: number;
   totalCreated: number;
   totalSkipped: number;
   duplicatesFound: number;
@@ -62,8 +69,12 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
   const errors: string[] = [];
   const sourceResults: SourceFetchResult[] = [];
 
+  // Calculate cutoff date - only process articles newer than this
+  const cutoffDate = new Date(startTime.getTime() - ARTICLE_AGE_LIMIT_HOURS * 60 * 60 * 1000);
+
   console.log('[IngestionJob] Starting daily ingestion pipeline');
   console.log(`[IngestionJob] Start time: ${startTime.toISOString()}`);
+  console.log(`[IngestionJob] Article cutoff: ${cutoffDate.toISOString()} (${ARTICLE_AGE_LIMIT_HOURS}h window)`);
 
   // Step 1: Fetch from all active sources
   try {
@@ -73,7 +84,7 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
     console.log(`[IngestionJob] Found ${activeSources.length} active sources`);
 
     for (const source of activeSources) {
-      const result = await fetchFromSource(source);
+      const result = await fetchFromSource(source, cutoffDate);
       sourceResults.push(result);
 
       if (result.error) {
@@ -129,9 +140,10 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
   const durationMs = endTime.getTime() - startTime.getTime();
 
   // Calculate totals
+  const totalFetched = sourceResults.reduce((sum, r) => sum + r.fetched, 0);
+  const totalFiltered = sourceResults.reduce((sum, r) => sum + r.filtered, 0);
   const totalCreated = sourceResults.reduce((sum, r) => sum + r.created, 0);
   const totalSkipped = sourceResults.reduce((sum, r) => sum + r.skipped, 0);
-  const totalFetched = totalCreated + totalSkipped;
 
   const result: IngestionJobResult = {
     startTime,
@@ -139,6 +151,7 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
     durationMs,
     sourcesProcessed: sourceResults.length,
     totalFetched,
+    totalFiltered,
     totalCreated,
     totalSkipped,
     duplicatesFound,
@@ -149,7 +162,10 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
 
   console.log('[IngestionJob] Pipeline complete');
   console.log(`[IngestionJob] Duration: ${durationMs}ms`);
-  console.log(`[IngestionJob] Created: ${totalCreated}, Skipped: ${totalSkipped}, Duplicates: ${duplicatesFound}`);
+  console.log(
+    `[IngestionJob] Fetched: ${totalFetched}, Filtered (old): ${totalFiltered}, Created: ${totalCreated}, Skipped (dupe): ${totalSkipped}`
+  );
+  console.log(`[IngestionJob] Duplicates detected: ${duplicatesFound}`);
   console.log(`[IngestionJob] Analyzed: ${analysisResults.analyzed}, Analysis errors: ${analysisResults.errors}`);
 
   if (errors.length > 0) {
@@ -160,21 +176,45 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
 }
 
 /**
+ * Filter articles to only include those published within the age limit
+ */
+function filterByDate(
+  articles: rssFetcher.FetchedArticle[],
+  cutoffDate: Date
+): { recent: rssFetcher.FetchedArticle[]; filtered: number } {
+  const recent = articles.filter((article) => article.publishedAt >= cutoffDate);
+  const filtered = articles.length - recent.length;
+  return { recent, filtered };
+}
+
+/**
  * Fetch articles from a single source
  */
-async function fetchFromSource(source: {
-  id: string;
-  name: string;
-  feedUrl: string;
-}): Promise<SourceFetchResult> {
+async function fetchFromSource(
+  source: {
+    id: string;
+    name: string;
+    feedUrl: string;
+  },
+  cutoffDate: Date
+): Promise<SourceFetchResult> {
   console.log(`[IngestionJob] Fetching from source: ${source.name}`);
 
   try {
     // Fetch articles from RSS
     const fetchedArticles = await rssFetcher.fetchFromRSS(source.feedUrl);
 
+    // Filter to only recent articles (within ARTICLE_AGE_LIMIT_HOURS)
+    const { recent: recentArticles, filtered } = filterByDate(fetchedArticles, cutoffDate);
+
+    if (filtered > 0) {
+      console.log(
+        `[IngestionJob] Source ${source.name}: filtered out ${filtered} articles older than ${ARTICLE_AGE_LIMIT_HOURS}h`
+      );
+    }
+
     // Prepare articles for bulk insert
-    const articlesToCreate = fetchedArticles.map((article) => ({
+    const articlesToCreate = recentArticles.map((article) => ({
       sourceId: source.id,
       ...article,
     }));
@@ -185,11 +225,15 @@ async function fetchFromSource(source: {
     // Update last checked timestamp
     await sourcesService.updateLastChecked(source.id);
 
-    console.log(`[IngestionJob] Source ${source.name}: created=${created}, skipped=${skipped}`);
+    console.log(
+      `[IngestionJob] Source ${source.name}: fetched=${fetchedArticles.length}, filtered=${filtered}, created=${created}, skipped=${skipped}`
+    );
 
     return {
       sourceId: source.id,
       sourceName: source.name,
+      fetched: fetchedArticles.length,
+      filtered,
       created,
       skipped,
     };
@@ -200,6 +244,8 @@ async function fetchFromSource(source: {
     return {
       sourceId: source.id,
       sourceName: source.name,
+      fetched: 0,
+      filtered: 0,
       created: 0,
       skipped: 0,
       error: errorMessage,

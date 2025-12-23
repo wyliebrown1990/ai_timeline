@@ -424,7 +424,8 @@ export function IngestedArticlesPage() {
                         </span>
                       )}
                       <span className="text-xs text-gray-500">
-                        {article.source.name}
+                        {article.source?.name ||
+                          new URL(article.externalUrl).hostname.replace('www.', '')}
                       </span>
                     </div>
                     <h3
@@ -459,7 +460,8 @@ export function IngestedArticlesPage() {
                             {article.duplicateOf.title}
                           </button>
                           <span className="text-orange-600 flex-shrink-0">
-                            ({article.duplicateOf.source.name})
+                            ({article.duplicateOf.source?.name ||
+                              new URL(article.duplicateOf.externalUrl).hostname.replace('www.', '')})
                           </span>
                         </div>
                         {article.duplicateScore !== undefined && article.duplicateReason && (

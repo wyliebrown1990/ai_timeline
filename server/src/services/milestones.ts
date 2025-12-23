@@ -17,10 +17,39 @@ interface PaginationOptions {
 }
 
 /**
+ * Options for milestone queries (Sprint 47)
+ */
+interface MilestoneQueryOptions extends PaginationOptions {
+  includeContributors?: boolean;
+}
+
+/**
+ * Key figure contributor info for milestone response (Sprint 47)
+ */
+export interface KeyFigureContributor {
+  keyFigure: {
+    id: string;
+    canonicalName: string;
+    shortBio: string;
+    role: string;
+    primaryOrg?: string | null;
+    imageUrl?: string | null;
+  };
+  contributionType?: string | null;
+}
+
+/**
+ * Extended milestone response with key figures (Sprint 47)
+ */
+export interface MilestoneWithContributors extends MilestoneResponse {
+  keyFigures?: KeyFigureContributor[];
+}
+
+/**
  * Paginated response structure
  */
 interface PaginatedResult {
-  milestones: MilestoneResponse[];
+  milestones: MilestoneWithContributors[];
   total: number;
 }
 
@@ -54,6 +83,23 @@ interface MilestoneRecord {
 }
 
 /**
+ * Milestone record with included key figures (Sprint 47)
+ */
+interface MilestoneRecordWithKeyFigures extends MilestoneRecord {
+  keyFigures?: Array<{
+    contributionType: string | null;
+    keyFigure: {
+      id: string;
+      canonicalName: string;
+      shortBio: string;
+      role: string;
+      primaryOrg: string | null;
+      imageUrl: string | null;
+    };
+  }>;
+}
+
+/**
  * Parse JSON string safely, returning default if parsing fails
  */
 function parseJsonArray<T>(jsonString: string, defaultValue: T[] = []): T[] {
@@ -67,19 +113,42 @@ function parseJsonArray<T>(jsonString: string, defaultValue: T[] = []): T[] {
 
 /**
  * Get all milestones with pagination
+ * Optionally includes linked key figures (Sprint 47)
  */
-export async function getAll(options: PaginationOptions): Promise<PaginatedResult> {
+export async function getAll(options: MilestoneQueryOptions): Promise<PaginatedResult> {
+  const includeKeyFigures = options.includeContributors ?? false;
+
   const [milestones, total] = await Promise.all([
     prisma.milestone.findMany({
       skip: options.skip,
       take: options.limit,
       orderBy: { date: 'asc' },
+      include: includeKeyFigures
+        ? {
+            keyFigures: {
+              include: {
+                keyFigure: {
+                  select: {
+                    id: true,
+                    canonicalName: true,
+                    shortBio: true,
+                    role: true,
+                    primaryOrg: true,
+                    imageUrl: true,
+                  },
+                },
+              },
+            },
+          }
+        : undefined,
     }),
     prisma.milestone.count(),
   ]);
 
   return {
-    milestones: milestones.map((m) => formatMilestoneResponse(m as MilestoneRecord)),
+    milestones: milestones.map((m) =>
+      formatMilestoneResponse(m as MilestoneRecord, includeKeyFigures ? (m as MilestoneRecordWithKeyFigures).keyFigures : undefined)
+    ),
     total,
   };
 }
@@ -351,12 +420,14 @@ export async function search(
 
 /**
  * Get milestones with advanced filtering
+ * Optionally includes linked key figures (Sprint 47)
  */
 export async function getFiltered(
   filters: FilterOptions,
-  options: PaginationOptions
+  options: MilestoneQueryOptions
 ): Promise<PaginatedResult> {
   const where: Record<string, unknown> = {};
+  const includeKeyFigures = options.includeContributors ?? false;
 
   // Category filter
   if (filters.categories && filters.categories.length > 0) {
@@ -385,6 +456,24 @@ export async function getFiltered(
       skip: options.skip,
       take: options.limit,
       orderBy: { date: 'desc' },
+      include: includeKeyFigures
+        ? {
+            keyFigures: {
+              include: {
+                keyFigure: {
+                  select: {
+                    id: true,
+                    canonicalName: true,
+                    shortBio: true,
+                    role: true,
+                    primaryOrg: true,
+                    imageUrl: true,
+                  },
+                },
+              },
+            },
+          }
+        : undefined,
     }),
     prisma.milestone.count({ where }),
   ]);
@@ -401,7 +490,9 @@ export async function getFiltered(
   }
 
   return {
-    milestones: filteredMilestones.map((m) => formatMilestoneResponse(m as MilestoneRecord)),
+    milestones: filteredMilestones.map((m) =>
+      formatMilestoneResponse(m as MilestoneRecord, includeKeyFigures ? (m as MilestoneRecordWithKeyFigures).keyFigures : undefined)
+    ),
     total: filters.tags && filters.tags.length > 0 ? filteredMilestones.length : total,
   };
 }
@@ -469,12 +560,21 @@ function buildLayeredContent(milestone: MilestoneRecord): MilestoneLayeredConten
 }
 
 /**
+ * Extended response combining layered content and key figures (Sprint 47)
+ */
+interface FullMilestoneResponse extends MilestoneResponseWithLayered, MilestoneWithContributors {}
+
+/**
  * Format a Prisma milestone record to API response format
  * Handles JSON string deserialization for array fields
  * Includes layered content if available
+ * Optionally includes key figures (Sprint 47)
  */
-function formatMilestoneResponse(milestone: MilestoneRecord): MilestoneResponseWithLayered {
-  const response: MilestoneResponseWithLayered = {
+function formatMilestoneResponse(
+  milestone: MilestoneRecord,
+  keyFigures?: MilestoneRecordWithKeyFigures['keyFigures']
+): FullMilestoneResponse {
+  const response: FullMilestoneResponse = {
     id: milestone.id,
     title: milestone.title,
     description: milestone.description,
@@ -496,6 +596,21 @@ function formatMilestoneResponse(milestone: MilestoneRecord): MilestoneResponseW
   const layeredContent = buildLayeredContent(milestone);
   if (layeredContent) {
     response.layeredContent = layeredContent;
+  }
+
+  // Add key figures if included (Sprint 47)
+  if (keyFigures && keyFigures.length > 0) {
+    response.keyFigures = keyFigures.map((kf) => ({
+      keyFigure: {
+        id: kf.keyFigure.id,
+        canonicalName: kf.keyFigure.canonicalName,
+        shortBio: kf.keyFigure.shortBio,
+        role: kf.keyFigure.role,
+        primaryOrg: kf.keyFigure.primaryOrg,
+        imageUrl: kf.keyFigure.imageUrl,
+      },
+      contributionType: kf.contributionType,
+    }));
   }
 
   return response;

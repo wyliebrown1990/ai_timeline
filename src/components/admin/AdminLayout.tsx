@@ -9,7 +9,12 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Newspaper,
+  PenSquare,
+  Plus,
   Rss,
+  UserPlus,
+  Users,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -49,9 +54,34 @@ const navItems: NavItem[] = [
     icon: <FileText className="h-5 w-5" />,
   },
   {
+    label: 'Submit Article',
+    href: '/admin/submit-article',
+    icon: <PenSquare className="h-5 w-5" />,
+  },
+  {
+    label: 'Create News Event',
+    href: '/admin/news-events/new',
+    icon: <Newspaper className="h-5 w-5" />,
+  },
+  {
     label: 'Glossary',
     href: '/admin/glossary',
     icon: <Book className="h-5 w-5" />,
+  },
+  {
+    label: 'Create Term',
+    href: '/admin/glossary/new',
+    icon: <Plus className="h-5 w-5" />,
+  },
+  {
+    label: 'Key Figures',
+    href: '/admin/key-figures',
+    icon: <Users className="h-5 w-5" />,
+  },
+  {
+    label: 'Review Figures',
+    href: '/admin/key-figures/review',
+    icon: <UserPlus className="h-5 w-5" />,
   },
   {
     label: 'API Monitoring',

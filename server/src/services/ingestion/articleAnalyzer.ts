@@ -1,10 +1,11 @@
 /**
  * Article Analyzer - Orchestration Service
  *
- * Coordinates the 3-stage AI analysis pipeline:
+ * Coordinates the 4-stage AI analysis pipeline:
  * - Stage 1: Screening (Haiku) - Relevance and milestone determination
  * - Stage 2: Content Generation (Sonnet) - Full content for milestone-worthy articles
  * - Stage 3: Glossary Extraction (Haiku) - New AI terminology
+ * - Stage 4: Key Figure Extraction (Haiku) - Notable people mentioned (Sprint 46)
  *
  * Includes retry logic for transient failures (Sprint 32.11)
  */
@@ -13,6 +14,11 @@ import { prisma } from '../../db';
 import { screenArticle, ScreeningResult } from './screening';
 import { generateContent, ContentGenerationResult } from './contentGenerator';
 import { extractGlossaryTerms, GlossaryTermDraft } from './glossaryExtractor';
+import {
+  extractKeyFigures,
+  processExtractedFigures,
+  type ProcessingResult as KeyFigureProcessingResult,
+} from './keyFigureExtractor';
 import { withRetry, resolveArticleErrors } from '../errorTracker';
 
 // Import schemas for validation
@@ -22,13 +28,11 @@ import {
 import { CurrentEventSchema } from '../../../../src/types/currentEvent';
 import { GlossaryEntrySchema } from '../../../../src/types/glossary';
 
-// Load existing glossary terms for deduplication
-import glossaryTermsData from '../../../../src/content/glossary/terms.json';
-
 export interface AnalysisResult {
   screening: ScreeningResult;
   contentGeneration?: ContentGenerationResult;
   glossaryTerms: GlossaryTermDraft[];
+  keyFigures?: KeyFigureProcessingResult;
   draftsCreated: number;
 }
 
@@ -60,7 +64,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     {
       title: article.title,
       content: article.content,
-      source: article.source.name,
+      source: article.source?.name || 'Manual Submission',
       publishedAt: article.publishedAt,
     },
     apiKey
@@ -99,7 +103,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         title: article.title,
         content: article.content,
         sourceUrl: article.externalUrl,
-        source: article.source.name,
+        source: article.source?.name || 'Manual Submission',
         publishedAt: article.publishedAt,
       },
       screening.suggestedCategory,
@@ -154,20 +158,27 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     }
   }
 
-  // Stage 3: Glossary Terms (Haiku - if indicated)
+  // Stage 3: Glossary Terms - Always run for relevant articles (Sprint 43 refactor)
+  // Removed hasNewGlossaryTerms gate - now runs for milestone-worthy or high-relevance articles
   let glossaryTerms: GlossaryTermDraft[] = [];
-  if (screening.hasNewGlossaryTerms) {
+  if (screening.isMilestoneWorthy || screening.relevanceScore >= 0.6) {
     console.log(`[Analyzer] Stage 3: Extracting glossary terms`);
 
     // Get existing glossary terms for deduplication
-    const existingTerms = getExistingGlossaryTerms();
+    const existingTerms = await getExistingGlossaryTerms();
+
+    // Also get pending glossary drafts to avoid duplicates in queue
+    const pendingDrafts = await getPendingGlossaryDrafts();
+    const allExistingTerms = [...existingTerms, ...pendingDrafts];
+
+    console.log(`[Analyzer] Deduplicating against ${existingTerms.length} published + ${pendingDrafts.length} pending terms`);
 
     glossaryTerms = await extractGlossaryTerms(
       {
         title: article.title,
         content: article.content,
       },
-      existingTerms,
+      allExistingTerms,
       apiKey
     );
 
@@ -190,6 +201,74 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     }
   }
 
+  // Stage 4: Key Figure Extraction (Sprint 46)
+  // Extract notable people mentioned in milestone-worthy or high-relevance articles
+  let keyFigureResult: KeyFigureProcessingResult | undefined;
+  if (screening.isMilestoneWorthy || screening.relevanceScore >= 0.6) {
+    console.log(`[Analyzer] Stage 4: Extracting key figures`);
+
+    try {
+      // Extract key figures from article content
+      const extractedFigures = await extractKeyFigures(
+        {
+          title: article.title,
+          content: article.content,
+        },
+        apiKey
+      );
+
+      console.log(`[Analyzer] Extracted ${extractedFigures.length} key figures from article`);
+
+      // Process extracted figures - match against existing or create drafts
+      if (extractedFigures.length > 0) {
+        keyFigureResult = await processExtractedFigures(extractedFigures, {
+          id: article.id,
+          title: article.title,
+        });
+
+        // Add key figure drafts to total count
+        draftsCreated += keyFigureResult.draftsCreated;
+
+        console.log(
+          `[Analyzer] Key figures processed: ${keyFigureResult.linked} linked, ` +
+          `${keyFigureResult.draftsCreated} drafts created, ` +
+          `${keyFigureResult.skippedDuplicates} duplicates skipped`
+        );
+
+        // Update milestone draft with linked key figure IDs (46.9)
+        // These will be used to create MilestoneContributor records on publish
+        if (keyFigureResult.linkedKeyFigureIds.length > 0) {
+          const milestoneDraft = await prisma.contentDraft.findFirst({
+            where: {
+              articleId,
+              contentType: 'milestone',
+              status: 'pending',
+            },
+          });
+
+          if (milestoneDraft) {
+            const existingData = milestoneDraft.draftData as Record<string, unknown>;
+            await prisma.contentDraft.update({
+              where: { id: milestoneDraft.id },
+              data: {
+                draftData: {
+                  ...existingData,
+                  keyFigureIds: keyFigureResult.linkedKeyFigureIds,
+                },
+              },
+            });
+            console.log(
+              `[Analyzer] Updated milestone draft with ${keyFigureResult.linkedKeyFigureIds.length} key figure IDs`
+            );
+          }
+        }
+      }
+    } catch (keyFigureError) {
+      // Log error but don't fail the entire analysis pipeline
+      console.error(`[Analyzer] Key figure extraction error (non-fatal):`, keyFigureError);
+    }
+  }
+
   // Mark complete
   await prisma.ingestedArticle.update({
     where: { id: articleId },
@@ -205,6 +284,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     screening,
     contentGeneration,
     glossaryTerms,
+    keyFigures: keyFigureResult,
     draftsCreated,
   };
 }
@@ -291,17 +371,42 @@ export async function analyzeAllPending(limit: number = 10): Promise<{
 }
 
 /**
- * Get existing glossary terms for deduplication
+ * Get existing glossary terms from database for deduplication
  */
-function getExistingGlossaryTerms(): string[] {
+async function getExistingGlossaryTerms(): Promise<string[]> {
   try {
-    // glossaryTermsData is imported at the top from the JSON file
-    if (Array.isArray(glossaryTermsData)) {
-      return glossaryTermsData.map((t: { term: string }) => t.term);
-    }
-    return [];
+    const terms = await prisma.glossaryTerm.findMany({
+      select: { term: true },
+    });
+    return terms.map((t) => t.term);
   } catch (error) {
     console.error('[Analyzer] Failed to load glossary terms:', error);
+    return [];
+  }
+}
+
+/**
+ * Get pending glossary drafts to avoid creating duplicates in the review queue
+ * Sprint 43: Added to prevent duplicate drafts
+ */
+async function getPendingGlossaryDrafts(): Promise<string[]> {
+  try {
+    const drafts = await prisma.contentDraft.findMany({
+      where: {
+        contentType: 'glossary_term',
+        status: 'pending',
+      },
+      select: { draftData: true },
+    });
+
+    return drafts
+      .map((d) => {
+        const data = d.draftData as { term?: string };
+        return data.term;
+      })
+      .filter((term): term is string => !!term);
+  } catch (error) {
+    console.error('[Analyzer] Failed to load pending glossary drafts:', error);
     return [];
   }
 }

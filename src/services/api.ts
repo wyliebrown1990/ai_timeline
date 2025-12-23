@@ -77,17 +77,19 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('[API] Error response:', errorText);
-      let error = {};
+      let errorData: Record<string, unknown> = {};
       try {
-        error = JSON.parse(errorText);
+        errorData = JSON.parse(errorText);
       } catch {
         // Not JSON
       }
-      throw new ApiError(
-        response.status,
-        (error as { error?: { message?: string } }).error?.message || `HTTP error ${response.status}`,
-        (error as { error?: { details?: unknown } }).error?.details
-      );
+      // Extract message from either nested or flat error structure
+      const message =
+        (errorData.error as { message?: string })?.message ||
+        (typeof errorData.error === 'string' ? errorData.error : null) ||
+        `HTTP error ${response.status}`;
+      // Store full error data in details for access to fields like existingId
+      throw new ApiError(response.status, message, errorData);
     }
 
     // Handle 204 No Content
@@ -292,13 +294,14 @@ export type DuplicateReason = 'title_match' | 'content_match' | 'url_match';
 export interface DuplicateArticleRef {
   id: string;
   title: string;
-  source: NewsSource;
+  externalUrl: string;
+  source: NewsSource | null;
   publishedAt: string;
 }
 
 export interface IngestedArticle {
   id: string;
-  sourceId: string;
+  sourceId: string | null;
   externalUrl: string;
   title: string;
   content: string;
@@ -311,7 +314,7 @@ export interface IngestedArticle {
   milestoneRationale?: string;
   analysisError?: string;
   reviewStatus: string;
-  source: NewsSource;
+  source: NewsSource | null;
   drafts?: ContentDraft[];
   // Duplicate detection fields (Sprint 32)
   isDuplicate: boolean;
@@ -567,6 +570,90 @@ export const articlesApi = {
         headers: getAuthHeaders(),
       }
     );
+  },
+
+  /**
+   * Submit an article manually (paste content + source URL)
+   * Creates an IngestedArticle without a NewsSource and optionally triggers analysis
+   */
+  async submit(data: {
+    sourceUrl: string;
+    title?: string;
+    content: string;
+    analyzeImmediately?: boolean;
+  }): Promise<{
+    success: boolean;
+    articleId: string;
+    analysisStatus: 'pending' | 'complete' | 'error';
+    screening?: {
+      relevanceScore: number;
+      isMilestoneWorthy: boolean;
+      suggestedCategory: string | null;
+    };
+    drafts: Array<{ id: string; contentType: string }>;
+    message?: string;
+    error?: string;
+  }> {
+    return fetchJson<{
+      success: boolean;
+      articleId: string;
+      analysisStatus: 'pending' | 'complete' | 'error';
+      screening?: {
+        relevanceScore: number;
+        isMilestoneWorthy: boolean;
+        suggestedCategory: string | null;
+      };
+      drafts: Array<{ id: string; contentType: string }>;
+      message?: string;
+      error?: string;
+    }>(`${API_BASE}/admin/articles/submit`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Scrape article content from a URL using Jina Reader API
+   * Sprint 41: URL Scraper Integration
+   */
+  async scrape(data: {
+    url: string;
+    submitForAnalysis?: boolean;
+  }): Promise<{
+    success: boolean;
+    title?: string;
+    content?: string;
+    wordCount?: number;
+    error?: string;
+    articleId?: string;
+    analysisStatus?: 'complete' | 'error';
+    screening?: {
+      relevanceScore: number;
+      isMilestoneWorthy: boolean;
+      suggestedCategory: string | null;
+    };
+    drafts?: Array<{ id: string; contentType: string }>;
+  }> {
+    return fetchJson<{
+      success: boolean;
+      title?: string;
+      content?: string;
+      wordCount?: number;
+      error?: string;
+      articleId?: string;
+      analysisStatus?: 'complete' | 'error';
+      screening?: {
+        relevanceScore: number;
+        isMilestoneWorthy: boolean;
+        suggestedCategory: string | null;
+      };
+      drafts?: Array<{ id: string; contentType: string }>;
+    }>(`${API_BASE}/admin/articles/scrape`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
   },
 };
 
@@ -1526,6 +1613,58 @@ export const currentEventsApi = {
   async getById(id: string): Promise<CurrentEvent> {
     return fetchJson<CurrentEvent>(`${API_BASE}/current-events/${id}`);
   },
+
+  // Admin methods (Sprint 42)
+
+  /**
+   * Create a new current event (admin)
+   */
+  async create(data: {
+    headline: string;
+    summary: string;
+    sourceUrl?: string;
+    sourcePublisher?: string;
+    publishedDate: string;
+    prerequisiteMilestoneIds?: string[];
+    connectionExplanation: string;
+    featured?: boolean;
+  }): Promise<CurrentEvent> {
+    return fetchJson<CurrentEvent>(`${API_BASE}/admin/current-events`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing current event (admin)
+   */
+  async update(id: string, data: Partial<{
+    headline: string;
+    summary: string;
+    sourceUrl: string;
+    sourcePublisher: string;
+    publishedDate: string;
+    prerequisiteMilestoneIds: string[];
+    connectionExplanation: string;
+    featured: boolean;
+  }>): Promise<CurrentEvent> {
+    return fetchJson<CurrentEvent>(`${API_BASE}/admin/current-events/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a current event (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${API_BASE}/admin/current-events/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
 };
 
 // =============================================================================
@@ -2064,5 +2203,549 @@ export const userProgressApi = {
       `${API_BASE}/user/${sessionId}/checkpoints/${checkpointId}`,
       { method: 'DELETE' }
     );
+  },
+};
+
+// =============================================================================
+// Key Figures API (Sprint 45)
+// =============================================================================
+
+/**
+ * Key figure role types
+ */
+export type KeyFigureRole =
+  | 'researcher'
+  | 'executive'
+  | 'founder'
+  | 'policy_maker'
+  | 'engineer'
+  | 'other';
+
+/**
+ * Key figure status types
+ */
+export type KeyFigureStatus = 'draft' | 'pending_review' | 'published';
+
+/**
+ * Contribution type for milestone contributors
+ */
+export type ContributionType = 'lead' | 'co_author' | 'advisor' | 'founder' | 'mentioned';
+
+/**
+ * Key figure from database
+ */
+export interface KeyFigure {
+  id: string;
+  canonicalName: string;
+  aliases: string[];
+  shortBio: string;
+  fullBio: string | null;
+  primaryOrg: string | null;
+  previousOrgs: string[];
+  role: KeyFigureRole;
+  notableFor: string;
+  imageUrl: string | null;
+  wikipediaUrl: string | null;
+  linkedInUrl: string | null;
+  twitterHandle: string | null;
+  status: KeyFigureStatus;
+  sourceArticleId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * DTO for creating a key figure
+ */
+export interface CreateKeyFigureDto {
+  canonicalName: string;
+  aliases?: string[];
+  shortBio: string;
+  fullBio?: string;
+  primaryOrg?: string;
+  previousOrgs?: string[];
+  role: KeyFigureRole;
+  notableFor: string;
+  imageUrl?: string;
+  wikipediaUrl?: string;
+  linkedInUrl?: string;
+  twitterHandle?: string;
+  status?: KeyFigureStatus;
+}
+
+/**
+ * DTO for updating a key figure
+ */
+export interface UpdateKeyFigureDto {
+  canonicalName?: string;
+  aliases?: string[];
+  shortBio?: string;
+  fullBio?: string | null;
+  primaryOrg?: string | null;
+  previousOrgs?: string[];
+  role?: KeyFigureRole;
+  notableFor?: string;
+  imageUrl?: string | null;
+  wikipediaUrl?: string | null;
+  linkedInUrl?: string | null;
+  twitterHandle?: string | null;
+  status?: KeyFigureStatus;
+}
+
+/**
+ * Key figure statistics
+ */
+export interface KeyFigureStats {
+  total: number;
+  byRole: Record<string, number>;
+  byStatus: Record<string, number>;
+}
+
+/**
+ * Milestone with contribution info
+ */
+export interface MilestoneWithContribution {
+  milestone: {
+    id: string;
+    title: string;
+    description: string;
+    date: string;
+    category: string;
+    significance: number;
+    organization: string | null;
+  };
+  contributionType: ContributionType | null;
+}
+
+/**
+ * Key figure with contribution type (for milestone display)
+ */
+export interface KeyFigureWithContribution {
+  keyFigure: KeyFigure;
+  contributionType: ContributionType | null;
+}
+
+/**
+ * Key Figures API client (Sprint 45)
+ * Public endpoints for reading, admin endpoints for CRUD
+ */
+export const keyFiguresApi = {
+  /**
+   * Get all key figures with optional filtering
+   */
+  async getAll(params?: {
+    status?: KeyFigureStatus;
+    role?: KeyFigureRole;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<KeyFigure>> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.role) searchParams.set('role', params.role);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE}/key-figures${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<KeyFigure>>(url);
+  },
+
+  /**
+   * Get a single key figure by ID
+   */
+  async getById(id: string): Promise<KeyFigure> {
+    return fetchJson<KeyFigure>(`${API_BASE}/key-figures/${id}`);
+  },
+
+  /**
+   * Search key figures (for autocomplete)
+   */
+  async search(query: string, limit?: number): Promise<{ data: KeyFigure[]; total: number }> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', query);
+    if (limit) searchParams.set('limit', String(limit));
+
+    return fetchJson<{ data: KeyFigure[]; total: number }>(
+      `${API_BASE}/key-figures/search?${searchParams.toString()}`
+    );
+  },
+
+  /**
+   * Get milestones associated with a key figure
+   */
+  async getMilestones(id: string): Promise<{ data: MilestoneWithContribution[]; total: number }> {
+    return fetchJson<{ data: MilestoneWithContribution[]; total: number }>(
+      `${API_BASE}/key-figures/${id}/milestones`
+    );
+  },
+
+  /**
+   * Get key figure statistics (admin)
+   */
+  async getStats(): Promise<KeyFigureStats> {
+    return fetchJson<KeyFigureStats>(`${API_BASE}/admin/key-figures/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Generate name variants (admin utility)
+   */
+  async generateVariants(name: string): Promise<{ id: string; variants: string[] }> {
+    return fetchJson<{ id: string; variants: string[] }>(
+      `${API_BASE}/admin/key-figures/generate-variants`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name }),
+      }
+    );
+  },
+
+  /**
+   * Create a new key figure (admin)
+   */
+  async create(data: CreateKeyFigureDto): Promise<KeyFigure> {
+    return fetchJson<KeyFigure>(`${API_BASE}/admin/key-figures`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing key figure (admin)
+   */
+  async update(id: string, data: UpdateKeyFigureDto): Promise<KeyFigure> {
+    return fetchJson<KeyFigure>(`${API_BASE}/admin/key-figures/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a key figure (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${API_BASE}/admin/key-figures/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get contributors for a milestone
+   */
+  async getMilestoneContributors(
+    milestoneId: string
+  ): Promise<{ data: KeyFigureWithContribution[]; total: number }> {
+    return fetchJson<{ data: KeyFigureWithContribution[]; total: number }>(
+      `${API_BASE}/milestones/${milestoneId}/contributors`
+    );
+  },
+
+  /**
+   * Add a contributor to a milestone (admin)
+   */
+  async addMilestoneContributor(
+    milestoneId: string,
+    keyFigureId: string,
+    contributionType?: ContributionType
+  ): Promise<{ id: string; milestoneId: string; keyFigureId: string; contributionType: string | null }> {
+    return fetchJson<{ id: string; milestoneId: string; keyFigureId: string; contributionType: string | null }>(
+      `${API_BASE}/admin/milestones/${milestoneId}/contributors`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ keyFigureId, contributionType }),
+      }
+    );
+  },
+
+  /**
+   * Remove a contributor from a milestone (admin)
+   */
+  async removeMilestoneContributor(milestoneId: string, keyFigureId: string): Promise<void> {
+    return fetchJson<void>(
+      `${API_BASE}/admin/milestones/${milestoneId}/contributors/${keyFigureId}`,
+      {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Merge multiple key figures into a primary record (admin)
+   * Combines aliases, reassigns milestone links, deletes secondary figures
+   */
+  async merge(
+    primaryId: string,
+    secondaryIds: string[]
+  ): Promise<{
+    success: boolean;
+    mergedFigure: KeyFigure;
+    stats: {
+      aliasesAdded: string[];
+      contributorsReassigned: number;
+      figuresDeleted: number;
+    };
+  }> {
+    return fetchJson<{
+      success: boolean;
+      mergedFigure: KeyFigure;
+      stats: {
+        aliasesAdded: string[];
+        contributorsReassigned: number;
+        figuresDeleted: number;
+      };
+    }>(`${API_BASE}/admin/key-figures/merge`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ primaryId, secondaryIds }),
+    });
+  },
+};
+
+// =============================================================================
+// Key Figure Drafts API (Sprint 46)
+// =============================================================================
+
+/**
+ * Key figure draft status
+ */
+export type KeyFigureDraftStatus = 'pending' | 'approved' | 'rejected' | 'merged';
+
+/**
+ * Key figure draft from extraction pipeline
+ */
+export interface KeyFigureDraft {
+  id: string;
+  articleId: string;
+  article: {
+    id: string;
+    title: string;
+    externalUrl: string;
+  } | null;
+  extractedName: string;
+  normalizedName: string;
+  context: string;
+  suggestedBio: string | null;
+  suggestedOrg: string | null;
+  suggestedRole: string;
+  matchedFigureId: string | null;
+  matchedFigure: {
+    id: string;
+    canonicalName: string;
+    shortBio: string;
+    primaryOrg: string | null;
+    role: string;
+  } | null;
+  matchConfidence: number | null;
+  status: KeyFigureDraftStatus;
+  reviewNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Key figure draft statistics
+ */
+export interface KeyFigureDraftStats {
+  total: number;
+  byStatus: Record<KeyFigureDraftStatus, number>;
+}
+
+/**
+ * Approve draft request with optional overrides
+ */
+export interface ApproveDraftRequest {
+  canonicalName?: string;
+  shortBio?: string;
+  primaryOrg?: string;
+  role?: KeyFigureRole;
+  notableFor?: string;
+}
+
+/**
+ * Key Figure Drafts API
+ * Sprint 46 - Key Figures Pipeline Integration
+ */
+export const keyFigureDraftsApi = {
+  /**
+   * Get all key figure drafts with optional filtering
+   */
+  async getAll(params?: {
+    status?: KeyFigureDraftStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<KeyFigureDraft>> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE}/admin/key-figure-drafts${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<KeyFigureDraft>>(url, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get a single draft by ID
+   */
+  async getById(id: string): Promise<KeyFigureDraft> {
+    return fetchJson<KeyFigureDraft>(`${API_BASE}/admin/key-figure-drafts/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get draft statistics
+   */
+  async getStats(): Promise<KeyFigureDraftStats> {
+    return fetchJson<KeyFigureDraftStats>(`${API_BASE}/admin/key-figure-drafts/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Approve a draft and create a new KeyFigure
+   */
+  async approve(
+    id: string,
+    data?: ApproveDraftRequest
+  ): Promise<{ message: string; keyFigure: { id: string; canonicalName: string; role: string; shortBio: string } }> {
+    return fetchJson<{ message: string; keyFigure: { id: string; canonicalName: string; role: string; shortBio: string } }>(
+      `${API_BASE}/admin/key-figure-drafts/${id}/approve`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data || {}),
+      }
+    );
+  },
+
+  /**
+   * Reject a draft
+   */
+  async reject(id: string, reason?: string): Promise<{ message: string; draftId: string }> {
+    return fetchJson<{ message: string; draftId: string }>(
+      `${API_BASE}/admin/key-figure-drafts/${id}/reject`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      }
+    );
+  },
+
+  /**
+   * Merge a draft with an existing KeyFigure
+   */
+  async merge(
+    id: string,
+    keyFigureId: string
+  ): Promise<{ message: string; keyFigure: { id: string; canonicalName: string }; aliasAdded: boolean; contributorLinksCreated: number }> {
+    return fetchJson<{ message: string; keyFigure: { id: string; canonicalName: string }; aliasAdded: boolean; contributorLinksCreated: number }>(
+      `${API_BASE}/admin/key-figure-drafts/${id}/merge`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ keyFigureId }),
+      }
+    );
+  },
+
+  /**
+   * Batch reject multiple drafts
+   */
+  async batchReject(draftIds: string[], reason?: string): Promise<{ message: string; count: number }> {
+    return fetchJson<{ message: string; count: number }>(
+      `${API_BASE}/admin/key-figure-drafts/batch-reject`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ draftIds, reason }),
+      }
+    );
+  },
+};
+
+// =============================================================================
+// Global Search API (Sprint 47)
+// =============================================================================
+
+/**
+ * Search result item types
+ */
+export interface MilestoneSearchResult {
+  type: 'milestone';
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  category: string;
+  organization?: string | null;
+}
+
+export interface GlossarySearchResult {
+  type: 'glossary';
+  id: string;
+  term: string;
+  shortDefinition: string;
+  category: string;
+}
+
+export interface KeyFigureSearchResult {
+  type: 'keyFigure';
+  id: string;
+  canonicalName: string;
+  shortBio: string;
+  role: string;
+  primaryOrg?: string | null;
+  imageUrl?: string | null;
+}
+
+export type GlobalSearchResult = MilestoneSearchResult | GlossarySearchResult | KeyFigureSearchResult;
+
+export interface GlobalSearchResponse {
+  query: string;
+  results: GlobalSearchResult[];
+  counts: {
+    milestones: number;
+    glossary: number;
+    keyFigures: number;
+    total: number;
+  };
+}
+
+/**
+ * Global Search API client (Sprint 47)
+ * Unified search across milestones, glossary terms, and key figures
+ */
+export const globalSearchApi = {
+  /**
+   * Search across all content types
+   */
+  async search(
+    query: string,
+    options?: {
+      limit?: number;
+      types?: ('milestone' | 'glossary' | 'keyFigure')[];
+    }
+  ): Promise<GlobalSearchResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', query);
+    if (options?.limit) searchParams.set('limit', String(options.limit));
+    if (options?.types) searchParams.set('types', options.types.join(','));
+
+    return fetchJson<GlobalSearchResponse>(`${API_BASE}/search?${searchParams.toString()}`);
   },
 };

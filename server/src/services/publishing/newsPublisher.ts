@@ -1,30 +1,12 @@
 /**
  * News Event Publisher Service
  *
- * Publishes approved news event drafts to the events.json file.
- * Note: Using JSON file storage per Sprint 31 recommendation (Option A).
- * Can migrate to database if volume increases.
+ * Publishes approved news event drafts to the CurrentEvent database table.
+ * Updated in Sprint 39 to use database instead of static JSON file.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { prisma } from '../../db';
 import type { NewsEventDraft } from '../ingestion/contentGenerator';
-
-// Current events JSON file path
-const EVENTS_FILE_PATH = join(__dirname, '../../../../src/content/current-events/events.json');
-
-export interface CurrentEvent {
-  id: string;
-  headline: string;
-  summary: string;
-  sourceUrl: string;
-  sourcePublisher: string;
-  publishedDate: string;
-  prerequisiteMilestoneIds: string[];
-  connectionExplanation: string;
-  featured: boolean;
-  expiresAt: string;
-}
 
 /**
  * Generate a unique ID for a news event
@@ -43,14 +25,14 @@ function generateEventId(headline: string): string {
 /**
  * Calculate expiration date (default 6 months from publish date)
  */
-function calculateExpiresAt(publishedDate: string): string {
+function calculateExpiresAt(publishedDate: string): Date {
   const date = new Date(publishedDate);
   date.setMonth(date.getMonth() + 6);
-  return date.toISOString().split('T')[0];
+  return date;
 }
 
 /**
- * Publish a news event draft to the events.json file
+ * Publish a news event draft to the CurrentEvent database table
  * Returns the created event ID
  */
 export async function publishNewsEvent(draftData: NewsEventDraft): Promise<string> {
@@ -59,50 +41,43 @@ export async function publishNewsEvent(draftData: NewsEventDraft): Promise<strin
     throw new Error('Missing required fields: headline, summary, or sourceUrl');
   }
 
-  // Read existing events
-  let events: CurrentEvent[] = [];
-  try {
-    const content = readFileSync(EVENTS_FILE_PATH, 'utf-8');
-    events = JSON.parse(content);
-  } catch (error) {
-    console.warn('Could not read existing events, starting fresh:', error);
-    events = [];
+  // Check for duplicate headlines
+  const existingEvent = await prisma.currentEvent.findFirst({
+    where: {
+      headline: {
+        equals: draftData.headline,
+        mode: 'insensitive',
+      },
+    },
+  });
+
+  if (existingEvent) {
+    throw new Error(`Event with similar headline already exists: ${existingEvent.id}`);
   }
 
   // Generate unique ID
   const id = generateEventId(draftData.headline);
 
-  // Check for duplicate headlines
-  const existingHeadline = events.find(
-    (e) => e.headline.toLowerCase() === draftData.headline.toLowerCase()
-  );
-  if (existingHeadline) {
-    throw new Error(`Event with similar headline already exists: ${existingHeadline.id}`);
-  }
+  // Create the event in the database
+  const newEvent = await prisma.currentEvent.create({
+    data: {
+      id,
+      headline: draftData.headline,
+      summary: draftData.summary,
+      sourceUrl: draftData.sourceUrl,
+      sourcePublisher: draftData.sourcePublisher,
+      publishedDate: new Date(draftData.publishedDate),
+      prerequisiteMilestoneIds: JSON.stringify(draftData.prerequisiteMilestoneIds || []),
+      connectionExplanation: draftData.connectionExplanation || '',
+      featured: draftData.featured || false,
+      expiresAt: calculateExpiresAt(draftData.publishedDate),
+      isPublished: true,
+    },
+  });
 
-  // Create new event
-  const newEvent: CurrentEvent = {
-    id,
-    headline: draftData.headline,
-    summary: draftData.summary,
-    sourceUrl: draftData.sourceUrl,
-    sourcePublisher: draftData.sourcePublisher,
-    publishedDate: draftData.publishedDate,
-    prerequisiteMilestoneIds: draftData.prerequisiteMilestoneIds || [],
-    connectionExplanation: draftData.connectionExplanation || '',
-    featured: draftData.featured || false,
-    expiresAt: calculateExpiresAt(draftData.publishedDate),
-  };
+  console.log(`Published news event: ${newEvent.id} - ${draftData.headline}`);
 
-  // Add to front of list (most recent first)
-  events.unshift(newEvent);
-
-  // Write back to file
-  writeFileSync(EVENTS_FILE_PATH, JSON.stringify(events, null, 2) + '\n');
-
-  console.log(`Published news event: ${id} - ${draftData.headline}`);
-
-  return id;
+  return newEvent.id;
 }
 
 /**
@@ -132,30 +107,36 @@ export function validateNewsEventDraft(draftData: NewsEventDraft): boolean {
 }
 
 /**
- * Get all current events
+ * Get all current events from database
  */
-export function getAllEvents(): CurrentEvent[] {
-  try {
-    const content = readFileSync(EVENTS_FILE_PATH, 'utf-8');
-    return JSON.parse(content);
-  } catch {
-    return [];
-  }
+export async function getAllEvents() {
+  return prisma.currentEvent.findMany({
+    where: {
+      isPublished: true,
+    },
+    orderBy: {
+      publishedDate: 'desc',
+    },
+  });
 }
 
 /**
  * Remove expired events (cleanup utility)
  */
-export function removeExpiredEvents(): number {
-  const events = getAllEvents();
+export async function removeExpiredEvents(): Promise<number> {
   const now = new Date();
-  const activeEvents = events.filter((e) => new Date(e.expiresAt) > now);
-  const removedCount = events.length - activeEvents.length;
 
-  if (removedCount > 0) {
-    writeFileSync(EVENTS_FILE_PATH, JSON.stringify(activeEvents, null, 2) + '\n');
-    console.log(`Removed ${removedCount} expired events`);
+  const result = await prisma.currentEvent.deleteMany({
+    where: {
+      expiresAt: {
+        lt: now,
+      },
+    },
+  });
+
+  if (result.count > 0) {
+    console.log(`Removed ${result.count} expired events`);
   }
 
-  return removedCount;
+  return result.count;
 }

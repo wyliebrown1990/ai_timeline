@@ -12,6 +12,10 @@ import type { FilterOptions } from '../services/milestones';
 /**
  * GET /api/milestones
  * Retrieve all milestones with optional pagination
+ * Query params:
+ *   - page: Page number (default 1)
+ *   - limit: Items per page (default 50, max 100)
+ *   - includeContributors: Include linked key figures (Sprint 47)
  */
 export async function getAllMilestones(
   req: Request,
@@ -22,8 +26,13 @@ export async function getAllMilestones(
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     const skip = (page - 1) * limit;
+    const includeContributors = req.query.includeContributors === 'true';
 
-    const { milestones, total } = await milestonesService.getAll({ skip, limit });
+    const { milestones, total } = await milestonesService.getAll({
+      skip,
+      limit,
+      includeContributors,
+    });
 
     res.json({
       data: milestones,
@@ -235,6 +244,12 @@ export async function searchMilestones(
 /**
  * GET /api/milestones/filter
  * Advanced filtering by categories, significance levels, date range, and tags
+ * Query params:
+ *   - categories: Comma-separated categories (model,benchmark,application)
+ *   - significance: Comma-separated levels (1,2,3,4)
+ *   - dateStart/dateEnd: ISO date strings
+ *   - tags: Comma-separated tags
+ *   - includeContributors: Include linked key figures (Sprint 47)
  */
 export async function filterMilestones(
   req: Request,
@@ -245,6 +260,7 @@ export async function filterMilestones(
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
     const skip = (page - 1) * limit;
+    const includeContributors = req.query.includeContributors === 'true';
 
     // Parse filter options from query parameters
     const filters: FilterOptions = {};
@@ -307,7 +323,11 @@ export async function filterMilestones(
       }
     }
 
-    const { milestones, total } = await milestonesService.getFiltered(filters, { skip, limit });
+    const { milestones, total } = await milestonesService.getFiltered(filters, {
+      skip,
+      limit,
+      includeContributors,
+    });
 
     res.json({
       data: milestones,

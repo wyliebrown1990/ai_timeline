@@ -324,12 +324,25 @@ export function ReviewQueuePage() {
                       {getDraftTitle(draft)}
                     </h3>
                     <p className="mt-1 text-sm text-gray-600">
-                      Source: {draft.article.source.name} | {formatDate(draft.article.publishedAt)}
+                      Source:{' '}
+                      {draft.article.source?.name ||
+                        new URL(draft.article.externalUrl).hostname.replace('www.', '')}{' '}
+                      | {formatDate(draft.article.publishedAt)}
                     </p>
-                    {draft.article.milestoneRationale && (
+                    {/* Show appropriate preview based on content type */}
+                    {draft.contentType === 'glossary_term' ? (
                       <p className="mt-2 text-sm text-gray-500 italic">
-                        AI: {draft.article.milestoneRationale}
+                        Definition:{' '}
+                        {(draft.draftData as { shortDefinition?: string; fullDefinition?: string })
+                          .shortDefinition ||
+                          (draft.draftData as { fullDefinition?: string }).fullDefinition}
                       </p>
+                    ) : (
+                      draft.article.milestoneRationale && (
+                        <p className="mt-2 text-sm text-gray-500 italic">
+                          AI: {draft.article.milestoneRationale}
+                        </p>
+                      )
                     )}
                     {draft.publishedId && (
                       <p className="mt-1 text-xs text-green-600">

@@ -142,7 +142,9 @@ export function ArticleDetailPage() {
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{article.title}</h1>
             <p className="mt-1 text-sm text-gray-500">
-              {article.source.name} • Published {formatDate(article.publishedAt)}
+              {article.source?.name ||
+                new URL(article.externalUrl).hostname.replace('www.', '')}{' '}
+              • Published {formatDate(article.publishedAt)}
             </p>
           </div>
         </div>

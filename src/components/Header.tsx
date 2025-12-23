@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 import { useFlashcardContext } from '../contexts/FlashcardContext';
+import { GlobalSearch, useGlobalSearch } from './GlobalSearch';
 
 /**
  * Navigation link configuration
@@ -27,6 +28,7 @@ function Header() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { dueToday } = useFlashcardContext();
+  const { isOpen: isSearchOpen, openSearch, closeSearch } = useGlobalSearch();
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -86,6 +88,20 @@ function Header() {
                 })}
               </ul>
             </nav>
+
+            {/* Search Button */}
+            <button
+              onClick={openSearch}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              aria-label="Search (Cmd+K)"
+              title="Search (Cmd+K)"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden lg:inline">Search</span>
+              <kbd className="hidden lg:inline px-1.5 py-0.5 text-xs bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+                {navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'}K
+              </kbd>
+            </button>
 
             {/* Profile Indicator */}
             <ProfileIndicator />
@@ -148,6 +164,18 @@ function Header() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <nav aria-label="Mobile navigation" className="container-main py-3">
+            {/* Mobile Search Button */}
+            <button
+              onClick={() => {
+                closeMobileMenu();
+                openSearch();
+              }}
+              className="w-full mb-3 flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <Search className="h-5 w-5" />
+              <span>Search</span>
+            </button>
+
             <ul className="space-y-1">
               {navLinks.map(({ to, label, icon: Icon, exact }) => {
                 const isActive = exact
@@ -191,6 +219,9 @@ function Header() {
           </nav>
         </div>
       )}
+
+      {/* Global Search Modal */}
+      <GlobalSearch isOpen={isSearchOpen} onClose={closeSearch} />
     </header>
   );
 }
