@@ -1,0 +1,385 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Playwright Scraper on EC2 Spot Instance (t4g.micro ARM64)
+
+Parameters:
+  Environment:
+    Type: String
+    Default: prod
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC for EC2 instance (same VPC as Lambda)
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public subnet for EC2 (needs internet access)
+  LambdaSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: Lambda security group (to allow inbound from Lambda)
+
+Resources:
+  # Security Group for Playwright EC2
+  PlaywrightSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub ai-timeline-playwright-ec2-${Environment}
+      GroupDescription: Security group for Playwright EC2 instance
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        # Allow inbound from Lambda security group on port 3002
+        - IpProtocol: tcp
+          FromPort: 3002
+          ToPort: 3002
+          SourceSecurityGroupId: !Ref LambdaSecurityGroupId
+        # Allow SSH for management (optional, can remove for security)
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub ai-timeline-playwright-ec2-${Environment}
+
+  # IAM Role for EC2
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ai-timeline-playwright-ec2-role-${Environment}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+  # Instance Profile
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub ai-timeline-playwright-ec2-profile-${Environment}
+      Roles:
+        - !Ref EC2Role
+
+  # Launch Template for Spot Instance
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Sub ai-timeline-playwright-${Environment}
+      LaunchTemplateData:
+        ImageId: ami-059afa9e3a9c7af0c  # Amazon Linux 2023 ARM64 (us-east-1)
+        InstanceType: t4g.micro
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            AssociatePublicIpAddress: true
+            SubnetId: !Ref SubnetId
+            Groups:
+              - !Ref PlaywrightSecurityGroup
+        BlockDeviceMappings:
+          - DeviceName: /dev/xvda
+            Ebs:
+              VolumeSize: 20
+              VolumeType: gp3
+              DeleteOnTermination: true
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            set -e
+
+            # Update system
+            dnf update -y
+
+            # Install Docker
+            dnf install -y docker
+            systemctl enable docker
+            systemctl start docker
+
+            # Install git and node for building
+            dnf install -y git nodejs npm
+
+            # Clone and build Playwright service
+            cd /home/ec2-user
+            git clone https://github.com/anthropics/claude-code.git playwright-temp 2>/dev/null || true
+
+            # Create playwright service directory
+            mkdir -p /opt/playwright-service
+            cat > /opt/playwright-service/package.json << 'PKGJSON'
+            {
+              "name": "playwright-scraper-service",
+              "version": "1.0.0",
+              "main": "server.js",
+              "dependencies": {
+                "express": "^4.18.2",
+                "playwright": "^1.48.0",
+                "turndown": "^7.1.2"
+              }
+            }
+            PKGJSON
+
+            # Create server.js
+            cat > /opt/playwright-service/server.js << 'SERVERJS'
+            const express = require('express');
+            const { chromium } = require('playwright');
+            const TurndownService = require('turndown');
+
+            const app = express();
+            app.use(express.json());
+
+            const PORT = process.env.PORT || 3002;
+            const MAX_CONCURRENT = parseInt(process.env.MAX_CONCURRENT || '3', 10);
+            const DEFAULT_TIMEOUT = 30000;
+
+            let activeRequests = 0;
+            const requestQueue = [];
+
+            const turndown = new TurndownService({
+              headingStyle: 'atx',
+              codeBlockStyle: 'fenced',
+            });
+            turndown.remove(['script', 'style', 'nav', 'footer', 'header', 'aside', 'iframe', 'noscript']);
+
+            function enqueue(handler) {
+              return new Promise((resolve, reject) => {
+                const task = { handler, resolve, reject };
+                if (activeRequests < MAX_CONCURRENT) {
+                  runTask(task);
+                } else {
+                  requestQueue.push(task);
+                }
+              });
+            }
+
+            async function runTask(task) {
+              activeRequests++;
+              try {
+                const result = await task.handler();
+                task.resolve(result);
+              } catch (error) {
+                task.reject(error);
+              } finally {
+                activeRequests--;
+                if (requestQueue.length > 0) {
+                  runTask(requestQueue.shift());
+                }
+              }
+            }
+
+            async function createPage(browser) {
+              const context = await browser.newContext({
+                userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                viewport: { width: 1280, height: 720 },
+                locale: 'en-US',
+              });
+              const page = await context.newPage();
+              await page.route('**/*', (route) => {
+                const resourceType = route.request().resourceType();
+                if (['image', 'media', 'font'].includes(resourceType)) {
+                  route.abort();
+                } else {
+                  route.continue();
+                }
+              });
+              return { page, context };
+            }
+
+            async function extractContent(page, contentSelector) {
+              const title = await page.title();
+              let content = '';
+              if (contentSelector) {
+                const element = await page.$(contentSelector);
+                if (element) content = await element.innerHTML();
+              }
+              if (!content) {
+                const selectors = ['article', '[role="main"]', 'main', '.post-content', '.article-content', '.entry-content', '.content', '#content'];
+                for (const selector of selectors) {
+                  const element = await page.$(selector);
+                  if (element) {
+                    content = await element.innerHTML();
+                    break;
+                  }
+                }
+              }
+              if (!content) content = await page.$eval('body', (el) => el.innerHTML);
+              const markdown = turndown.turndown(content);
+              const wordCount = markdown.split(/\s+/).filter((w) => w.length > 0).length;
+              return { title, content: markdown, wordCount };
+            }
+
+            app.post('/scrape', async (req, res) => {
+              const { url, waitForSelector, contentSelector, timeout = DEFAULT_TIMEOUT } = req.body;
+              if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
+              try {
+                const result = await enqueue(async () => {
+                  const browser = await chromium.launch({ headless: true });
+                  try {
+                    const { page, context } = await createPage(browser);
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+                    if (waitForSelector) {
+                      await page.waitForSelector(waitForSelector, { timeout: 10000 }).catch(() => {});
+                    }
+                    await page.waitForTimeout(1000);
+                    const { title, content, wordCount } = await extractContent(page, contentSelector);
+                    await context.close();
+                    return { success: true, title, content, wordCount, url };
+                  } finally {
+                    await browser.close();
+                  }
+                });
+                res.json(result);
+              } catch (error) {
+                res.json({ success: false, error: error.message, url });
+              }
+            });
+
+            app.post('/scrape-links', async (req, res) => {
+              const { url, linkSelector, linkPattern, limit = 20, timeout = DEFAULT_TIMEOUT } = req.body;
+              if (!url) return res.status(400).json({ success: false, error: 'URL is required' });
+              if (!linkSelector) return res.status(400).json({ success: false, error: 'linkSelector is required' });
+              try {
+                const result = await enqueue(async () => {
+                  const browser = await chromium.launch({ headless: true });
+                  try {
+                    const { page, context } = await createPage(browser);
+                    await page.goto(url, { waitUntil: 'domcontentloaded', timeout });
+                    await page.waitForTimeout(1000);
+                    const links = await page.$$eval(linkSelector, (elements, baseUrl) => {
+                      return elements.map((el) => {
+                        const href = el.href || el.getAttribute('href');
+                        const title = el.textContent?.trim() || '';
+                        let fullUrl = href;
+                        if (href && !href.startsWith('http')) {
+                          try { fullUrl = new URL(href, baseUrl).toString(); } catch { fullUrl = href; }
+                        }
+                        return { url: fullUrl, title };
+                      });
+                    }, url);
+                    await context.close();
+                    let filteredLinks = links.filter((l) => l.url);
+                    if (linkPattern) {
+                      const regex = new RegExp(linkPattern);
+                      filteredLinks = filteredLinks.filter((l) => regex.test(l.url));
+                    }
+                    const uniqueLinks = [...new Map(filteredLinks.map((l) => [l.url, l])).values()];
+                    return { success: true, links: uniqueLinks.slice(0, limit), totalFound: uniqueLinks.length };
+                  } finally {
+                    await browser.close();
+                  }
+                });
+                res.json(result);
+              } catch (error) {
+                res.json({ success: false, error: error.message, links: [] });
+              }
+            });
+
+            app.get('/health', (req, res) => {
+              res.json({ status: 'ok', activeRequests, queueLength: requestQueue.length, maxConcurrent: MAX_CONCURRENT });
+            });
+
+            app.get('/', (req, res) => {
+              res.json({ service: 'playwright-scraper', version: '1.0.0' });
+            });
+
+            app.listen(PORT, '0.0.0.0', () => {
+              console.log('Playwright Scraper Service running on port ' + PORT);
+            });
+            SERVERJS
+
+            # Install Chromium dependencies for Amazon Linux 2023
+            dnf install -y \
+              atk \
+              at-spi2-atk \
+              cups-libs \
+              libxcb \
+              libxkbcommon \
+              at-spi2-core \
+              libX11 \
+              libXcomposite \
+              libXdamage \
+              libXext \
+              libXfixes \
+              libXrandr \
+              mesa-libgbm \
+              cairo \
+              pango \
+              alsa-lib \
+              nss \
+              nspr \
+              libdrm \
+              libxshmfence \
+              dbus-glib \
+              gtk3
+
+            # Install dependencies
+            cd /opt/playwright-service
+            npm install
+            npx playwright install chromium
+
+            # Create systemd service
+            cat > /etc/systemd/system/playwright.service << 'SVCFILE'
+            [Unit]
+            Description=Playwright Scraper Service
+            After=network.target
+
+            [Service]
+            Type=simple
+            User=root
+            WorkingDirectory=/opt/playwright-service
+            ExecStart=/usr/bin/node /opt/playwright-service/server.js
+            Restart=always
+            RestartSec=10
+            Environment=PORT=3002
+            Environment=MAX_CONCURRENT=3
+
+            [Install]
+            WantedBy=multi-user.target
+            SVCFILE
+
+            # Start service
+            systemctl daemon-reload
+            systemctl enable playwright
+            systemctl start playwright
+
+            echo "Playwright service installed and started"
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub ai-timeline-playwright-${Environment}
+
+  # EC2 Instance (on-demand t4g.micro is ~$6/month)
+  PlaywrightInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+
+Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !Ref PlaywrightInstance
+    Export:
+      Name: !Sub ai-timeline-playwright-instance-${Environment}
+
+  PrivateIp:
+    Description: Private IP address for Lambda to connect
+    Value: !GetAtt PlaywrightInstance.PrivateIp
+    Export:
+      Name: !Sub ai-timeline-playwright-ip-${Environment}
+
+  PlaywrightEndpoint:
+    Description: Playwright service endpoint
+    Value: !Sub ${PlaywrightInstance.PrivateIp}:3002
+    Export:
+      Name: !Sub ai-timeline-playwright-endpoint-${Environment}
+
+  SecurityGroupId:
+    Description: Playwright security group ID
+    Value: !Ref PlaywrightSecurityGroup
+    Export:
+      Name: !Sub ai-timeline-playwright-sg-${Environment}

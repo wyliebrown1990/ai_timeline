@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ExternalLink,
@@ -16,6 +16,9 @@ import {
   Link,
   Trash2,
   X,
+  CheckSquare,
+  Square,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -36,6 +39,7 @@ export function IngestedArticlesPage() {
   const [stats, setStats] = useState<AnalysisStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [analyzingArticleId, setAnalyzingArticleId] = useState<string | null>(null);
+  const [generatingArticleIds, setGeneratingArticleIds] = useState<Set<string>>(new Set());
   const [isAnalyzingAll, setIsAnalyzingAll] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -49,6 +53,12 @@ export function IngestedArticlesPage() {
   const [deleteArticle, setDeleteArticle] = useState<IngestedArticle | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeletingAllDuplicates, setIsDeletingAllDuplicates] = useState(false);
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkAnalyzing, setIsBulkAnalyzing] = useState(false);
+  // Auto-refresh for generating articles
+  const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadArticles = useCallback(async () => {
     setIsLoading(true);
@@ -102,10 +112,20 @@ export function IngestedArticlesPage() {
     setAnalyzingArticleId(articleId);
     try {
       const result = await articlesApi.analyze(articleId);
-      toast.success(
-        `Analysis complete! ${result.draftsCreated} draft(s) created. ` +
-          `Relevance: ${(result.screening.relevanceScore * 100).toFixed(0)}%`
-      );
+      const relevance = Math.round((result.screening?.relevanceScore || 0) * 100);
+
+      if (result.status === 'screened') {
+        toast.success(
+          `Milestone-worthy! Relevance: ${relevance}%. View details to generate content.`
+        );
+      } else if (result.status === 'complete') {
+        toast.success(
+          `Screening complete. Relevance: ${relevance}%. Not milestone-worthy.`
+        );
+      } else {
+        toast.success(result.message || 'Screening complete');
+      }
+
       loadArticles();
       loadStats();
     } catch (error) {
@@ -113,6 +133,158 @@ export function IngestedArticlesPage() {
       toast.error('Failed to analyze article');
     } finally {
       setAnalyzingArticleId(null);
+    }
+  };
+
+  const handleGenerateContent = async (articleId: string) => {
+    setGeneratingArticleIds((prev) => new Set(prev).add(articleId));
+    try {
+      const result = await articlesApi.generateContent(articleId);
+      // The API returns 202 for async processing - start auto-refresh
+      if (result.status === 'generating') {
+        toast.success(
+          'Content generation started! Page will auto-refresh when complete.',
+          { duration: 5000, icon: '🚀' }
+        );
+        startAutoRefresh();
+      } else {
+        toast.success(
+          `Content generated! ${result.draftsCreated || 0} draft(s) created. Check Review Queue.`
+        );
+        setGeneratingArticleIds((prev) => {
+          const next = new Set(prev);
+          next.delete(articleId);
+          return next;
+        });
+      }
+      loadArticles();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to generate content:', error);
+      // Even if API times out, the Lambda may still be running
+      toast.success(
+        'Content generation may be running in background. Page will auto-refresh.',
+        { duration: 5000, icon: '⏳' }
+      );
+      startAutoRefresh();
+    }
+  };
+
+  // Auto-refresh to check for completed generation
+  const startAutoRefresh = useCallback(() => {
+    if (autoRefreshRef.current) return; // Already running
+
+    let refreshCount = 0;
+    const maxRefreshes = 12; // 2 minutes max (12 * 10 seconds)
+
+    autoRefreshRef.current = setInterval(async () => {
+      refreshCount++;
+      await loadArticles();
+      await loadStats();
+
+      // Check if any articles are still generating
+      const stillGenerating = articles.some(
+        (a) => a.analysisStatus === 'generating' || a.analysisStatus === 'screening'
+      );
+
+      if (!stillGenerating || refreshCount >= maxRefreshes) {
+        if (autoRefreshRef.current) {
+          clearInterval(autoRefreshRef.current);
+          autoRefreshRef.current = null;
+        }
+        setGeneratingArticleIds(new Set());
+        if (!stillGenerating && refreshCount > 1) {
+          toast.success('Content generation complete! Check Review Queue.', { icon: '✅' });
+        }
+      }
+    }, 10000); // Every 10 seconds
+  }, [articles, loadArticles, loadStats]);
+
+  // Cleanup auto-refresh on unmount
+  useEffect(() => {
+    return () => {
+      if (autoRefreshRef.current) {
+        clearInterval(autoRefreshRef.current);
+      }
+    };
+  }, []);
+
+  // Clear selections when articles change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [page, filters]);
+
+  // Selection handlers
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === articles.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(articles.map((a) => a.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+
+    const confirmMsg = `Delete ${selectedIds.size} selected article(s)? This cannot be undone.`;
+    if (!confirm(confirmMsg)) return;
+
+    setIsBulkDeleting(true);
+    try {
+      const result = await articlesApi.bulkDelete(Array.from(selectedIds));
+      toast.success(result.message);
+      setSelectedIds(new Set());
+      loadArticles();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to bulk delete articles:', error);
+      toast.error('Failed to delete selected articles');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  // Bulk analyze handler
+  const handleBulkAnalyze = async () => {
+    if (selectedIds.size === 0) return;
+
+    setIsBulkAnalyzing(true);
+    try {
+      const result = await articlesApi.bulkAnalyze(Array.from(selectedIds));
+      if (result.analyzing > 0) {
+        toast.success(
+          `Analyzing ${result.analyzing} article(s)! Page will auto-refresh.`,
+          { duration: 5000, icon: '🚀' }
+        );
+        startAutoRefresh();
+      } else {
+        toast.success(result.message);
+      }
+      setSelectedIds(new Set());
+      loadArticles();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to bulk analyze articles:', error);
+      toast.error('Failed to analyze selected articles');
+    } finally {
+      setIsBulkAnalyzing(false);
     }
   };
 
@@ -135,6 +307,22 @@ export function IngestedArticlesPage() {
       toast.error('Failed to analyze pending articles');
     } finally {
       setIsAnalyzingAll(false);
+    }
+  };
+
+  // Reset a stuck article back to pending
+  const handleResetArticle = async (articleId: string) => {
+    setAnalyzingArticleId(articleId);
+    try {
+      await articlesApi.reanalyze(articleId);
+      toast.success('Article reset to pending. Click Analyze to process it.');
+      loadArticles();
+      loadStats();
+    } catch (error) {
+      console.error('Failed to reset article:', error);
+      toast.error('Failed to reset article');
+    } finally {
+      setAnalyzingArticleId(null);
     }
   };
 
@@ -195,6 +383,8 @@ export function IngestedArticlesPage() {
       case 'screening':
       case 'generating':
         return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
+      case 'screened':
+        return <Star className="h-4 w-4 text-purple-500" />; // Milestone-worthy, needs generation
       case 'complete':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'error':
@@ -208,6 +398,7 @@ export function IngestedArticlesPage() {
     const styles: Record<string, string> = {
       pending: 'bg-yellow-100 text-yellow-800',
       screening: 'bg-blue-100 text-blue-800',
+      screened: 'bg-purple-100 text-purple-800', // Milestone-worthy, needs content generation
       generating: 'bg-blue-100 text-blue-800',
       complete: 'bg-green-100 text-green-800',
       error: 'bg-red-100 text-red-800',
@@ -362,6 +553,57 @@ export function IngestedArticlesPage() {
         </div>
       </div>
 
+      {/* Bulk Action Bar - shows when items are selected */}
+      {selectedIds.size > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-blue-900">
+              {selectedIds.size} article(s) selected
+            </span>
+            <button
+              onClick={clearSelection}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Clear selection
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBulkAnalyze}
+              disabled={isBulkAnalyzing}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isBulkAnalyzing
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              {isBulkAnalyzing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4" />
+              )}
+              Analyze Selected
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isBulkDeleting
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
+            >
+              {isBulkDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Articles List */}
       {isLoading ? (
         <div className="space-y-4">
@@ -384,17 +626,57 @@ export function IngestedArticlesPage() {
         </div>
       ) : (
         <>
+          {/* Select All Header */}
+          <div className="flex items-center gap-3 px-2">
+            <button
+              onClick={toggleSelectAll}
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              title={selectedIds.size === articles.length ? 'Deselect all' : 'Select all'}
+            >
+              {selectedIds.size === articles.length && articles.length > 0 ? (
+                <CheckSquare className="h-5 w-5 text-blue-600" />
+              ) : selectedIds.size > 0 ? (
+                <div className="relative">
+                  <Square className="h-5 w-5 text-gray-400" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-2 h-0.5 bg-blue-600" />
+                  </div>
+                </div>
+              ) : (
+                <Square className="h-5 w-5 text-gray-400" />
+              )}
+            </button>
+            <span className="text-sm text-gray-500">
+              {selectedIds.size > 0
+                ? `${selectedIds.size} of ${articles.length} selected`
+                : `${articles.length} articles`}
+            </span>
+          </div>
+
           <div className="space-y-4">
             {articles.map((article) => (
               <div
                 key={article.id}
                 className={`rounded-xl border p-6 transition-colors ${
-                  article.isDuplicate
-                    ? 'bg-gray-50 border-orange-200 opacity-75'
-                    : 'bg-white border-gray-200 hover:border-gray-300'
+                  selectedIds.has(article.id)
+                    ? 'bg-blue-50 border-blue-300'
+                    : article.isDuplicate
+                      ? 'bg-gray-50 border-orange-200 opacity-75'
+                      : 'bg-white border-gray-200 hover:border-gray-300'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
+                  {/* Selection checkbox */}
+                  <button
+                    onClick={() => toggleSelection(article.id)}
+                    className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors mt-0.5"
+                  >
+                    {selectedIds.has(article.id) ? (
+                      <CheckSquare className="h-5 w-5 text-blue-600" />
+                    ) : (
+                      <Square className="h-5 w-5 text-gray-400" />
+                    )}
+                  </button>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       {/* Duplicate badge - shown first for visibility */}
@@ -492,7 +774,52 @@ export function IngestedArticlesPage() {
                         ) : (
                           <Play className="h-4 w-4" />
                         )}
-                        Analyze
+                        Screen
+                      </button>
+                    )}
+                    {article.analysisStatus === 'screened' && (
+                      <>
+                        <button
+                          onClick={() => handleGenerateContent(article.id)}
+                          disabled={generatingArticleIds.has(article.id)}
+                          className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                            generatingArticleIds.has(article.id)
+                              ? 'bg-purple-100 text-purple-400 cursor-not-allowed'
+                              : 'bg-purple-600 text-white hover:bg-purple-700'
+                          }`}
+                        >
+                          {generatingArticleIds.has(article.id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Star className="h-4 w-4" />
+                          )}
+                          {generatingArticleIds.has(article.id) ? 'Generating...' : 'Generate Content'}
+                        </button>
+                        <button
+                          onClick={() => navigate(`/admin/articles/${article.id}`)}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                        >
+                          View Details
+                        </button>
+                      </>
+                    )}
+                    {/* Reset button for stuck articles */}
+                    {(article.analysisStatus === 'screening' || article.analysisStatus === 'generating') && (
+                      <button
+                        onClick={() => handleResetArticle(article.id)}
+                        disabled={analyzingArticleId === article.id}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          analyzingArticleId === article.id
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            : 'bg-orange-600 text-white hover:bg-orange-700'
+                        }`}
+                      >
+                        {analyzingArticleId === article.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-4 w-4" />
+                        )}
+                        Reset (Stuck)
                       </button>
                     )}
                     {article.analysisStatus === 'complete' && (

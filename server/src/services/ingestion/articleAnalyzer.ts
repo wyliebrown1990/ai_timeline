@@ -50,45 +50,69 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
   }
 
   let draftsCreated = 0;
+  let screening: ScreeningResult;
 
-  // Update status to screening
-  await prisma.ingestedArticle.update({
-    where: { id: articleId },
-    data: { analysisStatus: 'screening' },
-  });
+  // Check if article was already screened (status = 'screened')
+  // If so, skip Stage 1 and use existing screening data
+  const alreadyScreened = article.analysisStatus === 'screened' && article.isMilestoneWorthy;
 
-  console.log(`[Analyzer] Stage 1: Screening article "${article.title}"`);
+  if (alreadyScreened) {
+    console.log(`[Analyzer] Article already screened, skipping to content generation: "${article.title}"`);
+    // Reconstruct screening result from stored data
+    screening = {
+      relevanceScore: article.relevanceScore || 0.8,
+      isMilestoneWorthy: true,
+      milestoneRationale: article.milestoneRationale || 'Previously screened as milestone-worthy',
+      suggestedCategory: null, // Will be determined by content generator
+    };
 
-  // Stage 1: Screening (Haiku - cheap)
-  const screening = await screenArticle(
-    {
-      title: article.title,
-      content: article.content,
-      source: article.source?.name || 'Manual Submission',
-      publishedAt: article.publishedAt,
-    },
-    apiKey
-  );
+    // Update status to generating
+    await prisma.ingestedArticle.update({
+      where: { id: articleId },
+      data: { analysisStatus: 'generating' },
+    });
+  } else {
+    // Update status to screening
+    await prisma.ingestedArticle.update({
+      where: { id: articleId },
+      data: { analysisStatus: 'screening' },
+    });
 
-  console.log(
-    `[Analyzer] Screening complete: relevance=${screening.relevanceScore}, milestone=${screening.isMilestoneWorthy}`
-  );
+    console.log(`[Analyzer] Stage 1: Screening article "${article.title}"`);
 
-  await prisma.ingestedArticle.update({
-    where: { id: articleId },
-    data: {
-      relevanceScore: screening.relevanceScore,
-      isMilestoneWorthy: screening.isMilestoneWorthy,
-      milestoneRationale: screening.milestoneRationale,
-      analysisStatus: screening.isMilestoneWorthy ? 'generating' : 'complete',
-      analyzedAt: screening.isMilestoneWorthy ? undefined : new Date(),
-    },
-  });
+    // Stage 1: Screening (Haiku - cheap)
+    screening = await screenArticle(
+      {
+        title: article.title,
+        content: article.content,
+        source: article.source?.name || 'Manual Submission',
+        publishedAt: article.publishedAt,
+      },
+      apiKey
+    );
+
+    console.log(
+      `[Analyzer] Screening complete: relevance=${screening.relevanceScore}, milestone=${screening.isMilestoneWorthy}`
+    );
+
+    await prisma.ingestedArticle.update({
+      where: { id: articleId },
+      data: {
+        relevanceScore: screening.relevanceScore,
+        isMilestoneWorthy: screening.isMilestoneWorthy,
+        milestoneRationale: screening.milestoneRationale,
+        analysisStatus: screening.isMilestoneWorthy ? 'generating' : 'complete',
+        analyzedAt: screening.isMilestoneWorthy ? undefined : new Date(),
+      },
+    });
+  }
 
   let contentGeneration: ContentGenerationResult | undefined;
 
   // Stage 2: Content Generation (Sonnet - only if milestone-worthy)
-  if (screening.isMilestoneWorthy && screening.suggestedCategory) {
+  // For already-screened articles, screening.suggestedCategory may be null,
+  // so we allow content generation to determine the category
+  if (screening.isMilestoneWorthy) {
     console.log(`[Analyzer] Stage 2: Generating content for milestone-worthy article`);
 
     // Get recent milestones for context
@@ -106,7 +130,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         source: article.source?.name || 'Manual Submission',
         publishedAt: article.publishedAt,
       },
-      screening.suggestedCategory,
+      screening.suggestedCategory || 'research', // Default to 'research' if category unknown
       recentMilestones.map((m) => ({
         id: m.id,
         title: m.title,
@@ -334,29 +358,110 @@ export async function analyzeArticle(articleId: string): Promise<AnalysisResult>
 }
 
 /**
- * Analyze all pending articles (with limit)
+ * Screen a single article (Stage 1 only - fast, uses Haiku)
+ *
+ * This is a quick operation that determines if an article is milestone-worthy.
+ * If it is, the article is marked as 'screened' for later content generation.
+ * Use this for real-time API requests to avoid timeouts.
+ */
+export async function screenOnly(articleId: string): Promise<{
+  relevanceScore: number;
+  isMilestoneWorthy: boolean;
+  milestoneRationale: string;
+  suggestedCategory: string | null;
+  status: string;
+}> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  const article = await prisma.ingestedArticle.findUnique({
+    where: { id: articleId },
+    include: { source: true },
+  });
+
+  if (!article) {
+    throw new Error(`Article not found: ${articleId}`);
+  }
+
+  // Update status to screening
+  await prisma.ingestedArticle.update({
+    where: { id: articleId },
+    data: { analysisStatus: 'screening' },
+  });
+
+  console.log(`[Analyzer] Screening article "${article.title}"`);
+
+  // Run screening (Haiku - fast, ~5-10s)
+  const screening = await screenArticle(
+    {
+      title: article.title,
+      content: article.content,
+      source: article.source?.name || 'Manual Submission',
+      publishedAt: article.publishedAt,
+    },
+    apiKey
+  );
+
+  console.log(
+    `[Analyzer] Screening complete: relevance=${screening.relevanceScore}, milestone=${screening.isMilestoneWorthy}`
+  );
+
+  // Determine final status
+  // If milestone-worthy, set to 'screened' so batch processing picks it up for generation
+  // If not milestone-worthy, mark complete
+  const finalStatus = screening.isMilestoneWorthy ? 'screened' : 'complete';
+
+  await prisma.ingestedArticle.update({
+    where: { id: articleId },
+    data: {
+      relevanceScore: screening.relevanceScore,
+      isMilestoneWorthy: screening.isMilestoneWorthy,
+      milestoneRationale: screening.milestoneRationale,
+      analysisStatus: finalStatus,
+      analyzedAt: screening.isMilestoneWorthy ? undefined : new Date(),
+    },
+  });
+
+  return {
+    ...screening,
+    status: finalStatus,
+  };
+}
+
+/**
+ * Analyze all pending and screened articles (with limit)
+ *
+ * - 'pending' articles: Run full analysis (screening + content generation)
+ * - 'screened' articles: Already screened as milestone-worthy, run content generation only
  */
 export async function analyzeAllPending(limit: number = 10): Promise<{
   analyzed: number;
   errors: number;
   results: Array<{ articleId: string; success: boolean; error?: string }>;
 }> {
-  const pendingArticles = await prisma.ingestedArticle.findMany({
-    where: { analysisStatus: 'pending' },
+  // Get both pending (need full analysis) and screened (need content generation) articles
+  const articlesToProcess = await prisma.ingestedArticle.findMany({
+    where: {
+      analysisStatus: { in: ['pending', 'screened'] },
+    },
     take: limit,
     orderBy: { ingestedAt: 'asc' },
-    select: { id: true, title: true },
+    select: { id: true, title: true, analysisStatus: true },
   });
 
-  console.log(`[Analyzer] Found ${pendingArticles.length} pending articles to analyze`);
+  const pending = articlesToProcess.filter((a) => a.analysisStatus === 'pending').length;
+  const screened = articlesToProcess.filter((a) => a.analysisStatus === 'screened').length;
+  console.log(`[Analyzer] Found ${pending} pending + ${screened} screened articles to analyze`);
 
   const results: Array<{ articleId: string; success: boolean; error?: string }> = [];
   let analyzed = 0;
   let errors = 0;
 
-  for (const article of pendingArticles) {
+  for (const article of articlesToProcess) {
     try {
-      console.log(`[Analyzer] Analyzing article: "${article.title}"`);
+      console.log(`[Analyzer] Analyzing article: "${article.title}" (status: ${article.analysisStatus})`);
       await analyzeArticle(article.id);
       results.push({ articleId: article.id, success: true });
       analyzed++;

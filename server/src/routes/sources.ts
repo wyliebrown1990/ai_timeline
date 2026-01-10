@@ -20,6 +20,9 @@ router.get('/sources/:id', requireAdmin, sourcesController.getSourceById);
 // POST /api/admin/sources - Create a new source
 router.post('/sources', requireAdmin, sourcesController.createSource);
 
+// POST /api/admin/sources/test - Test connection to a source without saving
+router.post('/sources/test', requireAdmin, sourcesController.testSourceConnection);
+
 // PUT /api/admin/sources/:id - Update a source
 router.put('/sources/:id', requireAdmin, sourcesController.updateSource);
 
@@ -33,11 +36,8 @@ router.post('/sources/:id/fetch', requireAdmin, sourcesController.fetchSourceArt
 // POST /api/admin/ingestion/fetch-all - Fetch articles from all active sources
 router.post('/ingestion/fetch-all', requireAdmin, sourcesController.fetchAllSources);
 
-// Article routes
-// GET /api/admin/articles - List all ingested articles with pagination
-router.get('/articles', requireAdmin, sourcesController.getAllArticles);
-
-// GET /api/admin/articles/:id - Get a single article
-router.get('/articles/:id', requireAdmin, sourcesController.getArticleById);
+// Note: Article routes moved to server/src/routes/articles.ts
+// GET /api/admin/articles - now handled by articlesRoutes
+// GET /api/admin/articles/:id - now handled by articlesRoutes
 
 export default router;

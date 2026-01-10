@@ -47,12 +47,10 @@ if (!connectionString) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-// Use Pool with SSL for RDS connections
+// Use Pool with SSL for production (RDS), no SSL for local development
 const pool = new Pool({
   connectionString,
-  ssl: {
-    rejectUnauthorized: false, // Required for RDS without specific CA certificate
-  },
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
 });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });

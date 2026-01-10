@@ -25,6 +25,7 @@ const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
 
 // Lazy-loaded study pages
 const StudyPage = lazy(() => import('./pages/StudyPage'));
@@ -124,6 +125,7 @@ function App() {
                     <Route path="learn/:pathId/complete" element={<LearningPathsPage />} />
                     <Route path="news" element={<NewsPage />} />
                     <Route path="glossary" element={<GlossaryPage />} />
+                    <Route path="contact" element={<ContactPage />} />
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* Lazy-loaded study pages */}

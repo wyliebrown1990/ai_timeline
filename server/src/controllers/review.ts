@@ -304,6 +304,133 @@ export async function rejectDraft(req: Request, res: Response) {
 }
 
 /**
+ * Bulk approve multiple drafts
+ */
+export async function bulkApprove(req: Request, res: Response) {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required' });
+    }
+
+    if (ids.length > 50) {
+      return res.status(400).json({ error: 'Maximum 50 drafts can be approved at once' });
+    }
+
+    // Get all pending drafts
+    const drafts = await prisma.contentDraft.findMany({
+      where: { id: { in: ids }, status: 'pending' },
+      include: {
+        article: {
+          include: {
+            source: true,
+          },
+        },
+      },
+    });
+
+    if (drafts.length === 0) {
+      return res.status(400).json({ error: 'No pending drafts found with provided IDs' });
+    }
+
+    const results: Array<{ id: string; success: boolean; publishedId?: string; error?: string }> = [];
+
+    // Process each draft
+    for (const draft of drafts) {
+      try {
+        const draftData = draft.draftData as Record<string, unknown>;
+        let publishedId: string;
+
+        switch (draft.contentType) {
+          case 'milestone':
+            publishedId = await publishMilestone(draftData);
+            break;
+          case 'news_event':
+            publishedId = await publishNewsEvent(draftData);
+            break;
+          case 'glossary_term':
+            publishedId = await publishGlossaryTerm(draftData, draft.articleId);
+            break;
+          default:
+            results.push({ id: draft.id, success: false, error: `Unknown content type: ${draft.contentType}` });
+            continue;
+        }
+
+        await prisma.contentDraft.update({
+          where: { id: draft.id },
+          data: {
+            status: 'published',
+            publishedAt: new Date(),
+            publishedId,
+          },
+        });
+
+        results.push({ id: draft.id, success: true, publishedId });
+      } catch (err) {
+        results.push({
+          id: draft.id,
+          success: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    const approved = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    return res.json({
+      message: `Approved ${approved} drafts, ${failed} failed`,
+      approved,
+      failed,
+      results,
+    });
+  } catch (error) {
+    console.error('Error bulk approving drafts:', error);
+    return res.status(500).json({
+      error: 'Failed to bulk approve drafts',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Bulk reject multiple drafts
+ */
+export async function bulkReject(req: Request, res: Response) {
+  try {
+    const { ids, reason } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required' });
+    }
+
+    if (ids.length > 100) {
+      return res.status(400).json({ error: 'Maximum 100 drafts can be rejected at once' });
+    }
+
+    const result = await prisma.contentDraft.updateMany({
+      where: { id: { in: ids }, status: 'pending' },
+      data: {
+        status: 'rejected',
+        rejectionReason: reason || 'Bulk rejected',
+      },
+    });
+
+    return res.json({
+      message: `Rejected ${result.count} drafts`,
+      rejected: result.count,
+    });
+  } catch (error) {
+    console.error('Error bulk rejecting drafts:', error);
+    return res.status(500).json({
+      error: 'Failed to bulk reject drafts',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
  * Get recently published items
  */
 export async function getPublished(req: Request, res: Response) {

@@ -22,6 +22,12 @@ router.get('/counts', reviewController.getQueueCounts);
 // GET /api/admin/review/published - Get recently published items
 router.get('/published', reviewController.getPublished);
 
+// POST /api/admin/review/bulk-approve - Bulk approve multiple drafts
+router.post('/bulk-approve', reviewController.bulkApprove);
+
+// POST /api/admin/review/bulk-reject - Bulk reject multiple drafts
+router.post('/bulk-reject', reviewController.bulkReject);
+
 // GET /api/admin/review/:id - Get single draft with article context
 router.get('/:id', reviewController.getDraft);
 

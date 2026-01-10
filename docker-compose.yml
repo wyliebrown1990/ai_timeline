@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # Local PostgreSQL for development
+  postgres:
+    image: postgres:15
+    container_name: ai-timeline-postgres
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ai_timeline_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Playwright scraper service
+  playwright:
+    build: ./playwright-service
+    container_name: ai-timeline-playwright
+    ports:
+      - "3002:3002"
+    environment:
+      - MAX_CONCURRENT=3
+      - PORT=3002
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

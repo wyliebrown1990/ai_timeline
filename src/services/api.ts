@@ -252,16 +252,73 @@ export const milestonesApi = {
 };
 
 /**
+ * Source types for multi-source ingestion (Sprint 48)
+ */
+export type SourceType = 'rss' | 'youtube_channel' | 'youtube_playlist' | 'web_scraper' | 'single_url' | 'youtube_video';
+
+/**
+ * Health status for sources
+ */
+export type SourceHealthStatus = 'healthy' | 'warning' | 'error' | 'disabled';
+
+/**
+ * RSS source configuration
+ */
+export interface RssConfig {
+  feedUrl: string;
+  checkFrequency?: number;
+}
+
+/**
+ * YouTube channel source configuration
+ */
+export interface YouTubeChannelConfig {
+  channelId: string;
+  transcriptLanguage?: string;
+  includeShorts?: boolean;
+}
+
+/**
+ * YouTube playlist source configuration
+ */
+export interface YouTubePlaylistConfig {
+  playlistId: string;
+  transcriptLanguage?: string;
+}
+
+/**
+ * Web scraper source configuration
+ */
+export interface WebScraperConfig {
+  targetUrl: string;
+  articleLinkSelector?: string;
+  articleLinkPattern?: string;
+  contentSelector?: string;
+  waitForSelector?: string;
+  maxArticlesPerFetch?: number;
+}
+
+/**
+ * Union type for source configs
+ */
+export type SourceConfig = RssConfig | YouTubeChannelConfig | YouTubePlaylistConfig | WebScraperConfig;
+
+/**
  * News source types
  */
 export interface NewsSource {
   id: string;
   name: string;
   url: string;
-  feedUrl: string;
+  feedUrl?: string | null; // Deprecated: use config.feedUrl for RSS
+  sourceType: SourceType;
+  config: SourceConfig;
   isActive: boolean;
   checkFrequency: number;
   lastCheckedAt: string | null;
+  lastSuccessAt: string | null;
+  consecutiveFailures: number;
+  healthStatus?: SourceHealthStatus;
   createdAt: string;
   articleCount?: number;
 }
@@ -269,7 +326,9 @@ export interface NewsSource {
 export interface CreateSourceDto {
   name: string;
   url: string;
-  feedUrl: string;
+  sourceType?: SourceType;
+  config?: SourceConfig;
+  feedUrl?: string; // Deprecated: for backwards compatibility
   isActive?: boolean;
   checkFrequency?: number;
 }
@@ -277,9 +336,30 @@ export interface CreateSourceDto {
 export interface UpdateSourceDto {
   name?: string;
   url?: string;
+  sourceType?: SourceType;
+  config?: SourceConfig;
   feedUrl?: string;
   isActive?: boolean;
   checkFrequency?: number;
+}
+
+/**
+ * Test connection result
+ */
+export interface TestConnectionResult {
+  success: boolean;
+  message: string;
+  sampleArticles?: Array<{
+    externalUrl: string;
+    title: string;
+    content: string;
+    publishedAt: string;
+  }>;
+  sourceInfo?: {
+    name?: string;
+    description?: string;
+    itemCount?: number;
+  };
 }
 
 /**
@@ -357,12 +437,15 @@ export interface AnalysisStats {
 export interface AnalyzeResult {
   message: string;
   articleId: string;
-  screening: {
+  screening?: {
     relevanceScore: number;
     isMilestoneWorthy: boolean;
     suggestedCategory: string | null;
+    rationale?: string;
   };
-  draftsCreated: number;
+  status?: string; // 'screened', 'complete', 'pending', etc.
+  note?: string;
+  draftsCreated?: number; // Only present for full analysis
 }
 
 export interface AnalyzePendingResult {
@@ -452,6 +535,17 @@ export const sourcesApi = {
       headers: getAuthHeaders(),
     });
   },
+
+  /**
+   * Test connection to a source before saving
+   */
+  async testConnection(data: CreateSourceDto): Promise<TestConnectionResult> {
+    return fetchJson<TestConnectionResult>(`${API_BASE}/admin/sources/test`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 /**
@@ -505,10 +599,21 @@ export const articlesApi = {
   },
 
   /**
-   * Analyze a single article
+   * Analyze a single article (screening only - fast)
    */
   async analyze(id: string): Promise<AnalyzeResult> {
     return fetchJson<AnalyzeResult>(`${API_BASE}/admin/articles/${id}/analyze`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Generate content for a screened article (creates drafts - slower)
+   * WARNING: May timeout via API Gateway (30s limit). Use for individual articles.
+   */
+  async generateContent(id: string): Promise<AnalyzeResult> {
+    return fetchJson<AnalyzeResult>(`${API_BASE}/admin/articles/${id}/generate`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -574,39 +679,64 @@ export const articlesApi = {
 
   /**
    * Submit an article manually (paste content + source URL)
-   * Creates an IngestedArticle without a NewsSource and optionally triggers analysis
+   * Creates an IngestedArticle without a NewsSource as 'pending'
+   * User should then trigger analysis from the Ingested Articles page
    */
   async submit(data: {
     sourceUrl: string;
     title?: string;
     content: string;
-    analyzeImmediately?: boolean;
   }): Promise<{
     success: boolean;
     articleId: string;
-    analysisStatus: 'pending' | 'complete' | 'error';
-    screening?: {
-      relevanceScore: number;
-      isMilestoneWorthy: boolean;
-      suggestedCategory: string | null;
-    };
-    drafts: Array<{ id: string; contentType: string }>;
+    analysisStatus: 'pending';
     message?: string;
     error?: string;
   }> {
     return fetchJson<{
       success: boolean;
       articleId: string;
-      analysisStatus: 'pending' | 'complete' | 'error';
-      screening?: {
-        relevanceScore: number;
-        isMilestoneWorthy: boolean;
-        suggestedCategory: string | null;
-      };
-      drafts: Array<{ id: string; contentType: string }>;
+      analysisStatus: 'pending';
       message?: string;
       error?: string;
     }>(`${API_BASE}/admin/articles/submit`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Submit a YouTube video for analysis
+   * Creates a NewsSource (one-time) + IngestedArticle with transcript
+   */
+  async submitYouTube(data: {
+    videoUrl: string;
+    transcriptLanguage?: string;
+  }): Promise<{
+    success: boolean;
+    articleId: string;
+    sourceId: string;
+    videoId: string;
+    title: string;
+    hasTranscript: boolean;
+    wordCount: number;
+    analysisStatus: 'pending';
+    message?: string;
+    error?: string;
+  }> {
+    return fetchJson<{
+      success: boolean;
+      articleId: string;
+      sourceId: string;
+      videoId: string;
+      title: string;
+      hasTranscript: boolean;
+      wordCount: number;
+      analysisStatus: 'pending';
+      message?: string;
+      error?: string;
+    }>(`${API_BASE}/admin/articles/submit-youtube`, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
@@ -654,6 +784,38 @@ export const articlesApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
     });
+  },
+
+  /**
+   * Bulk delete multiple articles
+   */
+  async bulkDelete(ids: string[]): Promise<{ message: string; deleted: number }> {
+    return fetchJson<{ message: string; deleted: number }>(
+      `${API_BASE}/admin/articles/bulk-delete`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ ids }),
+      }
+    );
+  },
+
+  /**
+   * Bulk analyze multiple articles (screening)
+   */
+  async bulkAnalyze(ids: string[]): Promise<{
+    message: string;
+    analyzing: number;
+    skipped: number;
+  }> {
+    return fetchJson<{ message: string; analyzing: number; skipped: number }>(
+      `${API_BASE}/admin/articles/bulk-analyze`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ ids }),
+      }
+    );
   },
 };
 
@@ -786,6 +948,44 @@ export const reviewApi = {
     return fetchJson<QueueResponse>(url, {
       headers: getAuthHeaders(),
     });
+  },
+
+  /**
+   * Bulk approve multiple drafts
+   */
+  async bulkApprove(ids: string[]): Promise<{
+    message: string;
+    approved: number;
+    failed: number;
+    results: Array<{ id: string; success: boolean; publishedId?: string; error?: string }>;
+  }> {
+    return fetchJson<{
+      message: string;
+      approved: number;
+      failed: number;
+      results: Array<{ id: string; success: boolean; publishedId?: string; error?: string }>;
+    }>(`${API_BASE}/admin/review/bulk-approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ids }),
+    });
+  },
+
+  /**
+   * Bulk reject multiple drafts
+   */
+  async bulkReject(ids: string[], reason?: string): Promise<{
+    message: string;
+    rejected: number;
+  }> {
+    return fetchJson<{ message: string; rejected: number }>(
+      `${API_BASE}/admin/review/bulk-reject`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ ids, reason }),
+      }
+    );
   },
 };
 
@@ -2747,5 +2947,37 @@ export const globalSearchApi = {
     if (options?.types) searchParams.set('types', options.types.join(','));
 
     return fetchJson<GlobalSearchResponse>(`${API_BASE}/search?${searchParams.toString()}`);
+  },
+};
+
+// =============================================================================
+// Contact API
+// =============================================================================
+
+export interface ContactFormData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+export interface ContactResponse {
+  success: boolean;
+  message: string;
+  error?: string;
+}
+
+/**
+ * Contact form API client
+ */
+export const contactApi = {
+  /**
+   * Submit contact form
+   */
+  async submit(data: ContactFormData): Promise<ContactResponse> {
+    return fetchJson<ContactResponse>(`${API_BASE}/contact`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   },
 };

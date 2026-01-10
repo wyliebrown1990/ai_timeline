@@ -11,7 +11,12 @@
 
 import { prisma } from '../db';
 import * as sourcesService from '../services/sources';
-import * as rssFetcher from '../services/ingestion/rssFetcher';
+import {
+  fetcherRegistry,
+  type FetchedArticle,
+  type FetcherSource,
+  isOneTimeSourceType,
+} from '../services/ingestion/fetchers';
 import { analyzeAllPending } from '../services/ingestion/articleAnalyzer';
 import { detectDuplicates } from '../services/ingestion/duplicateDetector';
 
@@ -76,15 +81,26 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
   console.log(`[IngestionJob] Start time: ${startTime.toISOString()}`);
   console.log(`[IngestionJob] Article cutoff: ${cutoffDate.toISOString()} (${ARTICLE_AGE_LIMIT_HOURS}h window)`);
 
-  // Step 1: Fetch from all active sources
+  // Step 1: Fetch from all active recurring sources (skip one-time sources like single_url, youtube_video)
   try {
     const sources = await sourcesService.getAll();
-    const activeSources = sources.filter((s) => s.isActive);
+    const activeSources = sources.filter(
+      (s) => s.isActive && !isOneTimeSourceType(s.sourceType)
+    );
 
-    console.log(`[IngestionJob] Found ${activeSources.length} active sources`);
+    console.log(`[IngestionJob] Found ${activeSources.length} active recurring sources`);
 
     for (const source of activeSources) {
-      const result = await fetchFromSource(source, cutoffDate);
+      // Cast to FetcherSource - config is stored as Json but typed at runtime
+      const fetcherSource: FetcherSource = {
+        id: source.id,
+        name: source.name,
+        url: source.url,
+        sourceType: source.sourceType,
+        config: source.config as FetcherSource['config'],
+        feedUrl: source.feedUrl,
+      };
+      const result = await fetchFromSource(fetcherSource, cutoffDate);
       sourceResults.push(result);
 
       if (result.error) {
@@ -179,30 +195,40 @@ export async function runIngestionJob(): Promise<IngestionJobResult> {
  * Filter articles to only include those published within the age limit
  */
 function filterByDate(
-  articles: rssFetcher.FetchedArticle[],
+  articles: FetchedArticle[],
   cutoffDate: Date
-): { recent: rssFetcher.FetchedArticle[]; filtered: number } {
+): { recent: FetchedArticle[]; filtered: number } {
   const recent = articles.filter((article) => article.publishedAt >= cutoffDate);
   const filtered = articles.length - recent.length;
   return { recent, filtered };
 }
 
 /**
- * Fetch articles from a single source
+ * Fetch articles from a single source using the appropriate fetcher
  */
 async function fetchFromSource(
-  source: {
-    id: string;
-    name: string;
-    feedUrl: string;
-  },
+  source: FetcherSource,
   cutoffDate: Date
 ): Promise<SourceFetchResult> {
-  console.log(`[IngestionJob] Fetching from source: ${source.name}`);
+  console.log(`[IngestionJob] Fetching from source: ${source.name} (${source.sourceType})`);
+
+  // Check if we have a fetcher for this source type
+  if (!fetcherRegistry.hasFetcher(source.sourceType)) {
+    console.warn(`[IngestionJob] No fetcher registered for source type: ${source.sourceType}`);
+    return {
+      sourceId: source.id,
+      sourceName: source.name,
+      fetched: 0,
+      filtered: 0,
+      created: 0,
+      skipped: 0,
+      error: `No fetcher available for source type: ${source.sourceType}`,
+    };
+  }
 
   try {
-    // Fetch articles from RSS
-    const fetchedArticles = await rssFetcher.fetchFromRSS(source.feedUrl);
+    // Fetch articles using the registry (routes to appropriate fetcher)
+    const fetchedArticles = await fetcherRegistry.fetchFromSource(source);
 
     // Filter to only recent articles (within ARTICLE_AGE_LIMIT_HOURS)
     const { recent: recentArticles, filtered } = filterByDate(fetchedArticles, cutoffDate);
@@ -222,8 +248,9 @@ async function fetchFromSource(
     // Bulk create, skipping duplicates
     const { created, skipped } = await sourcesService.createArticlesBulk(articlesToCreate);
 
-    // Update last checked timestamp
+    // Update last checked timestamp and mark success
     await sourcesService.updateLastChecked(source.id);
+    await sourcesService.markFetchSuccess(source.id);
 
     console.log(
       `[IngestionJob] Source ${source.name}: fetched=${fetchedArticles.length}, filtered=${filtered}, created=${created}, skipped=${skipped}`
@@ -240,6 +267,9 @@ async function fetchFromSource(
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     console.error(`[IngestionJob] Error fetching from ${source.name}:`, errorMessage);
+
+    // Track the failure
+    await sourcesService.markFetchFailure(source.id);
 
     return {
       sourceId: source.id,

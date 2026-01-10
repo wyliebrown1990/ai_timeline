@@ -11,6 +11,9 @@ import {
   RefreshCw,
   Clock,
   CheckCircle2,
+  CheckSquare,
+  Square,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -34,6 +37,10 @@ export function ReviewQueuePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
+  const [isBulkRejecting, setIsBulkRejecting] = useState(false);
 
   const loadCounts = useCallback(async () => {
     try {
@@ -118,6 +125,85 @@ export function ReviewQueuePage() {
     loadDrafts();
     loadCounts();
     handleModalClose();
+  };
+
+  // Clear selections when tab or drafts change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [activeTab]);
+
+  // Selection handlers
+  const toggleSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const pendingDrafts = drafts.filter((d) => d.status === 'pending');
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === pendingDrafts.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingDrafts.map((d) => d.id)));
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Bulk approve handler
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+
+    const confirmMsg = `Approve and publish ${selectedIds.size} selected draft(s)?`;
+    if (!confirm(confirmMsg)) return;
+
+    setIsBulkApproving(true);
+    try {
+      const result = await reviewApi.bulkApprove(Array.from(selectedIds));
+      toast.success(result.message);
+      if (result.failed > 0) {
+        toast.error(`${result.failed} draft(s) failed to publish`);
+      }
+      setSelectedIds(new Set());
+      loadDrafts();
+      loadCounts();
+    } catch (error) {
+      console.error('Failed to bulk approve drafts:', error);
+      toast.error('Failed to approve selected drafts');
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
+
+  // Bulk reject handler
+  const handleBulkReject = async () => {
+    if (selectedIds.size === 0) return;
+
+    const reason = window.prompt(`Reject ${selectedIds.size} draft(s)? Enter reason (optional):`);
+    if (reason === null) return; // User cancelled
+
+    setIsBulkRejecting(true);
+    try {
+      const result = await reviewApi.bulkReject(Array.from(selectedIds), reason || undefined);
+      toast.success(result.message);
+      setSelectedIds(new Set());
+      loadDrafts();
+      loadCounts();
+    } catch (error) {
+      console.error('Failed to bulk reject drafts:', error);
+      toast.error('Failed to reject selected drafts');
+    } finally {
+      setIsBulkRejecting(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -264,6 +350,57 @@ export function ReviewQueuePage() {
         </div>
       </div>
 
+      {/* Bulk Action Bar - shows when items are selected */}
+      {selectedIds.size > 0 && activeTab !== 'published' && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-green-900">
+              {selectedIds.size} draft(s) selected
+            </span>
+            <button
+              onClick={clearSelection}
+              className="text-sm text-green-600 hover:text-green-800"
+            >
+              Clear selection
+            </button>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleBulkApprove}
+              disabled={isBulkApproving}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isBulkApproving
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 text-white hover:bg-green-700'
+              }`}
+            >
+              {isBulkApproving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              Approve All
+            </button>
+            <button
+              onClick={handleBulkReject}
+              disabled={isBulkRejecting}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                isBulkRejecting
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
+            >
+              {isBulkRejecting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Reject All
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Drafts List */}
       {isLoading ? (
         <div className="space-y-4">
@@ -287,20 +424,67 @@ export function ReviewQueuePage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {drafts.map((draft) => {
-            const badge = getContentTypeBadge(draft.contentType);
-            const isPublished = draft.status === 'published';
-
-            return (
-              <div
-                key={draft.id}
-                className={`bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 transition-colors ${
-                  isPublished ? 'opacity-75' : ''
-                }`}
+        <>
+          {/* Select All Header - only show when not on published tab */}
+          {activeTab !== 'published' && pendingDrafts.length > 0 && (
+            <div className="flex items-center gap-3 px-2">
+              <button
+                onClick={toggleSelectAll}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+                title={selectedIds.size === pendingDrafts.length ? 'Deselect all' : 'Select all'}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
+                {selectedIds.size === pendingDrafts.length && pendingDrafts.length > 0 ? (
+                  <CheckSquare className="h-5 w-5 text-green-600" />
+                ) : selectedIds.size > 0 ? (
+                  <div className="relative">
+                    <Square className="h-5 w-5 text-gray-400" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-2 h-0.5 bg-green-600" />
+                    </div>
+                  </div>
+                ) : (
+                  <Square className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+              <span className="text-sm text-gray-500">
+                {selectedIds.size > 0
+                  ? `${selectedIds.size} of ${pendingDrafts.length} selected`
+                  : `${pendingDrafts.length} pending drafts`}
+              </span>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {drafts.map((draft) => {
+              const badge = getContentTypeBadge(draft.contentType);
+              const isPublished = draft.status === 'published';
+
+              return (
+                <div
+                  key={draft.id}
+                  className={`rounded-xl border p-6 transition-colors ${
+                    selectedIds.has(draft.id)
+                      ? 'bg-green-50 border-green-300'
+                      : isPublished
+                        ? 'bg-white border-gray-200 opacity-75'
+                        : 'bg-white border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    {/* Selection checkbox - only for pending drafts */}
+                    {!isPublished && (
+                      <button
+                        onClick={() => toggleSelection(draft.id)}
+                        className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors mt-0.5"
+                      >
+                        {selectedIds.has(draft.id) ? (
+                          <CheckSquare className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <Square className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    )}
+                    <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${badge.style}`}
@@ -408,7 +592,8 @@ export function ReviewQueuePage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {/* Review Detail Modal */}

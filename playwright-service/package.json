@@ -1,0 +1,15 @@
+{
+  "name": "playwright-scraper-service",
+  "version": "1.0.0",
+  "description": "Local Playwright scraping service for ai_timeline",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "playwright": "^1.48.0",
+    "turndown": "^7.1.2"
+  }
+}

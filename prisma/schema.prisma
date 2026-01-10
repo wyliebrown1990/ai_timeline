@@ -41,29 +41,43 @@ model Milestone {
   @@index([era])
 }
 
-/// News source for automated ingestion
+/// Source type enum for multi-source ingestion
+enum SourceType {
+  rss
+  web_scraper
+  youtube_channel
+  youtube_playlist
+  single_url       // One-time URL submission (paste or Playwright)
+  youtube_video    // One-time YouTube video submission
+}
+
+/// News source for automated ingestion (supports RSS, YouTube, web scraping)
 model NewsSource {
-  id             String            @id @default(cuid())
-  name           String
-  url            String            @unique
-  feedUrl        String
-  isActive       Boolean           @default(true)
-  checkFrequency Int               @default(60)
-  lastCheckedAt  DateTime?
-  createdAt      DateTime          @default(now())
-  articles       IngestedArticle[]
+  id                  String            @id @default(cuid())
+  name                String
+  url                 String            @unique
+  feedUrl             String? // Deprecated: use config.feedUrl for RSS sources
+  sourceType          SourceType        @default(rss)
+  config              Json              @default("{}") // Type-specific configuration
+  isActive            Boolean           @default(true)
+  checkFrequency      Int               @default(60)
+  lastCheckedAt       DateTime?
+  lastSuccessAt       DateTime? // Last successful fetch
+  consecutiveFailures Int               @default(0)
+  createdAt           DateTime          @default(now())
+  articles            IngestedArticle[]
 }
 
 /// Article ingested from a news source (or manually submitted)
 model IngestedArticle {
   id          String      @id @default(cuid())
-  sourceId    String?     // Optional - null for manual submissions
+  sourceId    String? // Optional - null for manual submissions
   source      NewsSource? @relation(fields: [sourceId], references: [id], onDelete: Cascade)
   externalUrl String      @unique
   title       String
   content     String
   publishedAt DateTime
-  ingestedAt  DateTime   @default(now())
+  ingestedAt  DateTime    @default(now())
 
   // Stage 1 Analysis Results (Sprint 30)
   analysisStatus     String    @default("pending") // pending, screening, generating, complete, error
@@ -302,23 +316,23 @@ model CurrentEvent {
 
 /// Key figure in AI history (researcher, executive, founder, etc.)
 model KeyFigure {
-  id            String   @id // kebab-case: "geoffrey-hinton"
-  canonicalName String   @unique // "Geoffrey Hinton"
-  aliases       String   @default("[]") // JSON: ["Geoff Hinton", "G. Hinton"]
-  shortBio      String // 1-2 sentences
-  fullBio       String? // Detailed biography
-  primaryOrg    String? // Current affiliation
-  previousOrgs  String   @default("[]") // JSON array of previous organizations
-  role          String // researcher, executive, founder, policy_maker, other
-  notableFor    String // Key contribution summary
-  imageUrl      String?
-  wikipediaUrl  String?
-  linkedInUrl   String?
-  twitterHandle String?
-  status        String   @default("published") // draft, pending_review, published
+  id              String   @id // kebab-case: "geoffrey-hinton"
+  canonicalName   String   @unique // "Geoffrey Hinton"
+  aliases         String   @default("[]") // JSON: ["Geoff Hinton", "G. Hinton"]
+  shortBio        String // 1-2 sentences
+  fullBio         String? // Detailed biography
+  primaryOrg      String? // Current affiliation
+  previousOrgs    String   @default("[]") // JSON array of previous organizations
+  role            String // researcher, executive, founder, policy_maker, other
+  notableFor      String // Key contribution summary
+  imageUrl        String?
+  wikipediaUrl    String?
+  linkedInUrl     String?
+  twitterHandle   String?
+  status          String   @default("published") // draft, pending_review, published
   sourceArticleId String? // If extracted from ingested article
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Relations
   milestones    MilestoneContributor[]

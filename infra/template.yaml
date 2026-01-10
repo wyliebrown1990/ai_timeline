@@ -101,6 +101,8 @@ Resources:
           ADMIN_PASSWORD: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-password}}'
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
           CORS_ORIGIN: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/cors-origin}}'
+          YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
+          PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
 
       Events:
         ApiProxy:
@@ -148,6 +150,17 @@ Resources:
                 - ec2:AssignPrivateIpAddresses
                 - ec2:UnassignPrivateIpAddresses
               Resource: '*'
+            # SES permissions for contact form emails
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: '*'
+            # Lambda invoke permission for async analysis
+            - Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ai-timeline-ingestion-${Environment}'
 
     Metadata:
       BuildMethod: esbuild
@@ -193,6 +206,8 @@ Resources:
           DATABASE_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/database-url}}'
           # Secrets from SSM Parameter Store (secure)
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+          YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
+          PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
 
       # IAM permissions
       Policies:

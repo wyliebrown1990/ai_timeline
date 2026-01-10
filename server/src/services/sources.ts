@@ -1,5 +1,5 @@
 import { prisma } from '../db';
-import type { NewsSource, IngestedArticle } from '@prisma/client';
+import type { NewsSource, IngestedArticle, SourceType } from '@prisma/client';
 
 /**
  * Pagination options for list queries
@@ -15,7 +15,9 @@ interface PaginationOptions {
 export interface CreateSourceDto {
   name: string;
   url: string;
-  feedUrl: string;
+  sourceType?: SourceType;
+  config?: Record<string, unknown>;
+  feedUrl?: string; // Deprecated: use config.feedUrl for RSS
   isActive?: boolean;
   checkFrequency?: number;
 }
@@ -26,6 +28,8 @@ export interface CreateSourceDto {
 export interface UpdateSourceDto {
   name?: string;
   url?: string;
+  sourceType?: SourceType;
+  config?: Record<string, unknown>;
   feedUrl?: string;
   isActive?: boolean;
   checkFrequency?: number;
@@ -63,6 +67,8 @@ export async function create(data: CreateSourceDto): Promise<NewsSource> {
     data: {
       name: data.name,
       url: data.url,
+      sourceType: data.sourceType ?? 'rss',
+      config: data.config ?? {},
       feedUrl: data.feedUrl,
       isActive: data.isActive ?? true,
       checkFrequency: data.checkFrequency ?? 60,
@@ -111,6 +117,39 @@ export async function updateLastChecked(id: string): Promise<void> {
   await prisma.newsSource.update({
     where: { id },
     data: { lastCheckedAt: new Date() },
+  });
+}
+
+/**
+ * Mark a source fetch as successful
+ * Resets consecutive failures and updates lastSuccessAt
+ */
+export async function markFetchSuccess(id: string): Promise<void> {
+  if (!prisma) throw new Error('Database not available');
+
+  await prisma.newsSource.update({
+    where: { id },
+    data: {
+      lastSuccessAt: new Date(),
+      consecutiveFailures: 0,
+    },
+  });
+}
+
+/**
+ * Mark a source fetch as failed
+ * Increments consecutive failures counter
+ */
+export async function markFetchFailure(id: string): Promise<void> {
+  if (!prisma) throw new Error('Database not available');
+
+  await prisma.newsSource.update({
+    where: { id },
+    data: {
+      consecutiveFailures: {
+        increment: 1,
+      },
+    },
   });
 }
 

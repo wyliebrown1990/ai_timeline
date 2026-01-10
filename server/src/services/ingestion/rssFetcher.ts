@@ -71,10 +71,11 @@ function cleanTitle(title: string): string {
  * Extract best available content from RSS item
  */
 function extractContent(item: Parser.Item & { 'content:encoded'?: string }): string {
-  // Prefer full content, then encoded content, then snippet, then summary
+  // Prefer content:encoded (full article) over content (often just description/teaser)
+  // This is important for newsletter feeds like Beehiiv that put full content in content:encoded
   const content =
-    item.content ||
     item['content:encoded'] ||
+    item.content ||
     item.contentSnippet ||
     item.summary ||
     '';
@@ -84,11 +85,26 @@ function extractContent(item: Parser.Item & { 'content:encoded'?: string }): str
 }
 
 /**
- * Strip HTML tags from string
+ * Strip HTML tags and embedded styles/scripts from string
  */
 function stripHtml(html: string): string {
   return html
+    // Remove style tags and their content
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Remove script tags and their content
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    // Remove all remaining HTML tags
     .replace(/<[^>]*>/g, ' ')
+    // Decode HTML entities
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(parseInt(code, 10)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCharCode(parseInt(code, 16)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    // Normalize whitespace
     .replace(/\s+/g, ' ')
     .trim();
 }

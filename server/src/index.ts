@@ -33,6 +33,7 @@ import keyFiguresRouter, {
 } from './routes/keyFigures'; // Sprint 45 - Key Figures
 import keyFigureDraftsRouter from './routes/keyFigureDrafts'; // Sprint 46 - Key Figure Drafts
 import searchRouter from './routes/search'; // Sprint 47 - Global Search
+import contactRouter from './routes/contact'; // Contact form
 
 /**
  * Create and configure the Express application
@@ -103,6 +104,7 @@ export function createApp() {
   app.use('/api/key-figures', keyFiguresRouter); // Public key figures API (Sprint 45)
   app.use('/api/milestones', milestoneContributorRouter); // Milestone contributors (Sprint 45)
   app.use('/api/search', searchRouter); // Global search API (Sprint 47)
+  app.use('/api/contact', contactRouter); // Contact form (public)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);

@@ -1,4 +1,5 @@
-import { Github, ExternalLink } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Mail } from 'lucide-react';
 
 /**
  * Footer component with links and copyright
@@ -21,16 +22,13 @@ function Footer() {
 
           {/* Links */}
           <div className="flex items-center gap-4">
-            <a
-              href="https://github.com/wyliebrown1990/ai_timeline"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/contact"
               className="flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
-              <Github className="h-4 w-4" />
-              <span>GitHub</span>
-              <ExternalLink className="h-3 w-3" />
-            </a>
+              <Mail className="h-4 w-4" />
+              <span>Contact Us</span>
+            </Link>
           </div>
         </div>
       </div>
