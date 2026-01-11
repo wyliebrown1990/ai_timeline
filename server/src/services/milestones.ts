@@ -615,3 +615,187 @@ function formatMilestoneResponse(
 
   return response;
 }
+
+// =============================================================================
+// Sprint KPC-3: Contributor Management Functions
+// =============================================================================
+
+/**
+ * Person contributor info for milestone response (Sprint KPC-3)
+ */
+export interface PersonContributor {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  imageUrl: string | null;
+  role: string;
+  currentRole: string | null;
+  contributionType: string | null;
+}
+
+/**
+ * Get contributors for a milestone (linked persons)
+ */
+export async function getContributors(milestoneId: string): Promise<PersonContributor[]> {
+  const contributors = await prisma.milestoneContributor.findMany({
+    where: { milestoneId, personId: { not: null } },
+    include: {
+      person: {
+        select: {
+          id: true,
+          canonicalName: true,
+          slug: true,
+          imageUrl: true,
+          role: true,
+          currentRole: true,
+        },
+      },
+    },
+    orderBy: { id: 'asc' },
+  });
+
+  return contributors
+    .filter((c) => c.person !== null)
+    .map((c) => ({
+      id: c.person!.id,
+      canonicalName: c.person!.canonicalName,
+      slug: c.person!.slug,
+      imageUrl: c.person!.imageUrl,
+      role: c.person!.role,
+      currentRole: c.person!.currentRole,
+      contributionType: c.contributionType,
+    }));
+}
+
+/**
+ * Add a person as a contributor to a milestone
+ */
+export async function addContributor(
+  milestoneId: string,
+  personId: string,
+  contributionType: string = 'mentioned'
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Check if link already exists
+    const existing = await prisma.milestoneContributor.findFirst({
+      where: { milestoneId, personId },
+    });
+
+    if (existing) {
+      return { success: false, error: 'Contributor already linked to this milestone' };
+    }
+
+    await prisma.milestoneContributor.create({
+      data: {
+        milestoneId,
+        personId,
+        contributionType,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding contributor:', error);
+    return { success: false, error: 'Failed to add contributor' };
+  }
+}
+
+/**
+ * Remove a person contributor from a milestone
+ */
+export async function removeContributor(
+  milestoneId: string,
+  personId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const existing = await prisma.milestoneContributor.findFirst({
+      where: { milestoneId, personId },
+    });
+
+    if (!existing) {
+      return { success: false, error: 'Contributor not found on this milestone' };
+    }
+
+    await prisma.milestoneContributor.delete({
+      where: { id: existing.id },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing contributor:', error);
+    return { success: false, error: 'Failed to remove contributor' };
+  }
+}
+
+/**
+ * Update a contributor's contribution type
+ */
+export async function updateContributorType(
+  milestoneId: string,
+  personId: string,
+  contributionType: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const existing = await prisma.milestoneContributor.findFirst({
+      where: { milestoneId, personId },
+    });
+
+    if (!existing) {
+      return { success: false, error: 'Contributor not found on this milestone' };
+    }
+
+    await prisma.milestoneContributor.update({
+      where: { id: existing.id },
+      data: { contributionType },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating contributor type:', error);
+    return { success: false, error: 'Failed to update contribution type' };
+  }
+}
+
+/**
+ * Get milestone by ID with linked person contributors (Sprint KPC-3)
+ */
+export async function getByIdWithContributors(id: string): Promise<(MilestoneResponse & { linkedContributors: PersonContributor[] }) | null> {
+  const milestone = await prisma.milestone.findUnique({
+    where: { id },
+    include: {
+      keyFigures: {
+        where: { personId: { not: null } },
+        include: {
+          person: {
+            select: {
+              id: true,
+              canonicalName: true,
+              slug: true,
+              imageUrl: true,
+              role: true,
+              currentRole: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!milestone) return null;
+
+  const formatted = formatMilestoneResponse(milestone as MilestoneRecord);
+
+  const linkedContributors: PersonContributor[] = milestone.keyFigures
+    .filter((kf) => kf.person !== null)
+    .map((kf) => ({
+      id: kf.person!.id,
+      canonicalName: kf.person!.canonicalName,
+      slug: kf.person!.slug,
+      imageUrl: kf.person!.imageUrl,
+      role: kf.person!.role,
+      currentRole: kf.person!.currentRole,
+      contributionType: kf.contributionType,
+    }));
+
+  return { ...formatted, linkedContributors };
+}

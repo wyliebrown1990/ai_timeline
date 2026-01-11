@@ -27,9 +27,10 @@ interface UseAdminMilestonesReturn {
 /**
  * Combined hook for admin milestone management
  * Provides list data and CRUD operations with automatic refetch
+ * Uses limit: 1000 to fetch all milestones for accurate dashboard stats
  */
 export function useAdminMilestones(): UseAdminMilestonesReturn {
-  const { data, isLoading, error, refetch } = useMilestones();
+  const { data, isLoading, error, refetch } = useMilestones({ limit: 1000 });
   const { create, update, remove, mutation } = useMilestoneMutation();
 
   // Create milestone and refetch list

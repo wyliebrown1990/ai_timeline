@@ -33,6 +33,9 @@ router.get('/year/:year', milestonesController.getMilestonesByYear);
 // GET /api/milestones/:id - Get a single milestone by ID
 router.get('/:id', milestonesController.getMilestoneById);
 
+// GET /api/milestones/:id/linked-persons - Get linked person contributors (Sprint KPC-3)
+router.get('/:id/linked-persons', milestonesController.getContributors);
+
 // POST /api/milestones - Create a new milestone (Admin only)
 router.post('/', requireAdmin, milestonesController.createMilestone);
 
@@ -41,5 +44,15 @@ router.put('/:id', requireAdmin, milestonesController.updateMilestone);
 
 // DELETE /api/milestones/:id - Delete a milestone (Admin only)
 router.delete('/:id', requireAdmin, milestonesController.deleteMilestone);
+
+// Sprint KPC-3: Person contributor management (Admin only)
+// POST /api/milestones/:id/linked-persons - Add a person contributor
+router.post('/:id/linked-persons', requireAdmin, milestonesController.addContributor);
+
+// DELETE /api/milestones/:id/linked-persons/:personId - Remove a person contributor
+router.delete('/:id/linked-persons/:personId', requireAdmin, milestonesController.removeContributor);
+
+// GET /api/milestones/:id/with-contributors - Get milestone with linked contributors (Admin only)
+router.get('/:id/with-contributors', requireAdmin, milestonesController.getMilestoneWithContributors);
 
 export default router;

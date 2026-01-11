@@ -360,3 +360,126 @@ export async function getTags(
     next(error);
   }
 }
+
+// =============================================================================
+// Sprint KPC-3: Contributor Management Endpoints
+// =============================================================================
+
+/**
+ * GET /api/milestones/:id/contributors
+ * Get linked person contributors for a milestone
+ */
+export async function getContributors(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    // Check if milestone exists
+    const milestone = await milestonesService.getById(id);
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    const contributors = await milestonesService.getContributors(id);
+    res.json({ data: contributors });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/admin/milestones/:id/contributors
+ * Add a person as a contributor to a milestone
+ */
+export async function addContributor(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { personId, contributionType } = req.body;
+
+    if (!personId) {
+      throw ApiError.badRequest('personId is required');
+    }
+
+    // Check if milestone exists
+    const milestone = await milestonesService.getById(id);
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    const result = await milestonesService.addContributor(
+      id,
+      personId,
+      contributionType || 'mentioned'
+    );
+
+    if (!result.success) {
+      throw ApiError.badRequest(result.error || 'Failed to add contributor');
+    }
+
+    // Return updated contributor list
+    const contributors = await milestonesService.getContributors(id);
+    res.status(201).json({ data: contributors });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * DELETE /api/admin/milestones/:id/contributors/:personId
+ * Remove a person contributor from a milestone
+ */
+export async function removeContributor(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id, personId } = req.params;
+
+    // Check if milestone exists
+    const milestone = await milestonesService.getById(id);
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    const result = await milestonesService.removeContributor(id, personId);
+
+    if (!result.success) {
+      throw ApiError.notFound(result.error || 'Contributor not found');
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/admin/milestones/:id/with-contributors
+ * Get milestone with linked contributors (for admin edit page)
+ */
+export async function getMilestoneWithContributors(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const milestone = await milestonesService.getByIdWithContributors(id);
+
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    res.json(milestone);
+  } catch (error) {
+    next(error);
+  }
+}

@@ -22,8 +22,9 @@ import { LayeredExplanationTabs, type ExplanationTab } from './LayeredExplanatio
 import { SignificanceBadge } from './SignificanceBadge';
 import { AddToFlashcardButton, PackPicker } from '../Flashcards';
 import { ContributorChip, UnlinkedContributorChip } from './ContributorChip';
+import { PersonContributorChip } from './PersonContributorChip';
 import { KeyFigureModal } from '../Glossary/KeyFigureModal';
-import { keyFiguresApi, type KeyFigureWithContribution } from '../../services/api';
+import { keyFiguresApi, milestonesApi, type KeyFigureWithContribution, type MilestoneContributor } from '../../services/api';
 
 interface MilestoneDetailProps {
   /** The milestone to display (includes layered content from API) */
@@ -96,10 +97,14 @@ export function MilestoneDetail({
   // State for PackPicker popover (Sprint 22)
   const [showPackPicker, setShowPackPicker] = useState(false);
 
-  // State for linked key figures (Sprint 47)
+  // State for linked key figures (Sprint 47 - legacy)
   const [linkedFigures, setLinkedFigures] = useState<KeyFigureWithContribution[]>([]);
   const [isLoadingFigures, setIsLoadingFigures] = useState(false);
   const [selectedFigure, setSelectedFigure] = useState<KeyFigure | null>(null);
+
+  // State for linked persons (Sprint KPC-3 - new)
+  const [linkedPersons, setLinkedPersons] = useState<MilestoneContributor[]>([]);
+  const [isLoadingPersons, setIsLoadingPersons] = useState(false);
 
   // Get the card for this milestone if it exists
   const flashcard = getCardBySource('milestone', milestone.id);
@@ -162,7 +167,7 @@ export function MilestoneDetail({
     [profile?.audienceType]
   );
 
-  // Fetch linked key figures when milestone changes (Sprint 47)
+  // Fetch linked key figures when milestone changes (Sprint 47 - legacy)
   useEffect(() => {
     async function fetchLinkedFigures() {
       try {
@@ -178,6 +183,24 @@ export function MilestoneDetail({
     }
 
     fetchLinkedFigures();
+  }, [milestone.id]);
+
+  // Fetch linked persons when milestone changes (Sprint KPC-3 - new)
+  useEffect(() => {
+    async function fetchLinkedPersons() {
+      try {
+        setIsLoadingPersons(true);
+        const response = await milestonesApi.getContributors(milestone.id);
+        setLinkedPersons(response.data);
+      } catch (err) {
+        console.error('[MilestoneDetail] Failed to fetch linked persons:', err);
+        setLinkedPersons([]);
+      } finally {
+        setIsLoadingPersons(false);
+      }
+    }
+
+    fetchLinkedPersons();
   }, [milestone.id]);
 
   // Layered content is now included in the milestone response from the API (Sprint 35)
@@ -412,18 +435,23 @@ export function MilestoneDetail({
             </div>
           )}
 
-          {/* Contributors - Sprint 47: Show linked key figures with hover cards */}
-          {(linkedFigures.length > 0 || milestone.contributors.length > 0) && (
+          {/* Contributors - Sprint 47 + KPC-3: Show linked persons and key figures */}
+          {(linkedPersons.length > 0 || linkedFigures.length > 0 || milestone.contributors.length > 0) && (
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-2 text-gray-600 dark:text-gray-400">
                 <Users className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <span className="font-medium">Key Contributors</span>
-                {isLoadingFigures && (
+                {(isLoadingFigures || isLoadingPersons) && (
                   <span className="text-xs text-gray-400">(loading...)</span>
                 )}
               </div>
               <div className="flex flex-wrap gap-2 pl-7">
-                {/* Linked key figures with hover cards */}
+                {/* Linked persons (Sprint KPC-3 - new system) */}
+                {linkedPersons.map((person) => (
+                  <PersonContributorChip key={person.id} person={person} />
+                ))}
+
+                {/* Linked key figures with hover cards (Sprint 47 - legacy) */}
                 {linkedFigures.map((item) => {
                   // Map API response to KeyFigure type (handle null -> undefined)
                   const figure: KeyFigure = {
@@ -445,10 +473,15 @@ export function MilestoneDetail({
                   );
                 })}
 
-                {/* Unlinked legacy contributors (not yet matched to key figures) */}
+                {/* Unlinked legacy contributors (not yet matched to persons or key figures) */}
                 {milestone.contributors
                   .filter(
                     (name) =>
+                      // Not matched to a linked person
+                      !linkedPersons.some(
+                        (lp) => lp.canonicalName.toLowerCase() === name.toLowerCase()
+                      ) &&
+                      // Not matched to a linked key figure
                       !linkedFigures.some(
                         (lf) =>
                           lf.keyFigure.canonicalName.toLowerCase() === name.toLowerCase() ||
