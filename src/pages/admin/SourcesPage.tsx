@@ -388,6 +388,41 @@ export function SourcesPage() {
                 </label>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Max Videos Per Fetch
+                </label>
+                <input
+                  type="number"
+                  value={config.maxVideos || 20}
+                  onChange={(e) => updateYouTubeChannelConfig({ maxVideos: parseInt(e.target.value) || 20 })}
+                  min="1"
+                  max="100"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Maximum videos to fetch per sync (1-100, default: 20)
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  History Days (optional)
+                </label>
+                <input
+                  type="number"
+                  value={config.historyDays || ''}
+                  onChange={(e) => updateYouTubeChannelConfig({ historyDays: e.target.value ? parseInt(e.target.value) : undefined })}
+                  min="1"
+                  max="365"
+                  placeholder="Unlimited"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Only fetch videos from last N days (leave empty for all)
+                </p>
+              </div>
+            </div>
           </>
         );
       }

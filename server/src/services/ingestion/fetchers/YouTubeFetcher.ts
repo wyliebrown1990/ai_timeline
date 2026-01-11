@@ -167,7 +167,23 @@ export class YouTubeFetcher implements Fetcher {
       throw new Error(`Could not resolve channel ID from: ${config.channelId}`);
     }
 
-    const videos = await youtubeApi.getChannelVideos(resolvedChannelId, undefined, 20);
+    // Use config values with sensible defaults
+    const maxVideos = Math.min(config.maxVideos || 20, 100); // Default 20, max 100
+
+    // Calculate since date if historyDays is set
+    let sinceDate: Date | undefined;
+    if (config.historyDays && config.historyDays > 0) {
+      sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - config.historyDays);
+      console.log(
+        `[YouTubeFetcher] Fetching videos from last ${config.historyDays} days (since ${sinceDate.toISOString()})`
+      );
+    }
+
+    const videos = await youtubeApi.getChannelVideos(resolvedChannelId, sinceDate, maxVideos);
+    console.log(
+      `[YouTubeFetcher] Fetched ${videos.length} videos (maxVideos: ${maxVideos}, historyDays: ${config.historyDays || 'unlimited'})`
+    );
 
     // Filter out shorts if not included
     if (!config.includeShorts) {

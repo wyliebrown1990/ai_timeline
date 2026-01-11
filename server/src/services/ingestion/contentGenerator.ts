@@ -43,6 +43,10 @@ export interface NewsEventDraft {
   prerequisiteMilestoneIds: string[]; // 2-6 milestone IDs for context
   connectionExplanation: string; // How this connects to prerequisites
   featured: boolean;
+  // Media fields
+  mediaType?: 'text' | 'video' | 'audio'; // Default: text
+  videoId?: string; // YouTube video ID for embedding
+  thumbnailUrl?: string; // Video thumbnail URL
 }
 
 export interface ContentGenerationResult {

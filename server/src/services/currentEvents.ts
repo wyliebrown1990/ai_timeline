@@ -15,6 +15,10 @@ export interface CurrentEventDto {
   isPublished: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Media fields
+  mediaType: string;
+  videoId: string | null;
+  thumbnailUrl: string | null;
 }
 
 function formatEvent(event: CurrentEvent): CurrentEventDto {
@@ -32,6 +36,10 @@ function formatEvent(event: CurrentEvent): CurrentEventDto {
     isPublished: event.isPublished,
     createdAt: event.createdAt,
     updatedAt: event.updatedAt,
+    // Media fields
+    mediaType: event.mediaType,
+    videoId: event.videoId,
+    thumbnailUrl: event.thumbnailUrl,
   };
 }
 

@@ -42,6 +42,15 @@ export const CurrentEventSchema = z.object({
 
   // Optional expiration date after which the event is considered stale
   expiresAt: z.string().optional(),
+
+  // Media type: text (default), video, or audio
+  mediaType: z.enum(['text', 'video', 'audio']).optional(),
+
+  // YouTube video ID for embedding (when mediaType is video)
+  videoId: z.string().optional(),
+
+  // Thumbnail URL for video content
+  thumbnailUrl: z.string().optional(),
 });
 
 export type CurrentEvent = z.infer<typeof CurrentEventSchema>;

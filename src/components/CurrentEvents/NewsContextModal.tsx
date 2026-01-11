@@ -12,6 +12,7 @@ import {
   Loader2,
   AlertCircle,
   Lock,
+  Video,
 } from 'lucide-react';
 import type { CurrentEvent } from '../../types/currentEvent';
 import type { MilestoneResponse } from '../../types/milestone';
@@ -19,6 +20,7 @@ import { milestonesApi } from '../../services/api';
 import { chatApi } from '../../services/chatApi';
 import { generateContextPath, saveContextPath } from '../../utils/contextPathUtils';
 import { apiKeyService } from '../../services/apiKeyService';
+import { YouTubeEmbed } from '../YouTubeEmbed';
 
 /**
  * Props for NewsContextModal component
@@ -195,6 +197,29 @@ Please give me a clear, accessible explanation that connects the history to this
     return () => document.removeEventListener('keydown', handleEscape);
   }, [onClose]);
 
+  // Lock body scroll when modal is open (prevents background scrolling on mobile)
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    const originalPosition = window.getComputedStyle(document.body).position;
+    const originalTop = window.getComputedStyle(document.body).top;
+    const scrollY = window.scrollY;
+
+    // Lock body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      // Restore body scroll
+      document.body.style.overflow = originalStyle;
+      document.body.style.position = originalPosition;
+      document.body.style.top = originalTop;
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    };
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in"
@@ -204,7 +229,7 @@ Please give me a clear, accessible explanation that connects the history to this
       aria-labelledby="modal-title"
       data-testid="news-context-modal"
     >
-      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl animate-scale-in">
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto overscroll-contain bg-white dark:bg-gray-800 rounded-2xl shadow-2xl animate-scale-in">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -246,6 +271,24 @@ Please give me a clear, accessible explanation that connects the history to this
             {event.summary}
           </p>
         </div>
+
+        {/* Video embed section (for YouTube sources) */}
+        {event.videoId && (
+          <div className="px-6 pb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Video className="w-4 h-4 text-red-600" />
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
+                Watch the Video
+              </h3>
+            </div>
+            <YouTubeEmbed
+              videoId={event.videoId}
+              title={event.headline}
+              thumbnailUrl={event.thumbnailUrl}
+              className="rounded-lg shadow-md"
+            />
+          </div>
+        )}
 
         {/* Milestones section */}
         <div className="px-6 pb-4">

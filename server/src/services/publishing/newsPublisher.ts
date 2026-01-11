@@ -72,10 +72,14 @@ export async function publishNewsEvent(draftData: NewsEventDraft): Promise<strin
       featured: draftData.featured || false,
       expiresAt: calculateExpiresAt(draftData.publishedDate),
       isPublished: true,
+      // Media fields
+      mediaType: draftData.mediaType || 'text',
+      videoId: draftData.videoId || null,
+      thumbnailUrl: draftData.thumbnailUrl || null,
     },
   });
 
-  console.log(`Published news event: ${newEvent.id} - ${draftData.headline}`);
+  console.log(`Published news event: ${newEvent.id} - ${draftData.headline} (mediaType: ${draftData.mediaType || 'text'})`);
 
   return newEvent.id;
 }

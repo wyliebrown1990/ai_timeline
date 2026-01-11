@@ -1,11 +1,12 @@
 /**
  * Article Analyzer - Orchestration Service
  *
- * Coordinates the 4-stage AI analysis pipeline:
+ * Coordinates the 5-stage AI analysis pipeline:
  * - Stage 1: Screening (Haiku) - Relevance and milestone determination
  * - Stage 2: Content Generation (Sonnet) - Full content for milestone-worthy articles
  * - Stage 3: Glossary Extraction (Haiku) - New AI terminology
  * - Stage 4: Key Figure Extraction (Haiku) - Notable people mentioned (Sprint 46)
+ * - Stage 5: Entity Extraction (Haiku) - Person/Org detection for KPC system (Sprint KPC-4)
  *
  * Includes retry logic for transient failures (Sprint 32.11)
  */
@@ -19,6 +20,11 @@ import {
   processExtractedFigures,
   type ProcessingResult as KeyFigureProcessingResult,
 } from './keyFigureExtractor';
+import {
+  extractEntities,
+  type EntityExtractionResult,
+  type ExtractedPerson,
+} from './entityExtraction';
 import { withRetry, resolveArticleErrors } from '../errorTracker';
 
 // Import schemas for validation
@@ -28,11 +34,43 @@ import {
 import { CurrentEventSchema } from '../../../../src/types/currentEvent';
 import { GlossaryEntrySchema } from '../../../../src/types/glossary';
 
+/**
+ * Extract YouTube video ID from a URL
+ * Supports: youtube.com/watch?v=ID, youtu.be/ID, youtube.com/embed/ID
+ */
+function extractYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+
+  // Match youtube.com/watch?v=VIDEO_ID
+  const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+
+  // Match youtu.be/VIDEO_ID
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+
+  // Match youtube.com/embed/VIDEO_ID
+  const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+
+  return null;
+}
+
+/**
+ * Generate YouTube thumbnail URL from video ID
+ * Uses maxresdefault with fallback to hqdefault
+ */
+function getYouTubeThumbnailUrl(videoId: string): string {
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+}
+
 export interface AnalysisResult {
   screening: ScreeningResult;
   contentGeneration?: ContentGenerationResult;
   glossaryTerms: GlossaryTermDraft[];
   keyFigures?: KeyFigureProcessingResult;
+  entityExtraction?: EntityExtractionResult;
+  personDraftsCreated: number;
   draftsCreated: number;
 }
 
@@ -160,8 +198,20 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
 
     // Validate and save news event draft
     if (contentGeneration.newsEvent) {
-      const eventData = {
+      // Enrich with video info if source is YouTube
+      const videoId = extractYouTubeVideoId(article.externalUrl);
+      const mediaType = videoId ? 'video' : 'text';
+      const enrichedNewsEvent = {
         ...contentGeneration.newsEvent,
+        mediaType,
+        ...(videoId && {
+          videoId,
+          thumbnailUrl: getYouTubeThumbnailUrl(videoId),
+        }),
+      };
+
+      const eventData = {
+        ...enrichedNewsEvent,
         id: `evt_${Date.now()}`, // Generate ID
       };
       const eventValidation = CurrentEventSchema.safeParse(eventData);
@@ -170,7 +220,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
           articleId,
           contentType: 'news_event',
           // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
-          draftData: contentGeneration.newsEvent,
+          draftData: enrichedNewsEvent,
           isValid: eventValidation.success,
           validationErrors: eventValidation.success
             ? null
@@ -178,7 +228,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         },
       });
       draftsCreated++;
-      console.log(`[Analyzer] Created news event draft (valid=${eventValidation.success})`);
+      console.log(`[Analyzer] Created news event draft (valid=${eventValidation.success}, hasVideo=${!!videoId})`);
     }
   }
 
@@ -293,6 +343,52 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     }
   }
 
+  // Stage 5: Entity Extraction (Sprint KPC-4)
+  // Extract persons and organizations for the new KPC system
+  let entityExtractionResult: EntityExtractionResult | undefined;
+  let personDraftsCreated = 0;
+
+  if (screening.isMilestoneWorthy || screening.relevanceScore >= 0.6) {
+    console.log(`[Analyzer] Stage 5: Extracting entities (KPC-4)`);
+
+    try {
+      // Extract entities from article content
+      entityExtractionResult = await extractEntities(
+        {
+          title: article.title,
+          content: article.content,
+        },
+        apiKey
+      );
+
+      console.log(
+        `[Analyzer] Extracted ${entityExtractionResult.persons.length} persons, ` +
+        `${entityExtractionResult.organizations.length} organizations`
+      );
+
+      // Create PersonDraft records for extracted persons
+      if (entityExtractionResult.persons.length > 0) {
+        personDraftsCreated = await createPersonDraftsFromExtraction(
+          article.id,
+          entityExtractionResult.persons
+        );
+        console.log(`[Analyzer] Created ${personDraftsCreated} person drafts`);
+      }
+
+      // Note: Organization drafts will be added in a future sprint
+      // For now, log organizations for visibility
+      if (entityExtractionResult.organizations.length > 0) {
+        console.log(
+          `[Analyzer] Organizations detected (not stored yet):`,
+          entityExtractionResult.organizations.map((o) => o.name).join(', ')
+        );
+      }
+    } catch (entityError) {
+      // Log error but don't fail the entire analysis pipeline
+      console.error(`[Analyzer] Entity extraction error (non-fatal):`, entityError);
+    }
+  }
+
   // Mark complete
   await prisma.ingestedArticle.update({
     where: { id: articleId },
@@ -302,13 +398,15 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     },
   });
 
-  console.log(`[Analyzer] Analysis complete. Created ${draftsCreated} drafts.`);
+  console.log(`[Analyzer] Analysis complete. Created ${draftsCreated} content drafts, ${personDraftsCreated} person drafts.`);
 
   return {
     screening,
     contentGeneration,
     glossaryTerms,
     keyFigures: keyFigureResult,
+    entityExtraction: entityExtractionResult,
+    personDraftsCreated,
     draftsCreated,
   };
 }
@@ -513,5 +611,108 @@ async function getPendingGlossaryDrafts(): Promise<string[]> {
   } catch (error) {
     console.error('[Analyzer] Failed to load pending glossary drafts:', error);
     return [];
+  }
+}
+
+// ============================================================================
+// Stage 5: Entity Extraction Helpers (Sprint KPC-4)
+// ============================================================================
+
+/**
+ * Create PersonDraft records from extracted persons
+ * Handles deduplication and stores drafts for review
+ *
+ * @param articleId - The source article ID
+ * @param persons - Extracted person entities
+ * @returns Number of drafts created
+ */
+async function createPersonDraftsFromExtraction(
+  articleId: string,
+  persons: ExtractedPerson[]
+): Promise<number> {
+  let draftsCreated = 0;
+
+  // Get existing drafts for this article to avoid duplicates
+  const existingDrafts = await prisma.personDraft.findMany({
+    where: { articleId },
+    select: { normalizedName: true },
+  });
+  const existingNames = new Set(existingDrafts.map((d) => d.normalizedName.toLowerCase()));
+
+  // Also check for exact matches against existing Person records
+  const existingPersons = await prisma.person.findMany({
+    select: { canonicalName: true, aliases: true },
+  });
+  const existingPersonNames = new Set<string>();
+  for (const person of existingPersons) {
+    existingPersonNames.add(person.canonicalName.toLowerCase());
+    const aliases: string[] = JSON.parse(person.aliases || '[]');
+    for (const alias of aliases) {
+      existingPersonNames.add(alias.toLowerCase());
+    }
+  }
+
+  for (const person of persons) {
+    const normalizedName = person.name.trim().toLowerCase();
+
+    // Skip if we already have a draft for this name
+    if (existingNames.has(normalizedName)) {
+      console.log(`[Analyzer] Skipping duplicate draft for: ${person.name}`);
+      continue;
+    }
+
+    // Skip if this person already exists in the database
+    if (existingPersonNames.has(normalizedName)) {
+      console.log(`[Analyzer] Skipping known person: ${person.name}`);
+      continue;
+    }
+
+    // Map extracted role to person role enum
+    const suggestedRole = mapMentionTypeToRole(person.mentionType, person.role);
+
+    try {
+      await prisma.personDraft.create({
+        data: {
+          articleId,
+          extractedName: person.name,
+          normalizedName: person.name.trim(),
+          context: person.context.substring(0, 500),
+          suggestedOrg: person.organization || null,
+          suggestedRole: suggestedRole,
+          status: 'pending',
+        },
+      });
+
+      existingNames.add(normalizedName);
+      draftsCreated++;
+    } catch (createError) {
+      // Log but continue - might be a race condition duplicate
+      console.error(`[Analyzer] Failed to create person draft for ${person.name}:`, createError);
+    }
+  }
+
+  return draftsCreated;
+}
+
+/**
+ * Map extracted mention type and role to a person role
+ */
+function mapMentionTypeToRole(
+  mentionType: 'subject' | 'quoted' | 'mentioned',
+  role?: string
+): string {
+  // If we have an explicit role from extraction, use it
+  if (role) {
+    return role;
+  }
+
+  // Default based on mention type
+  switch (mentionType) {
+    case 'subject':
+      return 'executive'; // Main subjects are often executives/leaders
+    case 'quoted':
+      return 'researcher'; // Quoted sources are often experts/researchers
+    default:
+      return 'other';
   }
 }

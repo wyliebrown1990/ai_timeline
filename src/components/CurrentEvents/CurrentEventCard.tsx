@@ -1,4 +1,4 @@
-import { ChevronRight, ExternalLink, Calendar } from 'lucide-react';
+import { ChevronRight, ExternalLink, Calendar, Play } from 'lucide-react';
 import type { CurrentEvent } from '../../types/currentEvent';
 
 /**
@@ -57,12 +57,20 @@ export function CurrentEventCard({
         }
       }}
     >
-      {/* Featured badge - positioned inside card, top-right with space for headline */}
-      {event.featured && (
-        <span className="absolute top-3 right-3 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
-          Featured
-        </span>
-      )}
+      {/* Badges - positioned inside card, top-right with space for headline */}
+      <div className="absolute top-3 right-3 flex items-center gap-2">
+        {event.videoId && (
+          <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-full">
+            <Play className="w-3 h-3" fill="currentColor" />
+            Video
+          </span>
+        )}
+        {event.featured && (
+          <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 rounded-full">
+            Featured
+          </span>
+        )}
+      </div>
 
       {/* Headline - extra right padding to avoid overlap with Featured badge */}
       <h3 className="font-semibold text-gray-900 dark:text-white text-base leading-snug group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors pr-20">

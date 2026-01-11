@@ -72,6 +72,10 @@ export interface YouTubeChannelConfig {
   channelId: string;
   transcriptLanguage?: string;
   includeShorts?: boolean;
+  /** Maximum videos to fetch per sync (default: 20, max: 100) */
+  maxVideos?: number;
+  /** Only fetch videos published within this many days (default: no limit on first fetch, 7 days for recurring) */
+  historyDays?: number;
 }
 
 /**
