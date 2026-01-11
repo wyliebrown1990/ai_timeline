@@ -580,3 +580,136 @@ export async function mergeKeyFigures(
     figuresDeleted: secondaryIds.length,
   };
 }
+
+// =============================================================================
+// AI Profile Generation
+// =============================================================================
+
+import Anthropic from '@anthropic-ai/sdk';
+
+/**
+ * Generated profile fields from AI
+ */
+export interface GeneratedProfile {
+  entityType: 'person' | 'organization';
+  role: KeyFigureRole;
+  shortBio: string;
+  fullBio: string;
+  notableFor: string;
+  primaryOrg: string | null;
+  previousOrgs: string[];
+  wikipediaUrl: string | null;
+  twitterHandle: string | null;
+}
+
+/**
+ * Use Claude to generate profile fields for a key figure or organization
+ */
+export async function generateProfileWithAI(name: string): Promise<GeneratedProfile> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY not configured');
+  }
+
+  const client = new Anthropic({ apiKey });
+
+  const systemPrompt = `You are an AI expert assistant that generates profile information for key figures and organizations in the AI/ML field. You have extensive knowledge of AI researchers, executives, founders, engineers, and organizations.
+
+Your task is to generate accurate profile information based on your knowledge. If you don't have reliable information about someone, indicate that in your response rather than making up details.
+
+IMPORTANT: First determine if the name refers to a PERSON or an ORGANIZATION (company, research lab, university, etc).`;
+
+  const userPrompt = `Generate a profile for: "${name}"
+
+First, determine if this is a PERSON or an ORGANIZATION.
+
+Then provide the following fields in JSON format:
+
+{
+  "entityType": "person" or "organization",
+  "role": one of ["researcher", "executive", "founder", "policy_maker", "engineer", "other"],
+  "shortBio": "A concise 1-2 sentence biography (max 200 characters)",
+  "fullBio": "A detailed 2-4 paragraph biography covering their background, career, and impact on AI",
+  "notableFor": "Their key contribution or what they are most known for (max 300 characters)",
+  "primaryOrg": "Current primary organization/company affiliation, or null if unknown",
+  "previousOrgs": ["Array of previous notable organizations"],
+  "wikipediaUrl": "Wikipedia URL if they have one, or null",
+  "twitterHandle": "Twitter/X handle without @ symbol, or null"
+}
+
+For ORGANIZATIONS:
+- role should be "other"
+- shortBio should describe what the organization does
+- fullBio should cover founding, mission, key products/research, and impact
+- notableFor should be their main achievement or focus area
+- primaryOrg should be null (they ARE the org)
+- previousOrgs can include parent companies or acquisitions
+
+Guidelines:
+- Be accurate - only include information you're confident about
+- For role: use "researcher" for academics/scientists, "executive" for C-level, "founder" for company founders, "engineer" for technical leaders
+- If you're not sure about URLs or handles, set them to null
+- Keep shortBio under 200 characters
+- Keep notableFor under 300 characters
+
+Return ONLY valid JSON, no markdown or explanation.`;
+
+  console.log(`[KeyFigures] Generating AI profile for: ${name}`);
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [
+        {
+          role: 'user',
+          content: userPrompt,
+        },
+      ],
+      system: systemPrompt,
+    });
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+
+    console.log(`[KeyFigures] AI response length: ${text.length}`);
+
+    // Parse JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('No JSON object found in AI response');
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+
+    // Validate and clean the response
+    const profile: GeneratedProfile = {
+      entityType: parsed.entityType === 'organization' ? 'organization' : 'person',
+      role: validateRole(parsed.role),
+      shortBio: String(parsed.shortBio || '').slice(0, 500),
+      fullBio: String(parsed.fullBio || ''),
+      notableFor: String(parsed.notableFor || '').slice(0, 500),
+      primaryOrg: parsed.primaryOrg || null,
+      previousOrgs: Array.isArray(parsed.previousOrgs) ? parsed.previousOrgs : [],
+      wikipediaUrl: parsed.wikipediaUrl || null,
+      twitterHandle: parsed.twitterHandle?.replace('@', '') || null,
+    };
+
+    console.log(`[KeyFigures] Generated profile for ${name}: entityType=${profile.entityType}, role=${profile.role}`);
+
+    return profile;
+  } catch (error) {
+    console.error(`[KeyFigures] AI profile generation error:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Validate role is one of the allowed values
+ */
+function validateRole(role: unknown): KeyFigureRole {
+  const validRoles: KeyFigureRole[] = ['researcher', 'executive', 'founder', 'policy_maker', 'engineer', 'other'];
+  if (typeof role === 'string' && validRoles.includes(role as KeyFigureRole)) {
+    return role as KeyFigureRole;
+  }
+  return 'other';
+}

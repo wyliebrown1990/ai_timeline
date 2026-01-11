@@ -556,3 +556,27 @@ export async function mergeKeyFigures(
     next(error);
   }
 }
+
+/**
+ * POST /api/admin/key-figures/generate-profile
+ * Use AI to generate profile fields for a key figure based on their name
+ */
+export async function generateProfile(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      throw ApiError.badRequest('A valid name is required (at least 2 characters)');
+    }
+
+    const profile = await keyFiguresService.generateProfileWithAI(name.trim());
+
+    res.json(profile);
+  } catch (error) {
+    next(error);
+  }
+}

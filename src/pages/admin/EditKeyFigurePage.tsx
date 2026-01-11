@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Sparkles, Wand2, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
   keyFiguresApi,
@@ -33,6 +33,7 @@ export function EditKeyFigurePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingVariants, setIsGeneratingVariants] = useState(false);
+  const [isGeneratingProfile, setIsGeneratingProfile] = useState(false);
   const [keyFigure, setKeyFigure] = useState<KeyFigure | null>(null);
 
   const [formData, setFormData] = useState<UpdateKeyFigureDto>({
@@ -117,6 +118,42 @@ export function EditKeyFigurePage() {
       console.error(error);
     } finally {
       setIsGeneratingVariants(false);
+    }
+  };
+
+  // Generate profile with AI
+  const handleGenerateProfile = async () => {
+    if (!formData.canonicalName?.trim()) {
+      toast.error('Enter a name first');
+      return;
+    }
+
+    setIsGeneratingProfile(true);
+    try {
+      const profile = await keyFiguresApi.generateProfile(formData.canonicalName);
+
+      // Update form with generated profile
+      setFormData({
+        ...formData,
+        role: profile.role,
+        shortBio: profile.shortBio,
+        fullBio: profile.fullBio,
+        notableFor: profile.notableFor,
+        primaryOrg: profile.primaryOrg || '',
+        previousOrgs: profile.previousOrgs.length > 0
+          ? [...new Set([...(formData.previousOrgs || []), ...profile.previousOrgs])]
+          : formData.previousOrgs,
+        wikipediaUrl: profile.wikipediaUrl || formData.wikipediaUrl || '',
+        twitterHandle: profile.twitterHandle || formData.twitterHandle || '',
+      });
+
+      const entityLabel = profile.entityType === 'organization' ? 'organization' : 'person';
+      toast.success(`Generated profile for ${entityLabel}: ${formData.canonicalName}`);
+    } catch (error) {
+      toast.error('Failed to generate profile');
+      console.error(error);
+    } finally {
+      setIsGeneratingProfile(false);
     }
   };
 
@@ -308,7 +345,22 @@ export function EditKeyFigurePage() {
 
         {/* Biography */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">Biography</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Biography</h2>
+            <button
+              type="button"
+              onClick={handleGenerateProfile}
+              disabled={isGeneratingProfile || !formData.canonicalName?.trim()}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isGeneratingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+              {isGeneratingProfile ? 'Generating...' : 'Generate with AI'}
+            </button>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

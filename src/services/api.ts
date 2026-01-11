@@ -2526,6 +2526,21 @@ export interface KeyFigure {
 }
 
 /**
+ * Generated profile from AI
+ */
+export interface GeneratedKeyFigureProfile {
+  entityType: 'person' | 'organization';
+  role: KeyFigureRole;
+  shortBio: string;
+  fullBio: string;
+  notableFor: string;
+  primaryOrg: string | null;
+  previousOrgs: string[];
+  wikipediaUrl: string | null;
+  twitterHandle: string | null;
+}
+
+/**
  * DTO for creating a key figure
  */
 export interface CreateKeyFigureDto {
@@ -2668,6 +2683,20 @@ export const keyFiguresApi = {
   async generateVariants(name: string): Promise<{ id: string; variants: string[] }> {
     return fetchJson<{ id: string; variants: string[] }>(
       `${API_BASE}/admin/key-figures/generate-variants`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name }),
+      }
+    );
+  },
+
+  /**
+   * Generate profile with AI (admin utility)
+   */
+  async generateProfile(name: string): Promise<GeneratedKeyFigureProfile> {
+    return fetchJson<GeneratedKeyFigureProfile>(
+      `${API_BASE}/admin/key-figures/generate-profile`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
