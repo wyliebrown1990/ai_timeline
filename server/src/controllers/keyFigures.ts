@@ -580,3 +580,115 @@ export async function generateProfile(
     next(error);
   }
 }
+
+/**
+ * POST /api/admin/key-figures/process-all-drafts
+ * Process all draft key figures: generate AI profiles and publish them
+ * This endpoint runs in Lambda where it can access the VPC database
+ */
+export async function processAllDrafts(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { dryRun = false } = req.body;
+
+    console.log(`[KeyFigures] Processing all drafts (dryRun: ${dryRun})`);
+
+    // Fetch all draft key figures
+    const { keyFigures: drafts, total } = await keyFiguresService.getAll({
+      status: 'draft',
+      limit: 100,
+    });
+
+    console.log(`[KeyFigures] Found ${total} draft key figures`);
+
+    if (drafts.length === 0) {
+      res.json({
+        message: 'No draft key figures found',
+        processed: 0,
+        success: 0,
+        errors: 0,
+        results: [],
+      });
+      return;
+    }
+
+    const results: Array<{
+      id: string;
+      name: string;
+      success: boolean;
+      error?: string;
+    }> = [];
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const draft of drafts) {
+      try {
+        console.log(`[KeyFigures] Processing: ${draft.canonicalName}`);
+
+        // Generate AI profile
+        const profile = await keyFiguresService.generateProfileWithAI(draft.canonicalName);
+
+        if (!dryRun) {
+          // Build update data
+          const updateData: keyFiguresService.UpdateKeyFigureDto = {
+            role: profile.role,
+            shortBio: profile.shortBio,
+            fullBio: profile.fullBio,
+            notableFor: profile.notableFor,
+            status: 'published',
+          };
+
+          // Only update primaryOrg if we got one and current is empty
+          if (profile.primaryOrg && !draft.primaryOrg) {
+            updateData.primaryOrg = profile.primaryOrg;
+          }
+
+          // Merge previous orgs
+          const currentPrevOrgs: string[] = draft.previousOrgs ? JSON.parse(draft.previousOrgs) : [];
+          const newPrevOrgs = [...new Set([...currentPrevOrgs, ...profile.previousOrgs])];
+          if (newPrevOrgs.length > currentPrevOrgs.length) {
+            updateData.previousOrgs = newPrevOrgs;
+          }
+
+          // Update URLs if missing
+          if (profile.wikipediaUrl && !draft.wikipediaUrl) {
+            updateData.wikipediaUrl = profile.wikipediaUrl;
+          }
+          if (profile.twitterHandle && !draft.twitterHandle) {
+            updateData.twitterHandle = profile.twitterHandle;
+          }
+
+          await keyFiguresService.update(draft.id, updateData);
+        }
+
+        console.log(`[KeyFigures] ✓ ${dryRun ? 'Would publish' : 'Published'}: ${draft.canonicalName}`);
+        results.push({ id: draft.id, name: draft.canonicalName, success: true });
+        successCount++;
+
+        // Rate limiting - wait between API calls
+        if (drafts.indexOf(draft) < drafts.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.log(`[KeyFigures] ✗ Error for ${draft.canonicalName}: ${errorMessage}`);
+        results.push({ id: draft.id, name: draft.canonicalName, success: false, error: errorMessage });
+        errorCount++;
+      }
+    }
+
+    res.json({
+      message: dryRun ? 'Dry run complete' : 'Processing complete',
+      processed: drafts.length,
+      success: successCount,
+      errors: errorCount,
+      results,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -43,6 +43,9 @@ adminRouter.post('/generate-variants', requireAdmin, keyFiguresController.genera
 // POST /api/admin/key-figures/generate-profile - Generate profile with AI
 adminRouter.post('/generate-profile', requireAdmin, keyFiguresController.generateProfile);
 
+// POST /api/admin/key-figures/process-all-drafts - Process all drafts with AI and publish
+adminRouter.post('/process-all-drafts', requireAdmin, keyFiguresController.processAllDrafts);
+
 // POST /api/admin/key-figures/merge - Merge multiple key figures into one
 adminRouter.post('/merge', requireAdmin, keyFiguresController.mergeKeyFigures);
 
