@@ -17,7 +17,9 @@ model Milestone {
   category             String
   significance         Int
   era                  String?
-  organization         String?
+  organization         String?  // Legacy string field (kept for backwards compatibility)
+  organizationId       String?  // New FK to Organization
+  organizationRef      Organization? @relation(fields: [organizationId], references: [id])
   contributors         String   @default("[]") // Legacy JSON array, migrating to MilestoneContributor
   sourceUrl            String?
   imageUrl             String?
@@ -39,6 +41,7 @@ model Milestone {
   @@index([date])
   @@index([category])
   @@index([era])
+  @@index([organizationId])
 }
 
 /// Source type enum for multi-source ingestion
@@ -100,7 +103,8 @@ model IngestedArticle {
 
   // Relations
   drafts          ContentDraft[]
-  keyFigureDrafts KeyFigureDraft[] // Sprint 44
+  keyFigureDrafts KeyFigureDraft[] // Sprint 44 (legacy)
+  personDrafts    PersonDraft[]    // Sprint KPC
 
   @@index([sourceId])
   @@index([publishedAt])
@@ -301,20 +305,253 @@ model CurrentEvent {
   featured                 Boolean   @default(false)
   expiresAt                DateTime?
   isPublished              Boolean   @default(true)
+  // Media fields
+  mediaType                String    @default("text") // text, video, audio
+  videoId                  String?   // YouTube video ID for embedding
+  thumbnailUrl             String?   // Video thumbnail URL
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
+
+  // Entity mentions (Sprint KPC)
+  personMentions           NewsEventPersonMention[]
+  orgMentions              NewsEventOrgMention[]
 
   @@index([featured])
   @@index([publishedDate])
   @@index([isPublished])
   @@index([expiresAt])
+  @@index([mediaType])
 }
 
 // =============================================================================
-// Key Figures System (Sprint 44)
+// Key People & Companies System (Sprint KPC)
 // =============================================================================
 
-/// Key figure in AI history (researcher, executive, founder, etc.)
+/// Organization type enum
+enum OrgType {
+  company
+  research_lab
+  university
+  nonprofit
+  government
+}
+
+/// Organization in the AI ecosystem (companies, labs, universities, nonprofits)
+model Organization {
+  id               String   @id // kebab-case: "openai", "google-deepmind"
+  name             String   @unique
+  slug             String   @unique
+
+  // Classification
+  type             OrgType  @default(company)
+
+  // Content sections
+  shortDescription String   // 1-2 sentences
+  mission          String?  // Mission statement
+  history          String?  // Founding story, evolution
+  currentFocus     String?  // What they're working on now (auto-updated)
+  currentFocusUpdatedAt DateTime?
+
+  // Key areas
+  focusAreas       String   @default("[]") // JSON: ["LLMs", "Robotics", "Safety"]
+  products         String   @default("[]") // JSON: ["ChatGPT", "GPT-4", "DALL-E"]
+
+  // Media
+  logoUrl          String?
+
+  // External links
+  websiteUrl       String?
+  wikipediaUrl     String?
+  linkedInUrl      String?
+
+  // Details
+  foundedYear      Int?
+  headquarters     String?
+
+  // Relationships
+  currentEmployees Person[]       @relation("CurrentEmployees")
+  affiliations     Affiliation[]
+  milestones       Milestone[]
+  newsEventMentions NewsEventOrgMention[]
+
+  // Metadata
+  status           String   @default("published") // draft, published
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([slug])
+}
+
+/// Person in AI (researcher, executive, founder, etc.) - evolved from KeyFigure
+model Person {
+  id              String   @id // kebab-case: "geoffrey-hinton"
+  canonicalName   String   @unique // "Geoffrey Hinton"
+  slug            String   @unique
+  aliases         String   @default("[]") // JSON: ["Geoff Hinton", "G. Hinton"]
+
+  // Structured biography sections
+  shortBio        String   // 1-2 sentences
+  background      String?  // Education, early life, academic background
+  careerHistory   String?  // Career narrative and progression
+  contributions   String?  // Major AI contributions and innovations
+  philosophy      String?  // Research approach, beliefs, notable perspectives
+  currentlyDoing  String?  // What they're working on now (auto-updated from news)
+  currentlyDoingUpdatedAt DateTime?
+
+  // Legacy fields (kept for backwards compatibility, will be deprecated)
+  fullBio         String?  // Detailed biography (legacy - use structured sections)
+  primaryOrg      String?  // Current affiliation (legacy - use currentOrgId)
+  previousOrgs    String   @default("[]") // JSON array (legacy - use affiliations)
+  notableFor      String?  // Key contribution summary (legacy - use contributions)
+
+  // Classification
+  role            String   // researcher, executive, founder, policy_maker, engineer, other
+  focusAreas      String   @default("[]") // JSON: ["LLMs", "Safety", "Scaling"]
+
+  // Current affiliation (denormalized for quick access)
+  currentOrgId    String?
+  currentOrg      Organization? @relation("CurrentEmployees", fields: [currentOrgId], references: [id])
+  currentRole     String?  // Current job title
+
+  // Media
+  imageUrl        String?
+
+  // External links
+  wikipediaUrl    String?
+  linkedInUrl     String?
+  twitterHandle   String?
+  personalWebsite String?
+  googleScholarUrl String?
+
+  // Relationships
+  affiliations     Affiliation[]
+  milestoneLinks   MilestoneContributor[]
+  newsEventMentions NewsEventPersonMention[]
+  matchedDrafts    PersonDraft[] @relation("MatchedPerson")
+
+  // Metadata
+  status          String   @default("published") // draft, pending_review, published
+  sourceArticleId String?  // If extracted from ingested article
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([canonicalName])
+  @@index([slug])
+  @@index([role])
+  @@index([status])
+  @@index([currentOrgId])
+}
+
+/// Affiliation - tracks person's career history at organizations
+model Affiliation {
+  id            String       @id @default(cuid())
+  personId      String
+  person        Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  orgId         String
+  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  role          String       // Job title: "CEO", "Research Scientist", "Professor"
+  startDate     DateTime?
+  endDate       DateTime?    // null = current position
+  isCurrent     Boolean      @default(false)
+  notes         String?      // Optional context
+
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([personId, orgId, role, startDate])
+  @@index([personId])
+  @@index([orgId])
+  @@index([isCurrent])
+}
+
+/// News event person mention - links CurrentEvent to Person
+model NewsEventPersonMention {
+  id          String       @id @default(cuid())
+  eventId     String
+  event       CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  personId    String
+  person      Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  mentionType String       @default("mentioned") // mentioned, subject, quoted
+  context     String?      // Sentence where mentioned
+
+  createdAt   DateTime     @default(now())
+
+  @@unique([eventId, personId])
+  @@index([eventId])
+  @@index([personId])
+}
+
+/// News event organization mention - links CurrentEvent to Organization
+model NewsEventOrgMention {
+  id          String       @id @default(cuid())
+  eventId     String
+  event       CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orgId       String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  mentionType String       @default("mentioned") // mentioned, subject, announcement
+  context     String?      // Sentence where mentioned
+
+  createdAt   DateTime     @default(now())
+
+  @@unique([eventId, orgId])
+  @@index([eventId])
+  @@index([orgId])
+}
+
+/// Draft person extracted from article, pending review (evolved from KeyFigureDraft)
+model PersonDraft {
+  id              String          @id @default(cuid())
+  articleId       String
+  article         IngestedArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  extractedName   String          // Raw name from article
+  normalizedName  String          // Processed for matching
+  context         String          // Sentence where mentioned
+  suggestedBio    String?         // LLM-generated draft bio
+  suggestedOrg    String?
+  suggestedRole   String?
+  matchedPersonId String?         // Potential duplicate match
+  matchedPerson   Person?         @relation("MatchedPerson", fields: [matchedPersonId], references: [id])
+  matchConfidence Float?          // 0-1 match score
+  status          String          @default("pending") // pending, approved, rejected, merged
+  reviewNotes     String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([articleId])
+  @@index([matchedPersonId])
+}
+
+/// Currently Doing update draft - pending review
+model CurrentlyDoingDraft {
+  id              String   @id @default(cuid())
+  personId        String
+  proposedText    String
+  sourceArticleId String?
+  sourceEventId   String?
+  changeType      String   // career, research, announcement
+  confidence      Float
+  status          String   @default("pending") // pending, approved, rejected
+  reviewNotes     String?
+  createdAt       DateTime @default(now())
+  reviewedAt      DateTime?
+
+  @@index([personId])
+  @@index([status])
+}
+
+// =============================================================================
+// Legacy Key Figures System (Sprint 44) - DEPRECATED, use Person model above
+// Kept for backwards compatibility during migration
+// =============================================================================
+
+/// Key figure in AI history - DEPRECATED: Use Person model instead
+/// @deprecated Use Person model - this will be removed after migration
 model KeyFigure {
   id              String   @id // kebab-case: "geoffrey-hinton"
   canonicalName   String   @unique // "Geoffrey Hinton"
@@ -343,18 +580,27 @@ model KeyFigure {
   @@index([status])
 }
 
-/// Junction table linking milestones to key figures
+/// Junction table linking milestones to key figures/persons
 model MilestoneContributor {
   id               String    @id @default(cuid())
   milestoneId      String
   milestone        Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  keyFigureId      String
-  keyFigure        KeyFigure @relation(fields: [keyFigureId], references: [id], onDelete: Cascade)
+
+  // Legacy: links to KeyFigure (will be deprecated)
+  keyFigureId      String?
+  keyFigure        KeyFigure? @relation(fields: [keyFigureId], references: [id], onDelete: Cascade)
+
+  // New: links to Person
+  personId         String?
+  person           Person?    @relation(fields: [personId], references: [id], onDelete: Cascade)
+
   contributionType String? // lead, co_author, advisor, founder, mentioned
 
   @@unique([milestoneId, keyFigureId])
+  @@unique([milestoneId, personId])
   @@index([milestoneId])
   @@index([keyFigureId])
+  @@index([personId])
 }
 
 /// Draft key figure extracted from article, pending review
