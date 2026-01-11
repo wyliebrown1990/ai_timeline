@@ -25,6 +25,7 @@ import {
   type EntityExtractionResult,
   type ExtractedPerson,
 } from './entityExtraction';
+import { matchPerson } from '../entityMatcher';
 import { withRetry, resolveArticleErrors } from '../errorTracker';
 
 // Import schemas for validation
@@ -618,9 +619,13 @@ async function getPendingGlossaryDrafts(): Promise<string[]> {
 // Stage 5: Entity Extraction Helpers (Sprint KPC-4)
 // ============================================================================
 
+// Thresholds for PersonDraft fuzzy matching
+const PERSON_AUTO_SKIP_THRESHOLD = 0.95; // Skip draft creation - person definitely exists
+const PERSON_SUGGESTION_THRESHOLD = 0.80; // Include suggested match in draft
+
 /**
  * Create PersonDraft records from extracted persons
- * Handles deduplication and stores drafts for review
+ * Uses fuzzy matching to prevent duplicates and suggest matches
  *
  * @param articleId - The source article ID
  * @param persons - Extracted person entities
@@ -631,44 +636,55 @@ async function createPersonDraftsFromExtraction(
   persons: ExtractedPerson[]
 ): Promise<number> {
   let draftsCreated = 0;
+  let skippedAsKnown = 0;
 
   // Get existing drafts for this article to avoid duplicates
   const existingDrafts = await prisma.personDraft.findMany({
     where: { articleId },
     select: { normalizedName: true },
   });
-  const existingNames = new Set(existingDrafts.map((d) => d.normalizedName.toLowerCase()));
-
-  // Also check for exact matches against existing Person records
-  const existingPersons = await prisma.person.findMany({
-    select: { canonicalName: true, aliases: true },
-  });
-  const existingPersonNames = new Set<string>();
-  for (const person of existingPersons) {
-    existingPersonNames.add(person.canonicalName.toLowerCase());
-    const aliases: string[] = JSON.parse(person.aliases || '[]');
-    for (const alias of aliases) {
-      existingPersonNames.add(alias.toLowerCase());
-    }
-  }
+  const existingDraftNames = new Set(existingDrafts.map((d) => d.normalizedName.toLowerCase()));
 
   for (const person of persons) {
     const normalizedName = person.name.trim().toLowerCase();
 
-    // Skip if we already have a draft for this name
-    if (existingNames.has(normalizedName)) {
+    // Skip if we already have a draft for this name in this article
+    if (existingDraftNames.has(normalizedName)) {
       console.log(`[Analyzer] Skipping duplicate draft for: ${person.name}`);
       continue;
     }
 
-    // Skip if this person already exists in the database
-    if (existingPersonNames.has(normalizedName)) {
-      console.log(`[Analyzer] Skipping known person: ${person.name}`);
+    // Use fuzzy matching against existing Person records
+    const matchResult = await matchPerson(person.name);
+
+    // If high-confidence match, skip draft creation entirely
+    if (matchResult.matched && matchResult.confidence >= PERSON_AUTO_SKIP_THRESHOLD) {
+      console.log(
+        `[Analyzer] Skipping "${person.name}" - matches existing person ` +
+        `"${matchResult.person?.canonicalName}" (${(matchResult.confidence * 100).toFixed(0)}%)`
+      );
+      skippedAsKnown++;
       continue;
     }
 
     // Map extracted role to person role enum
     const suggestedRole = mapMentionTypeToRole(person.mentionType, person.role);
+
+    // Determine if we should include a suggested match
+    let matchedPersonId: string | null = null;
+    let matchConfidence: number | null = null;
+
+    if (matchResult.candidates && matchResult.candidates.length > 0) {
+      const topCandidate = matchResult.candidates[0];
+      if (topCandidate.confidence >= PERSON_SUGGESTION_THRESHOLD) {
+        matchedPersonId = topCandidate.person.id;
+        matchConfidence = topCandidate.confidence;
+        console.log(
+          `[Analyzer] Creating draft for "${person.name}" with suggested match: ` +
+          `"${topCandidate.person.canonicalName}" (${(topCandidate.confidence * 100).toFixed(0)}%)`
+        );
+      }
+    }
 
     try {
       await prisma.personDraft.create({
@@ -679,16 +695,22 @@ async function createPersonDraftsFromExtraction(
           context: person.context.substring(0, 500),
           suggestedOrg: person.organization || null,
           suggestedRole: suggestedRole,
+          matchedPersonId,
+          matchConfidence,
           status: 'pending',
         },
       });
 
-      existingNames.add(normalizedName);
+      existingDraftNames.add(normalizedName);
       draftsCreated++;
     } catch (createError) {
       // Log but continue - might be a race condition duplicate
       console.error(`[Analyzer] Failed to create person draft for ${person.name}:`, createError);
     }
+  }
+
+  if (skippedAsKnown > 0) {
+    console.log(`[Analyzer] Skipped ${skippedAsKnown} persons as known entities`);
   }
 
   return draftsCreated;
