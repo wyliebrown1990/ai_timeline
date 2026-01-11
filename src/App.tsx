@@ -27,6 +27,10 @@ const NewsPage = lazy(() => import('./pages/NewsPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 
+// Sprint KPC-2: Profile pages
+const PersonProfilePage = lazy(() => import('./pages/PersonProfilePage'));
+const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage'));
+
 // Lazy-loaded study pages
 const StudyPage = lazy(() => import('./pages/StudyPage'));
 const StudySessionPage = lazy(() => import('./pages/StudySessionPage'));
@@ -53,6 +57,7 @@ const CreateKeyFigurePage = lazy(() => import('./pages/admin/CreateKeyFigurePage
 const EditKeyFigurePage = lazy(() => import('./pages/admin/EditKeyFigurePage'));
 const KeyFigureDraftsPage = lazy(() => import('./pages/admin/KeyFigureDraftsPage'));
 const MergeKeyFiguresPage = lazy(() => import('./pages/admin/MergeKeyFiguresPage'));
+const PersonDraftsPage = lazy(() => import('./pages/admin/PersonDraftsPage'));
 
 /**
  * Scrolls to top of page on route change
@@ -128,6 +133,10 @@ function App() {
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="settings" element={<SettingsPage />} />
 
+                    {/* Sprint KPC-2: Profile pages */}
+                    <Route path="people/:slug" element={<PersonProfilePage />} />
+                    <Route path="organizations/:slug" element={<OrganizationProfilePage />} />
+
                     {/* Lazy-loaded study pages */}
                     <Route path="study" element={<StudyPage />} />
                     <Route path="study/stats" element={<StudyStatsPage />} />
@@ -165,6 +174,7 @@ function App() {
                     <Route path="key-figures/:id/edit" element={<EditKeyFigurePage />} />
                     <Route path="key-figures/review" element={<KeyFigureDraftsPage />} />
                     <Route path="key-figures/merge" element={<MergeKeyFiguresPage />} />
+                    <Route path="person-drafts" element={<PersonDraftsPage />} />
                   </Route>
 
                   {/* Admin login route - outside protected wrapper */}

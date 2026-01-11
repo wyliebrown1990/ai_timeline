@@ -84,6 +84,11 @@ const navItems: NavItem[] = [
     icon: <UserPlus className="h-5 w-5" />,
   },
   {
+    label: 'Person Drafts',
+    href: '/admin/person-drafts',
+    icon: <UserPlus className="h-5 w-5" />,
+  },
+  {
     label: 'API Monitoring',
     href: '/admin/api-monitoring',
     icon: <Activity className="h-5 w-5" />,

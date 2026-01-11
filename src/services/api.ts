@@ -113,6 +113,19 @@ export interface MilestoneQueryParams {
 }
 
 /**
+ * Milestone contributor (linked person) - Sprint KPC-3
+ */
+export interface MilestoneContributor {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  imageUrl: string | null;
+  role: string;
+  currentRole: string | null;
+  contributionType: string | null;
+}
+
+/**
  * Milestone API client
  * Provides methods for all CRUD operations on milestones
  * Always uses dynamic API to ensure newly approved milestones appear immediately
@@ -249,6 +262,60 @@ export const milestonesApi = {
   async getTags(): Promise<{ data: { tag: string; count: number }[] }> {
     return fetchJson<{ data: { tag: string; count: number }[] }>(`${API_BASE}/milestones/tags`);
   },
+
+  // Sprint KPC-3: Contributor management
+
+  /**
+   * Get linked person contributors for a milestone
+   */
+  async getContributors(milestoneId: string): Promise<{ data: MilestoneContributor[] }> {
+    return fetchJson<{ data: MilestoneContributor[] }>(
+      `${API_BASE}/milestones/${milestoneId}/linked-persons`
+    );
+  },
+
+  /**
+   * Add a person contributor to a milestone (admin)
+   */
+  async addContributor(
+    milestoneId: string,
+    personId: string,
+    contributionType?: string
+  ): Promise<{ data: MilestoneContributor[] }> {
+    return fetchJson<{ data: MilestoneContributor[] }>(
+      `${API_BASE}/milestones/${milestoneId}/linked-persons`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ personId, contributionType }),
+      }
+    );
+  },
+
+  /**
+   * Remove a person contributor from a milestone (admin)
+   */
+  async removeContributor(milestoneId: string, personId: string): Promise<void> {
+    return fetchJson<void>(
+      `${API_BASE}/milestones/${milestoneId}/linked-persons/${personId}`,
+      {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Get milestone with linked contributors (admin)
+   */
+  async getWithContributors(
+    milestoneId: string
+  ): Promise<MilestoneResponse & { linkedContributors: MilestoneContributor[] }> {
+    return fetchJson<MilestoneResponse & { linkedContributors: MilestoneContributor[] }>(
+      `${API_BASE}/milestones/${milestoneId}/with-contributors`,
+      { headers: getAuthHeaders() }
+    );
+  },
 };
 
 /**
@@ -276,6 +343,10 @@ export interface YouTubeChannelConfig {
   channelId: string;
   transcriptLanguage?: string;
   includeShorts?: boolean;
+  /** Maximum videos to fetch per sync (default: 20, max: 100) */
+  maxVideos?: number;
+  /** Only fetch videos published within this many days (leave empty for all) */
+  historyDays?: number;
 }
 
 /**
@@ -2979,5 +3050,505 @@ export const contactApi = {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  },
+};
+
+// =============================================================================
+// Organizations API (Sprint KPC-1)
+// =============================================================================
+
+import type {
+  Organization,
+  CreateOrganizationRequest,
+  UpdateOrganizationRequest,
+  OrgType,
+} from '../types/organization';
+
+/**
+ * Organization with counts for list display
+ */
+export interface OrganizationWithCounts extends Organization {
+  personCount?: number;
+  milestoneCount?: number;
+}
+
+/**
+ * Organization with related data for profile page
+ */
+export interface OrganizationWithRelations extends Organization {
+  people: Array<{
+    id: string;
+    canonicalName: string;
+    slug: string;
+    role: string;
+    currentRole: string | null;
+    imageUrl: string | null;
+  }>;
+  milestones: Array<{
+    id: string;
+    title: string;
+    date: string;
+    category: string;
+  }>;
+  newsEvents?: Array<{
+    id: string;
+    title: string;
+    date: string;
+    mentionType: string;
+  }>;
+}
+
+/**
+ * Organizations API client
+ */
+export const organizationsApi = {
+  /**
+   * Get all organizations with optional filtering
+   */
+  async getAll(params?: {
+    type?: OrgType;
+    focusArea?: string;
+    search?: string;
+    status?: string;
+    sort?: 'name' | 'foundedYear' | 'personCount' | 'milestoneCount';
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<Organization>> {
+    const searchParams = new URLSearchParams();
+    if (params?.type) searchParams.set('type', params.type);
+    if (params?.focusArea) searchParams.set('focusArea', params.focusArea);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.sort) searchParams.set('sort', params.sort);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE}/organizations${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<Organization>>(url);
+  },
+
+  /**
+   * Get a single organization by slug with related data
+   */
+  async getBySlug(slug: string): Promise<OrganizationWithRelations> {
+    return fetchJson<OrganizationWithRelations>(`${API_BASE}/organizations/${slug}`);
+  },
+
+  /**
+   * Search organizations (for autocomplete)
+   */
+  async search(query: string, limit?: number): Promise<{ data: Organization[]; total: number }> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', query);
+    if (limit) searchParams.set('limit', String(limit));
+
+    return fetchJson<{ data: Organization[]; total: number }>(
+      `${API_BASE}/organizations/search?${searchParams.toString()}`
+    );
+  },
+
+  /**
+   * Get all unique focus areas
+   */
+  async getFocusAreas(): Promise<{ data: string[] }> {
+    return fetchJson<{ data: string[] }>(`${API_BASE}/organizations/focus-areas`);
+  },
+
+  /**
+   * Get organization statistics (admin)
+   */
+  async getStats(): Promise<{ total: number; byType: Record<string, number> }> {
+    return fetchJson<{ total: number; byType: Record<string, number> }>(
+      `${API_BASE}/admin/organizations/stats`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Create a new organization (admin)
+   */
+  async create(data: CreateOrganizationRequest): Promise<Organization> {
+    return fetchJson<Organization>(`${API_BASE}/admin/organizations`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing organization (admin)
+   */
+  async update(id: string, data: UpdateOrganizationRequest): Promise<Organization> {
+    return fetchJson<Organization>(`${API_BASE}/admin/organizations/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete an organization (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${API_BASE}/admin/organizations/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+};
+
+// =============================================================================
+// Persons API (Sprint KPC-1)
+// =============================================================================
+
+import type {
+  Person,
+  Affiliation,
+  CreatePersonRequest,
+  UpdatePersonRequest,
+  PersonRole,
+  AddAffiliationRequest,
+} from '../types/person';
+
+// Re-export Person types for consumers
+export type { Person, Affiliation, PersonRole };
+
+/**
+ * Person with counts for list display
+ */
+export interface PersonWithCounts extends Person {
+  milestoneCount?: number;
+  newsEventCount?: number;
+}
+
+/**
+ * Person with all related data for profile page
+ */
+export interface PersonWithRelations extends Person {
+  affiliations: Array<Affiliation & { organization: Organization }>;
+  milestones: Array<{
+    id: string;
+    title: string;
+    date: string;
+    category: string;
+    contributionType: string | null;
+  }>;
+  newsEvents: Array<{
+    id: string;
+    title: string;
+    date: string;
+    mentionType: string;
+  }>;
+}
+
+/**
+ * Persons API client
+ */
+export const personsApi = {
+  /**
+   * Get all persons with optional filtering
+   */
+  async getAll(params?: {
+    role?: PersonRole;
+    focusArea?: string;
+    orgId?: string;
+    search?: string;
+    status?: string;
+    sort?: 'name' | 'recentActivity' | 'milestoneCount';
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<Person>> {
+    const searchParams = new URLSearchParams();
+    if (params?.role) searchParams.set('role', params.role);
+    if (params?.focusArea) searchParams.set('focusArea', params.focusArea);
+    if (params?.orgId) searchParams.set('orgId', params.orgId);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.sort) searchParams.set('sort', params.sort);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE}/persons${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<Person>>(url);
+  },
+
+  /**
+   * Get a single person by slug with all related data
+   */
+  async getBySlug(slug: string): Promise<PersonWithRelations> {
+    return fetchJson<PersonWithRelations>(`${API_BASE}/persons/${slug}`);
+  },
+
+  /**
+   * Search persons (for autocomplete)
+   */
+  async search(query: string, limit?: number): Promise<{ data: Person[]; total: number }> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('q', query);
+    if (limit) searchParams.set('limit', String(limit));
+
+    return fetchJson<{ data: Person[]; total: number }>(
+      `${API_BASE}/persons/search?${searchParams.toString()}`
+    );
+  },
+
+  /**
+   * Get all unique focus areas
+   */
+  async getFocusAreas(): Promise<{ data: string[] }> {
+    return fetchJson<{ data: string[] }>(`${API_BASE}/persons/focus-areas`);
+  },
+
+  /**
+   * Get person statistics (admin)
+   */
+  async getStats(): Promise<{ total: number; byRole: Record<string, number> }> {
+    return fetchJson<{ total: number; byRole: Record<string, number> }>(
+      `${API_BASE}/admin/persons/stats`,
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Create a new person (admin)
+   */
+  async create(data: CreatePersonRequest): Promise<Person> {
+    return fetchJson<Person>(`${API_BASE}/admin/persons`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Update an existing person (admin)
+   */
+  async update(id: string, data: UpdatePersonRequest): Promise<Person> {
+    return fetchJson<Person>(`${API_BASE}/admin/persons/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Delete a person (admin)
+   */
+  async delete(id: string): Promise<void> {
+    return fetchJson<void>(`${API_BASE}/admin/persons/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get affiliations for a person
+   */
+  async getAffiliations(personId: string): Promise<{ data: Array<Affiliation & { organization: Organization }> }> {
+    return fetchJson<{ data: Array<Affiliation & { organization: Organization }> }>(
+      `${API_BASE}/persons/${personId}/affiliations`
+    );
+  },
+
+  /**
+   * Add an affiliation to a person (admin)
+   */
+  async addAffiliation(personId: string, data: AddAffiliationRequest): Promise<Affiliation> {
+    return fetchJson<Affiliation>(
+      `${API_BASE}/admin/persons/${personId}/affiliations`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+      }
+    );
+  },
+
+  /**
+   * Remove an affiliation (admin)
+   */
+  async removeAffiliation(affiliationId: string): Promise<void> {
+    return fetchJson<void>(
+      `${API_BASE}/admin/affiliations/${affiliationId}`,
+      {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+};
+
+// =============================================================================
+// Person Drafts API (Sprint KPC-4 - Entity Detection)
+// =============================================================================
+
+/**
+ * Person draft status
+ */
+export type PersonDraftStatus = 'pending' | 'approved' | 'rejected' | 'merged';
+
+/**
+ * Person draft from entity extraction
+ */
+export interface PersonDraft {
+  id: string;
+  articleId: string;
+  article: {
+    id: string;
+    title: string;
+    externalUrl: string;
+  } | null;
+  extractedName: string;
+  normalizedName: string;
+  context: string;
+  suggestedBio: string | null;
+  suggestedOrg: string | null;
+  suggestedRole: string | null;
+  matchedPersonId: string | null;
+  matchedPerson: {
+    id: string;
+    canonicalName: string;
+    shortBio: string;
+    currentOrg: string | null;
+    role: string;
+  } | null;
+  matchConfidence: number | null;
+  status: PersonDraftStatus;
+  reviewNotes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Person draft statistics
+ */
+export interface PersonDraftStats {
+  total: number;
+  byStatus: Record<PersonDraftStatus, number>;
+}
+
+/**
+ * Approve person draft request with optional overrides
+ */
+export interface ApprovePersonDraftRequest {
+  canonicalName?: string;
+  shortBio?: string;
+  currentOrg?: string;
+  role?: 'researcher' | 'executive' | 'founder' | 'policy_maker' | 'engineer' | 'other';
+}
+
+/**
+ * Person Drafts API
+ * Sprint KPC-4 - AI Entity Detection & Auto-Linking
+ */
+export const personDraftsApi = {
+  /**
+   * Get all person drafts with optional filtering
+   */
+  async getAll(params?: {
+    status?: PersonDraftStatus;
+    page?: number;
+    limit?: number;
+  }): Promise<PaginatedResponse<PersonDraft>> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE}/admin/person-drafts${queryString ? `?${queryString}` : ''}`;
+
+    return fetchJson<PaginatedResponse<PersonDraft>>(url, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get a single draft by ID
+   */
+  async getById(id: string): Promise<PersonDraft> {
+    return fetchJson<PersonDraft>(`${API_BASE}/admin/person-drafts/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get draft statistics
+   */
+  async getStats(): Promise<PersonDraftStats> {
+    return fetchJson<PersonDraftStats>(`${API_BASE}/admin/person-drafts/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Approve a draft and create a new Person
+   */
+  async approve(
+    id: string,
+    data?: ApprovePersonDraftRequest
+  ): Promise<{ message: string; person: { id: string; canonicalName: string; role: string; shortBio: string } }> {
+    return fetchJson<{ message: string; person: { id: string; canonicalName: string; role: string; shortBio: string } }>(
+      `${API_BASE}/admin/person-drafts/${id}/approve`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data || {}),
+      }
+    );
+  },
+
+  /**
+   * Reject a draft
+   */
+  async reject(id: string, reason?: string): Promise<{ message: string; draftId: string }> {
+    return fetchJson<{ message: string; draftId: string }>(
+      `${API_BASE}/admin/person-drafts/${id}/reject`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      }
+    );
+  },
+
+  /**
+   * Merge a draft with an existing Person
+   */
+  async merge(
+    id: string,
+    personId: string
+  ): Promise<{ message: string; person: { id: string; canonicalName: string }; aliasAdded: boolean }> {
+    return fetchJson<{ message: string; person: { id: string; canonicalName: string }; aliasAdded: boolean }>(
+      `${API_BASE}/admin/person-drafts/${id}/merge`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ personId }),
+      }
+    );
+  },
+
+  /**
+   * Batch reject multiple drafts
+   */
+  async batchReject(draftIds: string[], reason?: string): Promise<{ message: string; count: number }> {
+    return fetchJson<{ message: string; count: number }>(
+      `${API_BASE}/admin/person-drafts/batch-reject`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ draftIds, reason }),
+      }
+    );
   },
 };

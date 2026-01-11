@@ -32,8 +32,11 @@ import keyFiguresRouter, {
   adminMilestoneContributorRouter,
 } from './routes/keyFigures'; // Sprint 45 - Key Figures
 import keyFigureDraftsRouter from './routes/keyFigureDrafts'; // Sprint 46 - Key Figure Drafts
+import personDraftsRouter from './routes/personDrafts'; // Sprint KPC-4 - Person Drafts (Entity Detection)
 import searchRouter from './routes/search'; // Sprint 47 - Global Search
 import contactRouter from './routes/contact'; // Contact form
+import organizationsRouter, { adminRouter as organizationsAdminRouter } from './routes/organizations'; // Sprint KPC-1 - Organizations
+import personsRouter, { adminRouter as personsAdminRouter } from './routes/persons'; // Sprint KPC-1 - Persons
 
 /**
  * Create and configure the Express application
@@ -103,6 +106,8 @@ export function createApp() {
   app.use('/api/user', userProgressRouter); // User progress API (Sprint 38)
   app.use('/api/key-figures', keyFiguresRouter); // Public key figures API (Sprint 45)
   app.use('/api/milestones', milestoneContributorRouter); // Milestone contributors (Sprint 45)
+  app.use('/api/organizations', organizationsRouter); // Public organizations API (Sprint KPC-1)
+  app.use('/api/persons', personsRouter); // Public persons API (Sprint KPC-1)
   app.use('/api/search', searchRouter); // Global search API (Sprint 47)
   app.use('/api/contact', contactRouter); // Contact form (public)
   app.use('/api/admin', sourcesRoutes);
@@ -116,7 +121,10 @@ export function createApp() {
   app.use('/api/admin/current-events', currentEventsAdminRouter); // Admin current events API (Sprint 37)
   app.use('/api/admin/key-figures', keyFiguresAdminRouter); // Admin key figures API (Sprint 45)
   app.use('/api/admin/key-figure-drafts', keyFigureDraftsRouter); // Admin key figure drafts API (Sprint 46)
+  app.use('/api/admin/person-drafts', personDraftsRouter); // Admin person drafts API (Sprint KPC-4)
   app.use('/api/admin/milestones', adminMilestoneContributorRouter); // Admin milestone contributors (Sprint 45)
+  app.use('/api/admin/organizations', organizationsAdminRouter); // Admin organizations API (Sprint KPC-1)
+  app.use('/api/admin/persons', personsAdminRouter); // Admin persons API (Sprint KPC-1)
   app.use('/api/admin/migrations', migrationsRouter); // Database migrations (Sprint 36)
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
 
