@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-12 by Claude - User Profile Integration Complete
+> Last updated: 2026-01-12 by Claude - Comment Moderation Complete
 
 ## Overview
 
@@ -310,20 +310,20 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
 ### 6. Comment Moderation
 
 #### 6.1 Report Flow
-- [ ] Create report reasons enum:
+- [x] Create report reasons enum:
   - Spam
   - Harassment
   - Misinformation
   - Off-topic
   - Other
 
-- [ ] Create `src/components/Comments/ReportModal.tsx`:
+- [x] Create `src/components/Comments/ReportModal.tsx`:
   - Reason selector
   - Optional details textarea
   - Submit button
 
 #### 6.2 Admin Moderation Queue
-- [ ] Create `src/pages/admin/CommentModerationPage.tsx`:
+- [x] Create `src/pages/admin/CommentModerationPage.tsx`:
   - List of reported comments
   - Report count + reasons
   - Actions: Hide, Delete, Dismiss reports
