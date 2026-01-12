@@ -274,7 +274,7 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
   ```
 
 #### 5.2 Add Comments to News Events
-- [ ] Update news event detail:
+- [x] Update news event detail:
   ```tsx
   <NewsEventDetail event={event}>
     <CommentThread targetType="news_event" targetId={event.id} />
