@@ -290,7 +290,7 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
   ```
 
 #### 5.4 Add Comments to Person Profiles
-- [ ] Update person profile:
+- [x] Update person profile:
   ```tsx
   <PersonProfile person={person}>
     <CommentThread targetType="person" targetId={person.id} />
