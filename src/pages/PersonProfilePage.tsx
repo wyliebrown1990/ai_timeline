@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { personsApi, type PersonWithRelations } from '../services/api';
 import type { Affiliation, Organization } from '../types';
+import { CommentThread } from '../components/Comments';
 
 /**
  * Role badge colors
@@ -535,6 +536,11 @@ export default function PersonProfilePage() {
           </div>
         </section>
       )}
+
+      {/* Comment Thread (Sprint LEarn-4) */}
+      <div className="mt-12">
+        <CommentThread targetType="person" targetId={person.id} />
+      </div>
     </div>
   );
 }
