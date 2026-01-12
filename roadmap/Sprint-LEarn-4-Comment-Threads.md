@@ -282,7 +282,7 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
   ```
 
 #### 5.3 Add Comments to Glossary Terms
-- [ ] Update glossary term view:
+- [x] Update glossary term view:
   ```tsx
   <GlossaryTermDetail term={term}>
     <CommentThread targetType="glossary_term" targetId={term.id} />
