@@ -21,6 +21,7 @@ import {
   ArrowLeft,
   X,
   SlidersHorizontal,
+  Brain,
 } from 'lucide-react';
 import { useCurrentEvents } from '../hooks/useLearningPathsApi';
 import { CurrentEventCard } from '../components/CurrentEvents/CurrentEventCard';
@@ -130,16 +131,25 @@ export function NewsPage() {
             Back to Home
           </Link>
 
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
-              <Newspaper className="w-7 h-7" />
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
+                <Newspaper className="w-7 h-7" />
+              </div>
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold">AI News Hub</h1>
+                <p className="text-orange-100 mt-1">
+                  Understand today's AI headlines through historical context
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-bold">AI News Hub</h1>
-              <p className="text-orange-100 mt-1">
-                Understand today's AI headlines through historical context
-              </p>
-            </div>
+            <Link
+              to="/news/quiz"
+              className="hidden sm:flex items-center gap-2 px-4 py-2.5 bg-white/20 hover:bg-white/30 rounded-xl text-white font-medium transition-colors"
+            >
+              <Brain className="w-5 h-5" />
+              Weekly Quiz
+            </Link>
           </div>
 
           {/* Search bar */}

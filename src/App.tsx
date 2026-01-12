@@ -23,7 +23,9 @@ const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 // Lazy-loaded secondary pages
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage'));
+const ConceptsPage = lazy(() => import('./pages/ConceptsPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
+const NewsQuizPage = lazy(() => import('./pages/NewsQuizPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 
@@ -129,7 +131,9 @@ function App() {
                     <Route path="learn/:pathId" element={<LearningPathsPage />} />
                     <Route path="learn/:pathId/complete" element={<LearningPathsPage />} />
                     <Route path="news" element={<NewsPage />} />
+                    <Route path="news/quiz" element={<NewsQuizPage />} />
                     <Route path="glossary" element={<GlossaryPage />} />
+                    <Route path="concepts" element={<ConceptsPage />} />
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="settings" element={<SettingsPage />} />
 

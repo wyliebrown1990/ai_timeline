@@ -3,9 +3,12 @@
  *
  * Publishes approved news event drafts to the CurrentEvent database table.
  * Updated in Sprint 39 to use database instead of static JSON file.
+ * Updated in Sprint LEarn-2 to integrate concept detection and context generation.
  */
 
 import { prisma } from '../../db';
+import * as newsConceptLinker from '../newsConceptLinker';
+import * as newsContextGenerator from '../newsContextGenerator';
 import type { NewsEventDraft } from '../ingestion/contentGenerator';
 
 /**
@@ -81,6 +84,16 @@ export async function publishNewsEvent(draftData: NewsEventDraft): Promise<strin
 
   console.log(`Published news event: ${newEvent.id} - ${draftData.headline} (mediaType: ${draftData.mediaType || 'text'})`);
 
+  // Sprint LEarn-2: Process news learning features (non-blocking)
+  // Run concept detection and context generation after publishing
+  // Wrapped in try-catch to ensure publishing succeeds even if learning fails
+  try {
+    await processNewsLearning(newEvent.id);
+  } catch (learningError) {
+    // Log but don't fail the publish
+    console.error(`[NewsPublisher] Learning processing error (non-fatal):`, learningError);
+  }
+
   return newEvent.id;
 }
 
@@ -143,4 +156,38 @@ export async function removeExpiredEvents(): Promise<number> {
   }
 
   return result.count;
+}
+
+/**
+ * Process news learning features for a newly published event
+ * Sprint LEarn-2: Runs concept detection and context generation
+ *
+ * @param eventId - The ID of the published CurrentEvent
+ */
+async function processNewsLearning(eventId: string): Promise<void> {
+  console.log(`[NewsPublisher] Starting learning processing for event: ${eventId}`);
+
+  // Step 1: Detect and link concepts
+  try {
+    const conceptResult = await newsConceptLinker.processNewsEventConcepts(eventId, prisma);
+    console.log(
+      `[NewsPublisher] Linked ${conceptResult.linkedCount} concepts to event ` +
+        `(${conceptResult.keyTopics.length} key topics)`
+    );
+  } catch (conceptError) {
+    console.error(`[NewsPublisher] Concept linking failed:`, conceptError);
+    // Continue to context generation even if concept linking fails
+  }
+
+  // Step 2: Generate "Why it matters" context and find related milestones
+  try {
+    const contextResult = await newsContextGenerator.generateNewsContext(eventId, prisma);
+    console.log(
+      `[NewsPublisher] Generated context with ${contextResult.relatedMilestones.length} related milestones`
+    );
+  } catch (contextError) {
+    console.error(`[NewsPublisher] Context generation failed:`, contextError);
+  }
+
+  console.log(`[NewsPublisher] Learning processing complete for event: ${eventId}`);
 }

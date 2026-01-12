@@ -21,6 +21,8 @@ import { chatApi } from '../../services/chatApi';
 import { generateContextPath, saveContextPath } from '../../utils/contextPathUtils';
 import { apiKeyService } from '../../services/apiKeyService';
 import { YouTubeEmbed } from '../YouTubeEmbed';
+import { NewsConceptSection } from '../News/NewsConceptSection';
+import { WhyItMattersCard } from '../News/WhyItMattersCard';
 
 /**
  * Props for NewsContextModal component
@@ -289,6 +291,16 @@ Please give me a clear, accessible explanation that connects the history to this
             />
           </div>
         )}
+
+        {/* Concepts mentioned in this news */}
+        <div className="px-6 pb-4">
+          <NewsConceptSection eventId={event.id} />
+        </div>
+
+        {/* Historical context - AI generated */}
+        <div className="px-6 pb-4">
+          <WhyItMattersCard eventId={event.id} />
+        </div>
 
         {/* Milestones section */}
         <div className="px-6 pb-4">

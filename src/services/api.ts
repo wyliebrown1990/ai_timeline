@@ -1081,6 +1081,10 @@ export interface GlossaryTerm {
   category: GlossaryCategory;
   relatedTermIds: string[];
   relatedMilestoneIds: string[];
+  // Prerequisite system (Sprint LEarn-1)
+  prerequisiteIds: string[];
+  difficulty: number;
+  conceptType: string;
   createdAt: string;
   updatedAt: string;
   sourceArticleId: string | null;
@@ -1114,6 +1118,29 @@ export interface UpdateGlossaryTermDto {
 export interface GlossaryStats {
   total: number;
   byCategory: Record<string, number>;
+}
+
+/**
+ * AI-powered prerequisite suggestion types (Sprint LEarn-1, Section 8)
+ */
+export interface PrerequisiteSuggestion {
+  termId: string;
+  termName: string;
+  confidence: number;
+  reason: string;
+  matchType: 'exact' | 'fuzzy' | 'semantic';
+}
+
+export interface PrerequisiteSuggestionResult {
+  success: boolean;
+  data: {
+    termId: string;
+    termName: string;
+    currentPrerequisites: string[];
+    suggestions: PrerequisiteSuggestion[];
+    suggestedDifficulty: number;
+    reasoning: string;
+  };
 }
 
 /**
@@ -1224,6 +1251,37 @@ export const glossaryApi = {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({ terms }),
+      }
+    );
+  },
+
+  /**
+   * Get AI-powered prerequisite suggestions for a term (admin)
+   * Sprint LEarn-1, Section 8
+   */
+  async suggestPrerequisites(id: string): Promise<PrerequisiteSuggestionResult> {
+    return fetchJson<PrerequisiteSuggestionResult>(
+      `${API_BASE}/admin/glossary/${id}/suggest-prerequisites`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
+
+  /**
+   * Apply AI suggestions to a term (admin)
+   */
+  async applySuggestions(
+    id: string,
+    data: { prerequisiteIds: string[]; difficulty?: number }
+  ): Promise<{ success: boolean; message: string; term: GlossaryTerm }> {
+    return fetchJson<{ success: boolean; message: string; term: GlossaryTerm }>(
+      `${API_BASE}/admin/glossary/${id}/apply-suggestions`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
       }
     );
   },
@@ -1936,7 +1994,211 @@ export const currentEventsApi = {
       headers: getAuthHeaders(),
     });
   },
+
+  // ==========================================================================
+  // News Learning methods (Sprint LEarn-2)
+  // ==========================================================================
+
+  /**
+   * Get linked concepts for a news event
+   */
+  async getEventConcepts(eventId: string): Promise<NewsEventConceptsResponse> {
+    return fetchJson<NewsEventConceptsResponse>(`${API_BASE}/current-events/${eventId}/concepts`);
+  },
+
+  /**
+   * Get historical context for a news event
+   */
+  async getEventContext(eventId: string): Promise<NewsEventContextResponse> {
+    return fetchJson<NewsEventContextResponse>(`${API_BASE}/current-events/${eventId}/context`);
+  },
+
+  /**
+   * Get all news mentioning a concept
+   */
+  async getNewsByConceptId(conceptId: string, limit?: number): Promise<NewsForConceptResponse> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<NewsForConceptResponse>(`${API_BASE}/current-events/concepts/${conceptId}${params}`);
+  },
+
+  /**
+   * Link concepts to a news event (admin)
+   */
+  async linkConcepts(eventId: string): Promise<LinkConceptsResponse> {
+    return fetchJson<LinkConceptsResponse>(`${API_BASE}/admin/current-events/${eventId}/link-concepts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Generate context for a news event (admin)
+   */
+  async generateContext(eventId: string): Promise<GenerateContextResponse> {
+    return fetchJson<GenerateContextResponse>(`${API_BASE}/admin/current-events/${eventId}/generate-context`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Add concept link manually (admin)
+   */
+  async addConceptLink(
+    eventId: string,
+    conceptId: string,
+    options?: { isKeyTopic?: boolean; mentionContext?: string }
+  ): Promise<{ success: boolean }> {
+    return fetchJson<{ success: boolean }>(`${API_BASE}/admin/current-events/${eventId}/add-concept`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ conceptId, ...options }),
+    });
+  },
+
+  /**
+   * Remove concept link (admin)
+   */
+  async removeConceptLink(eventId: string, conceptId: string): Promise<{ success: boolean }> {
+    return fetchJson<{ success: boolean }>(`${API_BASE}/admin/current-events/${eventId}/concepts/${conceptId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Batch process events for learning (admin)
+   */
+  async batchProcess(
+    eventIds: string[],
+    options?: { includeConcepts?: boolean; includeContext?: boolean }
+  ): Promise<BatchProcessResponse> {
+    return fetchJson<BatchProcessResponse>(`${API_BASE}/admin/current-events/batch-process`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ eventIds, ...options }),
+    });
+  },
 };
+
+// =============================================================================
+// News Learning Types (Sprint LEarn-2)
+// =============================================================================
+
+/**
+ * Concept linked to a news event
+ */
+export interface LinkedConcept {
+  id: string;
+  term: string;
+  shortDefinition: string;
+  category: string;
+  difficulty: number;
+  mentionContext: string | null;
+  isKeyTopic: boolean;
+}
+
+/**
+ * Response for getting event concepts
+ */
+export interface NewsEventConceptsResponse {
+  data: LinkedConcept[];
+  total: number;
+  keyTopics: number;
+}
+
+/**
+ * Related milestone in context
+ */
+export interface RelatedMilestone {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+}
+
+/**
+ * Response for getting event context
+ */
+export interface NewsEventContextResponse {
+  data: {
+    whyItMatters: string | null;
+    relatedMilestones: RelatedMilestone[];
+  };
+}
+
+/**
+ * News event mentioning a concept
+ */
+export interface NewsForConcept {
+  id: string;
+  headline: string;
+  publishedDate: string;
+  isKeyTopic: boolean;
+  mentionContext: string | null;
+}
+
+/**
+ * Response for getting news by concept
+ */
+export interface NewsForConceptResponse {
+  data: NewsForConcept[];
+  total: number;
+  concept: string;
+}
+
+/**
+ * Response for linking concepts
+ */
+export interface LinkConceptsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    matches: Array<{
+      termId: string;
+      term: string;
+      context: string;
+      confidence: number;
+      isKeyTopic: boolean;
+    }>;
+    keyTopics: string[];
+    reasoning: string;
+    linkedCount: number;
+  };
+}
+
+/**
+ * Response for generating context
+ */
+export interface GenerateContextResponse {
+  success: boolean;
+  message: string;
+  data: {
+    whyItMatters: string;
+    relatedMilestones: Array<{
+      id: string;
+      title: string;
+      date: string;
+      category: string;
+      relevanceScore: number;
+      relevanceReason: string;
+    }>;
+  };
+}
+
+/**
+ * Response for batch processing
+ */
+export interface BatchProcessResponse {
+  success: boolean;
+  message: string;
+  data: Array<{
+    eventId: string;
+    conceptsLinked?: number;
+    contextGenerated?: boolean;
+    error?: string;
+  }>;
+}
 
 // =============================================================================
 // User Session & Flashcards API (Sprint 38)
@@ -3579,5 +3841,185 @@ export const personDraftsApi = {
         body: JSON.stringify({ draftIds, reason }),
       }
     );
+  },
+};
+
+// =============================================================================
+// News Quiz API (Sprint LEarn-2)
+// =============================================================================
+
+/**
+ * Quiz question type
+ */
+export type QuizQuestionType = 'fact_recall' | 'concept_application' | 'timeline' | 'impact';
+
+/**
+ * Quiz question from the API
+ */
+export interface NewsQuizQuestion {
+  index: number;
+  newsEventId: string;
+  newsHeadline: string;
+  questionType: QuizQuestionType;
+  question: string;
+  options: string[];
+  relatedConceptId?: string;
+  relatedConceptName?: string;
+}
+
+/**
+ * Quiz data from the API
+ */
+export interface NewsQuiz {
+  id: string;
+  weekOf: string;
+  questionCount: number;
+  questions: NewsQuizQuestion[];
+  createdAt?: string;
+}
+
+/**
+ * Quiz submission answer
+ */
+export interface QuizAnswer {
+  questionIndex: number;
+  selectedAnswer: number;
+}
+
+/**
+ * Quiz submission result
+ */
+export interface QuizResult {
+  questionIndex: number;
+  correct: boolean;
+  correctAnswer: number;
+  explanation: string;
+}
+
+/**
+ * Quiz submission response
+ */
+export interface QuizSubmitResponse {
+  success: boolean;
+  data: {
+    score: number;
+    totalQuestions: number;
+    percentage: number;
+    results: QuizResult[];
+  };
+}
+
+/**
+ * User quiz history item
+ */
+export interface UserQuizHistoryItem {
+  quizId: string;
+  weekOf: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  completedAt: string;
+}
+
+/**
+ * News Quiz API
+ */
+export const newsQuizApi = {
+  /**
+   * Get the current week's quiz
+   */
+  async getCurrent(): Promise<{
+    data: NewsQuiz | null;
+    message?: string;
+    weekStart: string;
+    weekEnd: string;
+  }> {
+    return fetchJson<{
+      data: NewsQuiz | null;
+      message?: string;
+      weekStart: string;
+      weekEnd: string;
+    }>(`${API_BASE}/news-quiz/current`);
+  },
+
+  /**
+   * Get quiz history
+   */
+  async getHistory(limit?: number): Promise<{
+    data: Array<{ id: string; weekOf: string; questionCount: number; createdAt: string }>;
+    total: number;
+  }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{
+      data: Array<{ id: string; weekOf: string; questionCount: number; createdAt: string }>;
+      total: number;
+    }>(`${API_BASE}/news-quiz/history${params}`);
+  },
+
+  /**
+   * Get a specific quiz by ID
+   */
+  async getById(id: string): Promise<{ data: NewsQuiz }> {
+    return fetchJson<{ data: NewsQuiz }>(`${API_BASE}/news-quiz/${id}`);
+  },
+
+  /**
+   * Submit quiz answers
+   */
+  async submit(
+    quizId: string,
+    sessionId: string,
+    answers: QuizAnswer[]
+  ): Promise<QuizSubmitResponse> {
+    return fetchJson<QuizSubmitResponse>(`${API_BASE}/news-quiz/${quizId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ sessionId, answers }),
+    });
+  },
+
+  /**
+   * Get user's quiz history
+   */
+  async getUserHistory(sessionId: string, limit?: number): Promise<{
+    data: UserQuizHistoryItem[];
+    total: number;
+  }> {
+    const params = new URLSearchParams({ sessionId });
+    if (limit) params.set('limit', String(limit));
+    return fetchJson<{
+      data: UserQuizHistoryItem[];
+      total: number;
+    }>(`${API_BASE}/news-quiz/user-history?${params.toString()}`);
+  },
+
+  /**
+   * Generate a new quiz (admin only)
+   */
+  async generate(options?: {
+    questionCount?: number;
+    daysBack?: number;
+    forceRegenerate?: boolean;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    data: {
+      weekOf: string;
+      questionCount: number;
+      questions: unknown[];
+    };
+  }> {
+    return fetchJson<{
+      success: boolean;
+      message: string;
+      data: {
+        weekOf: string;
+        questionCount: number;
+        questions: unknown[];
+      };
+    }>(`${API_BASE}/admin/news-quiz/generate`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(options || {}),
+    });
   },
 };

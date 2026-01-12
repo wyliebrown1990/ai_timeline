@@ -35,6 +35,9 @@ model Milestone {
   tldr                 String?
   whyItMattersToday    String?
 
+  // Prerequisite concepts (Sprint LEarn-1)
+  prerequisiteConceptIds String   @default("[]") // JSON array of GlossaryTerm IDs needed to understand this milestone
+
   // Key Figures relation (Sprint 44)
   keyFigures MilestoneContributor[]
 
@@ -157,8 +160,18 @@ model GlossaryTerm {
   updatedAt           DateTime @updatedAt
   sourceArticleId     String? // Link to ingested article if AI-generated
 
+  // Prerequisite system (Sprint LEarn-1)
+  prerequisiteIds     String   @default("[]") // JSON array of term IDs to learn first
+  difficulty          Int      @default(1) // 1-5 scale (1=beginner, 5=expert)
+  conceptType         String   @default("foundational") // foundational, intermediate, advanced
+
+  // News event links (Sprint LEarn-2)
+  newsEventLinks      NewsEventConcept[]
+
   @@index([term])
   @@index([category])
+  @@index([difficulty])
+  @@index([conceptType])
 }
 
 /// Pipeline error tracking (Sprint 32.11)
@@ -316,11 +329,34 @@ model CurrentEvent {
   personMentions           NewsEventPersonMention[]
   orgMentions              NewsEventOrgMention[]
 
+  // Learning context (Sprint LEarn-2)
+  relatedMilestoneIds      String    @default("[]") // Historical milestones this relates to
+  whyItMatters             String?                   // AI-generated context explanation
+  conceptLinks             NewsEventConcept[]
+
   @@index([featured])
   @@index([publishedDate])
   @@index([isPublished])
   @@index([expiresAt])
   @@index([mediaType])
+}
+
+/// Junction table linking news events to glossary concepts (Sprint LEarn-2)
+model NewsEventConcept {
+  id              String       @id @default(cuid())
+  eventId         String
+  event           CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  conceptId       String
+  concept         GlossaryTerm @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  mentionContext  String?      // Sentence where concept appears
+  isKeyTopic      Boolean      @default(false) // Primary topic vs mentioned
+
+  createdAt       DateTime     @default(now())
+
+  @@unique([eventId, conceptId])
+  @@index([eventId])
+  @@index([conceptId])
 }
 
 // =============================================================================
@@ -650,6 +686,7 @@ model UserSession {
   profile            UserProfile?
   pathProgress       UserPathProgress[]
   checkpointProgress UserCheckpointProgress[]
+  newsQuizAttempts   NewsQuizAttempt[]
 
   @@index([deviceId])
   @@index([lastActiveAt])
@@ -816,4 +853,36 @@ model UserCheckpointProgress {
 
   @@unique([sessionId, checkpointId])
   @@index([sessionId])
+}
+
+/// Weekly news quiz (Sprint LEarn-2)
+/// AI-generated quizzes testing understanding of recent AI news
+model NewsQuiz {
+  id        String   @id @default(cuid())
+  weekOf    DateTime // Start of week (Monday 00:00 UTC)
+  questions Json     // Array of NewsQuizQuestion objects
+  createdAt DateTime @default(now())
+
+  // Track quiz attempts
+  attempts NewsQuizAttempt[]
+
+  @@unique([weekOf])
+  @@index([weekOf])
+}
+
+/// User attempts at weekly news quizzes (Sprint LEarn-2)
+model NewsQuizAttempt {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  quizId      String
+  quiz        NewsQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score       Int // Number of correct answers
+  totalQuestions Int
+  answers     Json     // Array of { questionIndex: number, selectedAnswer: number, correct: boolean }
+  completedAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([quizId])
 }

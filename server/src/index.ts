@@ -37,6 +37,7 @@ import searchRouter from './routes/search'; // Sprint 47 - Global Search
 import contactRouter from './routes/contact'; // Contact form
 import organizationsRouter, { adminRouter as organizationsAdminRouter } from './routes/organizations'; // Sprint KPC-1 - Organizations
 import personsRouter, { adminRouter as personsAdminRouter } from './routes/persons'; // Sprint KPC-1 - Persons
+import newsQuizRouter, { adminRouter as newsQuizAdminRouter } from './routes/newsQuiz'; // Sprint LEarn-2 - News Quiz
 
 /**
  * Create and configure the Express application
@@ -110,6 +111,7 @@ export function createApp() {
   app.use('/api/persons', personsRouter); // Public persons API (Sprint KPC-1)
   app.use('/api/search', searchRouter); // Global search API (Sprint 47)
   app.use('/api/contact', contactRouter); // Contact form (public)
+  app.use('/api/news-quiz', newsQuizRouter); // News quiz API (Sprint LEarn-2)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
@@ -127,6 +129,7 @@ export function createApp() {
   app.use('/api/admin/persons', personsAdminRouter); // Admin persons API (Sprint KPC-1)
   app.use('/api/admin/migrations', migrationsRouter); // Database migrations (Sprint 36)
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
+  app.use('/api/admin/news-quiz', newsQuizAdminRouter); // Admin news quiz API (Sprint LEarn-2)
 
   // Error handling
   app.use(notFoundHandler);
