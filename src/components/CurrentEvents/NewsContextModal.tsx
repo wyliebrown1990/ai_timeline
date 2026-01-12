@@ -23,6 +23,7 @@ import { apiKeyService } from '../../services/apiKeyService';
 import { YouTubeEmbed } from '../YouTubeEmbed';
 import { NewsConceptSection } from '../News/NewsConceptSection';
 import { WhyItMattersCard } from '../News/WhyItMattersCard';
+import { CommentThread } from '../Comments';
 
 /**
  * Props for NewsContextModal component
@@ -463,7 +464,7 @@ Please give me a clear, accessible explanation that connects the history to this
 
         {/* Source link */}
         {event.sourceUrl && (
-          <div className="px-6 pb-6 pt-0">
+          <div className="px-6 pb-4 pt-0">
             <a
               href={event.sourceUrl}
               target="_blank"
@@ -475,6 +476,11 @@ Please give me a clear, accessible explanation that connects the history to this
             </a>
           </div>
         )}
+
+        {/* Comment Thread (Sprint LEarn-4) */}
+        <div className="px-6 pb-6 pt-2 border-t border-gray-200 dark:border-gray-700">
+          <CommentThread targetType="news_event" targetId={event.id} />
+        </div>
       </div>
     </div>
   );
