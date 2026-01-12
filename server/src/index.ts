@@ -63,18 +63,19 @@ export function createApp() {
   app.use(
     cors({
       origin: (origin, callback) => {
-        // Allow all origins if configured with '*'
-        if (allowedOrigins === null) {
-          return callback(null, true);
-        }
-
         // Allow requests with no origin (server-to-server, curl, mobile apps)
         if (!origin) {
           return callback(null, true);
         }
 
+        // Allow all origins if configured with '*'
+        // Must return the actual origin (not true/wildcard) when credentials: true
+        if (allowedOrigins === null) {
+          return callback(null, origin);
+        }
+
         if (allowedOrigins.includes(origin)) {
-          return callback(null, true);
+          return callback(null, origin);
         }
 
         callback(new Error('Not allowed by CORS'), false);

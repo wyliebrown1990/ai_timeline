@@ -55,11 +55,8 @@ Resources:
       StageName: !Ref Environment
       Description: AI Timeline API with rate limiting
 
-      # Enable CORS
-      Cors:
-        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
-        AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"  # Will be restricted after CloudFront setup
+      # CORS is handled by Express (not API Gateway) to support credentials
+      # API Gateway CORS with '*' doesn't work when credentials: include is used
 
       # Rate limiting / Throttling
       MethodSettings:
@@ -112,12 +109,27 @@ Resources:
             Path: /{proxy+}
             Method: ANY
 
+        # Explicit OPTIONS handling to override API Gateway mock integrations
+        ApiProxyOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /{proxy+}
+            Method: OPTIONS
+
         ApiRoot:
           Type: Api
           Properties:
             RestApiId: !Ref ApiGateway
             Path: /
             Method: ANY
+
+        ApiRootOptions:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ApiGateway
+            Path: /
+            Method: OPTIONS
 
       # IAM permissions
       Policies:
