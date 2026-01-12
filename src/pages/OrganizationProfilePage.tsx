@@ -27,6 +27,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { organizationsApi, type OrganizationWithRelations } from '../services/api';
+import { CommentThread } from '../components/Comments';
 
 /**
  * Organization type badge colors
@@ -488,6 +489,11 @@ export default function OrganizationProfilePage() {
           </div>
         </ProfileSection>
       )}
+
+      {/* Comment Thread (Sprint LEarn-4) */}
+      <div className="mt-12">
+        <CommentThread targetType="organization" targetId={org.id} />
+      </div>
     </div>
   );
 }
