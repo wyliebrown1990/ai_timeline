@@ -4,6 +4,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   FileText,
+  Flag,
   History,
   Home,
   LayoutDashboard,
@@ -89,6 +90,11 @@ const navItems: NavItem[] = [
     icon: <UserPlus className="h-5 w-5" />,
   },
   {
+    label: 'Comment Moderation',
+    href: '/admin/comments',
+    icon: <Flag className="h-5 w-5" />,
+  },
+  {
     label: 'API Monitoring',
     href: '/admin/api-monitoring',
     icon: <Activity className="h-5 w-5" />,
@@ -146,13 +152,13 @@ export function AdminLayout() {
       <aside
         data-testid="admin-sidebar"
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out
+          fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out flex flex-col
           lg:translate-x-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* Sidebar header */}
-        <div className="flex h-16 items-center justify-between px-6 border-b border-gray-800">
+        <div className="flex h-16 items-center justify-between px-6 border-b border-gray-800 flex-shrink-0">
           <Link to="/admin" className="flex items-center gap-2 text-white">
             <History className="h-6 w-6 text-blue-400" />
             <span className="font-bold text-lg">Admin</span>
@@ -165,9 +171,9 @@ export function AdminLayout() {
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="mt-6 px-3">
-          <ul className="space-y-1">
+        {/* Navigation - scrollable */}
+        <nav className="flex-1 overflow-y-auto mt-2 px-3 pb-2">
+          <ul className="space-y-0.5">
             {navItems.map((item) => {
               const isActive =
                 location.pathname === item.href ||
@@ -179,7 +185,7 @@ export function AdminLayout() {
                     to={item.href}
                     data-testid={`nav-${item.label.toLowerCase()}`}
                     className={`
-                      flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors
+                      flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors
                       ${
                         isActive
                           ? 'bg-blue-600 text-white'
@@ -198,17 +204,17 @@ export function AdminLayout() {
         </nav>
 
         {/* Bottom section with user info and logout */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-gray-800">
+        <div className="flex-shrink-0 border-t border-gray-800">
           {/* User info */}
           {user && (
-            <div className="px-4 py-3 border-b border-gray-800">
+            <div className="px-3 py-2 border-b border-gray-800">
               <p className="text-xs text-gray-500">Logged in as</p>
-              <p className="text-sm text-gray-300 font-medium">{user.sub}</p>
+              <p className="text-sm text-gray-300 font-medium truncate">{user.sub}</p>
             </div>
           )}
 
           {/* Action links */}
-          <div className="p-4 space-y-2">
+          <div className="px-3 py-2 space-y-1">
             <Link
               to="/"
               className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors"

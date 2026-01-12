@@ -68,6 +68,7 @@ const EditKeyFigurePage = lazy(() => import('./pages/admin/EditKeyFigurePage'));
 const KeyFigureDraftsPage = lazy(() => import('./pages/admin/KeyFigureDraftsPage'));
 const MergeKeyFiguresPage = lazy(() => import('./pages/admin/MergeKeyFiguresPage'));
 const PersonDraftsPage = lazy(() => import('./pages/admin/PersonDraftsPage'));
+const CommentModerationPage = lazy(() => import('./pages/admin/CommentModerationPage'));
 
 /**
  * Scrolls to top of page on route change
@@ -197,6 +198,7 @@ function App() {
                     <Route path="key-figures/review" element={<KeyFigureDraftsPage />} />
                     <Route path="key-figures/merge" element={<MergeKeyFiguresPage />} />
                     <Route path="person-drafts" element={<PersonDraftsPage />} />
+                    <Route path="comments" element={<CommentModerationPage />} />
                   </Route>
 
                   {/* Admin login route - outside protected wrapper */}

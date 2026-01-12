@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { VoteButtons } from './VoteButtons';
 import { CommentForm } from './CommentForm';
+import { ReportModal } from './ReportModal';
 import { useUserAuth } from '../../contexts/UserAuthContext';
 import { updateComment, deleteComment } from '../../services/commentsApi';
 import type { Comment as CommentType, CommentTargetType } from '../../types/comment';
@@ -48,6 +49,8 @@ export function Comment({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [isReported, setIsReported] = useState(false);
 
   const isAuthor = user?.id === comment.authorId;
   const hasReplies = comment.replies && comment.replies.length > 0;
@@ -245,14 +248,20 @@ export function Comment({
                   )}
 
                   {/* Report */}
-                  {!isAuthor && isAuthenticated && (
+                  {!isAuthor && isAuthenticated && !isReported && (
                     <button
-                      onClick={() => {/* TODO: implement report modal */}}
+                      onClick={() => setShowReportModal(true)}
                       className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       <Flag className="w-4 h-4" />
                       Report
                     </button>
+                  )}
+                  {isReported && (
+                    <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500">
+                      <Flag className="w-4 h-4" />
+                      Reported
+                    </span>
                   )}
                 </div>
               )}
@@ -308,6 +317,15 @@ export function Comment({
           )}
         </div>
       </div>
+
+      {/* Report Modal */}
+      {showReportModal && (
+        <ReportModal
+          commentId={comment.id}
+          onClose={() => setShowReportModal(false)}
+          onReported={() => setIsReported(true)}
+        />
+      )}
     </div>
   );
 }

@@ -8,3 +8,4 @@ export { Comment } from './Comment';
 export { CommentForm } from './CommentForm';
 export { VoteButtons } from './VoteButtons';
 export { SortSelector } from './SortSelector';
+export { ReportModal } from './ReportModal';

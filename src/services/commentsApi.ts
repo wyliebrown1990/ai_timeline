@@ -211,3 +211,130 @@ export async function reportComment(
     throw new Error(error.message || 'Failed to report comment');
   }
 }
+
+// =============================================================================
+// Admin Functions
+// =============================================================================
+
+/**
+ * Reported comment with additional report info
+ */
+export interface ReportedComment extends Comment {
+  reports: CommentReport[];
+}
+
+export interface CommentReport {
+  id: string;
+  reason: CommentReportReason;
+  details: string | null;
+  reporterId: string;
+  reporter: {
+    username: string;
+  };
+  createdAt: string;
+}
+
+export interface ReportedCommentsResponse {
+  comments: ReportedComment[];
+  total: number;
+}
+
+/**
+ * Get reported comments for admin moderation
+ */
+export async function getReportedComments(
+  options?: {
+    limit?: number;
+    offset?: number;
+    minReports?: number;
+  }
+): Promise<ReportedCommentsResponse> {
+  const params = new URLSearchParams();
+  if (options?.limit) params.set('limit', options.limit.toString());
+  if (options?.offset) params.set('offset', options.offset.toString());
+  if (options?.minReports) params.set('minReports', options.minReports.toString());
+
+  const url = `${API_BASE}/admin/comments/reported${params.toString() ? `?${params}` : ''}`;
+
+  const response = await fetch(url, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to fetch reported comments');
+  }
+
+  return response.json();
+}
+
+/**
+ * Hide a comment (admin only)
+ */
+export async function hideComment(commentId: string): Promise<Comment> {
+  const response = await fetch(`${API_BASE}/admin/comments/${commentId}/hide`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to hide comment');
+  }
+
+  return response.json();
+}
+
+/**
+ * Unhide a comment (admin only)
+ */
+export async function unhideComment(commentId: string): Promise<Comment> {
+  const response = await fetch(`${API_BASE}/admin/comments/${commentId}/unhide`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to unhide comment');
+  }
+
+  return response.json();
+}
+
+/**
+ * Force delete a comment (admin only)
+ */
+export async function adminDeleteComment(commentId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/admin/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to delete comment');
+  }
+}
+
+/**
+ * Dismiss reports for a comment (admin only)
+ */
+export async function dismissReports(commentId: string): Promise<Comment> {
+  const response = await fetch(`${API_BASE}/admin/comments/${commentId}/dismiss-reports`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to dismiss reports');
+  }
+
+  return response.json();
+}
