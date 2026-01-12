@@ -266,7 +266,7 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
 ### 5. Frontend: Integration with Content Pages
 
 #### 5.1 Add Comments to Milestone Details
-- [ ] Update milestone detail view:
+- [x] Update milestone detail view:
   ```tsx
   <MilestoneDetail milestone={milestone}>
     <CommentThread targetType="milestone" targetId={milestone.id} />
