@@ -7,6 +7,7 @@ import { UserProfileProvider } from './contexts/UserProfileContext';
 import { SessionProvider } from './contexts/SessionContext';
 import { FlashcardProvider } from './contexts/FlashcardContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { UserAuthProvider } from './contexts/UserAuthContext';
 import { OnboardingWrapper } from './components/Onboarding';
 import { ApiKeyProvider, ApiKeyModal } from './components/ApiKey';
 import { ProtectedRoute } from './components/auth';
@@ -32,6 +33,13 @@ const ContactPage = lazy(() => import('./pages/ContactPage'));
 // Sprint KPC-2: Profile pages
 const PersonProfilePage = lazy(() => import('./pages/PersonProfilePage'));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage'));
+
+// Sprint LEarn-3: User auth pages
+const UserLoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 
 // Lazy-loaded study pages
 const StudyPage = lazy(() => import('./pages/StudyPage'));
@@ -83,6 +91,7 @@ function App() {
     <ThemeProvider defaultTheme="system">
       <BrowserRouter>
         <ScrollToTop />
+        <UserAuthProvider>
         <UserProfileProvider>
           <SessionProvider>
             <FlashcardProvider>
@@ -141,6 +150,9 @@ function App() {
                     <Route path="people/:slug" element={<PersonProfilePage />} />
                     <Route path="organizations/:slug" element={<OrganizationProfilePage />} />
 
+                    {/* Sprint LEarn-3: User profiles */}
+                    <Route path="u/:username" element={<UserProfilePage />} />
+
                     {/* Lazy-loaded study pages */}
                     <Route path="study" element={<StudyPage />} />
                     <Route path="study/stats" element={<StudyStatsPage />} />
@@ -148,6 +160,12 @@ function App() {
                     <Route path="study/session/:packId" element={<StudySessionPage />} />
                     <Route path="study/packs/:packId" element={<PackDetailPage />} />
                   </Route>
+
+                  {/* User auth routes - outside Layout for full-page design */}
+                  <Route path="/login" element={<UserLoginPage />} />
+                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                   {/* Admin routes - wrapped in AuthProvider for authentication */}
                   <Route
@@ -198,6 +216,7 @@ function App() {
             </FlashcardProvider>
           </SessionProvider>
         </UserProfileProvider>
+        </UserAuthProvider>
       </BrowserRouter>
     </ThemeProvider>
   );

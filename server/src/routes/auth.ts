@@ -3,8 +3,87 @@ import { z } from 'zod';
 import * as crypto from 'crypto';
 import { generateToken, requireAuth, type AuthenticatedRequest } from '../middleware/auth';
 import { ApiError } from '../middleware/error';
+import authController from '../controllers/auth';
+import {
+  requireAuth as requireUserAuth,
+  optionalAuth,
+} from '../middleware/authMiddleware';
 
 const router = Router();
+
+// =============================================================================
+// User Authentication Routes (database-backed)
+// =============================================================================
+
+/**
+ * POST /api/auth/user/register
+ * Register a new user account
+ */
+router.post('/user/register', authController.register);
+
+/**
+ * POST /api/auth/user/login
+ * Login and receive tokens
+ */
+router.post('/user/login', authController.login);
+
+/**
+ * POST /api/auth/user/logout
+ * Clear tokens and log out
+ */
+router.post('/user/logout', optionalAuth, authController.logout);
+
+/**
+ * POST /api/auth/user/refresh
+ * Refresh access token using refresh token from cookie
+ */
+router.post('/user/refresh', authController.refresh);
+
+/**
+ * GET /api/auth/user/me
+ * Get current authenticated user
+ */
+router.get('/user/me', requireUserAuth, authController.getCurrentUser);
+
+/**
+ * PUT /api/auth/user/me
+ * Update current user's profile
+ */
+router.put('/user/me', requireUserAuth, authController.updateProfile);
+
+/**
+ * POST /api/auth/user/change-password
+ * Change password for authenticated user
+ */
+router.post('/user/change-password', requireUserAuth, authController.changePassword);
+
+/**
+ * POST /api/auth/user/forgot-password
+ * Request password reset email
+ */
+router.post('/user/forgot-password', authController.forgotPassword);
+
+/**
+ * POST /api/auth/user/reset-password
+ * Reset password using token
+ */
+router.post('/user/reset-password', authController.resetPassword);
+
+/**
+ * POST /api/auth/user/link-session
+ * Link an existing anonymous session to the authenticated user
+ */
+router.post('/user/link-session', requireUserAuth, authController.linkSession);
+
+/**
+ * GET /api/auth/users/:username
+ * Get public user profile by username
+ */
+router.get('/users/:username', authController.getPublicProfile);
+
+// =============================================================================
+// Admin Authentication Routes (environment variable-based)
+// =============================================================================
 
 /**
  * Login request validation schema

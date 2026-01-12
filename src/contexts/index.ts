@@ -20,3 +20,6 @@ export {
   useFlashcardContext,
   type FlashcardContextType,
 } from './FlashcardContext';
+
+// User Authentication context (Sprint LEarn-3)
+export { UserAuthProvider, useUserAuth } from './UserAuthContext';

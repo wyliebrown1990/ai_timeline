@@ -664,15 +664,59 @@ model KeyFigureDraft {
 }
 
 // =============================================================================
+// User Authentication & Profiles (Sprint LEarn-3)
+// =============================================================================
+
+/// Authenticated user account
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  username     String    @unique
+  displayName  String?
+  avatarUrl    String?
+  bio          String?   @db.Text
+
+  // Permissions
+  isAdmin      Boolean   @default(false)
+  isVerified   Boolean   @default(false)
+
+  // Timestamps
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt  DateTime?
+
+  // Email verification
+  emailVerifiedAt    DateTime?
+  emailVerifyToken   String?
+  emailVerifyExpires DateTime?
+
+  // Password reset
+  passwordResetToken   String?
+  passwordResetExpires DateTime?
+
+  // Refresh token for JWT auth
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+
+  // Relations
+  sessions UserSession[]
+
+  @@index([email])
+  @@index([username])
+}
+
+// =============================================================================
 // User Data Models (Sprint 38) - localStorage to Database Migration
 // =============================================================================
 
-/// User session - can be anonymous (device-based) or authenticated (future)
+/// User session - can be anonymous (device-based) or authenticated
 /// Stores a unique session per browser/device for cross-device sync
 model UserSession {
   id           String   @id @default(cuid())
   deviceId     String   @unique // Browser fingerprint or generated UUID
-  userId       String? // Optional link to future User model for authentication
+  userId       String?  // Link to User model for authenticated users
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
 
@@ -689,6 +733,7 @@ model UserSession {
   newsQuizAttempts   NewsQuizAttempt[]
 
   @@index([deviceId])
+  @@index([userId])
   @@index([lastActiveAt])
 }
 
