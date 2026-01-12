@@ -16,7 +16,7 @@ import type { User } from '@prisma/client';
 // =============================================================================
 
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-in-production';
-const JWT_ACCESS_EXPIRY = '15m'; // Access token: 15 minutes
+const JWT_ACCESS_EXPIRY = '1h'; // Access token: 1 hour
 const JWT_REFRESH_EXPIRY = '7d'; // Refresh token: 7 days
 const BCRYPT_ROUNDS = 12;
 
