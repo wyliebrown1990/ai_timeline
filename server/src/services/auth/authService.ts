@@ -8,7 +8,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import prisma from '../../db';
+import { prisma } from '../../db';
 import type { User } from '@prisma/client';
 
 // =============================================================================

@@ -331,6 +331,131 @@ BEGIN
 END $$;
 `;
 
+/**
+ * Migration: Add News Quiz Tables
+ * Sprint LEarn-2 - Weekly AI News Quiz
+ */
+const MIGRATION_0007_NEWS_QUIZ = `
+-- NewsQuiz table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'NewsQuiz') THEN
+        CREATE TABLE "NewsQuiz" (
+            "id" TEXT NOT NULL,
+            "weekOf" TIMESTAMP(3) NOT NULL,
+            "questions" JSONB NOT NULL,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "NewsQuiz_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "NewsQuiz_weekOf_key" ON "NewsQuiz"("weekOf");
+        CREATE INDEX "NewsQuiz_weekOf_idx" ON "NewsQuiz"("weekOf");
+        RAISE NOTICE 'Created NewsQuiz table';
+    ELSE
+        RAISE NOTICE 'NewsQuiz table already exists, skipping';
+    END IF;
+END $$;
+
+-- NewsQuizAttempt table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'NewsQuizAttempt') THEN
+        CREATE TABLE "NewsQuizAttempt" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "quizId" TEXT NOT NULL,
+            "score" INTEGER NOT NULL,
+            "totalQuestions" INTEGER NOT NULL,
+            "answers" JSONB NOT NULL,
+            "completedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "NewsQuizAttempt_pkey" PRIMARY KEY ("id")
+        );
+        CREATE INDEX "NewsQuizAttempt_sessionId_idx" ON "NewsQuizAttempt"("sessionId");
+        CREATE INDEX "NewsQuizAttempt_quizId_idx" ON "NewsQuizAttempt"("quizId");
+        ALTER TABLE "NewsQuizAttempt" ADD CONSTRAINT "NewsQuizAttempt_sessionId_fkey"
+            FOREIGN KEY ("sessionId") REFERENCES "UserSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "NewsQuizAttempt" ADD CONSTRAINT "NewsQuizAttempt_quizId_fkey"
+            FOREIGN KEY ("quizId") REFERENCES "NewsQuiz"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        RAISE NOTICE 'Created NewsQuizAttempt table';
+    ELSE
+        RAISE NOTICE 'NewsQuizAttempt table already exists, skipping';
+    END IF;
+END $$;
+`;
+
+/**
+ * Migration: Add User Authentication Table
+ * Sprint LEarn-3 - User Profiles & Authentication
+ * Creates User table and adds FK from UserSession
+ */
+const MIGRATION_0008_USER_AUTH = `
+-- User table for authenticated accounts
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'User') THEN
+        CREATE TABLE "User" (
+            "id" TEXT NOT NULL,
+            "email" TEXT NOT NULL,
+            "passwordHash" TEXT NOT NULL,
+            "username" TEXT NOT NULL,
+            "displayName" TEXT,
+            "avatarUrl" TEXT,
+            "bio" TEXT,
+            "isAdmin" BOOLEAN NOT NULL DEFAULT false,
+            "isVerified" BOOLEAN NOT NULL DEFAULT false,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "lastLoginAt" TIMESTAMP(3),
+            "emailVerifiedAt" TIMESTAMP(3),
+            "emailVerifyToken" TEXT,
+            "emailVerifyExpires" TIMESTAMP(3),
+            "passwordResetToken" TEXT,
+            "passwordResetExpires" TIMESTAMP(3),
+            "refreshToken" TEXT,
+            "refreshTokenExpires" TIMESTAMP(3),
+            CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+        );
+        CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+        CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
+        CREATE INDEX "User_email_idx" ON "User"("email");
+        CREATE INDEX "User_username_idx" ON "User"("username");
+        RAISE NOTICE 'Created User table';
+    ELSE
+        RAISE NOTICE 'User table already exists, skipping';
+    END IF;
+END $$;
+
+-- Add userId foreign key to UserSession if not exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE constraint_name = 'UserSession_userId_fkey'
+        AND table_name = 'UserSession'
+    ) THEN
+        -- Add FK constraint if not exists
+        ALTER TABLE "UserSession" ADD CONSTRAINT "UserSession_userId_fkey"
+            FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+        RAISE NOTICE 'Added userId foreign key to UserSession';
+    ELSE
+        RAISE NOTICE 'UserSession_userId_fkey already exists, skipping';
+    END IF;
+END $$;
+
+-- Add index on userId if not exists
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes
+        WHERE indexname = 'UserSession_userId_idx'
+    ) THEN
+        CREATE INDEX "UserSession_userId_idx" ON "UserSession"("userId");
+        RAISE NOTICE 'Created UserSession_userId_idx index';
+    ELSE
+        RAISE NOTICE 'UserSession_userId_idx already exists, skipping';
+    END IF;
+END $$;
+`;
+
 const MIGRATION_0004_USER_DATA = `
 -- UserSession table
 DO $$
@@ -599,7 +724,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -660,6 +785,23 @@ export async function runMigrations(
         success: true,
         message: 'Migration 0006_key_figures completed successfully',
         tables: ['KeyFigure', 'MilestoneContributor', 'KeyFigureDraft'],
+      });
+    } else if (migration === '0007_news_quiz') {
+      await prisma.$executeRawUnsafe(MIGRATION_0007_NEWS_QUIZ);
+      console.log('[Migrations] Migration 0007_news_quiz completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0007_news_quiz completed successfully',
+        tables: ['NewsQuiz', 'NewsQuizAttempt'],
+      });
+    } else if (migration === '0008_user_auth') {
+      await prisma.$executeRawUnsafe(MIGRATION_0008_USER_AUTH);
+      console.log('[Migrations] Migration 0008_user_auth completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0008_user_auth completed successfully - User authentication enabled',
+        tables: ['User'],
+        changes: ['UserSession now links to User via userId FK'],
       });
     }
   } catch (error) {
@@ -799,7 +941,9 @@ export async function getMigrationStatus(
         'UserSession', 'UserFlashcard', 'UserFlashcardPack', 'UserStudyStats',
         'UserStudySession', 'UserDailyRecord', 'UserStreakHistory', 'UserProfile',
         'UserPathProgress', 'UserCheckpointProgress',
-        'KeyFigure', 'MilestoneContributor', 'KeyFigureDraft'
+        'KeyFigure', 'MilestoneContributor', 'KeyFigureDraft',
+        'NewsQuiz', 'NewsQuizAttempt',
+        'User'
       )
       ORDER BY tablename
     `;
@@ -842,6 +986,8 @@ export async function getMigrationStatus(
         '0004_user_data': existingTables.includes('UserSession'),
         '0005_optional_source': sourceIdNullable,
         '0006_key_figures': existingTables.includes('KeyFigure'),
+        '0007_news_quiz': existingTables.includes('NewsQuiz'),
+        '0008_user_auth': existingTables.includes('User'),
       },
     });
   } catch (error) {
