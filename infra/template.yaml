@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: AI Timeline API - Secure serverless backend with rate limiting
+Description: AI Timeline API - Secure serverless backend with rate limiting and comment moderation
 
 Parameters:
   Environment:
@@ -39,7 +39,7 @@ Globals:
   Function:
     Timeout: 30
     Runtime: nodejs20.x
-    MemorySize: 512
+    MemorySize: 1024
     Environment:
       Variables:
         NODE_ENV: production
