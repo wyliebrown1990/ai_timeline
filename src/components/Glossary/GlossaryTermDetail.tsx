@@ -10,9 +10,11 @@ import {
   ArrowRight,
   Clock,
 } from 'lucide-react';
-import { useGlossary } from '../../hooks';
+import { useGlossary, useConceptProgress } from '../../hooks';
 import { GLOSSARY_CATEGORY_LABELS } from '../../types/glossary';
 import type { GlossaryEntry } from '../../types/glossary';
+import { PrerequisitesSection, DifficultyBadge } from '../Learning';
+import { CommentThread } from '../Comments';
 
 interface GlossaryTermDetailProps {
   /** The term to display */
@@ -36,9 +38,17 @@ export function GlossaryTermDetail({
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { data: allTerms } = useGlossary();
+  const { markConceptSeen, seenConceptIds } = useConceptProgress();
 
   // Get related terms
   const relatedTerms = allTerms.filter((t) => term.relatedTermIds.includes(t.id));
+
+  // Mark term as seen when viewed
+  useEffect(() => {
+    if (term.id) {
+      markConceptSeen(term.id);
+    }
+  }, [term.id, markConceptSeen]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -119,11 +129,14 @@ export function GlossaryTermDetail({
 
         {/* Content */}
         <div className="p-6">
-          {/* Category badge */}
-          <div className="mb-4">
+          {/* Category and difficulty badges */}
+          <div className="mb-4 flex items-center gap-2 flex-wrap">
             <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/50 px-3 py-1 text-sm font-medium text-blue-700 dark:text-blue-300">
               {GLOSSARY_CATEGORY_LABELS[term.category]}
             </span>
+            {term.difficulty && (
+              <DifficultyBadge difficulty={term.difficulty} size="sm" />
+            )}
           </div>
 
           {/* Term title */}
@@ -141,6 +154,18 @@ export function GlossaryTermDetail({
               {term.shortDefinition}
             </p>
           </div>
+
+          {/* Prerequisites section */}
+          {term.prerequisiteIds && term.prerequisiteIds.length > 0 && (
+            <PrerequisitesSection
+              term={term}
+              allTerms={allTerms}
+              learnedTermIds={seenConceptIds}
+              onSelectTerm={onSelectTerm}
+              onMarkSeen={markConceptSeen}
+              showFullChain
+            />
+          )}
 
           {/* Full definition */}
           <div className="mb-6">
@@ -236,6 +261,11 @@ export function GlossaryTermDetail({
               </div>
             </div>
           )}
+
+          {/* Comment Thread (Sprint LEarn-4) */}
+          <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <CommentThread targetType="glossary_term" targetId={term.id} />
+          </div>
         </div>
       </div>
     </div>
