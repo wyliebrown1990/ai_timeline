@@ -40,6 +40,7 @@ import personsRouter, { adminRouter as personsAdminRouter } from './routes/perso
 import newsQuizRouter, { adminRouter as newsQuizAdminRouter } from './routes/newsQuiz'; // Sprint LEarn-2 - News Quiz
 import commentsRouter from './routes/comments'; // Sprint LEarn-4 - Comments
 import adminCommentsRouter from './routes/adminComments'; // Sprint LEarn-4 - Admin Comment Moderation
+import adminSpamFiltersRouter from './routes/adminSpamFilters'; // Sprint Spam-1 - Admin Spam Filters
 
 /**
  * Create and configure the Express application
@@ -135,6 +136,7 @@ export function createApp() {
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
   app.use('/api/admin/news-quiz', newsQuizAdminRouter); // Admin news quiz API (Sprint LEarn-2)
   app.use('/api/admin/comments', adminCommentsRouter); // Admin comment moderation API (Sprint LEarn-4)
+  app.use('/api/admin/spam-filters', adminSpamFiltersRouter); // Admin spam filters API (Sprint Spam-1)
 
   // Error handling
   app.use(notFoundHandler);

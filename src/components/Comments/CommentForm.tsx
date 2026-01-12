@@ -1,12 +1,13 @@
 /**
  * CommentForm Component
  * Sprint LEarn-4 - Reddit-Style Comment Threads
+ * Sprint Spam-1 - Rate Limiting & Honeypot Protection
  *
  * Form for creating new comments or replies
  */
 
-import { useState } from 'react';
-import { Send, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Send, X, Clock } from 'lucide-react';
 import { useUserAuth } from '../../contexts/UserAuthContext';
 import { createComment } from '../../services/commentsApi';
 import type { Comment, CommentTargetType } from '../../types/comment';
@@ -37,27 +38,57 @@ export function CommentForm({
   const [body, setBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rateLimitRetry, setRateLimitRetry] = useState<number | null>(null);
+
+  // Honeypot field ref - bots will fill this, humans won't see it
+  const honeypotRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!body.trim() || !isAuthenticated) return;
+    if (!body.trim() || !isAuthenticated || rateLimitRetry) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
+      // Include honeypot field value (should be empty for humans)
+      const honeypotValue = honeypotRef.current?.value || '';
+
       const comment = await createComment({
         targetType,
         targetId,
         parentId,
         body: body.trim(),
+        website: honeypotValue, // Honeypot field
       });
 
       setBody('');
       onCommentCreated(comment);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to post comment');
+      // Check for rate limit error
+      if (err instanceof Error && err.message.includes('rate limit')) {
+        // Extract retry time from error message if available
+        const match = err.message.match(/(\d+)\s*seconds?/i);
+        const retrySeconds = match && match[1] ? parseInt(match[1]) : 30;
+        setRateLimitRetry(retrySeconds);
+        setError(`Please wait ${retrySeconds} seconds before posting again`);
+
+        // Start countdown
+        const interval = setInterval(() => {
+          setRateLimitRetry((prev) => {
+            if (prev === null || prev <= 1) {
+              clearInterval(interval);
+              setError(null);
+              return null;
+            }
+            setError(`Please wait ${prev - 1} seconds before posting again`);
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to post comment');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -86,6 +117,24 @@ export function CommentForm({
 
   return (
     <form onSubmit={handleSubmit} className={cn('space-y-2', className)}>
+      {/* Honeypot field - hidden from humans, bots will fill it */}
+      <input
+        ref={honeypotRef}
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          opacity: 0,
+          height: 0,
+          width: 0,
+          pointerEvents: 'none',
+        }}
+      />
+
       <div className="flex items-start gap-3">
         {/* User avatar */}
         <div className="flex-shrink-0">
@@ -124,7 +173,13 @@ export function CommentForm({
           />
 
           {error && (
-            <p className="text-red-500 text-sm mt-1">{error}</p>
+            <p className={cn(
+              'text-sm mt-1 flex items-center gap-1',
+              rateLimitRetry ? 'text-amber-500' : 'text-red-500'
+            )}>
+              {rateLimitRetry && <Clock className="w-3 h-3" />}
+              {error}
+            </p>
           )}
 
           <div className="flex items-center justify-end gap-2 mt-2">
@@ -147,7 +202,7 @@ export function CommentForm({
 
             <button
               type="submit"
-              disabled={isSubmitting || !body.trim()}
+              disabled={isSubmitting || !body.trim() || !!rateLimitRetry}
               className={cn(
                 'px-4 py-1.5 text-sm font-medium rounded',
                 'bg-blue-600 text-white',
@@ -156,8 +211,17 @@ export function CommentForm({
                 'flex items-center gap-1.5'
               )}
             >
-              <Send className="w-4 h-4" />
-              {isSubmitting ? 'Posting...' : parentId ? 'Reply' : 'Comment'}
+              {rateLimitRetry ? (
+                <>
+                  <Clock className="w-4 h-4" />
+                  Wait {rateLimitRetry}s
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4" />
+                  {isSubmitting ? 'Posting...' : parentId ? 'Reply' : 'Comment'}
+                </>
+              )}
             </button>
           </div>
         </div>

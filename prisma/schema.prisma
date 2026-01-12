@@ -703,6 +703,15 @@ model User {
   refreshToken        String?
   refreshTokenExpires DateTime?
 
+  // Rate limiting (Sprint Spam-1)
+  lastCommentAt        DateTime?
+  hourlyCommentCount   Int       @default(0)
+  hourlyCommentResetAt DateTime?
+  dailyCommentCount    Int       @default(0)
+  dailyCommentResetAt  DateTime?
+  hourlyVoteCount      Int       @default(0)
+  hourlyVoteResetAt    DateTime?
+
   // Relations
   sessions     UserSession[]
   comments     Comment[]
@@ -1041,4 +1050,23 @@ model CommentReport {
 
   @@index([commentId])
   @@index([status])
+}
+
+// =============================================================================
+// Spam Protection (Sprint Spam-1)
+// =============================================================================
+
+/// Configurable spam filter rules (blocked domains, keywords, regex patterns)
+model SpamFilter {
+  id         String   @id @default(cuid())
+  filterType String   // 'blocked_domain', 'blocked_keyword', 'regex'
+  pattern    String   // The pattern to match
+  action     String   // 'block', 'flag_review'
+  isActive   Boolean  @default(true)
+  hitCount   Int      @default(0)  // Track how many times this filter triggered
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([filterType, isActive])
 }

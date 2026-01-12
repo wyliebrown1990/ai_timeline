@@ -97,6 +97,7 @@ export interface CreateCommentInput {
   targetId: string;
   parentId?: string;
   body: string;
+  website?: string; // Honeypot field for spam protection (Sprint Spam-1)
 }
 
 export interface UpdateCommentInput {

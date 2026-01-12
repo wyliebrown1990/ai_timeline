@@ -1,6 +1,7 @@
 /**
  * Comment Routes
  * Sprint LEarn-4 - Reddit-Style Comment Threads
+ * Sprint Spam-1 - Rate Limiting & Content Filtering
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
@@ -13,6 +14,14 @@ import {
 import { requireAuth as requireAdminAuth } from '../middleware/auth';
 import { ApiError } from '../middleware/error';
 import * as commentService from '../services/commentService';
+import {
+  checkCommentRateLimit,
+  incrementCommentCount,
+  checkVoteRateLimit,
+  incrementVoteCount,
+  getRateLimitHeaders,
+} from '../services/rateLimiter';
+import { filterComment } from '../services/contentFilter';
 
 const router = Router();
 
@@ -25,6 +34,8 @@ const createCommentSchema = z.object({
   targetId: z.string().min(1),
   parentId: z.string().optional(),
   body: z.string().min(1).max(10000),
+  // Honeypot field - should always be empty if submitted by a human
+  website: z.string().max(0).optional(),
 });
 
 const updateCommentSchema = z.object({
@@ -125,10 +136,61 @@ router.post('/', requireUserAuth, async (req: AuthenticatedRequest, res: Respons
     const data = createCommentSchema.parse(req.body);
     const authorId = req.user!.userId;
 
+    // Honeypot check - if website field is filled, silently reject (bot detected)
+    if (data.website && data.website.length > 0) {
+      // Log for monitoring but don't reveal to client
+      console.log(`[SPAM] Honeypot triggered by user ${authorId}`);
+      // Return fake success to not alert the bot
+      res.status(201).json({
+        id: 'fake-' + Date.now(),
+        body: data.body,
+        authorId,
+        createdAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // Rate limit check
+    const rateLimitResult = await checkCommentRateLimit(authorId);
+    if (!rateLimitResult.allowed) {
+      const headers = getRateLimitHeaders(rateLimitResult, 'comment');
+      Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
+      res.status(429).json({
+        error: 'Too Many Requests',
+        message: rateLimitResult.reason,
+        retryAfter: rateLimitResult.retryAfter,
+      });
+      return;
+    }
+
+    // Content filter check
+    const filterResult = await filterComment(data.body);
+    if (!filterResult.allowed) {
+      res.status(400).json({
+        error: 'Content Blocked',
+        message: filterResult.reason,
+      });
+      return;
+    }
+
+    // Create the comment
     const comment = await commentService.createComment({
       authorId,
-      ...data,
+      targetType: data.targetType,
+      targetId: data.targetId,
+      parentId: data.parentId,
+      body: data.body,
     });
+
+    // Increment rate limit counter
+    await incrementCommentCount(authorId);
+
+    // Add rate limit headers to response
+    const headers = getRateLimitHeaders(
+      { allowed: true, remaining: (rateLimitResult.remaining || 1) - 1 },
+      'comment'
+    );
+    Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
 
     res.status(201).json(comment);
   } catch (error) {
@@ -209,7 +271,27 @@ router.post('/:id/vote', requireUserAuth, async (req: AuthenticatedRequest, res:
     const userId = req.user!.userId;
     const data = voteSchema.parse(req.body);
 
+    // Rate limit check (only for new votes, not removing votes)
+    if (data.value !== 0) {
+      const rateLimitResult = await checkVoteRateLimit(userId);
+      if (!rateLimitResult.allowed) {
+        const headers = getRateLimitHeaders(rateLimitResult, 'vote');
+        Object.entries(headers).forEach(([key, value]) => res.setHeader(key, value));
+        res.status(429).json({
+          error: 'Too Many Requests',
+          message: rateLimitResult.reason,
+          retryAfter: rateLimitResult.retryAfter,
+        });
+        return;
+      }
+    }
+
     const result = await commentService.voteOnComment(commentId, userId, data.value);
+
+    // Increment rate limit counter (only for new votes)
+    if (data.value !== 0) {
+      await incrementVoteCount(userId);
+    }
 
     res.json(result);
   } catch (error) {

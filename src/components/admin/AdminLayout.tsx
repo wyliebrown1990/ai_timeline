@@ -14,6 +14,7 @@ import {
   PenSquare,
   Plus,
   Rss,
+  Shield,
   UserPlus,
   Users,
   X,
@@ -93,6 +94,11 @@ const navItems: NavItem[] = [
     label: 'Comment Moderation',
     href: '/admin/comments',
     icon: <Flag className="h-5 w-5" />,
+  },
+  {
+    label: 'Spam Filters',
+    href: '/admin/spam-filters',
+    icon: <Shield className="h-5 w-5" />,
   },
   {
     label: 'API Monitoring',

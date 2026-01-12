@@ -124,6 +124,15 @@ export async function createComment(input: CreateCommentInput): Promise<Comment>
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+
+    // Handle rate limit error specially
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After') || error.retryAfter;
+      throw new Error(
+        `rate limit exceeded. Please wait ${retryAfter || 30} seconds before posting again.`
+      );
+    }
+
     throw new Error(error.message || 'Failed to create comment');
   }
 
