@@ -39,6 +39,7 @@ import organizationsRouter, { adminRouter as organizationsAdminRouter } from './
 import personsRouter, { adminRouter as personsAdminRouter } from './routes/persons'; // Sprint KPC-1 - Persons
 import newsQuizRouter, { adminRouter as newsQuizAdminRouter } from './routes/newsQuiz'; // Sprint LEarn-2 - News Quiz
 import commentsRouter from './routes/comments'; // Sprint LEarn-4 - Comments
+import adminCommentsRouter from './routes/adminComments'; // Sprint LEarn-4 - Admin Comment Moderation
 
 /**
  * Create and configure the Express application
@@ -132,6 +133,7 @@ export function createApp() {
   app.use('/api/admin/migrations', migrationsRouter); // Database migrations (Sprint 36)
   app.use('/api/admin/pipeline', pipelineRoutes); // Pipeline monitoring
   app.use('/api/admin/news-quiz', newsQuizAdminRouter); // Admin news quiz API (Sprint LEarn-2)
+  app.use('/api/admin/comments', adminCommentsRouter); // Admin comment moderation API (Sprint LEarn-4)
 
   // Error handling
   app.use(notFoundHandler);

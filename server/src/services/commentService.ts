@@ -638,21 +638,53 @@ export async function getCommentCount(
 /**
  * Admin: Hide a comment
  */
-export async function hideComment(commentId: string): Promise<void> {
-  await prisma.comment.update({
+export async function hideComment(commentId: string): Promise<CommentWithAuthor> {
+  const comment = await prisma.comment.update({
     where: { id: commentId },
     data: { isHidden: true },
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
   });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  return { ...comment, userVote: null };
 }
 
 /**
  * Admin: Unhide a comment
  */
-export async function unhideComment(commentId: string): Promise<void> {
-  await prisma.comment.update({
+export async function unhideComment(commentId: string): Promise<CommentWithAuthor> {
+  const comment = await prisma.comment.update({
     where: { id: commentId },
     data: { isHidden: false },
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
   });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  return { ...comment, userVote: null };
 }
 
 /**
@@ -752,4 +784,147 @@ export async function reviewReport(
       },
     });
   }
+}
+
+/**
+ * Admin: Get reported comments with their reports for moderation UI
+ * Returns comments that have at least one report, grouped with their reports
+ */
+export async function getReportedCommentsForAdmin(
+  limit = 50,
+  offset = 0,
+  minReports = 1
+): Promise<{
+  comments: Array<CommentWithAuthor & { reports: Array<{
+    id: string;
+    reason: string;
+    details: string | null;
+    reporterId: string;
+    reporter: { username: string };
+    createdAt: Date;
+  }> }>;
+  total: number;
+}> {
+  // Get comments that have reports with pending status
+  const commentsWithReports = await prisma.comment.findMany({
+    where: {
+      reportCount: { gte: minReports },
+      isDeleted: false,
+    },
+    orderBy: [
+      { reportCount: 'desc' },
+      { createdAt: 'desc' },
+    ],
+    skip: offset,
+    take: limit,
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+      reports: {
+        where: { status: 'pending' },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          reporter: {
+            select: { username: true },
+          },
+        },
+      },
+    },
+  });
+
+  const total = await prisma.comment.count({
+    where: {
+      reportCount: { gte: minReports },
+      isDeleted: false,
+    },
+  });
+
+  return {
+    comments: commentsWithReports.map(c => ({
+      ...c,
+      userVote: null,
+      reports: c.reports.map(r => ({
+        id: r.id,
+        reason: r.reason,
+        details: r.details,
+        reporterId: r.reporterId,
+        reporter: r.reporter,
+        createdAt: r.createdAt,
+      })),
+    })),
+    total,
+  };
+}
+
+/**
+ * Admin: Force delete a comment
+ */
+export async function adminDeleteComment(commentId: string): Promise<void> {
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { id: true },
+  });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  await prisma.comment.update({
+    where: { id: commentId },
+    data: {
+      isDeleted: true,
+      body: '[deleted]',
+      bodyHtml: null,
+    },
+  });
+}
+
+/**
+ * Admin: Dismiss all reports for a comment
+ */
+export async function dismissReports(commentId: string): Promise<CommentWithAuthor> {
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: { id: true },
+  });
+
+  if (!comment) {
+    throw new Error('Comment not found');
+  }
+
+  // Update all pending reports to dismissed
+  await prisma.commentReport.updateMany({
+    where: {
+      commentId,
+      status: 'pending',
+    },
+    data: {
+      status: 'dismissed',
+      reviewedAt: new Date(),
+    },
+  });
+
+  // Reset report count on comment
+  const updatedComment = await prisma.comment.update({
+    where: { id: commentId },
+    data: { reportCount: 0 },
+    include: {
+      author: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  return { ...updatedComment, userVote: null };
 }
