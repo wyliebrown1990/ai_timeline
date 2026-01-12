@@ -681,6 +681,10 @@ model User {
   isAdmin      Boolean   @default(false)
   isVerified   Boolean   @default(false)
 
+  // Karma (Sprint LEarn-4)
+  commentKarma Int       @default(0)  // Sum of scores on user's comments
+  postKarma    Int       @default(0)  // Future: for user-created content
+
   // Timestamps
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -700,7 +704,9 @@ model User {
   refreshTokenExpires DateTime?
 
   // Relations
-  sessions UserSession[]
+  sessions     UserSession[]
+  comments     Comment[]
+  commentVotes CommentVote[]
 
   @@index([email])
   @@index([username])
@@ -930,4 +936,109 @@ model NewsQuizAttempt {
 
   @@index([sessionId])
   @@index([quizId])
+}
+
+// =============================================================================
+// Comment System (Sprint LEarn-4)
+// =============================================================================
+
+/// Target type enum for comments
+enum CommentTargetType {
+  milestone
+  news_event
+  glossary_term
+  person
+  organization
+}
+
+/// Reddit-style threaded comment
+model Comment {
+  id           String   @id @default(cuid())
+
+  // Author
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Content
+  body         String   @db.Text  // Markdown supported
+  bodyHtml     String?  @db.Text  // Pre-rendered HTML for display
+
+  // Threading
+  parentId     String?
+  parent       Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies      Comment[] @relation("CommentReplies")
+  depth        Int      @default(0)  // 0 = top-level, 1 = reply, etc.
+
+  // Polymorphic target (content being commented on)
+  targetType   CommentTargetType
+  targetId     String   // ID of the target entity
+
+  // Scoring
+  upvotes      Int      @default(0)
+  downvotes    Int      @default(0)
+  score        Int      @default(0)  // upvotes - downvotes
+  hotScore     Float    @default(0)  // Time-weighted score for "Best" sort
+  controversyScore Float @default(0) // High engagement, mixed votes
+
+  // Status
+  isDeleted    Boolean  @default(false)
+  isHidden     Boolean  @default(false)  // Hidden by mod, visible to author
+  reportCount  Int      @default(0)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  editedAt     DateTime?
+
+  // Relations
+  votes        CommentVote[]
+
+  @@index([targetType, targetId])
+  @@index([parentId])
+  @@index([authorId])
+  @@index([score])
+  @@index([hotScore])
+  @@index([createdAt])
+}
+
+/// Vote on a comment (upvote or downvote)
+model CommentVote {
+  id         String   @id @default(cuid())
+  commentId  String
+  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value      Int      // 1 = upvote, -1 = downvote
+
+  createdAt  DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([userId])
+  @@index([commentId])
+}
+
+/// Report reason enum for comment moderation
+enum CommentReportReason {
+  spam
+  harassment
+  misinformation
+  off_topic
+  other
+}
+
+/// Report on a comment for moderation
+model CommentReport {
+  id         String   @id @default(cuid())
+  commentId  String
+  reporterId String   // User who reported
+  reason     CommentReportReason
+  details    String?  // Optional additional context
+
+  status     String   @default("pending")  // pending, reviewed, dismissed
+  reviewedAt DateTime?
+  reviewedBy String?  // Admin who reviewed
+
+  createdAt  DateTime @default(now())
+
+  @@index([commentId])
+  @@index([status])
 }

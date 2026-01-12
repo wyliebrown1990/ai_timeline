@@ -456,6 +456,167 @@ BEGIN
 END $$;
 `;
 
+/**
+ * Migration: Add Comment System Tables
+ * Sprint LEarn-4 - Reddit-Style Comment Threads
+ * Creates Comment, CommentVote, CommentReport tables and adds karma columns to User
+ */
+const MIGRATION_0009_COMMENT_SYSTEM = `
+-- Create CommentTargetType enum
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'CommentTargetType') THEN
+        CREATE TYPE "CommentTargetType" AS ENUM ('milestone', 'news_event', 'glossary_term', 'person', 'organization');
+        RAISE NOTICE 'Created CommentTargetType enum';
+    ELSE
+        RAISE NOTICE 'CommentTargetType enum already exists, skipping';
+    END IF;
+END $$;
+
+-- Create CommentReportReason enum
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'CommentReportReason') THEN
+        CREATE TYPE "CommentReportReason" AS ENUM ('spam', 'harassment', 'misinformation', 'off_topic', 'other');
+        RAISE NOTICE 'Created CommentReportReason enum';
+    ELSE
+        RAISE NOTICE 'CommentReportReason enum already exists, skipping';
+    END IF;
+END $$;
+
+-- Add karma columns to User table
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'commentKarma'
+    ) THEN
+        ALTER TABLE "User" ADD COLUMN "commentKarma" INTEGER NOT NULL DEFAULT 0;
+        RAISE NOTICE 'Added commentKarma column to User table';
+    ELSE
+        RAISE NOTICE 'commentKarma column already exists in User table, skipping';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'postKarma'
+    ) THEN
+        ALTER TABLE "User" ADD COLUMN "postKarma" INTEGER NOT NULL DEFAULT 0;
+        RAISE NOTICE 'Added postKarma column to User table';
+    ELSE
+        RAISE NOTICE 'postKarma column already exists in User table, skipping';
+    END IF;
+END $$;
+
+-- Comment table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'Comment') THEN
+        CREATE TABLE "Comment" (
+            "id" TEXT NOT NULL,
+            "authorId" TEXT NOT NULL,
+            "body" TEXT NOT NULL,
+            "bodyHtml" TEXT,
+            "parentId" TEXT,
+            "depth" INTEGER NOT NULL DEFAULT 0,
+            "targetType" "CommentTargetType" NOT NULL,
+            "targetId" TEXT NOT NULL,
+            "upvotes" INTEGER NOT NULL DEFAULT 0,
+            "downvotes" INTEGER NOT NULL DEFAULT 0,
+            "score" INTEGER NOT NULL DEFAULT 0,
+            "hotScore" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "controversyScore" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "isDeleted" BOOLEAN NOT NULL DEFAULT false,
+            "isHidden" BOOLEAN NOT NULL DEFAULT false,
+            "reportCount" INTEGER NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "editedAt" TIMESTAMP(3),
+            CONSTRAINT "Comment_pkey" PRIMARY KEY ("id")
+        );
+
+        -- Foreign key to User
+        ALTER TABLE "Comment" ADD CONSTRAINT "Comment_authorId_fkey"
+            FOREIGN KEY ("authorId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+        -- Self-referential foreign key for threading
+        ALTER TABLE "Comment" ADD CONSTRAINT "Comment_parentId_fkey"
+            FOREIGN KEY ("parentId") REFERENCES "Comment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+        -- Indexes
+        CREATE INDEX "Comment_targetType_targetId_idx" ON "Comment"("targetType", "targetId");
+        CREATE INDEX "Comment_parentId_idx" ON "Comment"("parentId");
+        CREATE INDEX "Comment_authorId_idx" ON "Comment"("authorId");
+        CREATE INDEX "Comment_score_idx" ON "Comment"("score");
+        CREATE INDEX "Comment_hotScore_idx" ON "Comment"("hotScore");
+        CREATE INDEX "Comment_createdAt_idx" ON "Comment"("createdAt");
+
+        RAISE NOTICE 'Created Comment table';
+    ELSE
+        RAISE NOTICE 'Comment table already exists, skipping';
+    END IF;
+END $$;
+
+-- CommentVote table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'CommentVote') THEN
+        CREATE TABLE "CommentVote" (
+            "id" TEXT NOT NULL,
+            "commentId" TEXT NOT NULL,
+            "userId" TEXT NOT NULL,
+            "value" INTEGER NOT NULL,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "CommentVote_pkey" PRIMARY KEY ("id")
+        );
+
+        -- Unique constraint: one vote per user per comment
+        CREATE UNIQUE INDEX "CommentVote_commentId_userId_key" ON "CommentVote"("commentId", "userId");
+
+        -- Foreign keys
+        ALTER TABLE "CommentVote" ADD CONSTRAINT "CommentVote_commentId_fkey"
+            FOREIGN KEY ("commentId") REFERENCES "Comment"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "CommentVote" ADD CONSTRAINT "CommentVote_userId_fkey"
+            FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+        -- Indexes
+        CREATE INDEX "CommentVote_userId_idx" ON "CommentVote"("userId");
+        CREATE INDEX "CommentVote_commentId_idx" ON "CommentVote"("commentId");
+
+        RAISE NOTICE 'Created CommentVote table';
+    ELSE
+        RAISE NOTICE 'CommentVote table already exists, skipping';
+    END IF;
+END $$;
+
+-- CommentReport table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'CommentReport') THEN
+        CREATE TABLE "CommentReport" (
+            "id" TEXT NOT NULL,
+            "commentId" TEXT NOT NULL,
+            "reporterId" TEXT NOT NULL,
+            "reason" "CommentReportReason" NOT NULL,
+            "details" TEXT,
+            "status" TEXT NOT NULL DEFAULT 'pending',
+            "reviewedAt" TIMESTAMP(3),
+            "reviewedBy" TEXT,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "CommentReport_pkey" PRIMARY KEY ("id")
+        );
+
+        -- Indexes
+        CREATE INDEX "CommentReport_commentId_idx" ON "CommentReport"("commentId");
+        CREATE INDEX "CommentReport_status_idx" ON "CommentReport"("status");
+
+        RAISE NOTICE 'Created CommentReport table';
+    ELSE
+        RAISE NOTICE 'CommentReport table already exists, skipping';
+    END IF;
+END $$;
+`;
+
 const MIGRATION_0004_USER_DATA = `
 -- UserSession table
 DO $$
@@ -724,7 +885,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -802,6 +963,15 @@ export async function runMigrations(
         message: 'Migration 0008_user_auth completed successfully - User authentication enabled',
         tables: ['User'],
         changes: ['UserSession now links to User via userId FK'],
+      });
+    } else if (migration === '0009_comment_system') {
+      await prisma.$executeRawUnsafe(MIGRATION_0009_COMMENT_SYSTEM);
+      console.log('[Migrations] Migration 0009_comment_system completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0009_comment_system completed successfully - Comment threads enabled',
+        tables: ['Comment', 'CommentVote', 'CommentReport'],
+        changes: ['User table now has commentKarma and postKarma columns'],
       });
     }
   } catch (error) {
@@ -943,7 +1113,8 @@ export async function getMigrationStatus(
         'UserPathProgress', 'UserCheckpointProgress',
         'KeyFigure', 'MilestoneContributor', 'KeyFigureDraft',
         'NewsQuiz', 'NewsQuizAttempt',
-        'User'
+        'User',
+        'Comment', 'CommentVote', 'CommentReport'
       )
       ORDER BY tablename
     `;
@@ -988,6 +1159,7 @@ export async function getMigrationStatus(
         '0006_key_figures': existingTables.includes('KeyFigure'),
         '0007_news_quiz': existingTables.includes('NewsQuiz'),
         '0008_user_auth': existingTables.includes('User'),
+        '0009_comment_system': existingTables.includes('Comment'),
       },
     });
   } catch (error) {

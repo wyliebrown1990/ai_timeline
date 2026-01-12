@@ -38,6 +38,7 @@ import contactRouter from './routes/contact'; // Contact form
 import organizationsRouter, { adminRouter as organizationsAdminRouter } from './routes/organizations'; // Sprint KPC-1 - Organizations
 import personsRouter, { adminRouter as personsAdminRouter } from './routes/persons'; // Sprint KPC-1 - Persons
 import newsQuizRouter, { adminRouter as newsQuizAdminRouter } from './routes/newsQuiz'; // Sprint LEarn-2 - News Quiz
+import commentsRouter from './routes/comments'; // Sprint LEarn-4 - Comments
 
 /**
  * Create and configure the Express application
@@ -112,6 +113,7 @@ export function createApp() {
   app.use('/api/search', searchRouter); // Global search API (Sprint 47)
   app.use('/api/contact', contactRouter); // Contact form (public)
   app.use('/api/news-quiz', newsQuizRouter); // News quiz API (Sprint LEarn-2)
+  app.use('/api/comments', commentsRouter); // Comments API (Sprint LEarn-4)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
