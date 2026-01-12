@@ -298,7 +298,7 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
   ```
 
 #### 5.5 Add Comments to Organization Profiles
-- [ ] Update organization profile:
+- [x] Update organization profile:
   ```tsx
   <OrganizationProfile org={org}>
     <CommentThread targetType="organization" targetId={org.id} />
