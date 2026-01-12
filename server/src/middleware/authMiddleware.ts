@@ -17,6 +17,11 @@ declare global {
   }
 }
 
+// Export authenticated request type for routes
+export interface AuthenticatedRequest extends Request {
+  user?: TokenPayload;
+}
+
 /**
  * Require authentication for a route
  * Returns 401 if no valid token is provided

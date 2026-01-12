@@ -17,8 +17,8 @@ import type {
 
 const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 
-// Token storage keys (matching userAuth.ts)
-const ACCESS_TOKEN_KEY = 'ai-timeline-access-token';
+// Token storage key (must match userAuth.ts)
+const ACCESS_TOKEN_KEY = 'ai-timeline-user-token';
 
 /**
  * Get auth headers for authenticated requests

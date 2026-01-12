@@ -56,7 +56,7 @@ router.get('/:targetType/:targetId', optionalAuth, async (req: AuthenticatedRequ
     const limit = Math.min(parseInt(req.query.limit as string) || 25, 100);
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const userId = req.user?.id;
+    const userId = req.user?.userId;
 
     const result = await commentService.getCommentsForTarget(
       targetType,
@@ -123,7 +123,7 @@ router.get('/user/:username', async (req: Request, res: Response, next: NextFunc
 router.post('/', requireUserAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const data = createCommentSchema.parse(req.body);
-    const authorId = req.user!.id;
+    const authorId = req.user!.userId;
 
     const comment = await commentService.createComment({
       authorId,
@@ -149,7 +149,7 @@ router.post('/', requireUserAuth, async (req: AuthenticatedRequest, res: Respons
 router.put('/:id', requireUserAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const commentId = req.params.id;
-    const authorId = req.user!.id;
+    const authorId = req.user!.userId;
     const data = updateCommentSchema.parse(req.body);
 
     const comment = await commentService.updateComment(commentId, authorId, data.body);
@@ -179,7 +179,7 @@ router.put('/:id', requireUserAuth, async (req: AuthenticatedRequest, res: Respo
 router.delete('/:id', requireUserAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const commentId = req.params.id;
-    const requesterId = req.user!.id;
+    const requesterId = req.user!.userId;
 
     await commentService.deleteComment(commentId, requesterId);
 
@@ -206,7 +206,7 @@ router.delete('/:id', requireUserAuth, async (req: AuthenticatedRequest, res: Re
 router.post('/:id/vote', requireUserAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const commentId = req.params.id;
-    const userId = req.user!.id;
+    const userId = req.user!.userId;
     const data = voteSchema.parse(req.body);
 
     const result = await commentService.voteOnComment(commentId, userId, data.value);
@@ -234,7 +234,7 @@ router.post('/:id/vote', requireUserAuth, async (req: AuthenticatedRequest, res:
 router.post('/:id/report', requireUserAuth, async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
     const commentId = req.params.id;
-    const reporterId = req.user!.id;
+    const reporterId = req.user!.userId;
     const data = reportSchema.parse(req.body);
 
     await commentService.reportComment(commentId, reporterId, data.reason, data.details);
