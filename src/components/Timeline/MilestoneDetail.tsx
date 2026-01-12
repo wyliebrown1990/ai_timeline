@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Building2,
   Calendar,
   ChevronLeft,
@@ -10,8 +11,10 @@ import {
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useChatContext } from '../../context/ChatContext';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
+import { useConceptProgress } from '../../hooks/useConceptProgress';
 import { useUserProfile } from '../../hooks/useUserProfile';
 import type { MilestoneWithLayeredContent, SignificanceLevel } from '../../types/milestone';
 import type { AudienceType } from '../../types/userProfile';
@@ -24,7 +27,9 @@ import { AddToFlashcardButton, PackPicker } from '../Flashcards';
 import { ContributorChip, UnlinkedContributorChip } from './ContributorChip';
 import { PersonContributorChip } from './PersonContributorChip';
 import { KeyFigureModal } from '../Glossary/KeyFigureModal';
-import { keyFiguresApi, milestonesApi, type KeyFigureWithContribution, type MilestoneContributor } from '../../services/api';
+import { PrerequisiteChip } from '../Learning/PrerequisiteChip';
+import { CommentThread } from '../Comments';
+import { keyFiguresApi, milestonesApi, glossaryApi, type KeyFigureWithContribution, type MilestoneContributor, type GlossaryTerm } from '../../services/api';
 
 interface MilestoneDetailProps {
   /** The milestone to display (includes layered content from API) */
@@ -105,6 +110,12 @@ export function MilestoneDetail({
   // State for linked persons (Sprint KPC-3 - new)
   const [linkedPersons, setLinkedPersons] = useState<MilestoneContributor[]>([]);
   const [isLoadingPersons, setIsLoadingPersons] = useState(false);
+
+  // State for prerequisite concepts (Sprint LEarn-1)
+  const [conceptTerms, setConceptTerms] = useState<GlossaryTerm[]>([]);
+  const [isLoadingConcepts, setIsLoadingConcepts] = useState(false);
+  const { hasSeenConcept } = useConceptProgress();
+  const navigate = useNavigate();
 
   // Get the card for this milestone if it exists
   const flashcard = getCardBySource('milestone', milestone.id);
@@ -202,6 +213,35 @@ export function MilestoneDetail({
 
     fetchLinkedPersons();
   }, [milestone.id]);
+
+  // Fetch prerequisite concepts when milestone changes (Sprint LEarn-1)
+  useEffect(() => {
+    async function fetchConceptTerms() {
+      const conceptIds = milestone.prerequisiteConceptIds;
+      if (!conceptIds || conceptIds.length === 0) {
+        setConceptTerms([]);
+        return;
+      }
+
+      try {
+        setIsLoadingConcepts(true);
+        // Fetch each concept term by ID
+        const terms = await Promise.all(
+          conceptIds.map((id) =>
+            glossaryApi.getById(id).catch(() => null)
+          )
+        );
+        setConceptTerms(terms.filter((t): t is GlossaryTerm => t !== null));
+      } catch (err) {
+        console.error('[MilestoneDetail] Failed to fetch concept terms:', err);
+        setConceptTerms([]);
+      } finally {
+        setIsLoadingConcepts(false);
+      }
+    }
+
+    fetchConceptTerms();
+  }, [milestone.id, milestone.prerequisiteConceptIds]);
 
   // Layered content is now included in the milestone response from the API (Sprint 35)
   const layeredContent = milestone.layeredContent;
@@ -427,6 +467,35 @@ export function MilestoneDetail({
             Explain this with AI
           </button>
 
+          {/* Concepts in this milestone (Sprint LEarn-1) */}
+          {(conceptTerms.length > 0 || isLoadingConcepts) && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2 text-gray-600 dark:text-gray-400">
+                <BookOpen className="h-5 w-5 text-amber-500" />
+                <span className="font-medium">Concepts in this milestone</span>
+                {isLoadingConcepts && (
+                  <span className="text-xs text-gray-400">(loading...)</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 pl-7">
+                {conceptTerms.map((term) => (
+                  <PrerequisiteChip
+                    key={term.id}
+                    term={term}
+                    onClick={(id) => navigate(`/glossary?term=${id}`)}
+                    isCompleted={hasSeenConcept(term.id)}
+                    showDefinition
+                  />
+                ))}
+              </div>
+              {conceptTerms.length > 0 && (
+                <div className="mt-2 pl-7 text-xs text-gray-500 dark:text-gray-400">
+                  {conceptTerms.filter((t) => hasSeenConcept(t.id)).length}/{conceptTerms.length} concepts seen
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Organization */}
           {milestone.organization && (
             <div className="flex items-center gap-2 mb-4 text-gray-600 dark:text-gray-400">
@@ -577,6 +646,11 @@ export function MilestoneDetail({
                 <> · Updated: {new Date(milestone.updatedAt).toLocaleDateString()}</>
               )}
             </p>
+          </div>
+
+          {/* Comment Thread (Sprint LEarn-4) */}
+          <div className="mt-8">
+            <CommentThread targetType="milestone" targetId={milestone.id} />
           </div>
         </div>
       </div>
