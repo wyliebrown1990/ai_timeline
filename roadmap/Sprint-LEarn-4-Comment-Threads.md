@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-12 by Claude - Backend + Frontend Core Complete
+> Last updated: 2026-01-12 by Claude - User Profile Integration Complete
 
 ## Overview
 
@@ -340,14 +340,14 @@ Add Reddit-style threaded comments with upvote/downvote functionality to all con
 ### 7. User Profile Integration
 
 #### 7.1 Comment History
-- [ ] Add to user profile page:
+- [x] Add to user profile page:
   - Tab or section for "Comments"
   - List of user's comments
   - Link to comment context
   - Total comment karma displayed
 
 #### 7.2 Karma Display
-- [ ] Show karma on profile:
+- [x] Show karma on profile:
   - Comment karma (sum of comment scores)
   - Badge/flair based on karma level (optional)
 
