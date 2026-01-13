@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "User" ADD COLUMN     "canComment" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "commentUnlockedAt" TIMESTAMP(3),
+ADD COLUMN     "commentsRemovedCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "learningActionsCount" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalDownvotesReceived" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "totalUpvotesReceived" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "trustScore" DOUBLE PRECISION NOT NULL DEFAULT 0;
