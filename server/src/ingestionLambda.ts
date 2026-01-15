@@ -87,7 +87,16 @@ interface RemoveDuplicatesEvent {
   dryRun?: boolean;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent;
+/**
+ * Custom event payload for populating missing contributors using LLM
+ */
+interface PopulateContributorsEvent {
+  action: 'populateContributors';
+  dryRun?: boolean;
+  limit?: number;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -115,6 +124,10 @@ function isFixContributorsEvent(event: LambdaEvent): event is FixContributorsEve
 
 function isRemoveDuplicatesEvent(event: LambdaEvent): event is RemoveDuplicatesEvent {
   return (event as RemoveDuplicatesEvent).action === 'removeDuplicates';
+}
+
+function isPopulateContributorsEvent(event: LambdaEvent): event is PopulateContributorsEvent {
+  return (event as PopulateContributorsEvent).action === 'populateContributors';
 }
 
 /**
@@ -541,6 +554,198 @@ export async function handler(
         statusCode: 500,
         body: JSON.stringify({
           message: 'Remove duplicates failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for populate contributors mode (use static mappings and title extraction)
+  if (isPopulateContributorsEvent(event)) {
+    console.log('[IngestionLambda] Running populate contributors');
+    const dryRun = event.dryRun ?? false;
+
+    try {
+      // Title-only keywords (more accurate, must appear in title)
+      const titleOnlyKeywords: Record<string, string[]> = {
+        // People's names - these should only match in title
+        'pavlov': ['Ivan Pavlov'],
+        'thorndike': ['Edward Thorndike'],
+        'hebb': ['Donald Hebb'],
+        'turing': ['Alan Turing'],
+        'mcculloch': ['Warren McCulloch', 'Walter Pitts'],
+        'rosenblatt': ['Frank Rosenblatt'],
+        'minsky': ['Marvin Minsky', 'Seymour Papert'],
+        'weizenbaum': ['Joseph Weizenbaum'],
+        'newell': ['Allen Newell', 'Herbert Simon'],
+        'shannon': ['Claude Shannon'],
+        'mccarthy': ['John McCarthy'],
+        'samuel': ['Arthur Samuel'],
+        'hopfield': ['John Hopfield'],
+        'rumelhart': ['David Rumelhart', 'Geoffrey Hinton', 'Ronald Williams'],
+        'lecun': ['Yann LeCun'],
+        'hinton': ['Geoffrey Hinton'],
+        'bengio': ['Yoshua Bengio'],
+        'schmidhuber': ['Jürgen Schmidhuber'],
+        'hochreiter': ['Sepp Hochreiter', 'Jürgen Schmidhuber'],
+        'sutton': ['Richard Sutton'],
+        'barto': ['Andrew Barto'],
+        'watkins': ['Christopher Watkins'],
+        'tesauro': ['Gerald Tesauro'],
+        'schultz': ['Wolfram Schultz'],
+        'maclean': ['Paul MacLean'],
+        'berridge': ['Kent Berridge', 'Terry Robinson'],
+        'friston': ['Karl Friston'],
+        'rizzolatti': ['Giacomo Rizzolatti'],
+        'andrew ng': ['Andrew Ng'],
+        // Products/systems - title only
+        'td-gammon': ['Gerald Tesauro'],
+        'alphago': ['David Silver', 'Demis Hassabis'],
+        'alphafold': ['Demis Hassabis', 'John Jumper'],
+        'chatgpt': ['Sam Altman', 'Ilya Sutskever'],
+        'gpt-4': ['Sam Altman', 'Ilya Sutskever'],
+        'gpt-5': ['Sam Altman', 'Ilya Sutskever'],
+        'claude': ['Dario Amodei', 'Daniela Amodei'],
+        'gemini': ['Demis Hassabis', 'Jeff Dean'],
+        'llama': ['Mark Zuckerberg', 'Yann LeCun'],
+      };
+
+      // Title+description keywords (broader but should match topic)
+      const broadKeywords: Record<string, string[]> = {
+        'triune brain': ['Paul MacLean'],
+        'free energy principle': ['Karl Friston'],
+        'active inference': ['Karl Friston'],
+        'mirror neuron': ['Giacomo Rizzolatti'],
+        'backpropagation': ['David Rumelhart', 'Geoffrey Hinton', 'Ronald Williams'],
+        'lstm': ['Sepp Hochreiter', 'Jürgen Schmidhuber'],
+        'transformer architecture': ['Ashish Vaswani'],
+        'attention is all you need': ['Ashish Vaswani'],
+      };
+
+      // Organization-specific keywords (must be in title AND not about competitors)
+      const orgKeywords: Record<string, { org: string; names: string[]; antiKeywords: string[] }> = {
+        'openai': { org: 'openai', names: ['Sam Altman', 'Ilya Sutskever'], antiKeywords: ['google', 'anthropic', 'meta', 'deepmind', 'gemini'] },
+        'deepmind': { org: 'deepmind', names: ['Demis Hassabis', 'Shane Legg'], antiKeywords: ['openai', 'anthropic', 'meta', 'chatgpt'] },
+        'anthropic': { org: 'anthropic', names: ['Dario Amodei', 'Daniela Amodei'], antiKeywords: ['openai', 'deepmind', 'meta', 'chatgpt', 'gemini'] },
+        'google ai': { org: 'google', names: ['Jeff Dean', 'Demis Hassabis'], antiKeywords: ['openai', 'anthropic', 'meta'] },
+      };
+
+      // Find milestones with empty contributors
+      const allMilestones = await prisma.milestone.findMany({
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          contributors: true,
+        },
+      });
+
+      const results: Array<{ id: string; title: string; contributors: string[]; method: string }> = [];
+
+      for (const m of allMilestones) {
+        let contributors: string[] = [];
+        try {
+          contributors = typeof m.contributors === 'string'
+            ? JSON.parse(m.contributors)
+            : (m.contributors as string[]) || [];
+        } catch {
+          contributors = [];
+        }
+
+        if (contributors && contributors.length > 0) {
+          continue; // Already has contributors
+        }
+
+        const titleLower = m.title.toLowerCase();
+        const descLower = (m.description || '').toLowerCase();
+        const combined = titleLower + ' ' + descLower;
+
+        let foundContributors: string[] = [];
+        let method = 'none';
+
+        // Priority 1: Title-only keywords (most accurate)
+        for (const [keyword, names] of Object.entries(titleOnlyKeywords)) {
+          // Use word boundary check for more accuracy
+          const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+          if (regex.test(titleLower)) {
+            foundContributors = names;
+            method = `title:${keyword}`;
+            break;
+          }
+        }
+
+        // Priority 2: Broad keywords (title + description)
+        if (foundContributors.length === 0) {
+          for (const [keyword, names] of Object.entries(broadKeywords)) {
+            if (combined.includes(keyword.toLowerCase())) {
+              foundContributors = names;
+              method = `broad:${keyword}`;
+              break;
+            }
+          }
+        }
+
+        // Priority 3: Organization keywords (with anti-keyword filtering)
+        if (foundContributors.length === 0) {
+          for (const [keyword, config] of Object.entries(orgKeywords)) {
+            const regex = new RegExp(`\\b${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+            if (regex.test(titleLower)) {
+              // Check anti-keywords - if any appear in title, skip this match
+              const hasAntiKeyword = config.antiKeywords.some(anti => titleLower.includes(anti));
+              if (!hasAntiKeyword) {
+                foundContributors = config.names;
+                method = `org:${keyword}`;
+                break;
+              }
+            }
+          }
+        }
+
+        // Priority 4: Dopamine research (special case - only if title mentions dopamine AND prediction/reward)
+        if (foundContributors.length === 0) {
+          if (titleLower.includes('dopamine') && (titleLower.includes('reward') || titleLower.includes('prediction'))) {
+            foundContributors = ['Wolfram Schultz'];
+            method = 'pattern:dopamine_reward';
+          }
+        }
+
+        if (foundContributors.length > 0) {
+          if (!dryRun) {
+            await prisma.milestone.update({
+              where: { id: m.id },
+              data: { contributors: JSON.stringify(foundContributors) }
+            });
+          }
+          results.push({ id: m.id, title: m.title.slice(0, 50), contributors: foundContributors, method });
+          console.log(`[IngestionLambda] ${dryRun ? 'Would populate' : 'Populated'} ${m.id}: ${foundContributors.join(', ')} (${method})`);
+        } else {
+          results.push({ id: m.id, title: m.title.slice(0, 50), contributors: [], method: 'no_match' });
+        }
+      }
+
+      const populated = results.filter(r => r.contributors.length > 0).length;
+      const notPopulated = results.filter(r => r.contributors.length === 0);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: `Populate contributors ${dryRun ? 'dry run ' : ''}completed`,
+          dryRun,
+          totalChecked: allMilestones.length,
+          populated,
+          notPopulated: notPopulated.length,
+          results: results.filter(r => r.contributors.length > 0),
+          unmatched: notPopulated.map(r => ({ id: r.id, title: r.title })),
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Populate contributors error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Populate contributors failed',
           error: errorMessage,
         }),
       };
