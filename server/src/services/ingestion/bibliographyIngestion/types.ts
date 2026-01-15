@@ -97,6 +97,8 @@ export interface GeneratedMilestoneData {
   businessImpact: string;
   historicalContext?: string;
   technicalDepth?: string;
+  whyItMattersToday?: string;
+  commonMisconceptions?: string;
   dateIsApproximate: boolean;
 }
 

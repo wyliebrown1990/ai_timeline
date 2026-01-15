@@ -169,6 +169,8 @@ export async function publishMilestone(
         businessImpact: milestoneData.businessImpact || null,
         historicalContext: milestoneData.historicalContext || null,
         technicalDepth: milestoneData.technicalDepth || null,
+        whyItMattersToday: milestoneData.whyItMattersToday || null,
+        commonMisconceptions: milestoneData.commonMisconceptions || null,
       },
     });
 

@@ -65,6 +65,8 @@ Generate comprehensive milestone data for this historical AI/ML work. This shoul
   "businessImpact": "<2-3 sentences on how this eventually impacted technology/industry>",
   "historicalContext": "<How this fits in the broader history of AI>",
   "technicalDepth": "<Optional technical details for those who want more depth>",
+  "whyItMattersToday": "<2-3 sentences explaining why this work is still relevant today and how it connects to current AI developments>",
+  "commonMisconceptions": "<2-3 common misconceptions people have about this work or topic, and brief corrections>",
   "dateIsApproximate": <true if only year is known, false if exact date determined>
 }
 

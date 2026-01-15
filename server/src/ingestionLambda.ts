@@ -96,7 +96,17 @@ interface PopulateContributorsEvent {
   limit?: number;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent;
+/**
+ * Custom event payload for backfilling missing layered content fields
+ */
+interface BackfillLayeredContentEvent {
+  action: 'backfillLayeredContent';
+  dryRun?: boolean;
+  limit?: number;
+  batchSize?: number;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -128,6 +138,10 @@ function isRemoveDuplicatesEvent(event: LambdaEvent): event is RemoveDuplicatesE
 
 function isPopulateContributorsEvent(event: LambdaEvent): event is PopulateContributorsEvent {
   return (event as PopulateContributorsEvent).action === 'populateContributors';
+}
+
+function isBackfillLayeredContentEvent(event: LambdaEvent): event is BackfillLayeredContentEvent {
+  return (event as BackfillLayeredContentEvent).action === 'backfillLayeredContent';
 }
 
 /**
@@ -751,6 +765,207 @@ export async function handler(
         statusCode: 500,
         body: JSON.stringify({
           message: 'Populate contributors failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for backfill layered content mode (generate whyItMattersToday and commonMisconceptions)
+  if (isBackfillLayeredContentEvent(event)) {
+    console.log('[IngestionLambda] Running backfill layered content');
+    const dryRun = event.dryRun ?? false;
+    const limit = event.limit ?? 50;
+    const batchSize = event.batchSize ?? 5;
+
+    try {
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) {
+        return {
+          statusCode: 500,
+          body: JSON.stringify({
+            message: 'ANTHROPIC_API_KEY not configured',
+          }),
+        };
+      }
+
+      // Find milestones missing layered content
+      const milestonesNeedingContent = await prisma.milestone.findMany({
+        where: {
+          OR: [
+            { whyItMattersToday: null },
+            { whyItMattersToday: '' },
+            { commonMisconceptions: null },
+            { commonMisconceptions: '' },
+          ],
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          date: true,
+          category: true,
+          significance: true,
+          era: true,
+          contributors: true,
+          whyItMattersToday: true,
+          commonMisconceptions: true,
+        },
+        take: limit,
+        orderBy: { significance: 'desc' }, // Prioritize high-significance milestones
+      });
+
+      console.log(`[IngestionLambda] Found ${milestonesNeedingContent.length} milestones needing layered content`);
+
+      if (dryRun) {
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            message: 'Backfill layered content dry run completed',
+            dryRun: true,
+            totalNeedingContent: milestonesNeedingContent.length,
+            milestones: milestonesNeedingContent.map(m => ({
+              id: m.id,
+              title: m.title.slice(0, 60),
+              significance: m.significance,
+              missingWhyItMatters: !m.whyItMattersToday,
+              missingMisconceptions: !m.commonMisconceptions,
+            })),
+          }),
+        };
+      }
+
+      // Import Anthropic dynamically
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey });
+
+      const results: Array<{
+        id: string;
+        title: string;
+        success: boolean;
+        error?: string;
+        fieldsGenerated: string[];
+      }> = [];
+
+      // Process in batches
+      for (let i = 0; i < milestonesNeedingContent.length; i += batchSize) {
+        const batch = milestonesNeedingContent.slice(i, i + batchSize);
+        console.log(`[IngestionLambda] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(milestonesNeedingContent.length / batchSize)}`);
+
+        for (const milestone of batch) {
+          try {
+            const fieldsToGenerate: string[] = [];
+            if (!milestone.whyItMattersToday) fieldsToGenerate.push('whyItMattersToday');
+            if (!milestone.commonMisconceptions) fieldsToGenerate.push('commonMisconceptions');
+
+            let contributors: string[] = [];
+            try {
+              contributors = typeof milestone.contributors === 'string'
+                ? JSON.parse(milestone.contributors)
+                : (milestone.contributors as string[]) || [];
+            } catch {
+              contributors = [];
+            }
+
+            const prompt = `You are generating educational content for an AI history timeline milestone.
+
+## Milestone Details:
+Title: ${milestone.title}
+Description: ${milestone.description}
+Date: ${milestone.date ? new Date(milestone.date).toISOString().split('T')[0] : 'Unknown'}
+Category: ${milestone.category}
+Significance: ${milestone.significance}/4
+Era: ${milestone.era || 'Unknown'}
+Contributors: ${contributors.join(', ') || 'Unknown'}
+
+## Generate the following JSON with ONLY the requested fields:
+{
+${fieldsToGenerate.includes('whyItMattersToday') ? `  "whyItMattersToday": "<2-3 sentences explaining why this work is still relevant today and how it connects to current AI developments. Be specific about modern applications or systems that build on this work.>",` : ''}
+${fieldsToGenerate.includes('commonMisconceptions') ? `  "commonMisconceptions": "<2-3 common misconceptions people have about this work, topic, or technology, with brief corrections. Format as: 'Misconception 1: X. Reality: Y. Misconception 2: ...'>"` : ''}
+}
+
+Return ONLY the JSON object, no other text.`;
+
+            const response = await client.messages.create({
+              model: 'claude-sonnet-4-20250514',
+              max_tokens: 1000,
+              messages: [{ role: 'user', content: prompt }],
+            });
+
+            const text = response.content[0].type === 'text' ? response.content[0].text : '';
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+
+            if (!jsonMatch) {
+              throw new Error('No JSON found in response');
+            }
+
+            const generated = JSON.parse(jsonMatch[0]) as {
+              whyItMattersToday?: string;
+              commonMisconceptions?: string;
+            };
+
+            // Update the milestone
+            const updateData: { whyItMattersToday?: string; commonMisconceptions?: string } = {};
+            if (generated.whyItMattersToday && fieldsToGenerate.includes('whyItMattersToday')) {
+              updateData.whyItMattersToday = generated.whyItMattersToday;
+            }
+            if (generated.commonMisconceptions && fieldsToGenerate.includes('commonMisconceptions')) {
+              updateData.commonMisconceptions = generated.commonMisconceptions;
+            }
+
+            if (Object.keys(updateData).length > 0) {
+              await prisma.milestone.update({
+                where: { id: milestone.id },
+                data: updateData,
+              });
+
+              results.push({
+                id: milestone.id,
+                title: milestone.title.slice(0, 50),
+                success: true,
+                fieldsGenerated: Object.keys(updateData),
+              });
+              console.log(`[IngestionLambda] Updated ${milestone.id}: ${Object.keys(updateData).join(', ')}`);
+            }
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            results.push({
+              id: milestone.id,
+              title: milestone.title.slice(0, 50),
+              success: false,
+              error: errorMessage,
+              fieldsGenerated: [],
+            });
+            console.error(`[IngestionLambda] Failed to process ${milestone.id}:`, errorMessage);
+          }
+
+          // Rate limiting delay between requests
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Backfill layered content completed',
+          dryRun: false,
+          processed: results.length,
+          succeeded: successCount,
+          failed: failureCount,
+          results: results,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Backfill layered content error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Backfill layered content failed',
           error: errorMessage,
         }),
       };
