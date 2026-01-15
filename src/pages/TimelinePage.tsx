@@ -137,6 +137,7 @@ function TimelinePage() {
   } = useTimelineSelection({
     milestones: milestones || [],
     syncWithUrl: true,
+    urlParam: 'milestone',
   });
 
   // Calculate time range for navigation
