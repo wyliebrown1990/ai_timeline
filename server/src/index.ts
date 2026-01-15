@@ -44,6 +44,7 @@ import adminSpamFiltersRouter from './routes/adminSpamFilters'; // Sprint Spam-1
 import adminUsersRouter from './routes/adminUsers'; // Sprint Spam-2 - Admin User Management
 import adminModerationRouter from './routes/adminModeration'; // Sprint Spam-3 - Admin Moderation
 import subjectsRouter, { adminRouter as subjectsAdminRouter, contentSubjectRouter } from './routes/subjects'; // Sprint Subj-1 - Subject Taxonomy
+import bibliographyRouter from './routes/bibliography'; // Sprint Bib-1 - Bibliography Ingestion
 
 /**
  * Create and configure the Express application
@@ -145,6 +146,7 @@ export function createApp() {
   app.use('/api/admin/moderation', adminModerationRouter); // Admin moderation API (Sprint Spam-3)
   app.use('/api/admin/subjects', subjectsAdminRouter); // Admin subjects API (Sprint Subj-1)
   app.use('/api/admin/content', contentSubjectRouter); // Admin content subjects API (Sprint Subj-1)
+  app.use('/api/admin/bibliography', bibliographyRouter); // Admin bibliography ingestion API (Sprint Bib-1)
 
   // Error handling
   app.use(notFoundHandler);

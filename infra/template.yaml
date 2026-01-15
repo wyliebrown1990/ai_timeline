@@ -202,8 +202,8 @@ Resources:
       Description: Scheduled ingestion job - fetches articles from news sources
       CodeUri: ../server/src/
       Handler: ingestionLambda.handler
-      Timeout: 300  # 5 minutes - longer timeout for processing multiple sources
-      MemorySize: 512
+      Timeout: 900  # 15 minutes - max Lambda timeout for bibliography ingestion
+      MemorySize: 1024  # Increased for bibliography ingestion
 
       # VPC configuration for RDS access
       VpcConfig:

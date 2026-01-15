@@ -14,6 +14,8 @@ import type { ScheduledEvent, Context } from 'aws-lambda';
 import { runIngestionJob } from './jobs/ingestionJob';
 import type { IngestionJobResult } from './jobs/ingestionJob';
 import { analyzeAllPending, analyzeArticle, screenOnly } from './services/ingestion/articleAnalyzer';
+import { ingestBibliography, generateMarkdownReport } from './services/ingestion/bibliographyIngestion';
+import { prisma } from './db';
 
 /**
  * Lambda response structure
@@ -49,7 +51,35 @@ interface BulkScreenEvent {
   articleIds: string[];
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent;
+/**
+ * Custom event payload for bibliography ingestion
+ * Sprint Bib-1: Automated bibliography ingestion
+ */
+interface BibliographyIngestionEvent {
+  action: 'bibliographyIngestion';
+  sourceUrl?: string;
+  maxEntries?: number;
+  dryRun?: boolean;
+  skipScraping?: boolean;
+}
+
+/**
+ * Custom event payload for cleaning up invalid milestones
+ */
+interface CleanupMilestonesEvent {
+  action: 'cleanupMilestones';
+  dryRun?: boolean;
+}
+
+/**
+ * Custom event payload for fixing contributors with invalid values
+ */
+interface FixContributorsEvent {
+  action: 'fixContributors';
+  dryRun?: boolean;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -61,6 +91,18 @@ function isSingleArticleEvent(event: LambdaEvent): event is SingleArticleEvent {
 
 function isBulkScreenEvent(event: LambdaEvent): event is BulkScreenEvent {
   return (event as BulkScreenEvent).action === 'bulkScreen';
+}
+
+function isBibliographyIngestionEvent(event: LambdaEvent): event is BibliographyIngestionEvent {
+  return (event as BibliographyIngestionEvent).action === 'bibliographyIngestion';
+}
+
+function isCleanupMilestonesEvent(event: LambdaEvent): event is CleanupMilestonesEvent {
+  return (event as CleanupMilestonesEvent).action === 'cleanupMilestones';
+}
+
+function isFixContributorsEvent(event: LambdaEvent): event is FixContributorsEvent {
+  return (event as FixContributorsEvent).action === 'fixContributors';
 }
 
 /**
@@ -145,6 +187,239 @@ export async function handler(
         results,
       }),
     };
+  }
+
+  // Check for bibliography ingestion mode (Sprint Bib-1)
+  if (isBibliographyIngestionEvent(event)) {
+    console.log(`[IngestionLambda] Running bibliography ingestion`);
+    console.log(`  Source URL: ${event.sourceUrl || 'default'}`);
+    console.log(`  Max entries: ${event.maxEntries || 'unlimited'}`);
+    console.log(`  Dry run: ${event.dryRun ?? false}`);
+    console.log(`  Skip scraping: ${event.skipScraping ?? false}`);
+
+    try {
+      const report = await ingestBibliography({
+        sourceUrl: event.sourceUrl || 'https://www.abriefhistoryofintelligence.com/bibliography',
+        maxEntries: event.maxEntries,
+        dryRun: event.dryRun ?? false,
+        skipScraping: event.skipScraping ?? false,
+        onProgress: (progress) => {
+          console.log(`[BibliographyIngestion] [${progress.phase}] ${progress.message}`);
+        },
+      });
+
+      const markdownReport = generateMarkdownReport(report);
+      console.log('[IngestionLambda] Bibliography ingestion complete');
+      console.log(markdownReport);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Bibliography ingestion completed',
+          summary: {
+            totalParsed: report.totalEntriesParsed,
+            aimlFiltered: report.aimlFiltered,
+            duplicatesSkipped: report.duplicatesSkipped,
+            scrapingSucceeded: report.scrapingSucceeded,
+            scrapingFailed: report.scrapingFailed,
+            llmGenerated: report.llmGenerated,
+            milestonesCreated: report.milestonesCreated,
+            errorCount: report.errors.length,
+            processingTimeMs: report.processingTimeMs,
+          },
+          createdMilestoneIds: report.createdMilestoneIds,
+          errors: report.errors.slice(0, 10), // Limit errors in response
+          markdownReport,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Bibliography ingestion error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Bibliography ingestion failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for milestone cleanup mode
+  if (isCleanupMilestonesEvent(event)) {
+    console.log('[IngestionLambda] Running milestone cleanup');
+    const dryRun = event.dryRun ?? false;
+
+    try {
+      // Find milestones with invalid titles
+      const invalidMilestones = await prisma.milestone.findMany({
+        where: {
+          OR: [
+            { title: { contains: '&nbsp;' } },
+            { title: { startsWith: ',' } },
+            { title: { startsWith: ' ' } },
+          ]
+        },
+        select: {
+          id: true,
+          title: true,
+        }
+      });
+
+      console.log(`[IngestionLambda] Found ${invalidMilestones.length} milestones with invalid titles`);
+
+      if (dryRun) {
+        console.log('[IngestionLambda] DRY RUN - would delete:');
+        for (const m of invalidMilestones) {
+          console.log(`  - ${m.id}: "${m.title.slice(0, 50)}..."`);
+        }
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            message: 'Cleanup dry run completed',
+            dryRun: true,
+            foundCount: invalidMilestones.length,
+            milestones: invalidMilestones.map(m => ({ id: m.id, title: m.title.slice(0, 100) })),
+          }),
+        };
+      }
+
+      // Delete invalid milestones
+      const deleteResult = await prisma.milestone.deleteMany({
+        where: {
+          id: { in: invalidMilestones.map(m => m.id) }
+        }
+      });
+
+      console.log(`[IngestionLambda] Deleted ${deleteResult.count} milestones`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Cleanup completed',
+          deletedCount: deleteResult.count,
+          deletedIds: invalidMilestones.map(m => m.id),
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Cleanup error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Cleanup failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for fix contributors mode
+  if (isFixContributorsEvent(event)) {
+    console.log('[IngestionLambda] Running fix contributors');
+    const dryRun = event.dryRun ?? false;
+
+    try {
+      // Find all milestones and check for invalid contributors
+      const allMilestones = await prisma.milestone.findMany({
+        select: {
+          id: true,
+          contributors: true,
+        }
+      });
+
+      const milestonesToFix: Array<{ id: string; oldContributors: string[]; newContributors: string[] }> = [];
+
+      for (const m of allMilestones) {
+        let contributors: string[] = [];
+        try {
+          contributors = typeof m.contributors === 'string'
+            ? JSON.parse(m.contributors)
+            : (m.contributors as string[]) || [];
+        } catch {
+          contributors = [];
+        }
+
+        // Filter out invalid contributors (nbsp, empty, etc.)
+        const validContributors = contributors.filter((c: string) => {
+          if (!c || typeof c !== 'string') return false;
+          const cleaned = c.trim();
+          if (cleaned.length < 2) return false;
+          if (/^[\s&;,.\-]+$/.test(cleaned)) return false;
+          if (/nbsp/i.test(cleaned)) return false;
+          if (!/[a-zA-Z]/.test(cleaned)) return false;
+          return true;
+        });
+
+        // Check if we need to update
+        if (validContributors.length !== contributors.length) {
+          milestonesToFix.push({
+            id: m.id,
+            oldContributors: contributors,
+            newContributors: validContributors,
+          });
+        }
+      }
+
+      console.log(`[IngestionLambda] Found ${milestonesToFix.length} milestones with invalid contributors`);
+
+      if (dryRun) {
+        console.log('[IngestionLambda] DRY RUN - would fix:');
+        for (const m of milestonesToFix) {
+          console.log(`  - ${m.id}: ${JSON.stringify(m.oldContributors)} -> ${JSON.stringify(m.newContributors)}`);
+        }
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            message: 'Fix contributors dry run completed',
+            dryRun: true,
+            foundCount: milestonesToFix.length,
+            milestones: milestonesToFix.map(m => ({
+              id: m.id,
+              oldContributors: m.oldContributors,
+              newContributors: m.newContributors
+            })),
+          }),
+        };
+      }
+
+      // Update milestones with valid contributors
+      let updatedCount = 0;
+      for (const m of milestonesToFix) {
+        await prisma.milestone.update({
+          where: { id: m.id },
+          data: { contributors: JSON.stringify(m.newContributors) }
+        });
+        updatedCount++;
+        console.log(`[IngestionLambda] Fixed contributors for ${m.id}`);
+      }
+
+      console.log(`[IngestionLambda] Fixed ${updatedCount} milestones`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Fix contributors completed',
+          updatedCount,
+          updatedIds: milestonesToFix.map(m => m.id),
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Fix contributors error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Fix contributors failed',
+          error: errorMessage,
+        }),
+      };
+    }
   }
 
   // Check for analysis-only mode (invoked from API)
