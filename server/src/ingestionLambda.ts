@@ -620,6 +620,10 @@ export async function handler(
         'lstm': ['Sepp Hochreiter', 'Jürgen Schmidhuber'],
         'transformer architecture': ['Ashish Vaswani'],
         'attention is all you need': ['Ashish Vaswani'],
+        'social brain hypothesis': ['Robin Dunbar'],
+        'autonomous helicopter': ['Andrew Ng', 'Pieter Abbeel'],
+        'helicopter aerobatics': ['Andrew Ng', 'Pieter Abbeel'],
+        'reinforcement learning: an introduction': ['Richard Sutton', 'Andrew Barto'],
       };
 
       // Organization-specific keywords (must be in title AND not about competitors)
@@ -628,6 +632,7 @@ export async function handler(
         'deepmind': { org: 'deepmind', names: ['Demis Hassabis', 'Shane Legg'], antiKeywords: ['openai', 'anthropic', 'meta', 'chatgpt'] },
         'anthropic': { org: 'anthropic', names: ['Dario Amodei', 'Daniela Amodei'], antiKeywords: ['openai', 'deepmind', 'meta', 'chatgpt', 'gemini'] },
         'google ai': { org: 'google', names: ['Jeff Dean', 'Demis Hassabis'], antiKeywords: ['openai', 'anthropic', 'meta'] },
+        'mistral': { org: 'mistral', names: ['Arthur Mensch', 'Guillaume Lample'], antiKeywords: ['openai', 'anthropic', 'google', 'deepmind'] },
       };
 
       // Find milestones with empty contributors
