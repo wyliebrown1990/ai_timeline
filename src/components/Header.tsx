@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers, ChevronDown } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 import { useFlashcardContext } from '../contexts/FlashcardContext';
 import { GlobalSearch, useGlobalSearch } from './GlobalSearch';
+import { subjectsApi, type Subject } from '../services/api';
+import { DEFAULT_DOMAIN_COLORS } from '../types/subject';
 
 /**
  * Navigation link configuration
@@ -14,11 +16,89 @@ const navLinks = [
   { to: '/', label: 'Home', icon: Home, exact: true },
   { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
   { to: '/news', label: 'News', icon: Newspaper, exact: true },
-  { to: '/subjects', label: 'Subjects', icon: Layers, exact: false },
+  { to: '/subjects', label: 'Subjects', icon: Layers, exact: false, hasDropdown: true },
   { to: '/learn', label: 'Learn', icon: BookOpen, exact: false },
   { to: '/study', label: 'Study', icon: GraduationCap, exact: false },
   { to: '/glossary', label: 'Glossary', icon: FileText, exact: true },
 ] as const;
+
+/**
+ * Get color for a domain
+ */
+function getDomainColor(domain: Subject): string {
+  if (domain.color) return domain.color;
+  return DEFAULT_DOMAIN_COLORS[domain.slug as keyof typeof DEFAULT_DOMAIN_COLORS] || '#6B7280';
+}
+
+/**
+ * Subjects dropdown component
+ * Shows domain quick links
+ */
+function SubjectsDropdown() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [domains, setDomains] = useState<Subject[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch domains on mount
+  useEffect(() => {
+    subjectsApi.getTree().then(setDomains).catch(() => {});
+  }, []);
+
+  // Close on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+        aria-label="Show subject domains"
+      >
+        <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && domains.length > 0 && (
+        <div className="absolute top-full left-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
+          {domains.map((domain) => {
+            const color = getDomainColor(domain);
+            return (
+              <Link
+                key={domain.id}
+                to={`/subjects/${domain.slug}`}
+                onClick={() => setIsOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: color }}
+                />
+                {domain.icon && <span>{domain.icon}</span>}
+                <span className="text-gray-700 dark:text-gray-300">{domain.name}</span>
+              </Link>
+            );
+          })}
+          <div className="border-t border-gray-200 dark:border-gray-700 mt-1 pt-1">
+            <Link
+              to="/subjects"
+              onClick={() => setIsOpen(false)}
+              className="block px-3 py-2 text-sm text-orange-600 dark:text-orange-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Browse all subjects →
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /**
  * Header component with main navigation
@@ -55,14 +135,15 @@ function Header() {
           <div className="hidden md:flex items-center gap-2">
             <nav aria-label="Main navigation" role="navigation">
               <ul className="flex items-center gap-1">
-                {navLinks.map(({ to, label, icon: Icon, exact }) => {
+                {navLinks.map((navLink) => {
+                  const { to, label, icon: Icon, exact, hasDropdown } = navLink as typeof navLink & { hasDropdown?: boolean };
                   const isActive = exact
                     ? location.pathname === to
                     : location.pathname.startsWith(to);
                   // Show badge for Study link when there are cards due
                   const showBadge = to === '/study' && dueToday > 0;
                   return (
-                    <li key={to}>
+                    <li key={to} className="flex items-center">
                       <Link
                         to={to}
                         className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -84,6 +165,8 @@ function Header() {
                           </span>
                         )}
                       </Link>
+                      {/* Subjects dropdown */}
+                      {hasDropdown && <SubjectsDropdown />}
                     </li>
                   );
                 })}

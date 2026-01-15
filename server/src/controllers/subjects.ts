@@ -426,6 +426,34 @@ export async function deleteSynonym(req: Request, res: Response, next: NextFunct
 // =============================================================================
 
 /**
+ * GET /api/subjects/for-content?contentType=milestone&contentId=E2023_DPO
+ * Public endpoint for getting subjects assigned to content
+ */
+export async function getContentSubjectsPublic(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { contentType, contentId } = req.query;
+
+    if (!contentType || !contentId) {
+      return res.status(400).json({ error: 'contentType and contentId are required' });
+    }
+
+    const validTypes = ['milestone', 'glossary_term', 'current_event', 'person', 'organization'];
+    if (!validTypes.includes(contentType as string)) {
+      return res.status(400).json({ error: `Invalid content type. Must be one of: ${validTypes.join(', ')}` });
+    }
+
+    const subjects = await subjectService.getContentSubjects(
+      contentType as subjectService.ContentType,
+      contentId as string
+    );
+
+    res.json(subjects);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * GET /api/admin/content/:type/:id/subjects
  * Get subjects for a piece of content
  */

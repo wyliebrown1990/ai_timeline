@@ -1,5 +1,6 @@
 import { Building2, Calendar, ExternalLink, Users } from 'lucide-react';
 import { useState, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { MilestoneResponse } from '../../types/milestone';
 import { SignificanceLevel } from '../../types/milestone';
 import type { KeyFigure, ContributionType } from '../../types/keyFigure';
@@ -13,6 +14,8 @@ import { SignificanceIndicator } from './SignificanceBadge';
 import { ContributorChip } from './ContributorChip';
 import { AddToFlashcardButton, PackPicker } from '../Flashcards';
 import { useFlashcardContext } from '../../contexts/FlashcardContext';
+import { useSubjectsForContent } from '../../hooks';
+import { SubjectBadgeGroup } from '../ui/SubjectBadge';
 
 /** Linked key figure with contribution type */
 interface LinkedKeyFigure {
@@ -50,9 +53,13 @@ export function MilestoneCard({
   keyFigures = [],
   onViewFigure,
 }: MilestoneCardProps) {
+  const navigate = useNavigate();
   const date = new Date(milestone.date);
   const scale = significanceScale[milestone.significance as SignificanceLevel] || 1;
   const categoryColor = categoryBgClasses[milestone.category] || 'bg-gray-500';
+
+  // Fetch subjects for this milestone (Sprint Subj-5)
+  const { subjects } = useSubjectsForContent('milestone', milestone.id);
 
   // Scale-based styling for significance
   const isGroundbreaking = milestone.significance === SignificanceLevel.GROUNDBREAKING;
@@ -124,6 +131,14 @@ export function MilestoneCard({
       handleClick();
     }
   };
+
+  // Handle subject badge click - navigate to subject page (Sprint Subj-5)
+  const handleSubjectClick = useCallback(
+    (subject: { slug: string }) => {
+      navigate(`/subjects/${subject.slug}`);
+    },
+    [navigate]
+  );
 
   // Flashcard button overlay component (reused across variants)
   const FlashcardOverlay = ({ size = 'sm' }: { size?: 'sm' | 'md' }) => (
@@ -306,7 +321,7 @@ export function MilestoneCard({
               {milestone.tags.slice(0, 5).map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600"
+                  className="rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs text-gray-600 dark:text-gray-300"
                 >
                   {tag}
                 </span>
@@ -314,6 +329,21 @@ export function MilestoneCard({
               {milestone.tags.length > 5 && (
                 <span className="text-xs text-gray-400">+{milestone.tags.length - 5}</span>
               )}
+            </div>
+          )}
+
+          {/* Subject badges (Sprint Subj-5) */}
+          {subjects.length > 0 && (
+            <div
+              className="mt-3"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <SubjectBadgeGroup
+                subjects={subjects}
+                maxVisible={3}
+                size="sm"
+                onBadgeClick={handleSubjectClick}
+              />
             </div>
           )}
         </div>
@@ -412,7 +442,7 @@ export function MilestoneCard({
             {milestone.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600"
+                className="rounded bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 text-xs text-gray-600 dark:text-gray-300"
               >
                 {tag}
               </span>
@@ -420,6 +450,21 @@ export function MilestoneCard({
             {milestone.tags.length > 3 && (
               <span className="text-xs text-gray-400">+{milestone.tags.length - 3}</span>
             )}
+          </div>
+        )}
+
+        {/* Subject badges (Sprint Subj-5) */}
+        {subjects.length > 0 && (
+          <div
+            className="mt-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <SubjectBadgeGroup
+              subjects={subjects}
+              maxVisible={2}
+              size="sm"
+              onBadgeClick={handleSubjectClick}
+            />
           </div>
         )}
       </div>

@@ -6,11 +6,34 @@
  */
 
 import { cn } from '../../lib/utils';
-import type { SubjectBase } from '../../types/subject';
-import { getSubjectColor } from '../../types/subject';
+import { DEFAULT_DOMAIN_COLORS } from '../../types/subject';
+
+/**
+ * Minimal subject shape for badge display
+ * Accepts both SubjectBase from types and Subject from API
+ */
+interface BadgeSubject {
+  id: string;
+  slug: string;
+  name: string;
+  level: number;
+  path: string;
+  domainSlug?: string;
+  color?: string | null;
+  icon?: string | null;
+}
+
+/**
+ * Get color for a subject (uses subject color or domain default)
+ */
+function getSubjectColorLocal(subject: BadgeSubject): string {
+  if (subject.color) return subject.color;
+  const domainSlug = subject.domainSlug || subject.slug.split('-')[0];
+  return DEFAULT_DOMAIN_COLORS[domainSlug as keyof typeof DEFAULT_DOMAIN_COLORS] || '#6B7280';
+}
 
 interface SubjectBadgeProps {
-  subject: SubjectBase;
+  subject: BadgeSubject;
   size?: 'sm' | 'md' | 'lg';
   showPath?: boolean;
   onClick?: () => void;
@@ -30,7 +53,7 @@ export function SubjectBadge({
   onClick,
   className,
 }: SubjectBadgeProps) {
-  const color = getSubjectColor(subject);
+  const color = getSubjectColorLocal(subject);
   const isClickable = !!onClick;
 
   const Component = isClickable ? 'button' : 'span';
@@ -65,10 +88,10 @@ export function SubjectBadge({
  * Grouped subject badges with overflow indicator
  */
 interface SubjectBadgeGroupProps {
-  subjects: SubjectBase[];
+  subjects: BadgeSubject[];
   maxVisible?: number;
   size?: 'sm' | 'md' | 'lg';
-  onBadgeClick?: (subject: SubjectBase) => void;
+  onBadgeClick?: (subject: BadgeSubject) => void;
   className?: string;
 }
 

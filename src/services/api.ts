@@ -4279,6 +4279,15 @@ export const subjectsApi = {
     return fetchJson<Subject[]>(`${API_BASE}/subjects/search?${params.toString()}`);
   },
 
+  /**
+   * Get subjects assigned to a specific piece of content (public)
+   * Sprint Subj-5: For displaying subject badges on content cards
+   */
+  async getSubjectsForContent(contentType: string, contentId: string): Promise<ContentSubjectAssignment[]> {
+    const params = new URLSearchParams({ contentType, contentId });
+    return fetchJson<ContentSubjectAssignment[]>(`${API_BASE}/subjects/for-content?${params.toString()}`);
+  },
+
   // ==========================================================================
   // Admin Methods
   // ==========================================================================

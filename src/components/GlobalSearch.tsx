@@ -9,14 +9,37 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Clock, FileText, User, Loader2 } from 'lucide-react';
+import { Search, X, Clock, FileText, User, Loader2, Layers } from 'lucide-react';
 import {
   globalSearchApi,
+  subjectsApi,
   type GlobalSearchResult,
   type MilestoneSearchResult,
   type GlossarySearchResult,
   type KeyFigureSearchResult,
+  type Subject,
 } from '../services/api';
+import { DEFAULT_DOMAIN_COLORS } from '../types/subject';
+
+/**
+ * Combined search result type (includes subjects)
+ */
+type CombinedSearchResult = GlobalSearchResult | SubjectSearchResultItem;
+
+/**
+ * Subject search result item
+ */
+interface SubjectSearchResultItem {
+  type: 'subject';
+  id: string;
+  slug: string;
+  name: string;
+  path: string;
+  level: number;
+  domainSlug: string;
+  color: string | null;
+  icon: string | null;
+}
 
 interface GlobalSearchProps {
   isOpen: boolean;
@@ -45,22 +68,37 @@ function useDebounce<T>(value: T, delay: number): T {
 /**
  * Type guard for milestone result
  */
-function isMilestone(result: GlobalSearchResult): result is MilestoneSearchResult {
+function isMilestone(result: CombinedSearchResult): result is MilestoneSearchResult {
   return result.type === 'milestone';
 }
 
 /**
  * Type guard for glossary result
  */
-function isGlossary(result: GlobalSearchResult): result is GlossarySearchResult {
+function isGlossary(result: CombinedSearchResult): result is GlossarySearchResult {
   return result.type === 'glossary';
 }
 
 /**
  * Type guard for key figure result
  */
-function isKeyFigure(result: GlobalSearchResult): result is KeyFigureSearchResult {
+function isKeyFigure(result: CombinedSearchResult): result is KeyFigureSearchResult {
   return result.type === 'keyFigure';
+}
+
+/**
+ * Type guard for subject result
+ */
+function isSubject(result: CombinedSearchResult): result is SubjectSearchResultItem {
+  return result.type === 'subject';
+}
+
+/**
+ * Get color for a subject
+ */
+function getSubjectColor(subject: SubjectSearchResultItem): string {
+  if (subject.color) return subject.color;
+  return DEFAULT_DOMAIN_COLORS[subject.domainSlug as keyof typeof DEFAULT_DOMAIN_COLORS] || '#6B7280';
 }
 
 /**
@@ -111,7 +149,7 @@ function formatCategory(category: string): string {
 
 export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<GlobalSearchResult[]>([]);
+  const [results, setResults] = useState<CombinedSearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -140,8 +178,34 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
 
       setIsLoading(true);
       try {
-        const response = await globalSearchApi.search(debouncedQuery, { limit: 5 });
-        setResults(response.results);
+        // Search both content and subjects in parallel
+        const [contentResponse, subjectResults] = await Promise.all([
+          globalSearchApi.search(debouncedQuery, { limit: 5 }),
+          subjectsApi.search(debouncedQuery).catch(() => [] as Subject[]),
+        ]);
+
+        // Convert subjects to search result format
+        const subjectSearchResults: SubjectSearchResultItem[] = subjectResults
+          .slice(0, 3) // Limit to 3 subject results
+          .map((s) => ({
+            type: 'subject' as const,
+            id: s.id,
+            slug: s.slug,
+            name: s.name,
+            path: s.path,
+            level: s.level,
+            domainSlug: s.domainSlug,
+            color: s.color,
+            icon: s.icon,
+          }));
+
+        // Combine results: subjects first, then content
+        const combined: CombinedSearchResult[] = [
+          ...subjectSearchResults,
+          ...contentResponse.results,
+        ];
+
+        setResults(combined);
         setSelectedIndex(0);
       } catch (error) {
         console.error('Search error:', error);
@@ -188,9 +252,11 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
 
   // Handle result selection
   const handleSelect = useCallback(
-    (result: GlobalSearchResult) => {
+    (result: CombinedSearchResult) => {
       onClose();
-      if (isMilestone(result)) {
+      if (isSubject(result)) {
+        navigate(`/subjects/${result.slug}`);
+      } else if (isMilestone(result)) {
         navigate(`/timeline?milestone=${result.id}`);
       } else if (isGlossary(result)) {
         navigate(`/glossary?term=${result.id}`);
@@ -231,7 +297,7 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search milestones, terms, people..."
+            placeholder="Search milestones, terms, subjects, people..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -271,22 +337,57 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                   }`}
                 >
                   {/* Icon */}
-                  <div
-                    className={`flex-shrink-0 mt-0.5 p-1.5 rounded-lg ${
-                      isMilestone(result)
-                        ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                        : isGlossary(result)
-                          ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
-                          : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                    }`}
-                  >
-                    {isMilestone(result) && <Clock className="h-4 w-4" />}
-                    {isGlossary(result) && <FileText className="h-4 w-4" />}
-                    {isKeyFigure(result) && <User className="h-4 w-4" />}
-                  </div>
+                  {isSubject(result) ? (
+                    <div
+                      className="flex-shrink-0 mt-0.5 p-1.5 rounded-lg"
+                      style={{
+                        backgroundColor: `${getSubjectColor(result)}20`,
+                        color: getSubjectColor(result),
+                      }}
+                    >
+                      <Layers className="h-4 w-4" />
+                    </div>
+                  ) : (
+                    <div
+                      className={`flex-shrink-0 mt-0.5 p-1.5 rounded-lg ${
+                        isMilestone(result)
+                          ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          : isGlossary(result)
+                            ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                            : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                      }`}
+                    >
+                      {isMilestone(result) && <Clock className="h-4 w-4" />}
+                      {isGlossary(result) && <FileText className="h-4 w-4" />}
+                      {isKeyFigure(result) && <User className="h-4 w-4" />}
+                    </div>
+                  )}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
+                    {isSubject(result) && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {result.icon && <span className="mr-1">{result.icon}</span>}
+                            {result.name}
+                          </span>
+                          <span
+                            className="px-1.5 py-0.5 text-xs font-medium rounded"
+                            style={{
+                              backgroundColor: `${getSubjectColor(result)}20`,
+                              color: getSubjectColor(result),
+                            }}
+                          >
+                            Subject
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          {result.path}
+                        </p>
+                      </>
+                    )}
+
                     {isMilestone(result) && (
                       <>
                         <div className="flex items-center gap-2">

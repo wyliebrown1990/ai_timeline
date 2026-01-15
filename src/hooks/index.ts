@@ -75,3 +75,11 @@ export type {
   Checkpoint,
   CurrentEvent,
 } from './useLearningPathsApi';
+
+// Subject API hooks (Sprint Subj-5)
+export {
+  useSubjectsForContent,
+  useSubjectTree,
+  useSubjectSearch,
+  useSubject,
+} from './useSubjectsApi';

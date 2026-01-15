@@ -20,13 +20,27 @@ function getSubjectColor(subject: Subject): string {
   return DEFAULT_DOMAIN_COLORS[domainSlug as keyof typeof DEFAULT_DOMAIN_COLORS] || '#6B7280';
 }
 
+interface SubjectStats {
+  milestones: number;
+  glossaryTerms: number;
+  total: number;
+}
+
 /**
  * Domain Card component
  */
 function DomainCard({ domain }: { domain: Subject }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [stats, setStats] = useState<SubjectStats | null>(null);
   const color = getSubjectColor(domain);
   const hasChildren = domain.children && domain.children.length > 0;
+
+  // Fetch stats when expanded
+  useEffect(() => {
+    if (isExpanded && !stats) {
+      subjectsApi.getStats(domain.slug).then(setStats).catch(() => {});
+    }
+  }, [isExpanded, stats, domain.slug]);
 
   return (
     <div
@@ -54,6 +68,18 @@ function DomainCard({ domain }: { domain: Subject }) {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   {domain.description}
                 </p>
+              )}
+              {stats && stats.total > 0 && (
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                    {stats.milestones} milestones
+                  </span>
+                  {stats.glossaryTerms > 0 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      {stats.glossaryTerms} terms
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           </div>

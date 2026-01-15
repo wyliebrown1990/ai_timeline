@@ -26,6 +26,11 @@ router.get('/search', subjectsController.search);
 // NOTE: Must be before /:slug to avoid conflict
 router.get('/related', subjectsController.getRelatedContent);
 
+// GET /api/subjects/for-content?contentType=milestone&contentId=E2023_DPO
+// Public endpoint for getting subjects assigned to a piece of content
+// NOTE: Must be before /:slug to avoid conflict
+router.get('/for-content', subjectsController.getContentSubjectsPublic);
+
 // GET /api/subjects/:slug - Get subject by slug
 router.get('/:slug', subjectsController.getBySlug);
 

@@ -1,5 +1,8 @@
 import { ChevronRight, ExternalLink, Calendar, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { CurrentEvent } from '../../types/currentEvent';
+import { useSubjectsForContent } from '../../hooks';
+import { SubjectBadgeGroup } from '../ui/SubjectBadge';
 
 /**
  * Props for CurrentEventCard component
@@ -27,12 +30,22 @@ export function CurrentEventCard({
   onViewContext,
   className = '',
 }: CurrentEventCardProps) {
+  const navigate = useNavigate();
+
   // Format the published date for display
   const formattedDate = new Date(event.publishedDate).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+
+  // Fetch subjects for this event (Sprint Subj-5)
+  const { subjects } = useSubjectsForContent('current_event', event.id);
+
+  // Handle subject badge click
+  const handleSubjectClick = (subject: { slug: string }) => {
+    navigate(`/subjects/${subject.slug}`);
+  };
 
   return (
     <article
@@ -95,6 +108,21 @@ export function CurrentEventCard({
       <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
         {event.summary}
       </p>
+
+      {/* Subject badges (Sprint Subj-5) */}
+      {subjects.length > 0 && (
+        <div
+          className="mt-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <SubjectBadgeGroup
+            subjects={subjects}
+            maxVisible={2}
+            size="sm"
+            onBadgeClick={handleSubjectClick}
+          />
+        </div>
+      )}
 
       {/* Context CTA */}
       <div className="mt-4 flex items-center justify-between">
