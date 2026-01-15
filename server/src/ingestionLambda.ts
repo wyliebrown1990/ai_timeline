@@ -79,7 +79,15 @@ interface FixContributorsEvent {
   dryRun?: boolean;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent;
+/**
+ * Custom event payload for removing duplicate milestones
+ */
+interface RemoveDuplicatesEvent {
+  action: 'removeDuplicates';
+  dryRun?: boolean;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -103,6 +111,10 @@ function isCleanupMilestonesEvent(event: LambdaEvent): event is CleanupMilestone
 
 function isFixContributorsEvent(event: LambdaEvent): event is FixContributorsEvent {
   return (event as FixContributorsEvent).action === 'fixContributors';
+}
+
+function isRemoveDuplicatesEvent(event: LambdaEvent): event is RemoveDuplicatesEvent {
+  return (event as RemoveDuplicatesEvent).action === 'removeDuplicates';
 }
 
 /**
@@ -416,6 +428,119 @@ export async function handler(
         statusCode: 500,
         body: JSON.stringify({
           message: 'Fix contributors failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for remove duplicates mode
+  if (isRemoveDuplicatesEvent(event)) {
+    console.log('[IngestionLambda] Running remove duplicates');
+    const dryRun = event.dryRun ?? false;
+
+    try {
+      // Find all milestones
+      const allMilestones = await prisma.milestone.findMany({
+        select: {
+          id: true,
+          title: true,
+          date: true,
+        },
+        orderBy: { createdAt: 'asc' } // Keep oldest, remove newer duplicates
+      });
+
+      // Find duplicates: milestones with _N suffix where N >= 1
+      const duplicateIds: string[] = [];
+      const duplicateRegex = /_(\d+)$/;
+
+      for (const m of allMilestones) {
+        const match = m.id.match(duplicateRegex);
+        if (match) {
+          const suffix = parseInt(match[1], 10);
+          if (suffix >= 1) {
+            // This is a duplicate - check if the base milestone exists
+            const baseId = m.id.replace(duplicateRegex, '');
+            const baseExists = allMilestones.some(other => other.id === baseId);
+            if (baseExists) {
+              duplicateIds.push(m.id);
+            }
+          }
+        }
+      }
+
+      // Also find near-duplicates by normalized title within same year
+      const byYearTitle = new Map<string, typeof allMilestones>();
+      for (const m of allMilestones) {
+        if (duplicateIds.includes(m.id)) continue; // Already marked as duplicate
+
+        const year = m.date ? new Date(m.date).getFullYear() : 0;
+        const normalizedTitle = m.title.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
+        const key = `${year}_${normalizedTitle}`;
+
+        if (!byYearTitle.has(key)) {
+          byYearTitle.set(key, []);
+        }
+        byYearTitle.get(key)!.push(m);
+      }
+
+      // Mark all but the first in each group as duplicates
+      for (const [key, group] of byYearTitle) {
+        if (group.length > 1) {
+          // Keep the first (oldest), mark rest as duplicates
+          for (let i = 1; i < group.length; i++) {
+            if (!duplicateIds.includes(group[i].id)) {
+              duplicateIds.push(group[i].id);
+            }
+          }
+        }
+      }
+
+      console.log(`[IngestionLambda] Found ${duplicateIds.length} duplicate milestones`);
+
+      if (dryRun) {
+        console.log('[IngestionLambda] DRY RUN - would delete:');
+        for (const id of duplicateIds) {
+          const m = allMilestones.find(x => x.id === id);
+          console.log(`  - ${id}: ${m?.title?.slice(0, 50)}...`);
+        }
+
+        return {
+          statusCode: 200,
+          body: JSON.stringify({
+            message: 'Remove duplicates dry run completed',
+            dryRun: true,
+            foundCount: duplicateIds.length,
+            duplicateIds,
+          }),
+        };
+      }
+
+      // Delete duplicates
+      const deleteResult = await prisma.milestone.deleteMany({
+        where: {
+          id: { in: duplicateIds }
+        }
+      });
+
+      console.log(`[IngestionLambda] Deleted ${deleteResult.count} duplicate milestones`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Remove duplicates completed',
+          deletedCount: deleteResult.count,
+          deletedIds: duplicateIds,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Remove duplicates error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Remove duplicates failed',
           error: errorMessage,
         }),
       };

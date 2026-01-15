@@ -143,7 +143,29 @@ export async function checkDuplicate(
 }
 
 /**
+ * Check if two entries are duplicates of each other (within-batch check)
+ */
+function areEntriesSimilar(
+  entry1: BibliographyEntry,
+  entry2: BibliographyEntry,
+  threshold: number = 0.85
+): boolean {
+  // Must be same year (within 1 year tolerance)
+  if (Math.abs(entry1.year - entry2.year) > 1) {
+    return false;
+  }
+
+  const title1 = normalizeTitle(entry1.title);
+  const title2 = normalizeTitle(entry2.title);
+
+  const similarity = calculateTitleSimilarity(title1, title2);
+  return similarity >= threshold;
+}
+
+/**
  * Check multiple entries for duplicates (batch operation)
+ * Also deduplicates within the batch to prevent creating multiple milestones
+ * for the same entry processed multiple times.
  */
 export async function checkDuplicates(
   entries: BibliographyEntry[],
@@ -165,18 +187,46 @@ export async function checkDuplicates(
   const duplicates: DuplicateCheckResult[] = [];
   const unique: DuplicateCheckResult[] = [];
 
+  // Track entries we've already accepted to prevent within-batch duplicates
+  const acceptedEntries: BibliographyEntry[] = [];
+
   for (let i = 0; i < entries.length; i++) {
     const entry = entries[i];
-    const result = await checkDuplicate(entry, similarityThreshold);
 
-    if (result.isDuplicate) {
-      duplicates.push(result);
+    // First check against existing milestones in database
+    const dbResult = await checkDuplicate(entry, similarityThreshold);
+
+    if (dbResult.isDuplicate) {
+      duplicates.push(dbResult);
       console.log(
-        `[BibliographyDeduplicator] Duplicate: "${entry.title.slice(0, 50)}..." ` +
-          `matches "${result.matchedTitle?.slice(0, 50)}..." (${(result.similarityScore * 100).toFixed(0)}%)`
+        `[BibliographyDeduplicator] DB Duplicate: "${entry.title.slice(0, 50)}..." ` +
+          `matches "${dbResult.matchedTitle?.slice(0, 50)}..." (${(dbResult.similarityScore * 100).toFixed(0)}%)`
       );
     } else {
-      unique.push(result);
+      // Check against entries we've already accepted in this batch
+      let batchDuplicate = false;
+      for (const accepted of acceptedEntries) {
+        if (areEntriesSimilar(entry, accepted, similarityThreshold)) {
+          batchDuplicate = true;
+          duplicates.push({
+            entry,
+            isDuplicate: true,
+            matchedTitle: accepted.title,
+            similarityScore: 1.0, // Within-batch duplicate
+            matchMethod: 'title',
+          });
+          console.log(
+            `[BibliographyDeduplicator] Batch Duplicate: "${entry.title.slice(0, 50)}..." ` +
+              `matches batch entry "${accepted.title.slice(0, 50)}..."`
+          );
+          break;
+        }
+      }
+
+      if (!batchDuplicate) {
+        unique.push(dbResult);
+        acceptedEntries.push(entry);
+      }
     }
 
     onProgress?.(i + 1, entries.length);
