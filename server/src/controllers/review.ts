@@ -11,6 +11,73 @@ import { publishNewsEvent } from '../services/publishing/newsPublisher';
 import { publishGlossaryTerm } from '../services/publishing/glossaryPublisher';
 
 /**
+ * Subject classification from draft data
+ */
+interface SuggestedSubject {
+  subjectId: string;
+  subjectSlug: string;
+  confidence: number;
+  isPrimary: boolean;
+}
+
+/**
+ * Publish ContentSubject records for approved content
+ * Sprint Subj-2: Creates ContentSubject records linking published content to subjects
+ */
+async function publishContentSubjects(
+  contentType: string,
+  contentId: string,
+  suggestedSubjects: SuggestedSubject[] | undefined
+): Promise<number> {
+  if (!suggestedSubjects || suggestedSubjects.length === 0) {
+    return 0;
+  }
+
+  let created = 0;
+
+  for (const subject of suggestedSubjects) {
+    // Verify subject exists before creating
+    const subjectExists = await prisma.subject.findUnique({
+      where: { id: subject.subjectId },
+      select: { id: true },
+    });
+
+    if (!subjectExists) {
+      console.warn(`[Review] Subject ${subject.subjectId} not found, skipping`);
+      continue;
+    }
+
+    // Use upsert to prevent duplicates
+    await prisma.contentSubject.upsert({
+      where: {
+        contentType_contentId_subjectId: {
+          contentType,
+          contentId,
+          subjectId: subject.subjectId,
+        },
+      },
+      create: {
+        contentType,
+        contentId,
+        subjectId: subject.subjectId,
+        isPrimary: subject.isPrimary,
+        confidence: subject.confidence,
+        source: 'auto',
+      },
+      update: {
+        isPrimary: subject.isPrimary,
+        confidence: subject.confidence,
+      },
+    });
+
+    created++;
+  }
+
+  console.log(`[Review] Created ${created} ContentSubject records for ${contentType}/${contentId}`);
+  return created;
+}
+
+/**
  * Get review queue with filters
  */
 export async function getQueue(req: Request, res: Response) {
@@ -235,6 +302,14 @@ export async function approveDraft(req: Request, res: Response) {
         return res.status(400).json({ error: `Unknown content type: ${draft.contentType}` });
     }
 
+    // Publish ContentSubject records (Sprint Subj-2)
+    const suggestedSubjects = draftData.suggestedSubjects as SuggestedSubject[] | undefined;
+    const subjectsCreated = await publishContentSubjects(
+      draft.contentType,
+      publishedId,
+      suggestedSubjects
+    );
+
     // Update draft status
     const updated = await prisma.contentDraft.update({
       where: { id },
@@ -252,6 +327,7 @@ export async function approveDraft(req: Request, res: Response) {
         draftData,
       },
       publishedId,
+      subjectsCreated,
     });
   } catch (error) {
     console.error('Error approving draft:', error);
@@ -356,6 +432,10 @@ export async function bulkApprove(req: Request, res: Response) {
             results.push({ id: draft.id, success: false, error: `Unknown content type: ${draft.contentType}` });
             continue;
         }
+
+        // Publish ContentSubject records (Sprint Subj-2)
+        const suggestedSubjects = draftData.suggestedSubjects as SuggestedSubject[] | undefined;
+        await publishContentSubjects(draft.contentType, publishedId, suggestedSubjects);
 
         await prisma.contentDraft.update({
           where: { id: draft.id },

@@ -11,6 +11,7 @@ import {
   Trophy,
   BookOpen,
   AlertTriangle,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { reviewApi, type DraftWithArticle } from '../../services/api';
@@ -19,6 +20,16 @@ interface ReviewDetailModalProps {
   draft: DraftWithArticle;
   onClose: () => void;
   onSave: () => void;
+}
+
+/**
+ * Suggested subject from AI classification
+ */
+interface SuggestedSubject {
+  subjectId: string;
+  subjectSlug: string;
+  confidence: number;
+  isPrimary: boolean;
 }
 
 /**
@@ -365,6 +376,43 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
               {renderFields()}
             </div>
           </div>
+
+          {/* Suggested Subjects (Sprint Subj-2) */}
+          {(draftData.suggestedSubjects as SuggestedSubject[] | undefined)?.length ? (
+            <div className="px-6 py-4 bg-purple-50 border-t border-purple-100">
+              <div className="flex items-start gap-2">
+                <Tag className="h-5 w-5 text-purple-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-purple-700 mb-2">Suggested Subjects</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(draftData.suggestedSubjects as SuggestedSubject[]).map((subject) => (
+                      <span
+                        key={subject.subjectId}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                          subject.isPrimary
+                            ? 'bg-purple-200 text-purple-800 ring-1 ring-purple-300'
+                            : 'bg-purple-100 text-purple-700'
+                        }`}
+                      >
+                        {subject.subjectSlug}
+                        <span className="text-purple-500">
+                          ({Math.round(subject.confidence * 100)}%)
+                        </span>
+                        {subject.isPrimary && (
+                          <span className="text-purple-400 text-[10px] uppercase font-semibold">
+                            Primary
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-purple-500 mt-2">
+                    These subjects will be linked to the published content.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* AI Rationale */}
           {draft.article.milestoneRationale && (

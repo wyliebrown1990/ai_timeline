@@ -57,6 +57,9 @@ router.post('/:id/analyze', articlesController.analyzeOne);
 // POST /api/admin/articles/:id/reanalyze - Re-analyze article (delete drafts and redo)
 router.post('/:id/reanalyze', articlesController.reanalyzeArticle);
 
+// POST /api/admin/articles/:id/reclassify - Re-classify article subjects (Sprint Subj-2)
+router.post('/:id/reclassify', articlesController.reclassifySubjects);
+
 // POST /api/admin/articles/:id/generate - Generate content for screened article
 router.post('/:id/generate', articlesController.generateContent);
 

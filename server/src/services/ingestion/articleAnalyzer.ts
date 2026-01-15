@@ -1,8 +1,9 @@
 /**
  * Article Analyzer - Orchestration Service
  *
- * Coordinates the 5-stage AI analysis pipeline:
+ * Coordinates the 6-stage AI analysis pipeline:
  * - Stage 1: Screening (Haiku) - Relevance and milestone determination
+ * - Stage 1.5: Subject Classification (Haiku) - Classify by subject taxonomy (Sprint Subj-2)
  * - Stage 2: Content Generation (Sonnet) - Full content for milestone-worthy articles
  * - Stage 3: Glossary Extraction (Haiku) - New AI terminology
  * - Stage 4: Key Figure Extraction (Haiku) - Notable people mentioned (Sprint 46)
@@ -25,6 +26,10 @@ import {
   type EntityExtractionResult,
   type ExtractedPerson,
 } from './entityExtraction';
+import {
+  classifyArticle as classifyArticleSubjects,
+  type SubjectClassification,
+} from './subjectClassifier';
 import { matchPerson } from '../entityMatcher';
 import { withRetry, resolveArticleErrors } from '../errorTracker';
 
@@ -67,6 +72,7 @@ function getYouTubeThumbnailUrl(videoId: string): string {
 
 export interface AnalysisResult {
   screening: ScreeningResult;
+  subjectClassification?: SubjectClassification[];
   contentGeneration?: ContentGenerationResult;
   glossaryTerms: GlossaryTermDraft[];
   keyFigures?: KeyFigureProcessingResult;
@@ -146,6 +152,44 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     });
   }
 
+  // Stage 1.5: Subject Classification (Haiku - runs for ALL articles)
+  // Even non-milestone-worthy articles get classified for filtering/analytics
+  let subjectClassification: SubjectClassification[] = [];
+  if (!article.classifiedSubjects) {
+    console.log(`[Analyzer] Stage 1.5: Classifying article by subject`);
+
+    try {
+      subjectClassification = await classifyArticleSubjects(
+        {
+          title: article.title,
+          content: article.content,
+          publishedAt: article.publishedAt,
+        },
+        apiKey
+      );
+
+      // Store classification results
+      await prisma.ingestedArticle.update({
+        where: { id: articleId },
+        data: {
+          classifiedSubjects: subjectClassification,
+          subjectClassifiedAt: new Date(),
+        },
+      });
+
+      console.log(
+        `[Analyzer] Subject classification complete: ${subjectClassification.length} subjects assigned`
+      );
+    } catch (classificationError) {
+      // Log error but don't block pipeline - classification is non-critical
+      console.error('[Analyzer] Subject classification error (non-fatal):', classificationError);
+    }
+  } else {
+    // Use existing classification
+    subjectClassification = article.classifiedSubjects as SubjectClassification[];
+    console.log(`[Analyzer] Using existing subject classification: ${subjectClassification.length} subjects`);
+  }
+
   let contentGeneration: ContentGenerationResult | undefined;
 
   // Stage 2: Content Generation (Sonnet - only if milestone-worthy)
@@ -181,12 +225,17 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     // Validate and save milestone draft
     if (contentGeneration.milestone) {
       const milestoneValidation = CreateMilestoneDtoSchema.safeParse(contentGeneration.milestone);
+      // Include suggested subjects from classification (Sprint Subj-2)
+      const milestoneDraftData = {
+        ...contentGeneration.milestone,
+        suggestedSubjects: subjectClassification,
+      };
       await prisma.contentDraft.create({
         data: {
           articleId,
           contentType: 'milestone',
           // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
-          draftData: contentGeneration.milestone,
+          draftData: milestoneDraftData,
           isValid: milestoneValidation.success,
           validationErrors: milestoneValidation.success
             ? null
@@ -216,12 +265,17 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         id: `evt_${Date.now()}`, // Generate ID
       };
       const eventValidation = CurrentEventSchema.safeParse(eventData);
+      // Include suggested subjects from classification (Sprint Subj-2)
+      const newsEventDraftData = {
+        ...enrichedNewsEvent,
+        suggestedSubjects: subjectClassification,
+      };
       await prisma.contentDraft.create({
         data: {
           articleId,
           contentType: 'news_event',
           // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
-          draftData: enrichedNewsEvent,
+          draftData: newsEventDraftData,
           isValid: eventValidation.success,
           validationErrors: eventValidation.success
             ? null
@@ -262,12 +316,17 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     // Save each term as a draft
     for (const term of glossaryTerms) {
       const validation = GlossaryEntrySchema.safeParse(term);
+      // Include suggested subjects from classification (Sprint Subj-2)
+      const glossaryDraftData = {
+        ...term,
+        suggestedSubjects: subjectClassification,
+      };
       await prisma.contentDraft.create({
         data: {
           articleId,
           contentType: 'glossary_term',
           // Native PostgreSQL Json type - pass object directly (no JSON.stringify needed)
-          draftData: term,
+          draftData: glossaryDraftData,
           isValid: validation.success,
           validationErrors: validation.success ? null : JSON.stringify(validation.error.errors),
         },
@@ -403,6 +462,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
 
   return {
     screening,
+    subjectClassification,
     contentGeneration,
     glossaryTerms,
     keyFigures: keyFigureResult,

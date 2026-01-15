@@ -11,9 +11,28 @@ import { screenOnly, analyzeAllPending, analyzeArticle } from '../services/inges
 import { scrapeUrl } from '../services/scraper/urlScraper';
 import { youtubeApi } from '../services/youtube/youtubeApi';
 import { transcriptService } from '../services/youtube/transcriptService';
+import { reclassifyArticle } from '../services/ingestion/subjectClassifier';
 
 // Lambda client for async invocation of Ingestion Lambda
 const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
+
+/**
+ * Helper: Invoke Ingestion Lambda asynchronously for article analysis
+ * This triggers the full pipeline: screening → content generation → entity extraction
+ */
+async function invokeAnalysisLambda(articleId: string): Promise<void> {
+  const command = new InvokeCommand({
+    FunctionName: process.env.INGESTION_FUNCTION_NAME || 'ai-timeline-ingestion-prod',
+    InvocationType: 'Event', // Async - returns 202 immediately
+    Payload: JSON.stringify({
+      action: 'analyzeArticle',
+      articleId,
+    }),
+  });
+
+  await lambdaClient.send(command);
+  console.log(`[Articles] Async Lambda invoked for article ${articleId}`);
+}
 
 /**
  * Get a single article with its drafts
@@ -137,10 +156,21 @@ export async function analyzePending(req: Request, res: Response) {
 
 /**
  * Get analysis statistics
+ * Sprint Subj-2: Added subject classification metrics
  */
 export async function getAnalysisStats(req: Request, res: Response) {
   try {
-    const [pending, screening, complete, error, milestoneWorthy, totalDrafts] = await Promise.all([
+    const [
+      pending,
+      screening,
+      complete,
+      error,
+      milestoneWorthy,
+      totalDrafts,
+      // Subject classification metrics (Sprint Subj-2)
+      subjectsClassified,
+      totalContentSubjects,
+    ] = await Promise.all([
       prisma.ingestedArticle.count({ where: { analysisStatus: 'pending' } }),
       prisma.ingestedArticle.count({
         where: { analysisStatus: { in: ['screening', 'generating'] } },
@@ -149,17 +179,27 @@ export async function getAnalysisStats(req: Request, res: Response) {
       prisma.ingestedArticle.count({ where: { analysisStatus: 'error' } }),
       prisma.ingestedArticle.count({ where: { isMilestoneWorthy: true } }),
       prisma.contentDraft.count(),
+      // Count articles that have been subject-classified
+      prisma.ingestedArticle.count({ where: { subjectClassifiedAt: { not: null } } }),
+      // Count published ContentSubject links
+      prisma.contentSubject.count(),
     ]);
 
-    const draftsByType = await prisma.contentDraft.groupBy({
-      by: ['contentType'],
-      _count: true,
-    });
-
-    const draftsByStatus = await prisma.contentDraft.groupBy({
-      by: ['status'],
-      _count: true,
-    });
+    const [draftsByType, draftsByStatus, contentSubjectsByType] = await Promise.all([
+      prisma.contentDraft.groupBy({
+        by: ['contentType'],
+        _count: true,
+      }),
+      prisma.contentDraft.groupBy({
+        by: ['status'],
+        _count: true,
+      }),
+      // Group content subjects by content type (Sprint Subj-2)
+      prisma.contentSubject.groupBy({
+        by: ['contentType'],
+        _count: true,
+      }),
+    ]);
 
     return res.json({
       articles: {
@@ -173,6 +213,12 @@ export async function getAnalysisStats(req: Request, res: Response) {
         total: totalDrafts,
         byType: Object.fromEntries(draftsByType.map((d) => [d.contentType, d._count])),
         byStatus: Object.fromEntries(draftsByStatus.map((d) => [d.status, d._count])),
+      },
+      // Subject classification stats (Sprint Subj-2)
+      subjects: {
+        articlesClassified: subjectsClassified,
+        contentSubjectsLinked: totalContentSubjects,
+        byContentType: Object.fromEntries(contentSubjectsByType.map((d) => [d.contentType, d._count])),
       },
     });
   } catch (error) {
@@ -210,9 +256,7 @@ export async function getArticleDrafts(req: Request, res: Response) {
 /**
  * Submit an article manually (paste content + source URL)
  * Creates a NewsSource (one-time, no daily sync) + IngestedArticle
- *
- * NOTE: Fire-and-forget analysis doesn't work in Lambda (execution freezes after response).
- * Articles are saved as 'pending' and users should click "Analyze" from the Articles page.
+ * Automatically triggers analysis via Lambda - results appear in Review Queue
  */
 export async function submitArticle(req: Request, res: Response) {
   try {
@@ -263,7 +307,7 @@ export async function submitArticle(req: Request, res: Response) {
       console.log(`[Articles] Created one-time source: ${source.id}`);
     }
 
-    // Create the article linked to the source
+    // Create the article linked to the source with 'screening' status
     const article = await prisma.ingestedArticle.create({
       data: {
         sourceId: source.id,
@@ -271,18 +315,30 @@ export async function submitArticle(req: Request, res: Response) {
         title: title || 'Manual Submission',
         content: content,
         publishedAt: new Date(),
-        analysisStatus: 'pending',
+        analysisStatus: 'screening',
       },
     });
 
     console.log(`[Articles] Article submitted: ${article.id} (source: ${source.id})`);
 
-    return res.status(201).json({
+    // Automatically trigger analysis via Lambda
+    try {
+      await invokeAnalysisLambda(article.id);
+    } catch (lambdaError) {
+      console.error(`[Articles] Lambda invocation failed for ${article.id}:`, lambdaError);
+      // Reset to pending so user can manually retry
+      await prisma.ingestedArticle.update({
+        where: { id: article.id },
+        data: { analysisStatus: 'pending' },
+      });
+    }
+
+    return res.status(202).json({
       success: true,
       articleId: article.id,
       sourceId: source.id,
-      analysisStatus: 'pending',
-      message: 'Article submitted successfully. Go to Ingested Articles and click "Analyze" to process it.',
+      analysisStatus: 'screening',
+      message: 'Article submitted and processing. Check Review Queue in ~60 seconds for results.',
     });
   } catch (error) {
     console.error('Error submitting article:', error);
@@ -296,6 +352,7 @@ export async function submitArticle(req: Request, res: Response) {
 /**
  * Submit a YouTube video for analysis
  * Creates a NewsSource (one-time, no daily sync) + IngestedArticle with transcript
+ * Automatically triggers analysis via Lambda - results appear in Review Queue
  */
 export async function submitYouTubeVideo(req: Request, res: Response) {
   try {
@@ -379,7 +436,7 @@ export async function submitYouTubeVideo(req: Request, res: Response) {
       console.log(`[YouTube] Created one-time source: ${source.id}`);
     }
 
-    // Create the article linked to the source
+    // Create the article linked to the source with 'screening' status
     const article = await prisma.ingestedArticle.create({
       data: {
         sourceId: source.id,
@@ -387,13 +444,25 @@ export async function submitYouTubeVideo(req: Request, res: Response) {
         title: video.title,
         content,
         publishedAt: video.publishedAt,
-        analysisStatus: 'pending',
+        analysisStatus: 'screening',
       },
     });
 
     console.log(`[YouTube] Video submitted: ${article.id} (source: ${source.id})`);
 
-    return res.status(201).json({
+    // Automatically trigger analysis via Lambda
+    try {
+      await invokeAnalysisLambda(article.id);
+    } catch (lambdaError) {
+      console.error(`[YouTube] Lambda invocation failed for ${article.id}:`, lambdaError);
+      // Reset to pending so user can manually retry
+      await prisma.ingestedArticle.update({
+        where: { id: article.id },
+        data: { analysisStatus: 'pending' },
+      });
+    }
+
+    return res.status(202).json({
       success: true,
       articleId: article.id,
       sourceId: source.id,
@@ -401,8 +470,8 @@ export async function submitYouTubeVideo(req: Request, res: Response) {
       title: video.title,
       hasTranscript,
       wordCount: content.split(/\s+/).filter(Boolean).length,
-      analysisStatus: 'pending',
-      message: 'YouTube video submitted successfully. Go to Ingested Articles and click "Analyze" to process it.',
+      analysisStatus: 'screening',
+      message: 'YouTube video submitted and processing. Check Review Queue in ~60 seconds for results.',
     });
   } catch (error) {
     console.error('Error submitting YouTube video:', error);
@@ -573,35 +642,30 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
         },
       });
 
-      // Fire-and-forget analysis to avoid 30s API Gateway timeout
-      analyzeArticle(article.id)
-        .then(async (analysisResult) => {
-          console.log(`[Scraper] Async analysis complete for ${article.id}:`, {
-            isMilestoneWorthy: analysisResult.screening.isMilestoneWorthy,
-            relevanceScore: analysisResult.screening.relevanceScore,
-          });
-        })
-        .catch(async (error) => {
-          console.error(`[Scraper] Async analysis failed for ${article.id}:`, error);
-          await prisma.ingestedArticle.update({
-            where: { id: article.id },
-            data: {
-              analysisStatus: 'error',
-              analysisError: error instanceof Error ? error.message : 'Analysis failed',
-            },
-          });
-        });
+      console.log(`[Scraper] Article created: ${article.id} (source: ${source.id})`);
 
-      // Return immediately - analysis runs in background
-      return res.json({
+      // Automatically trigger analysis via Lambda
+      try {
+        await invokeAnalysisLambda(article.id);
+      } catch (lambdaError) {
+        console.error(`[Scraper] Lambda invocation failed for ${article.id}:`, lambdaError);
+        // Reset to pending so user can manually retry
+        await prisma.ingestedArticle.update({
+          where: { id: article.id },
+          data: { analysisStatus: 'pending' },
+        });
+      }
+
+      // Return immediately - analysis runs in Lambda background
+      return res.status(202).json({
         success: true,
         title: result.title,
         content: result.content,
         wordCount: result.wordCount,
         articleId: article.id,
         sourceId: source.id,
-        analysisStatus: 'analyzing',
-        message: 'Article submitted. Analysis is running in the background. Check the Ingested Articles page for results.',
+        analysisStatus: 'screening',
+        message: 'Article submitted and processing. Check Review Queue in ~60 seconds for results.',
       });
     }
 
@@ -946,6 +1010,55 @@ export async function bulkAnalyze(req: Request, res: Response) {
     console.error('Error bulk analyzing articles:', error);
     return res.status(500).json({
       error: 'Failed to start bulk analysis',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Re-classify article subjects (Sprint Subj-2)
+ * Clears taxonomy cache and re-runs subject classification
+ * Used for taxonomy updates or manual re-classification
+ */
+export async function reclassifySubjects(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+
+    // Verify article exists
+    const article = await prisma.ingestedArticle.findUnique({
+      where: { id },
+      select: { id: true, title: true, classifiedSubjects: true },
+    });
+
+    if (!article) {
+      return res.status(404).json({ error: 'Article not found' });
+    }
+
+    // Get Anthropic API key
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ error: 'Anthropic API key not configured' });
+    }
+
+    // Store previous classification for comparison
+    const previousSubjects = article.classifiedSubjects;
+
+    // Re-classify (clears cache internally)
+    const newClassifications = await reclassifyArticle(id, apiKey);
+
+    return res.json({
+      message: 'Article subjects re-classified',
+      articleId: id,
+      title: article.title,
+      previousSubjects,
+      newClassifications,
+      subjectsCount: newClassifications.length,
+      primarySubject: newClassifications.find((c) => c.isPrimary)?.subjectSlug || null,
+    });
+  } catch (error) {
+    console.error('Error re-classifying article subjects:', error);
+    return res.status(500).json({
+      error: 'Failed to re-classify article subjects',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }
