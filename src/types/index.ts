@@ -77,3 +77,7 @@ export {
   PERSON_ROLE_COLORS,
   CHANGE_TYPE_LABELS,
 } from './person';
+
+// Sprint Subj-1: Subject Taxonomy
+// Hierarchical subject classification for content organization and learning paths
+export * from './subject';

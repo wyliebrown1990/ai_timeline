@@ -22,6 +22,13 @@ export type {
   UseCheckpointProgressReturn,
 } from './useCheckpointProgress';
 
+// Concept progress hook (Sprint LEarn-1 - Prerequisite Mapping)
+export { useConceptProgress } from './useConceptProgress';
+export type {
+  SeenConcept,
+  UseConceptProgressReturn,
+} from './useConceptProgress';
+
 // User profile hook (Sprint 14)
 export { useUserProfile, getRoleDefaultExplanationLevel } from './useUserProfile';
 export type { StoredUserData, UseUserProfileReturn } from './useUserProfile';

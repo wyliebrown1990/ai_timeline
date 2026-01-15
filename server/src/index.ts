@@ -41,6 +41,9 @@ import newsQuizRouter, { adminRouter as newsQuizAdminRouter } from './routes/new
 import commentsRouter from './routes/comments'; // Sprint LEarn-4 - Comments
 import adminCommentsRouter from './routes/adminComments'; // Sprint LEarn-4 - Admin Comment Moderation
 import adminSpamFiltersRouter from './routes/adminSpamFilters'; // Sprint Spam-1 - Admin Spam Filters
+import adminUsersRouter from './routes/adminUsers'; // Sprint Spam-2 - Admin User Management
+import adminModerationRouter from './routes/adminModeration'; // Sprint Spam-3 - Admin Moderation
+import subjectsRouter, { adminRouter as subjectsAdminRouter, contentSubjectRouter } from './routes/subjects'; // Sprint Subj-1 - Subject Taxonomy
 
 /**
  * Create and configure the Express application
@@ -117,6 +120,7 @@ export function createApp() {
   app.use('/api/contact', contactRouter); // Contact form (public)
   app.use('/api/news-quiz', newsQuizRouter); // News quiz API (Sprint LEarn-2)
   app.use('/api/comments', commentsRouter); // Comments API (Sprint LEarn-4)
+  app.use('/api/subjects', subjectsRouter); // Public subjects API (Sprint Subj-1)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
@@ -137,6 +141,10 @@ export function createApp() {
   app.use('/api/admin/news-quiz', newsQuizAdminRouter); // Admin news quiz API (Sprint LEarn-2)
   app.use('/api/admin/comments', adminCommentsRouter); // Admin comment moderation API (Sprint LEarn-4)
   app.use('/api/admin/spam-filters', adminSpamFiltersRouter); // Admin spam filters API (Sprint Spam-1)
+  app.use('/api/admin/users', adminUsersRouter); // Admin user management API (Sprint Spam-2)
+  app.use('/api/admin/moderation', adminModerationRouter); // Admin moderation API (Sprint Spam-3)
+  app.use('/api/admin/subjects', subjectsAdminRouter); // Admin subjects API (Sprint Subj-1)
+  app.use('/api/admin/content', contentSubjectRouter); // Admin content subjects API (Sprint Subj-1)
 
   // Error handling
   app.use(notFoundHandler);

@@ -155,7 +155,10 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
   // Stage 1.5: Subject Classification (Haiku - runs for ALL articles)
   // Even non-milestone-worthy articles get classified for filtering/analytics
   let subjectClassification: SubjectClassification[] = [];
-  if (!article.classifiedSubjects) {
+  const existingSubjects = article.classifiedSubjects as SubjectClassification[] | null;
+  const hasExistingClassification = Array.isArray(existingSubjects) && existingSubjects.length > 0;
+
+  if (!hasExistingClassification) {
     console.log(`[Analyzer] Stage 1.5: Classifying article by subject`);
 
     try {
@@ -186,7 +189,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     }
   } else {
     // Use existing classification
-    subjectClassification = article.classifiedSubjects as SubjectClassification[];
+    subjectClassification = existingSubjects!;
     console.log(`[Analyzer] Using existing subject classification: ${subjectClassification.length} subjects`);
   }
 

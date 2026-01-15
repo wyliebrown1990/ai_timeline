@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: [DATE] by [DEVELOPER]
+> Last updated: 2026-01-12 by Claude
 
 ## Overview
 
@@ -21,117 +21,74 @@ Implement vote manipulation protections and document future paid solutions for w
 
 ### 1. Vote Integrity: IP-Based Deduplication
 
-- [ ] Capture IP address on vote requests:
+- [x] Capture IP address on vote requests:
   - Update vote endpoint to extract `x-forwarded-for` or `req.ip`
   - Store IP with vote record (add `voterIp` field to CommentVote model if not exists)
-- [ ] Add check in `voteOnComment()`:
-  ```typescript
-  // Don't count vote if from same IP as comment author
-  const comment = await getComment(commentId);
-  const authorLastIp = await getUserLastIp(comment.authorId);
-  if (voterIp === authorLastIp) {
-    // Still save the vote (user sees it) but flag it
-    await createVote({ ...data, isSuspicious: true });
-    return { success: true, flagged: true };
-  }
-  ```
-- [ ] Suspicious votes don't count toward displayed score
-- [ ] Add `isSuspicious` and `voterIp` fields to CommentVote model:
-  ```prisma
-  model CommentVote {
-    // ... existing fields
-    voterIp       String?
-    isSuspicious  Boolean  @default(false)
-  }
-  ```
-- [ ] Run migration
+  - Added `extractVoterIp()` helper in `comments.ts`
+- [x] Add check in `voteOnComment()`:
+  - Uses `runVoteChecks()` from `votePatternService.ts`
+  - Checks same IP as author, vote patterns, and vote brigades
+- [x] Suspicious votes don't count toward displayed score
+  - Added `legitimateScore` field to Comment model
+  - Score calculation excludes suspicious votes
+- [x] Add `isSuspicious`, `voterIp`, `suspiciousReason` fields to CommentVote model
+- [x] Run migration (0013_vote_integrity)
 
 ### 2. Vote Pattern Detection
 
 Create `server/src/services/votePatternService.ts`:
 
-- [ ] Implement `detectSuspiciousVoting(voterId)`:
+- [x] Implement `detectVotePattern(voterId, targetAuthorId)`:
   - Check if user always votes on same author's content
   - Flag if >80% of votes in last 7 days target same author
-- [ ] Implement `detectVoteBrigade(commentId)`:
+- [x] Implement `detectVoteBrigade(commentId)`:
   - Check for unusual vote velocity
   - Flag if comment gets >10 votes in 5 minutes from different accounts
-- [ ] Implement `flagSuspiciousVotes(voteIds, reason)`:
+- [x] Implement `flagVote(voteId, reason)` and `flagSuspiciousVotes(voteIds, reason)`:
   - Mark votes as suspicious
   - Log to moderation system
-- [ ] Run detection on vote creation:
-  ```typescript
-  // After creating vote
-  const patterns = await detectSuspiciousVoting(userId);
-  if (patterns.isSuspicious) {
-    await flagSuspiciousVotes([vote.id], patterns.reason);
-  }
-  ```
+- [x] Run detection on vote creation via `runVoteChecks()`
 
 ### 3. Vote Score Calculation
 
-- [ ] Update score calculation to exclude suspicious votes:
-  ```typescript
-  const score = await prisma.commentVote.aggregate({
-    where: {
-      commentId,
-      isSuspicious: false  // Only count legitimate votes
-    },
-    _sum: { value: true }
-  });
-  ```
-- [ ] Add `legitimateScore` field to Comment for caching:
-  ```prisma
-  model Comment {
-    // ... existing
-    legitimateScore  Int  @default(0)  // Cached score excluding suspicious votes
-  }
-  ```
-- [ ] Update score on vote changes
+- [x] Update score calculation to exclude suspicious votes:
+  - `legitimateDelta` tracks changes for legitimate votes only
+  - Suspicious votes excluded from trust stats updates
+- [x] Add `legitimateScore` field to Comment for caching
+- [x] Update score on vote changes in `voteOnComment()`
 
 ### 4. Admin: Vote Monitoring
 
-- [ ] Add to moderation dashboard:
+- [ ] Add to moderation dashboard frontend (TODO - future):
   - Tab: "Suspicious Votes"
   - Show: voter, target comment, reason flagged, date
   - Action: Confirm suspicious (keeps flagged), Clear flag
-- [ ] Add endpoint `GET /api/admin/moderation/suspicious-votes`:
+- [x] Add endpoint `GET /api/admin/moderation/suspicious-votes`:
   - List suspicious votes with pagination
   - Include voter info, comment info
-- [ ] Add endpoint `POST /api/admin/moderation/votes/:id/clear`:
+- [x] Add endpoint `POST /api/admin/moderation/votes/:id/clear`:
   - Remove suspicious flag
   - Recalculate affected comment scores
-- [ ] Add user detail: show voting patterns
-  - "This user has voted on User X 47 times (92% of their votes)"
+- [x] Add endpoint `GET /api/admin/moderation/users/:id/voting-patterns`:
+  - Show user's voting distribution and patterns
 
 ### 5. Self-Vote Prevention
 
-- [ ] Add check in vote endpoint:
-  ```typescript
-  if (comment.authorId === voterId) {
-    return res.status(400).json({
-      error: 'You cannot vote on your own comment'
-    });
-  }
-  ```
-- [ ] Frontend should hide vote buttons on own comments (UX)
+- [x] Add check in vote endpoint (in `voteOnComment()`):
+  - Returns 400 "Cannot vote on your own comment"
+- [ ] Frontend should hide vote buttons on own comments (UX) - TODO
 
 ### 6. Vote Velocity Limits
 
-- [ ] Implement per-comment velocity check:
+- [x] Implement per-comment velocity check via `checkVoteVelocity()`:
   - If comment receives >20 votes in 10 minutes, flag for review
   - Don't prevent votes, but alert admins
-- [ ] Add to auto-flag system:
-  ```typescript
-  const recentVotes = await countRecentVotes(commentId, 10); // Last 10 min
-  if (recentVotes > 20) {
-    await flagContent('comment', commentId, 'vote_surge', 'high');
-  }
-  ```
+- [x] Add to auto-flag system:
+  - Creates flag with reason `vote_surge` and severity `high`
 
 ### 7. Documentation: Current System Summary
 
-- [ ] Create `.claude/rules/spam-protection.md`:
+- [x] Create `.claude/rules/spam-protection.md`:
   - Document all protections implemented
   - Configuration options
   - How to tune thresholds

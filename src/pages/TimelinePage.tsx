@@ -93,6 +93,7 @@ function TimelinePage() {
     setDateRange,
     setDatePreset,
     setTags,
+    setSubject,
     toggleCategory,
     resetFilters,
     activeFilterCount,
@@ -355,6 +356,7 @@ function TimelinePage() {
                   onDateRangeChange={setDateRange}
                   onDatePresetSelect={setDatePreset}
                   onTagsChange={setTags}
+                  onSubjectChange={setSubject}
                   onReset={resetFilters}
                   activeFilterCount={activeFilterCount}
                   availableTags={tagsData?.data ?? []}

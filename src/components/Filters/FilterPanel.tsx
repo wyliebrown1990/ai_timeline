@@ -8,6 +8,7 @@ import { XMarkIcon, FunnelIcon, AdjustmentsHorizontalIcon } from '@heroicons/rea
 import { CategoryFilter } from './CategoryFilter';
 import { DateRangeFilter } from './DateRangeFilter';
 import { SignificanceFilter } from './SignificanceFilter';
+import { SubjectFilter } from './SubjectFilter';
 import { TagFilter } from './TagFilter';
 import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { TimelineFilters, DatePreset } from '../../types/filters';
@@ -20,6 +21,7 @@ interface FilterPanelProps {
   onDateRangeChange: (start: Date | null, end: Date | null) => void;
   onDatePresetSelect: (preset: DatePreset) => void;
   onTagsChange: (tags: string[]) => void;
+  onSubjectChange: (subject: string | null) => void;
   onReset: () => void;
   activeFilterCount: number;
   availableTags: { tag: string; count: number }[];
@@ -35,6 +37,7 @@ export function FilterPanel({
   onDateRangeChange,
   onDatePresetSelect,
   onTagsChange,
+  onSubjectChange,
   onReset,
   activeFilterCount,
   availableTags,
@@ -109,6 +112,8 @@ export function FilterPanel({
               </div>
             </div>
             <div className="max-h-[60vh] space-y-6 overflow-y-auto p-4">
+              <SubjectFilter selected={filters.subject} onChange={onSubjectChange} />
+              <hr className="border-gray-200 dark:border-gray-700" />
               <CategoryFilter selected={filters.categories} onChange={onCategoriesChange} />
               <hr className="border-gray-200 dark:border-gray-700" />
               <DateRangeFilter
@@ -182,6 +187,11 @@ export function FilterPanel({
                         </button>
                       </div>
                       <div className="flex-1 space-y-6 overflow-y-auto p-4">
+                        <SubjectFilter
+                          selected={filters.subject}
+                          onChange={onSubjectChange}
+                        />
+                        <hr className="border-gray-200 dark:border-gray-700" />
                         <CategoryFilter
                           selected={filters.categories}
                           onChange={onCategoriesChange}

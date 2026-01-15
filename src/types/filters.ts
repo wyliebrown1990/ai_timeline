@@ -15,6 +15,7 @@ export interface TimelineFilters {
     end: Date | null;
   };
   tags: string[];
+  subject: string | null; // Subject slug for filtering
 }
 
 /**
@@ -55,6 +56,7 @@ export interface FilterQueryParams {
   dateStart?: string;
   dateEnd?: string;
   tags?: string;
+  subject?: string;
   page?: number;
   limit?: number;
 }
@@ -70,6 +72,7 @@ export const DEFAULT_FILTERS: TimelineFilters = {
     end: null,
   },
   tags: [],
+  subject: null,
 };
 
 /**

@@ -403,3 +403,90 @@ export async function reclassifyArticle(
 
   return classifyArticleById(articleId, anthropicApiKey);
 }
+
+/**
+ * Classify arbitrary text by subject
+ * Used for backfill scripts and non-article content
+ *
+ * @param text - The text to classify (title + description, or any content)
+ * @param anthropicApiKey - The API key for Claude
+ * @returns Array of subject classifications
+ */
+export async function classifyText(
+  text: string,
+  anthropicApiKey: string
+): Promise<SubjectClassification[]> {
+  // Create a pseudo-article for classification
+  const pseudoArticle = {
+    title: text.split('\n')[0] || 'Untitled',
+    content: text,
+  };
+
+  return classifyArticle(pseudoArticle, anthropicApiKey);
+}
+
+/**
+ * SubjectClassifier class wrapper
+ * Provides an OOP interface for the classification functions
+ * Used by backfill scripts and other services
+ */
+export class SubjectClassifier {
+  private apiKey: string;
+  private initialized: boolean = false;
+
+  constructor() {
+    this.apiKey = process.env.ANTHROPIC_API_KEY || '';
+  }
+
+  /**
+   * Initialize the classifier (loads API key, caches taxonomy)
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    // Try to get API key from environment or SSM
+    if (!this.apiKey) {
+      // In Lambda, API key comes from environment (set by SSM)
+      this.apiKey = process.env.ANTHROPIC_API_KEY || '';
+    }
+
+    if (!this.apiKey) {
+      throw new Error('ANTHROPIC_API_KEY not available');
+    }
+
+    // Pre-load taxonomy
+    await loadTaxonomy();
+    this.initialized = true;
+  }
+
+  /**
+   * Classify arbitrary text
+   */
+  async classifyText(text: string): Promise<SubjectClassification[]> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    return classifyText(text, this.apiKey);
+  }
+
+  /**
+   * Classify an article object
+   */
+  async classifyArticle(article: {
+    title: string;
+    content: string;
+    publishedAt?: Date;
+  }): Promise<SubjectClassification[]> {
+    if (!this.initialized) {
+      await this.initialize();
+    }
+    return classifyArticle(article, this.apiKey);
+  }
+
+  /**
+   * Clear the taxonomy cache
+   */
+  clearCache(): void {
+    clearTaxonomyCache();
+  }
+}

@@ -461,6 +461,173 @@ END $$;
  * Sprint LEarn-4 - Reddit-Style Comment Threads
  * Creates Comment, CommentVote, CommentReport tables and adds karma columns to User
  */
+/**
+ * Migration: Add Spam Protection Tables
+ * Sprint Spam-1 - Rate Limiting & Basic Protections
+ */
+const MIGRATION_0010_SPAM_PROTECTION = `
+-- SpamFilter table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'SpamFilter') THEN
+        CREATE TABLE "SpamFilter" (
+            "id" TEXT NOT NULL,
+            "filterType" TEXT NOT NULL,
+            "pattern" TEXT NOT NULL,
+            "action" TEXT NOT NULL,
+            "isActive" BOOLEAN NOT NULL DEFAULT true,
+            "hitCount" INTEGER NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "SpamFilter_pkey" PRIMARY KEY ("id")
+        );
+        CREATE INDEX "SpamFilter_filterType_isActive_idx" ON "SpamFilter"("filterType", "isActive");
+        RAISE NOTICE 'Created SpamFilter table';
+    ELSE
+        RAISE NOTICE 'SpamFilter table already exists, skipping';
+    END IF;
+END $$;
+
+-- Add rate limiting columns to User table
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'hourlyCommentCount'
+    ) THEN
+        ALTER TABLE "User" ADD COLUMN "hourlyCommentCount" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "hourlyCommentResetAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN "dailyCommentCount" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "dailyCommentResetAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN "hourlyVoteCount" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "hourlyVoteResetAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN "lastCommentAt" TIMESTAMP(3);
+        RAISE NOTICE 'Added rate limiting columns to User table';
+    ELSE
+        RAISE NOTICE 'Rate limiting columns already exist in User table, skipping';
+    END IF;
+END $$;
+`;
+
+/**
+ * Migration: Add Trust System
+ * Sprint Spam-2 - Account Trust & Verification
+ */
+const MIGRATION_0011_TRUST_SYSTEM = `
+-- Add trust system columns to User table
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'trustScore'
+    ) THEN
+        ALTER TABLE "User" ADD COLUMN "trustScore" DOUBLE PRECISION NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "canComment" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "User" ADD COLUMN "commentUnlockedAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN "totalUpvotesReceived" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "totalDownvotesReceived" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "commentsRemovedCount" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "User" ADD COLUMN "learningActionsCount" INTEGER NOT NULL DEFAULT 0;
+        RAISE NOTICE 'Added trust system columns to User table';
+    ELSE
+        RAISE NOTICE 'Trust system columns already exist in User table, skipping';
+    END IF;
+END $$;
+`;
+
+/**
+ * Migration: Add Moderation System
+ * Sprint Spam-3 - Shadowbanning & Moderation Tools
+ */
+const MIGRATION_0012_MODERATION_SYSTEM = `
+-- Add shadowban columns to User table
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'isShadowbanned'
+    ) THEN
+        ALTER TABLE "User" ADD COLUMN "isShadowbanned" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "User" ADD COLUMN "shadowbannedAt" TIMESTAMP(3);
+        ALTER TABLE "User" ADD COLUMN "shadowbanReason" TEXT;
+        CREATE INDEX IF NOT EXISTS "User_isShadowbanned_idx" ON "User"("isShadowbanned");
+        RAISE NOTICE 'Added shadowban columns to User table';
+    ELSE
+        RAISE NOTICE 'Shadowban columns already exist in User table, skipping';
+    END IF;
+END $$;
+
+-- Create ModerationLog table
+CREATE TABLE IF NOT EXISTS "ModerationLog" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "moderatorId" TEXT,
+    "action" TEXT NOT NULL,
+    "targetType" TEXT NOT NULL,
+    "targetId" TEXT NOT NULL,
+    "reason" TEXT,
+    "automated" BOOLEAN NOT NULL DEFAULT false,
+    "metadata" JSONB,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create ModerationLog indexes
+CREATE INDEX IF NOT EXISTS "ModerationLog_targetType_targetId_idx" ON "ModerationLog"("targetType", "targetId");
+CREATE INDEX IF NOT EXISTS "ModerationLog_moderatorId_idx" ON "ModerationLog"("moderatorId");
+CREATE INDEX IF NOT EXISTS "ModerationLog_action_idx" ON "ModerationLog"("action");
+CREATE INDEX IF NOT EXISTS "ModerationLog_createdAt_idx" ON "ModerationLog"("createdAt");
+
+-- Create FlaggedContent table
+CREATE TABLE IF NOT EXISTS "FlaggedContent" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "contentType" TEXT NOT NULL,
+    "contentId" TEXT NOT NULL,
+    "reason" TEXT NOT NULL,
+    "severity" TEXT NOT NULL DEFAULT 'medium',
+    "status" TEXT NOT NULL DEFAULT 'pending',
+    "reviewedBy" TEXT,
+    "reviewedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create FlaggedContent indexes
+CREATE INDEX IF NOT EXISTS "FlaggedContent_status_severity_idx" ON "FlaggedContent"("status", "severity");
+CREATE INDEX IF NOT EXISTS "FlaggedContent_status_createdAt_idx" ON "FlaggedContent"("status", "createdAt");
+CREATE UNIQUE INDEX IF NOT EXISTS "FlaggedContent_contentType_contentId_key" ON "FlaggedContent"("contentType", "contentId");
+`;
+
+const MIGRATION_0013_VOTE_INTEGRITY = `
+-- Add vote integrity columns to CommentVote table (Sprint Spam-4)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'CommentVote' AND column_name = 'voterIp'
+    ) THEN
+        ALTER TABLE "CommentVote" ADD COLUMN "voterIp" TEXT;
+        ALTER TABLE "CommentVote" ADD COLUMN "isSuspicious" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "CommentVote" ADD COLUMN "suspiciousReason" TEXT;
+        CREATE INDEX IF NOT EXISTS "CommentVote_isSuspicious_idx" ON "CommentVote"("isSuspicious");
+        RAISE NOTICE 'Added vote integrity columns to CommentVote table';
+    ELSE
+        RAISE NOTICE 'Vote integrity columns already exist in CommentVote table, skipping';
+    END IF;
+END $$;
+
+-- Add legitimateScore column to Comment table (Sprint Spam-4)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'Comment' AND column_name = 'legitimateScore'
+    ) THEN
+        ALTER TABLE "Comment" ADD COLUMN "legitimateScore" INTEGER NOT NULL DEFAULT 0;
+        RAISE NOTICE 'Added legitimateScore column to Comment table';
+    ELSE
+        RAISE NOTICE 'legitimateScore column already exists in Comment table, skipping';
+    END IF;
+END $$;
+`;
+
 const MIGRATION_0009_COMMENT_SYSTEM = `
 -- Create CommentTargetType enum
 DO $$
@@ -885,7 +1052,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -972,6 +1139,43 @@ export async function runMigrations(
         message: 'Migration 0009_comment_system completed successfully - Comment threads enabled',
         tables: ['Comment', 'CommentVote', 'CommentReport'],
         changes: ['User table now has commentKarma and postKarma columns'],
+      });
+    } else if (migration === '0010_spam_protection') {
+      await prisma.$executeRawUnsafe(MIGRATION_0010_SPAM_PROTECTION);
+      console.log('[Migrations] Migration 0010_spam_protection completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0010_spam_protection completed successfully - Spam protection enabled',
+        tables: ['SpamFilter'],
+        changes: ['User table now has rate limiting columns (hourlyCommentCount, dailyCommentCount, etc.)'],
+      });
+    } else if (migration === '0011_trust_system') {
+      await prisma.$executeRawUnsafe(MIGRATION_0011_TRUST_SYSTEM);
+      console.log('[Migrations] Migration 0011_trust_system completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0011_trust_system completed successfully - Trust system enabled',
+        changes: ['User table now has trust system columns (trustScore, canComment, learningActionsCount, etc.)'],
+      });
+    } else if (migration === '0012_moderation_system') {
+      await prisma.$executeRawUnsafe(MIGRATION_0012_MODERATION_SYSTEM);
+      console.log('[Migrations] Migration 0012_moderation_system completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0012_moderation_system completed successfully - Moderation system enabled',
+        tables: ['ModerationLog', 'FlaggedContent'],
+        changes: ['User table now has shadowban columns (isShadowbanned, shadowbannedAt, shadowbanReason)'],
+      });
+    } else if (migration === '0013_vote_integrity') {
+      await prisma.$executeRawUnsafe(MIGRATION_0013_VOTE_INTEGRITY);
+      console.log('[Migrations] Migration 0013_vote_integrity completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0013_vote_integrity completed successfully - Vote integrity system enabled',
+        changes: [
+          'CommentVote table now has vote integrity columns (voterIp, isSuspicious, suspiciousReason)',
+          'Comment table now has legitimateScore column',
+        ],
       });
     }
   } catch (error) {
@@ -1114,7 +1318,8 @@ export async function getMigrationStatus(
         'KeyFigure', 'MilestoneContributor', 'KeyFigureDraft',
         'NewsQuiz', 'NewsQuizAttempt',
         'User',
-        'Comment', 'CommentVote', 'CommentReport'
+        'Comment', 'CommentVote', 'CommentReport',
+        'SpamFilter'
       )
       ORDER BY tablename
     `;
@@ -1147,6 +1352,42 @@ export async function getMigrationStatus(
       // Table might not exist yet
     }
 
+    // Check if trust system columns exist
+    let hasTrustSystem = false;
+    try {
+      const trustCol = await prisma.$queryRaw<Array<{ column_name: string }>>`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'trustScore'
+      `;
+      hasTrustSystem = trustCol.length > 0;
+    } catch {
+      // Column might not exist yet
+    }
+
+    // Check if moderation system exists
+    let hasModerationSystem = false;
+    try {
+      const moderationCol = await prisma.$queryRaw<Array<{ column_name: string }>>`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'User' AND column_name = 'isShadowbanned'
+      `;
+      hasModerationSystem = moderationCol.length > 0 && existingTables.includes('ModerationLog');
+    } catch {
+      // Column might not exist yet
+    }
+
+    // Check if vote integrity system exists
+    let hasVoteIntegrity = false;
+    try {
+      const voteIntegrityCol = await prisma.$queryRaw<Array<{ column_name: string }>>`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'CommentVote' AND column_name = 'isSuspicious'
+      `;
+      hasVoteIntegrity = voteIntegrityCol.length > 0;
+    } catch {
+      // Column might not exist yet
+    }
+
     res.json({
       existingTables,
       counts,
@@ -1160,6 +1401,10 @@ export async function getMigrationStatus(
         '0007_news_quiz': existingTables.includes('NewsQuiz'),
         '0008_user_auth': existingTables.includes('User'),
         '0009_comment_system': existingTables.includes('Comment'),
+        '0010_spam_protection': existingTables.includes('SpamFilter'),
+        '0011_trust_system': hasTrustSystem,
+        '0012_moderation_system': hasModerationSystem,
+        '0013_vote_integrity': hasVoteIntegrity,
       },
     });
   } catch (error) {

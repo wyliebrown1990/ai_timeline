@@ -34,6 +34,10 @@ const ContactPage = lazy(() => import('./pages/ContactPage'));
 const PersonProfilePage = lazy(() => import('./pages/PersonProfilePage'));
 const OrganizationProfilePage = lazy(() => import('./pages/OrganizationProfilePage'));
 
+// Sprint Subj-5: Subject discovery pages
+const SubjectsPage = lazy(() => import('./pages/SubjectsPage'));
+const SubjectPage = lazy(() => import('./pages/SubjectPage'));
+
 // Sprint LEarn-3: User auth pages
 const UserLoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
@@ -70,6 +74,8 @@ const MergeKeyFiguresPage = lazy(() => import('./pages/admin/MergeKeyFiguresPage
 const PersonDraftsPage = lazy(() => import('./pages/admin/PersonDraftsPage'));
 const CommentModerationPage = lazy(() => import('./pages/admin/CommentModerationPage'));
 const SpamFiltersPage = lazy(() => import('./pages/admin/SpamFiltersPage'));
+const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage'));
+const SubjectsAdminPage = lazy(() => import('./pages/admin/SubjectsAdminPage'));
 
 /**
  * Scrolls to top of page on route change
@@ -152,6 +158,10 @@ function App() {
                     <Route path="people/:slug" element={<PersonProfilePage />} />
                     <Route path="organizations/:slug" element={<OrganizationProfilePage />} />
 
+                    {/* Sprint Subj-5: Subject discovery pages */}
+                    <Route path="subjects" element={<SubjectsPage />} />
+                    <Route path="subjects/:slug" element={<SubjectPage />} />
+
                     {/* Sprint LEarn-3: User profiles */}
                     <Route path="u/:username" element={<UserProfilePage />} />
 
@@ -201,6 +211,8 @@ function App() {
                     <Route path="person-drafts" element={<PersonDraftsPage />} />
                     <Route path="comments" element={<CommentModerationPage />} />
                     <Route path="spam-filters" element={<SpamFiltersPage />} />
+                    <Route path="users" element={<UserManagementPage />} />
+                    <Route path="subjects" element={<SubjectsAdminPage />} />
                   </Route>
 
                   {/* Admin login route - outside protected wrapper */}

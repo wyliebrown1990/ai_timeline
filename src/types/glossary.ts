@@ -22,6 +22,17 @@ export const GlossaryCategorySchema = z.enum([
 export type GlossaryCategory = z.infer<typeof GlossaryCategorySchema>;
 
 /**
+ * Concept types for prerequisite mapping (Sprint LEarn-1)
+ */
+export const ConceptTypeSchema = z.enum([
+  'foundational',  // Basic concepts everyone should know first
+  'intermediate',  // Building blocks that require some foundational knowledge
+  'advanced',      // Complex concepts requiring multiple prerequisites
+]);
+
+export type ConceptType = z.infer<typeof ConceptTypeSchema>;
+
+/**
  * Main GlossaryEntry schema
  * Defines a term with multiple explanation levels for different contexts
  */
@@ -56,6 +67,16 @@ export const GlossaryEntrySchema = z.object({
 
   // Category for filtering and organization
   category: GlossaryCategorySchema,
+
+  // Prerequisite system (Sprint LEarn-1)
+  // IDs of terms that should be learned before this one
+  prerequisiteIds: z.array(z.string()).default([]),
+
+  // Difficulty level (1-5, where 1 is beginner, 5 is expert)
+  difficulty: z.number().min(1).max(5).default(1),
+
+  // Concept type for adaptive sequencing
+  conceptType: ConceptTypeSchema.default('foundational'),
 });
 
 export type GlossaryEntry = z.infer<typeof GlossaryEntrySchema>;
@@ -100,4 +121,35 @@ export const GLOSSARY_CATEGORY_LABELS: Record<GlossaryCategory, string> = {
   business_term: 'Business Term',
   model_architecture: 'Model Architecture',
   company_product: 'Company/Product',
+};
+
+/**
+ * Human-readable labels for concept types (Sprint LEarn-1)
+ */
+export const CONCEPT_TYPE_LABELS: Record<ConceptType, string> = {
+  foundational: 'Foundational',
+  intermediate: 'Intermediate',
+  advanced: 'Advanced',
+};
+
+/**
+ * Human-readable labels for difficulty levels (Sprint LEarn-1)
+ */
+export const DIFFICULTY_LABELS: Record<number, string> = {
+  1: 'Beginner',
+  2: 'Easy',
+  3: 'Moderate',
+  4: 'Challenging',
+  5: 'Expert',
+};
+
+/**
+ * Colors for difficulty levels (for UI badges)
+ */
+export const DIFFICULTY_COLORS: Record<number, string> = {
+  1: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  2: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  3: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  4: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+  5: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 };

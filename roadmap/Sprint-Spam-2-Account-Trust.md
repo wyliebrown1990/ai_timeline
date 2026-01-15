@@ -2,7 +2,9 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: [DATE] by [DEVELOPER]
+> Last updated: 2026-01-12 by Claude (Deployed to production)
+>
+> **STATUS: BACKEND COMPLETE** - All backend tasks deployed. Frontend polish items remain (low priority).
 
 ## Overview
 
@@ -21,7 +23,7 @@ Implement account trust system and verification gates. New accounts must prove t
 
 ### 1. Database Schema Updates
 
-- [ ] Add trust and verification fields to User model:
+- [x] Add trust and verification fields to User model:
   ```prisma
   // Trust & Engagement
   trustScore              Float     @default(0)
@@ -37,46 +39,46 @@ Implement account trust system and verification gates. New accounts must prove t
   // Verification tracking
   emailVerifiedAt         DateTime?
   ```
-- [ ] Run migration: `npx prisma migrate dev --name add_trust_system`
-- [ ] Deploy migration to production
+- [x] Run migration: `npx prisma migrate dev --name add_trust_system`
+- [x] Deploy migration to production (via `/api/admin/migrations` endpoint)
 
 ### 2. Email Verification Gate
 
-- [ ] Update `server/src/routes/comments.ts`:
+- [x] Update `server/src/routes/comments.ts`:
   - Check `emailVerifiedAt` is not null before allowing comments
   - Return 403 with message: "Please verify your email to comment"
-- [ ] Update `server/src/services/auth/authService.ts`:
-  - Set `emailVerifiedAt` when email is verified
+- [x] Update `server/src/services/auth/authService.ts`:
+  - Set `emailVerifiedAt` when email is verified (already existed)
 - [ ] Update frontend CommentForm:
   - Show "Verify your email to comment" message with resend link
   - Link to email verification flow
 
 ### 3. New Account Gate (Choose One)
 
-**Option A: 24-Hour Wait**
+**Option A: 24-Hour Wait** (NOT IMPLEMENTED - Option B chosen)
 - [ ] In comment route, check if `createdAt` is at least 24 hours ago
 - [ ] If not, return 403: "New accounts must wait 24 hours before commenting"
 - [ ] Show countdown in frontend
 
-**Option B: Learning Action Gate (Recommended)**
-- [ ] Track learning actions in `learningActionsCount`:
+**Option B: Learning Action Gate (Recommended)** ✅ IMPLEMENTED
+- [x] Track learning actions in `learningActionsCount`:
   - Viewing a milestone detail page (+1)
   - Completing a flashcard session (+2)
   - Taking a quiz (+3)
-- [ ] Require at least 1 learning action before commenting
+- [x] Require at least 1 learning action before commenting
 - [ ] Update relevant frontend components to call increment endpoint
-- [ ] Create endpoint `POST /api/user/learning-action`:
+- [x] Create endpoint `POST /api/auth/user/learning-action`:
   ```typescript
   { actionType: 'milestone_view' | 'flashcard_complete' | 'quiz_complete' }
   ```
-- [ ] In comment route, check `learningActionsCount >= 1` OR `canComment === true`
+- [x] In comment route, check `learningActionsCount >= 1` OR `canComment === true`
 - [ ] Show "Complete a learning activity to unlock comments" in CommentForm
 
 ### 4. Trust Score Calculation
 
-Create `server/src/services/trustService.ts`:
+Create `server/src/services/trustService.ts`: ✅ COMPLETE
 
-- [ ] Implement `calculateTrustScore(userId)`:
+- [x] Implement `calculateTrustScore(userId)`:
   ```typescript
   const score = (
     accountAgeDays * 0.5 +                    // Max ~180 points for 1 year
@@ -90,8 +92,8 @@ Create `server/src/services/trustService.ts`:
   );
   return Math.max(0, score);  // Floor at 0
   ```
-- [ ] Implement `updateTrustScore(userId)`: Recalculate and save
-- [ ] Implement `getTrustTier(score)`:
+- [x] Implement `updateTrustScore(userId)`: Recalculate and save
+- [x] Implement `getTrustTier(score)`:
   ```typescript
   if (score < 10) return 'new';        // Strict limits
   if (score < 50) return 'member';     // Normal limits
@@ -99,9 +101,9 @@ Create `server/src/services/trustService.ts`:
   return 'veteran';                     // Very relaxed limits
   ```
 
-### 5. Trust-Based Rate Limits
+### 5. Trust-Based Rate Limits ✅ COMPLETE
 
-- [ ] Update `server/src/services/rateLimiter.ts`:
+- [x] Update `server/src/services/rateLimiter.ts`:
   - Accept trust tier as parameter
   - Apply different limits based on tier:
 
@@ -112,35 +114,35 @@ Create `server/src/services/trustService.ts`:
   | trusted | 20 | 60 | 100 | 15s |
   | veteran | 30 | 100 | 150 | 10s |
 
-- [ ] Update comment route to fetch user's trust tier and apply appropriate limits
+- [x] Update comment route to fetch user's trust tier and apply appropriate limits
 
-### 6. Update Stats on Actions
+### 6. Update Stats on Actions ✅ COMPLETE
 
-- [ ] When a comment receives an upvote:
+- [x] When a comment receives an upvote:
   - Increment author's `totalUpvotesReceived`
   - Trigger trust score recalculation
-- [ ] When a comment receives a downvote:
+- [x] When a comment receives a downvote:
   - Increment author's `totalDownvotesReceived`
   - Trigger trust score recalculation
-- [ ] When a comment is removed by admin:
+- [x] When a comment is removed by admin:
   - Increment author's `commentsRemovedCount`
   - Trigger trust score recalculation
-- [ ] Update `server/src/services/commentService.ts` vote handlers
+- [x] Update `server/src/services/commentService.ts` vote handlers
 
-### 7. Admin: User Trust Dashboard
+### 7. Admin: User Trust Dashboard ✅ COMPLETE
 
-- [ ] Create endpoint `GET /api/admin/users`:
+- [x] Create endpoint `GET /api/admin/users`:
   - List users with trust scores
   - Support sorting by trust score, account age, comment count
   - Support filtering by trust tier
-- [ ] Create endpoint `GET /api/admin/users/:id`:
+- [x] Create endpoint `GET /api/admin/users/:id`:
   - Full user details including trust breakdown
   - Recent comments, votes received, reports
-- [ ] Create admin page `src/pages/admin/UserManagementPage.tsx`:
+- [x] Create admin page `src/pages/admin/UserManagementPage.tsx`:
   - Table: username, email, trust score, tier, account age, comments
   - Click to see user detail modal
-  - Actions: grant commenting permission, reset trust score
-- [ ] Add to admin navigation
+  - Actions: grant commenting permission, reset trust score, revoke commenting
+- [x] Add to admin navigation
 
 ### 8. Frontend: Trust Indicators
 
@@ -167,13 +169,13 @@ Create `server/src/services/trustService.ts`:
 - [ ] Return to comments - should now be unlocked
 - [ ] Screenshot the unlock flow
 
-### Trust Score - Browser Validation
-- [ ] Log in as admin
-- [ ] Navigate to `/admin/users`
-- [ ] Verify user list loads with trust scores
-- [ ] Click on a user to see details
-- [ ] Verify trust breakdown is shown
-- [ ] Screenshot admin interface
+### Trust Score - Browser Validation ✅ VERIFIED
+- [x] Log in as admin
+- [x] Navigate to `/admin/users`
+- [x] Verify user list loads with trust scores
+- [x] Click on a user to see details
+- [x] Verify trust breakdown is shown
+- [x] Screenshot admin interface
 
 ### Rate Limit Tiers - Browser Validation
 - [ ] As a new user (low trust), verify stricter rate limits
@@ -185,15 +187,15 @@ Create `server/src/services/trustService.ts`:
 
 ## Acceptance Criteria
 
-- [ ] Users must verify email before commenting
-- [ ] New users must complete 1 learning action before commenting
-- [ ] Trust score is calculated based on account age, votes, engagement
-- [ ] Rate limits scale with trust tier
-- [ ] Admin can view all users with trust scores
-- [ ] Admin can see detailed trust breakdown per user
-- [ ] Vote actions update author's trust stats
-- [ ] Comment removal updates author's trust stats
-- [ ] All browser validation tasks completed with screenshots
+- [x] Users must verify email before commenting (backend enforced)
+- [x] New users must complete 1 learning action before commenting (backend enforced)
+- [x] Trust score is calculated based on account age, votes, engagement
+- [x] Rate limits scale with trust tier
+- [x] Admin can view all users with trust scores
+- [x] Admin can see detailed trust breakdown per user
+- [x] Vote actions update author's trust stats
+- [x] Comment removal updates author's trust stats
+- [ ] All browser validation tasks completed with screenshots (frontend pending)
 
 ---
 

@@ -1,23 +1,24 @@
 /**
- * Rate Limiter Service (Sprint Spam-1)
+ * Rate Limiter Service (Sprint Spam-1, Spam-2)
  *
  * Provides rate limiting for comments and votes to prevent spam.
  * Limits are stored in the database (persistent across Lambda invocations).
+ *
+ * Sprint Spam-2: Limits now vary by user trust tier.
  */
 
 import { prisma } from '../db';
+import { type TrustTier, getTrustTier, getLimitsForTier } from './trustService';
 
 // =============================================================================
-// Configuration
+// Configuration (Default limits for backward compatibility)
 // =============================================================================
 
-// Comment rate limits
-const COMMENT_COOLDOWN_SECONDS = 30; // Minimum seconds between comments
-const COMMENTS_PER_HOUR = 10;
-const COMMENTS_PER_DAY = 30;
-
-// Vote rate limits
-const VOTES_PER_HOUR = 50;
+// Default limits (used when no trust tier is provided - "new" tier)
+const DEFAULT_COOLDOWN_SECONDS = 30;
+const DEFAULT_COMMENTS_PER_HOUR = 10;
+const DEFAULT_COMMENTS_PER_DAY = 30;
+const DEFAULT_VOTES_PER_HOUR = 50;
 
 // =============================================================================
 // Types
@@ -36,8 +37,13 @@ export interface RateLimitResult {
 
 /**
  * Check if user can post a comment
+ * @param userId - The user ID
+ * @param trustScore - Optional trust score (if not provided, will be fetched from DB)
  */
-export async function checkCommentRateLimit(userId: string): Promise<RateLimitResult> {
+export async function checkCommentRateLimit(
+  userId: string,
+  trustScore?: number
+): Promise<RateLimitResult> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -46,12 +52,18 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
       hourlyCommentResetAt: true,
       dailyCommentCount: true,
       dailyCommentResetAt: true,
+      trustScore: true,
     },
   });
 
   if (!user) {
     return { allowed: false, reason: 'User not found' };
   }
+
+  // Determine trust tier and limits
+  const score = trustScore ?? user.trustScore;
+  const tier = getTrustTier(score);
+  const limits = getLimitsForTier(tier);
 
   const now = new Date();
 
@@ -60,8 +72,8 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
     const secondsSinceLastComment = Math.floor(
       (now.getTime() - user.lastCommentAt.getTime()) / 1000
     );
-    if (secondsSinceLastComment < COMMENT_COOLDOWN_SECONDS) {
-      const retryAfter = COMMENT_COOLDOWN_SECONDS - secondsSinceLastComment;
+    if (secondsSinceLastComment < limits.cooldownSeconds) {
+      const retryAfter = limits.cooldownSeconds - secondsSinceLastComment;
       return {
         allowed: false,
         reason: `Please wait ${retryAfter} seconds before posting another comment`,
@@ -78,7 +90,7 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
     60 * 60 * 1000 // 1 hour in ms
   );
 
-  if (hourlyCount >= COMMENTS_PER_HOUR) {
+  if (hourlyCount >= limits.commentsPerHour) {
     const resetTime = user.hourlyCommentResetAt || now;
     const retryAfter = Math.max(
       0,
@@ -86,7 +98,7 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
     );
     return {
       allowed: false,
-      reason: `You've reached the limit of ${COMMENTS_PER_HOUR} comments per hour`,
+      reason: `You've reached the limit of ${limits.commentsPerHour} comments per hour`,
       retryAfter,
       remaining: 0,
     };
@@ -100,7 +112,7 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
     24 * 60 * 60 * 1000 // 24 hours in ms
   );
 
-  if (dailyCount >= COMMENTS_PER_DAY) {
+  if (dailyCount >= limits.commentsPerDay) {
     const resetTime = user.dailyCommentResetAt || now;
     const retryAfter = Math.max(
       0,
@@ -108,7 +120,7 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
     );
     return {
       allowed: false,
-      reason: `You've reached the limit of ${COMMENTS_PER_DAY} comments per day`,
+      reason: `You've reached the limit of ${limits.commentsPerDay} comments per day`,
       retryAfter,
       remaining: 0,
     };
@@ -116,7 +128,7 @@ export async function checkCommentRateLimit(userId: string): Promise<RateLimitRe
 
   return {
     allowed: true,
-    remaining: Math.min(COMMENTS_PER_HOUR - hourlyCount, COMMENTS_PER_DAY - dailyCount),
+    remaining: Math.min(limits.commentsPerHour - hourlyCount, limits.commentsPerDay - dailyCount),
   };
 }
 
@@ -159,19 +171,30 @@ export async function incrementCommentCount(userId: string): Promise<void> {
 
 /**
  * Check if user can cast a vote
+ * @param userId - The user ID
+ * @param trustScore - Optional trust score (if not provided, will be fetched from DB)
  */
-export async function checkVoteRateLimit(userId: string): Promise<RateLimitResult> {
+export async function checkVoteRateLimit(
+  userId: string,
+  trustScore?: number
+): Promise<RateLimitResult> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       hourlyVoteCount: true,
       hourlyVoteResetAt: true,
+      trustScore: true,
     },
   });
 
   if (!user) {
     return { allowed: false, reason: 'User not found' };
   }
+
+  // Determine trust tier and limits
+  const score = trustScore ?? user.trustScore;
+  const tier = getTrustTier(score);
+  const limits = getLimitsForTier(tier);
 
   const now = new Date();
 
@@ -183,7 +206,7 @@ export async function checkVoteRateLimit(userId: string): Promise<RateLimitResul
     60 * 60 * 1000
   );
 
-  if (hourlyCount >= VOTES_PER_HOUR) {
+  if (hourlyCount >= limits.votesPerHour) {
     const resetTime = user.hourlyVoteResetAt || now;
     const retryAfter = Math.max(
       0,
@@ -191,7 +214,7 @@ export async function checkVoteRateLimit(userId: string): Promise<RateLimitResul
     );
     return {
       allowed: false,
-      reason: `You've reached the limit of ${VOTES_PER_HOUR} votes per hour`,
+      reason: `You've reached the limit of ${limits.votesPerHour} votes per hour`,
       retryAfter,
       remaining: 0,
     };
@@ -199,7 +222,7 @@ export async function checkVoteRateLimit(userId: string): Promise<RateLimitResul
 
   return {
     allowed: true,
-    remaining: VOTES_PER_HOUR - hourlyCount,
+    remaining: limits.votesPerHour - hourlyCount,
   };
 }
 
@@ -257,12 +280,22 @@ function shouldReset(resetAt: Date | null, now: Date, windowMs: number): boolean
 
 /**
  * Get rate limit headers for HTTP response
+ * @param result - The rate limit result
+ * @param limitType - Type of limit ('comment' or 'vote')
+ * @param tier - Optional trust tier for accurate limit display
  */
 export function getRateLimitHeaders(
   result: RateLimitResult,
-  limitType: 'comment' | 'vote'
+  limitType: 'comment' | 'vote',
+  tier?: TrustTier
 ): Record<string, string> {
-  const limit = limitType === 'comment' ? COMMENTS_PER_HOUR : VOTES_PER_HOUR;
+  // Get limits for the tier (or use defaults)
+  const limits = tier ? getLimitsForTier(tier) : {
+    commentsPerHour: DEFAULT_COMMENTS_PER_HOUR,
+    votesPerHour: DEFAULT_VOTES_PER_HOUR,
+  };
+
+  const limit = limitType === 'comment' ? limits.commentsPerHour : limits.votesPerHour;
   const headers: Record<string, string> = {
     'X-RateLimit-Limit': String(limit),
   };
@@ -280,3 +313,6 @@ export function getRateLimitHeaders(
 
   return headers;
 }
+
+// Re-export trust tier types for convenience
+export type { TrustTier };

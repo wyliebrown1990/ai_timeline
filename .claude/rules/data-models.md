@@ -1,109 +1,159 @@
-# Data Models & Schemas
+# Data Models
 
-Database: PostgreSQL via Prisma ORM. Schema in `prisma/schema.prisma`.
+PostgreSQL via Prisma ORM. Schema: `prisma/schema.prisma`
 
-## Core Tables
+## Core Entities
+
+### Person (formerly KeyFigure)
+AI researchers, executives, founders.
+
+```prisma
+model Person {
+  id              String   @id  // kebab-case slug
+  canonicalName   String   @unique
+  slug            String   @unique
+  aliases         String   @default("[]")  // JSON array
+
+  // Biography sections
+  shortBio        String
+  fullBio         String?
+  background      String?      // Education, early life
+  careerHistory   String?      // Career narrative
+  contributions   String?      // Major AI contributions
+  philosophy      String?      // Approach, perspectives
+  currentlyDoing  String?      // Auto-updated from news
+
+  // Classification
+  role            String       // researcher, executive, founder, engineer
+  focusAreas      String   @default("[]")
+
+  // Current affiliation
+  currentOrgId    String?
+  currentRole     String?
+
+  // Links
+  imageUrl        String?
+  wikipediaUrl    String?
+  linkedInUrl     String?
+  twitterHandle   String?
+
+  // Relations
+  affiliations    Affiliation[]
+  milestoneLinks  MilestoneContributor[]
+}
+```
+
+### Organization
+Companies, labs, universities.
+
+```prisma
+model Organization {
+  id               String   @id  // kebab-case slug
+  name             String   @unique
+  slug             String   @unique
+  type             String       // company, research_lab, university, nonprofit
+
+  shortDescription String
+  mission          String?
+  history          String?
+  currentFocus     String?      // Auto-updated from news
+
+  focusAreas       String   @default("[]")
+  products         String   @default("[]")
+
+  logoUrl          String?
+  websiteUrl       String?
+  foundedYear      Int?
+  headquarters     String?
+
+  // Relations
+  affiliations     Affiliation[]
+  milestones       Milestone[]
+}
+```
+
+### Affiliation
+Person-Organization career history.
+
+```prisma
+model Affiliation {
+  id            String    @id @default(cuid())
+  personId      String
+  orgId         String
+  role          String    // Job title
+  startDate     DateTime?
+  endDate       DateTime? // null = current
+  isCurrent     Boolean   @default(false)
+}
+```
 
 ### Milestone
-Timeline events (both seeded and AI-generated).
+Timeline events.
 
 ```prisma
 model Milestone {
-  id                    String    @id
-  title                 String
-  description           String
-  date                  DateTime
-  category              String    // MODEL_RELEASE, RESEARCH, PRODUCT, etc.
-  significance          Int       // 1-4 (MINOR to GROUNDBREAKING)
-  era                   String?
-  organization          String?
-  contributors          String    @default("[]")  // JSON array
-  sourceUrl             String?
-  imageUrl              String?
-  tags                  String    @default("[]")  // JSON array
-  sources               String    @default("[]")  // JSON array
-  // AI-generated content fields
-  tldr                  String?
-  simpleExplanation     String?
-  technicalDepth        String?
-  businessImpact        String?
-  whyItMattersToday     String?
-  historicalContext     String?
-  commonMisconceptions  String?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id              String    @id  // E2025_GPT5 format
+  title           String
+  description     String
+  date            DateTime
+  category        String    // MODEL_RELEASE, RESEARCH, PRODUCT, etc.
+  significance    Int       // 1-4
+  organization    String?   // Legacy string
+  organizationId  String?   // FK to Organization
+  contributors    String    @default("[]")  // Legacy JSON
+  sourceUrl       String?
+  tags            String    @default("[]")
+
+  // AI-generated content
+  tldr            String?
+  simpleExplanation String?
+  technicalDepth  String?
+  businessImpact  String?
+
+  // Relations
+  linkedContributors MilestoneContributor[]
 }
 ```
 
-### GlossaryTerm
-AI terminology definitions.
+### MilestoneContributor
+Links Person to Milestone.
 
 ```prisma
-model GlossaryTerm {
-  id                  String   @id
-  term                String   @unique
-  shortDefinition     String
-  fullDefinition      String
-  businessContext     String?
-  example             String?
-  inMeetingExample    String?
-  category            String   // technical, business_term, model_type, etc.
-  relatedTermIds      String   @default("[]")
-  relatedMilestoneIds String   @default("[]")
-  sourceArticleId     String?  // Link to originating article
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+model MilestoneContributor {
+  id               String    @id @default(cuid())
+  milestoneId      String
+  personId         String
+  contributionType String?   // lead, co_author, advisor, founder, mentioned
 }
 ```
 
-## News Ingestion Tables
+## News Ingestion
 
 ### NewsSource
-RSS feed configurations.
-
 ```prisma
 model NewsSource {
-  id             String    @id @default(cuid())
-  name           String
-  url            String    @unique
-  feedUrl        String
-  isActive       Boolean   @default(true)
-  checkFrequency Int       @default(60)  // minutes
-  lastCheckedAt  DateTime?
-  createdAt      DateTime  @default(now())
-  articles       IngestedArticle[]
+  sourceType      SourceType  // rss, youtube_channel, youtube_playlist, web_scraper
+  config          Json        // Type-specific config
+  isActive        Boolean
+  lastCheckedAt   DateTime?
+  consecutiveFailures Int @default(0)
+}
+
+enum SourceType {
+  rss
+  youtube_channel
+  youtube_playlist
+  web_scraper
 }
 ```
 
 ### IngestedArticle
-Raw articles with analysis status.
-
 ```prisma
 model IngestedArticle {
-  id                String    @id @default(cuid())
-  sourceId          String
-  externalUrl       String    @unique
-  title             String
-  content           String
-  publishedAt       DateTime
-  ingestedAt        DateTime  @default(now())
-  // Analysis
-  analysisStatus    String    @default("pending")  // pending|screening|screened|generating|complete|error
-  analyzedAt        DateTime?
-  relevanceScore    Float?    // 0-1
-  isMilestoneWorthy Boolean   @default(false)
-  milestoneRationale String?
-  analysisError     String?
-  // Review
-  reviewStatus      String    @default("pending")
-  // Duplicate detection
-  isDuplicate       Boolean   @default(false)
-  duplicateOfId     String?
-  duplicateScore    Float?
-  duplicateReason   String?
-  // Relations
-  source            NewsSource @relation(fields: [sourceId], references: [id])
-  drafts            ContentDraft[]
+  analysisStatus  String  // pending, screening, screened, generating, complete, error
+  relevanceScore  Float?  // 0-1
+  isMilestoneWorthy Boolean
+  reviewStatus    String  // pending, approved, rejected
 }
 ```
 
@@ -112,84 +162,24 @@ AI-generated content pending review.
 
 ```prisma
 model ContentDraft {
-  id               String    @id @default(cuid())
-  articleId        String
-  contentType      String    // milestone | glossary_term | news_event
-  draftData        Json      // Type-specific content
-  isValid          Boolean   @default(false)
-  validationErrors String?
-  status           String    @default("pending")  // pending|published|rejected
-  rejectionReason  String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  publishedAt      DateTime?
-  publishedId      String?   // ID of created Milestone/GlossaryTerm
-  article          IngestedArticle @relation(fields: [articleId], references: [id])
+  contentType     String  // milestone, glossary_term, news_event
+  draftData       Json
+  status          String  // pending, published, rejected
 }
 ```
 
-### PipelineSettings
-Global pipeline configuration.
+### PersonDraft
+AI-detected persons from articles.
 
 ```prisma
-model PipelineSettings {
-  id               String    @id @default("default")
-  ingestionPaused  Boolean   @default(false)
-  analysisPaused   Boolean   @default(false)
-  lastIngestionRun DateTime?
-  lastAnalysisRun  DateTime?
-  updatedAt        DateTime  @updatedAt
-}
-```
-
-## Enums (TypeScript)
-
-```typescript
-// src/types/milestone.ts
-export enum MilestoneCategory {
-  MODEL_RELEASE = 'MODEL_RELEASE',
-  RESEARCH = 'RESEARCH',
-  PRODUCT = 'PRODUCT',
-  INDUSTRY = 'INDUSTRY',
-  REGULATION = 'REGULATION',
-  BREAKTHROUGH = 'BREAKTHROUGH',
-}
-
-export enum SignificanceLevel {
-  MINOR = 1,
-  MODERATE = 2,
-  MAJOR = 3,
-  GROUNDBREAKING = 4,
-}
-```
-
-## Draft Data Schemas
-
-### Milestone Draft
-```typescript
-{
-  id: string,           // E2025_CHATGPT_3B format
-  title: string,
-  description: string,
-  date: string,         // ISO date
-  category: MilestoneCategory,
-  significance: 1 | 2 | 3 | 4,
-  organization?: string,
-  sourceUrl: string,
-  tags: string[],
-}
-```
-
-### Glossary Term Draft
-```typescript
-{
-  id: string,           // kebab-case
-  term: string,
-  shortDefinition: string,
-  fullDefinition: string,
-  category: string,
-  businessContext?: string,
-  relatedTermIds: string[],
+model PersonDraft {
+  normalizedName  String
+  suggestedBio    String?
+  suggestedOrg    String?
+  suggestedRole   String?
+  confidence      Float?
+  matchedPersonId String?  // If fuzzy-matched to existing
+  status          String   // pending, approved, merged, rejected
 }
 ```
 
@@ -197,8 +187,7 @@ export enum SignificanceLevel {
 
 | Entity | Pattern | Example |
 |--------|---------|---------|
-| Milestone | `E{YEAR}_{NAME}` | `E2025_CHATGPT_3B` |
-| GlossaryTerm | kebab-case | `transformer-architecture` |
-| NewsSource | cuid | `clx1234...` |
-| IngestedArticle | cuid | `clx5678...` |
-| ContentDraft | cuid | `clx9012...` |
+| Milestone | `E{YEAR}_{NAME}` | `E2025_GPT5` |
+| Person | kebab-case | `sam-altman` |
+| Organization | kebab-case | `openai` |
+| GlossaryTerm | kebab-case | `transformer` |

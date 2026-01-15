@@ -2,6 +2,8 @@
  * Comment Routes
  * Sprint LEarn-4 - Reddit-Style Comment Threads
  * Sprint Spam-1 - Rate Limiting & Content Filtering
+ * Sprint Spam-2 - Account Trust & Verification
+ * Sprint Spam-3 - Auto-Flagging & Shadowban
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
@@ -13,6 +15,7 @@ import {
 } from '../middleware/authMiddleware';
 import { requireAuth as requireAdminAuth } from '../middleware/auth';
 import { ApiError } from '../middleware/error';
+import { prisma } from '../db';
 import * as commentService from '../services/commentService';
 import {
   checkCommentRateLimit,
@@ -22,6 +25,7 @@ import {
   getRateLimitHeaders,
 } from '../services/rateLimiter';
 import { filterComment } from '../services/contentFilter';
+import { checkAndFlagComment, createFlag } from '../services/autoFlagService';
 
 const router = Router();
 
@@ -150,6 +154,42 @@ router.post('/', requireUserAuth, async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
+    // Fetch user to check verification status (Sprint Spam-2)
+    const user = await prisma.user.findUnique({
+      where: { id: authorId },
+      select: {
+        emailVerifiedAt: true,
+        canComment: true,
+        learningActionsCount: true,
+      },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    // Email verification gate (Sprint Spam-2)
+    if (!user.emailVerifiedAt) {
+      res.status(403).json({
+        error: 'Email Verification Required',
+        message: 'Please verify your email address before commenting. Check your inbox for a verification link.',
+        code: 'EMAIL_NOT_VERIFIED',
+      });
+      return;
+    }
+
+    // Learning action gate (Sprint Spam-2)
+    // Users must complete at least 1 learning action OR have canComment = true (admin override)
+    if (!user.canComment && user.learningActionsCount < 1) {
+      res.status(403).json({
+        error: 'Learning Activity Required',
+        message: 'Complete a learning activity (view a milestone, study flashcards, or take a quiz) to unlock commenting.',
+        code: 'LEARNING_ACTION_REQUIRED',
+      });
+      return;
+    }
+
     // Rate limit check
     const rateLimitResult = await checkCommentRateLimit(authorId);
     if (!rateLimitResult.allowed) {
@@ -173,6 +213,17 @@ router.post('/', requireUserAuth, async (req: AuthenticatedRequest, res: Respons
       return;
     }
 
+    // Fetch full user info for auto-flagging
+    const fullUser = await prisma.user.findUnique({
+      where: { id: authorId },
+      select: {
+        id: true,
+        createdAt: true,
+        trustScore: true,
+        learningActionsCount: true,
+      },
+    });
+
     // Create the comment
     const comment = await commentService.createComment({
       authorId,
@@ -181,6 +232,21 @@ router.post('/', requireUserAuth, async (req: AuthenticatedRequest, res: Respons
       parentId: data.parentId,
       body: data.body,
     });
+
+    // Auto-flag check (Sprint Spam-3)
+    // Check if this comment should be flagged for review
+    if (fullUser) {
+      const flagResult = await checkAndFlagComment(
+        { id: comment.id, body: comment.body, createdAt: comment.createdAt },
+        fullUser
+      );
+      if (flagResult.shouldFlag && flagResult.reason && flagResult.severity) {
+        // Create flag asynchronously (don't block response)
+        createFlag('comment', comment.id, flagResult.reason, flagResult.severity).catch(
+          (err) => console.error('[AutoFlag] Error creating flag:', err)
+        );
+      }
+    }
 
     // Increment rate limit counter
     await incrementCommentCount(authorId);
@@ -262,6 +328,30 @@ router.delete('/:id', requireUserAuth, async (req: AuthenticatedRequest, res: Re
 });
 
 /**
+ * Extract voter IP from request (Sprint Spam-4)
+ * Handles x-forwarded-for header from CloudFront/Cloudflare
+ */
+function extractVoterIp(req: Request): string | null {
+  // Check x-forwarded-for (from CloudFront/Cloudflare)
+  const forwardedFor = req.headers['x-forwarded-for'];
+  if (forwardedFor) {
+    // x-forwarded-for can be comma-separated list; take first one
+    const ips = typeof forwardedFor === 'string' ? forwardedFor : forwardedFor[0];
+    const firstIp = ips?.split(',')[0]?.trim();
+    if (firstIp) return firstIp;
+  }
+
+  // Cloudflare specific header
+  const cfConnectingIp = req.headers['cf-connecting-ip'];
+  if (cfConnectingIp) {
+    return typeof cfConnectingIp === 'string' ? cfConnectingIp : cfConnectingIp[0] || null;
+  }
+
+  // Fallback to req.ip
+  return req.ip || null;
+}
+
+/**
  * POST /api/comments/:id/vote
  * Vote on a comment (upvote, downvote, or remove vote)
  */
@@ -270,6 +360,9 @@ router.post('/:id/vote', requireUserAuth, async (req: AuthenticatedRequest, res:
     const commentId = req.params.id;
     const userId = req.user!.userId;
     const data = voteSchema.parse(req.body);
+
+    // Extract voter IP for integrity checks (Sprint Spam-4)
+    const voterIp = extractVoterIp(req);
 
     // Rate limit check (only for new votes, not removing votes)
     if (data.value !== 0) {
@@ -286,7 +379,7 @@ router.post('/:id/vote', requireUserAuth, async (req: AuthenticatedRequest, res:
       }
     }
 
-    const result = await commentService.voteOnComment(commentId, userId, data.value);
+    const result = await commentService.voteOnComment(commentId, userId, data.value, voterIp);
 
     // Increment rate limit counter (only for new votes)
     if (data.value !== 0) {
@@ -300,6 +393,12 @@ router.post('/:id/vote', requireUserAuth, async (req: AuthenticatedRequest, res:
     } else if (error instanceof Error) {
       if (error.message === 'Comment not found') {
         next(ApiError.notFound('Comment not found'));
+      } else if (error.message === 'Cannot vote on your own comment') {
+        // Self-vote prevention (Sprint Spam-4)
+        res.status(400).json({
+          error: 'Self-Vote Not Allowed',
+          message: 'You cannot vote on your own comment',
+        });
       } else {
         next(ApiError.badRequest(error.message));
       }

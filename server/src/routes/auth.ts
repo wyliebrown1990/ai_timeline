@@ -76,6 +76,13 @@ router.post('/user/reset-password', authController.resetPassword);
 router.post('/user/link-session', requireUserAuth, authController.linkSession);
 
 /**
+ * POST /api/auth/user/learning-action
+ * Record a learning action (Sprint Spam-2)
+ * { actionType: 'milestone_view' | 'flashcard_complete' | 'quiz_complete' }
+ */
+router.post('/user/learning-action', requireUserAuth, authController.recordLearningAction);
+
+/**
  * GET /api/auth/users/:username
  * Get public user profile by username
  */

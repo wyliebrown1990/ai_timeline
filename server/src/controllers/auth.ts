@@ -23,7 +23,18 @@ const REFRESH_TOKEN_COOKIE_OPTIONS = {
  */
 export async function register(req: Request, res: Response) {
   try {
-    const { email, password, username, displayName } = req.body;
+    const { email, password, username, displayName, website } = req.body;
+
+    // Honeypot check - if website field is filled, silently reject (bot detected)
+    if (website && website.length > 0) {
+      // Log for monitoring but don't reveal to client
+      console.log(`[SPAM] Registration honeypot triggered for email: ${email}`);
+      // Return fake success to not alert the bot
+      return res.status(201).json({
+        message: 'Account created successfully. Please log in.',
+        user: { username },
+      });
+    }
 
     if (!email || !password || !username) {
       return res.status(400).json({ error: 'Email, password, and username are required' });
@@ -322,6 +333,44 @@ export async function linkSession(req: Request, res: Response) {
   }
 }
 
+/**
+ * POST /api/auth/user/learning-action
+ * Record a learning action (Sprint Spam-2)
+ * Increments learning actions count and may unlock commenting
+ */
+export async function recordLearningAction(req: Request, res: Response) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const { actionType } = req.body;
+
+    const validActionTypes = ['milestone_view', 'flashcard_complete', 'quiz_complete'];
+    if (!actionType || !validActionTypes.includes(actionType)) {
+      return res.status(400).json({
+        error: 'Invalid action type',
+        message: `actionType must be one of: ${validActionTypes.join(', ')}`,
+      });
+    }
+
+    const result = await authService.recordLearningAction(req.user.userId, actionType);
+
+    res.json({
+      success: true,
+      unlocked: result.unlocked,
+      trustScore: result.trustScore.score,
+      trustTier: result.trustScore.tier,
+      message: result.unlocked
+        ? 'Commenting has been unlocked!'
+        : 'Learning action recorded',
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to record learning action';
+    res.status(400).json({ error: message });
+  }
+}
+
 export default {
   register,
   login,
@@ -334,4 +383,5 @@ export default {
   resetPassword,
   getPublicProfile,
   linkSession,
+  recordLearningAction,
 };

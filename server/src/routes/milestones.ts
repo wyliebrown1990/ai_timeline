@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import * as milestonesController from '../controllers/milestones';
+import * as prerequisiteController from '../controllers/prerequisites';
 import { requireAdmin } from '../middleware/auth';
 
 const router = Router();
@@ -36,6 +37,13 @@ router.get('/:id', milestonesController.getMilestoneById);
 // GET /api/milestones/:id/linked-persons - Get linked person contributors (Sprint KPC-3)
 router.get('/:id/linked-persons', milestonesController.getContributors);
 
+// Sprint LEarn-1: Prerequisite concept routes
+// GET /api/milestones/:id/prerequisites - Get prerequisite concepts for a milestone
+router.get('/:id/prerequisites', prerequisiteController.getMilestonePrerequisites);
+
+// GET /api/milestones/:id/prerequisites/full - Get all prerequisites (including nested)
+router.get('/:id/prerequisites/full', prerequisiteController.getFullMilestonePrerequisites);
+
 // POST /api/milestones - Create a new milestone (Admin only)
 router.post('/', requireAdmin, milestonesController.createMilestone);
 
@@ -54,5 +62,8 @@ router.delete('/:id/linked-persons/:personId', requireAdmin, milestonesControlle
 
 // GET /api/milestones/:id/with-contributors - Get milestone with linked contributors (Admin only)
 router.get('/:id/with-contributors', requireAdmin, milestonesController.getMilestoneWithContributors);
+
+// PUT /api/milestones/:id/prerequisites - Update prerequisite concepts (Admin only)
+router.put('/:id/prerequisites', requireAdmin, prerequisiteController.updateMilestonePrerequisites);
 
 export default router;

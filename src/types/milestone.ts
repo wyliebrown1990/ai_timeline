@@ -106,6 +106,7 @@ export interface MilestoneResponse {
   imageUrl?: string | null;
   tags: string[];
   sources?: Source[];
+  prerequisiteConceptIds?: string[]; // GlossaryTerm IDs needed to understand this milestone
   createdAt: string;
   updatedAt: string;
 }
@@ -158,6 +159,7 @@ export const MilestoneResponseSchema = z.object({
   imageUrl: z.string().nullable().optional(),
   tags: z.array(z.string()),
   sources: z.array(SourceSchema).optional(),
+  prerequisiteConceptIds: z.array(z.string()).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

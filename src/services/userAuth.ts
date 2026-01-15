@@ -43,6 +43,7 @@ export interface RegisterInput {
   password: string;
   username: string;
   displayName?: string;
+  website?: string; // Honeypot field - should always be empty for real users
 }
 
 /**

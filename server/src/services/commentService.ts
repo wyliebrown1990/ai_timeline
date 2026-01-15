@@ -1,12 +1,24 @@
 /**
  * Comment Service
  * Sprint LEarn-4 - Reddit-Style Comment Threads
+ * Sprint Spam-2 - Trust Score Integration
+ * Sprint Spam-3 - Shadowban Filtering
+ * Sprint Spam-4 - Vote Integrity
  *
  * Handles comment CRUD, voting, and scoring algorithms
  */
 
 import { prisma } from '../db';
 import { CommentTargetType, Prisma } from '@prisma/client';
+import * as trustService from './trustService';
+import { buildShadowbanFilter } from './shadowbanService';
+import {
+  runVoteChecks,
+  flagVote,
+  recalculateLegitimateScore,
+  checkVoteVelocity,
+} from './votePatternService';
+import { createFlag } from './autoFlagService';
 
 // Types
 export type SortMode = 'best' | 'new' | 'controversial';
@@ -125,6 +137,7 @@ export async function createComment(input: CreateCommentInput): Promise<CommentW
 
 /**
  * Get comments for a target with threading
+ * Shadowbanned users' comments are hidden from other users (Sprint Spam-3)
  */
 export async function getCommentsForTarget(
   targetType: TargetType,
@@ -149,6 +162,10 @@ export async function getCommentsForTarget(
       break;
   }
 
+  // Build shadowban filter (Sprint Spam-3)
+  // Shadowbanned users can see their own content, others can't
+  const shadowbanFilter = await buildShadowbanFilter(userId || null);
+
   // Get total count of top-level comments
   const total = await prisma.comment.count({
     where: {
@@ -157,6 +174,7 @@ export async function getCommentsForTarget(
       parentId: null,
       isDeleted: false,
       isHidden: false,
+      ...shadowbanFilter,
     },
   });
 
@@ -168,6 +186,7 @@ export async function getCommentsForTarget(
       parentId: null,
       isDeleted: false,
       isHidden: false,
+      ...shadowbanFilter,
     },
     orderBy,
     skip: offset,
@@ -420,15 +439,28 @@ export async function deleteComment(
 export async function voteOnComment(
   commentId: string,
   userId: string,
-  value: 1 | -1 | 0
-): Promise<{ upvotes: number; downvotes: number; score: number; userVote: number | null }> {
+  value: 1 | -1 | 0,
+  voterIp?: string | null
+): Promise<{
+  upvotes: number;
+  downvotes: number;
+  score: number;
+  legitimateScore: number;
+  userVote: number | null;
+  isSuspicious?: boolean;
+}> {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    select: { id: true, authorId: true, upvotes: true, downvotes: true, createdAt: true },
+    select: { id: true, authorId: true, upvotes: true, downvotes: true, legitimateScore: true, createdAt: true },
   });
 
   if (!comment) {
     throw new Error('Comment not found');
+  }
+
+  // Self-vote prevention (Sprint Spam-4)
+  if (comment.authorId === userId) {
+    throw new Error('Cannot vote on your own comment');
   }
 
   // Get existing vote
@@ -440,16 +472,24 @@ export async function voteOnComment(
 
   let upvotesDelta = 0;
   let downvotesDelta = 0;
+  let legitimateDelta = 0;
 
   // Remove existing vote effect
   if (existingVote) {
     if (existingVote.value === 1) upvotesDelta -= 1;
     if (existingVote.value === -1) downvotesDelta -= 1;
+    // Only subtract from legitimate score if the old vote wasn't suspicious
+    if (!existingVote.isSuspicious) {
+      legitimateDelta -= existingVote.value;
+    }
   }
 
   // Apply new vote effect
   if (value === 1) upvotesDelta += 1;
   if (value === -1) downvotesDelta += 1;
+
+  let newVote: { id: string } | null = null;
+  let isSuspicious = false;
 
   // Update or delete vote record
   if (value === 0) {
@@ -460,24 +500,46 @@ export async function voteOnComment(
       });
     }
   } else {
-    // Upsert vote
-    await prisma.commentVote.upsert({
+    // Upsert vote with IP address
+    newVote = await prisma.commentVote.upsert({
       where: {
         commentId_userId: { commentId, userId },
       },
-      update: { value },
+      update: { value, voterIp: voterIp || undefined },
       create: {
         commentId,
         userId,
         value,
+        voterIp: voterIp || undefined,
       },
+      select: { id: true },
     });
+
+    // Run vote integrity checks (Sprint Spam-4)
+    const voteCheck = await runVoteChecks(commentId, userId, voterIp || null);
+    if (voteCheck.isSuspicious && voteCheck.reason) {
+      isSuspicious = true;
+      // Flag the vote (async, don't block response)
+      flagVote(newVote.id, voteCheck.reason, voteCheck.details).catch(console.error);
+    } else {
+      // Only count legitimate vote toward legitimate score
+      legitimateDelta += value;
+    }
+
+    // Check for vote velocity surge (async, don't block)
+    checkVoteVelocity(commentId).then((hasSurge) => {
+      if (hasSurge) {
+        // Flag comment for review
+        createFlag('comment', commentId, 'vote_surge', 'high').catch(console.error);
+      }
+    }).catch(console.error);
   }
 
   // Update comment scores
   const newUpvotes = comment.upvotes + upvotesDelta;
   const newDownvotes = comment.downvotes + downvotesDelta;
   const newScore = newUpvotes - newDownvotes;
+  const newLegitimateScore = comment.legitimateScore + legitimateDelta;
   const newHotScore = calculateHotScore(newUpvotes, newDownvotes, comment.createdAt);
   const newControversyScore = calculateControversyScore(newUpvotes, newDownvotes);
 
@@ -487,6 +549,7 @@ export async function voteOnComment(
       upvotes: newUpvotes,
       downvotes: newDownvotes,
       score: newScore,
+      legitimateScore: newLegitimateScore,
       hotScore: newHotScore,
       controversyScore: newControversyScore,
     },
@@ -495,12 +558,43 @@ export async function voteOnComment(
   // Update author's karma (async, don't await)
   updateUserKarma(comment.authorId).catch(console.error);
 
+  // Update author's trust stats (Sprint Spam-2)
+  // Only for legitimate votes on someone else's comment
+  if (!isSuspicious) {
+    updateAuthorTrustStats(comment.authorId, upvotesDelta, downvotesDelta).catch(console.error);
+  }
+
   return {
     upvotes: newUpvotes,
     downvotes: newDownvotes,
     score: newScore,
+    legitimateScore: newLegitimateScore,
     userVote: value === 0 ? null : value,
+    isSuspicious: isSuspicious || undefined,
   };
+}
+
+/**
+ * Update author's trust stats when votes change (Sprint Spam-2)
+ */
+async function updateAuthorTrustStats(
+  authorId: string,
+  upvotesDelta: number,
+  downvotesDelta: number
+): Promise<void> {
+  // Handle upvotes
+  if (upvotesDelta > 0) {
+    await trustService.incrementUpvotesReceived(authorId);
+  } else if (upvotesDelta < 0) {
+    await trustService.decrementUpvotesReceived(authorId);
+  }
+
+  // Handle downvotes
+  if (downvotesDelta > 0) {
+    await trustService.incrementDownvotesReceived(authorId);
+  } else if (downvotesDelta < 0) {
+    await trustService.decrementDownvotesReceived(authorId);
+  }
 }
 
 /**
@@ -658,6 +752,9 @@ export async function hideComment(commentId: string): Promise<CommentWithAuthor>
     throw new Error('Comment not found');
   }
 
+  // Increment author's removed comment count for trust (Sprint Spam-2)
+  trustService.incrementCommentsRemoved(comment.authorId).catch(console.error);
+
   return { ...comment, userVote: null };
 }
 
@@ -775,14 +872,8 @@ export async function reviewReport(
   if (action === 'hide_comment') {
     await hideComment(report.commentId);
   } else if (action === 'delete_comment') {
-    await prisma.comment.update({
-      where: { id: report.commentId },
-      data: {
-        isDeleted: true,
-        body: '[deleted]',
-        bodyHtml: null,
-      },
-    });
+    // Use adminDeleteComment which tracks trust stats (Sprint Spam-2)
+    await adminDeleteComment(report.commentId);
   }
 }
 
@@ -868,7 +959,7 @@ export async function getReportedCommentsForAdmin(
 export async function adminDeleteComment(commentId: string): Promise<void> {
   const comment = await prisma.comment.findUnique({
     where: { id: commentId },
-    select: { id: true },
+    select: { id: true, authorId: true },
   });
 
   if (!comment) {
@@ -883,6 +974,9 @@ export async function adminDeleteComment(commentId: string): Promise<void> {
       bodyHtml: null,
     },
   });
+
+  // Increment author's removed comment count for trust (Sprint Spam-2)
+  trustService.incrementCommentsRemoved(comment.authorId).catch(console.error);
 }
 
 /**

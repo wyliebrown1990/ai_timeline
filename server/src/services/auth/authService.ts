@@ -531,6 +531,19 @@ export async function getUserSessions(userId: string) {
   });
 }
 
+/**
+ * Record learning action (Sprint Spam-2)
+ * Increments learning actions count and may unlock commenting
+ */
+export async function recordLearningAction(
+  userId: string,
+  actionType: 'milestone_view' | 'flashcard_complete' | 'quiz_complete'
+): Promise<{ unlocked: boolean; trustScore: { score: number; tier: string } }> {
+  // Import trust service dynamically to avoid circular dependency
+  const { incrementLearningActions } = await import('../trustService');
+  return incrementLearningActions(userId, actionType);
+}
+
 export default {
   register,
   login,
@@ -545,4 +558,5 @@ export default {
   resetPassword,
   linkSessionToUser,
   getUserSessions,
+  recordLearningAction,
 };

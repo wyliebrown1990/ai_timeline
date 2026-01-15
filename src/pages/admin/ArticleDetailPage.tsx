@@ -12,6 +12,7 @@ import {
   BookOpen,
   Milestone,
   RefreshCw,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -30,18 +31,20 @@ export function ArticleDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
 
-  const loadArticle = useCallback(async () => {
+  const loadArticle = useCallback(async (showLoading = true) => {
     if (!id) return;
 
-    setIsLoading(true);
+    if (showLoading) setIsLoading(true);
     try {
       const data = await articlesApi.getById(id);
       setArticle(data);
+      return data;
     } catch (error) {
       console.error('Failed to load article:', error);
       toast.error('Failed to load article');
+      return null;
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   }, [id]);
 
@@ -49,19 +52,41 @@ export function ArticleDetailPage() {
     loadArticle();
   }, [loadArticle]);
 
+  // Poll for updates when article is being processed
+  useEffect(() => {
+    if (!article) return;
+
+    const processingStatuses = ['pending', 'screening', 'generating', 'classifying'];
+    if (!processingStatuses.includes(article.analysisStatus)) return;
+
+    const pollInterval = setInterval(async () => {
+      const updated = await loadArticle(false);
+      if (updated && !processingStatuses.includes(updated.analysisStatus)) {
+        // Analysis complete - stop polling
+        clearInterval(pollInterval);
+        if (updated.analysisStatus === 'complete') {
+          toast.success('Analysis complete!');
+        } else if (updated.analysisStatus === 'error') {
+          toast.error('Analysis failed');
+        }
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [article?.analysisStatus, loadArticle]);
+
   const handleReanalyze = async () => {
     if (!id) return;
 
     setIsReanalyzing(true);
     try {
-      const result = await articlesApi.reanalyze(id);
-      toast.success(
-        `Re-analysis complete! ${result.draftsCreated} draft(s) created.`
-      );
-      loadArticle();
+      await articlesApi.reanalyze(id);
+      toast.success('Re-analysis started. This may take a minute...');
+      // Reload to show pending status - polling will handle completion
+      await loadArticle();
     } catch (error) {
       console.error('Failed to re-analyze article:', error);
-      toast.error('Failed to re-analyze article');
+      toast.error('Failed to start re-analysis');
     } finally {
       setIsReanalyzing(false);
     }
@@ -253,6 +278,43 @@ export function ArticleDetailPage() {
                     <p className="text-sm text-gray-600 italic bg-gray-50 p-3 rounded-lg">
                       "{article.milestoneRationale}"
                     </p>
+                  </div>
+                )}
+
+                {/* Classified Subjects */}
+                {article.classifiedSubjects && article.classifiedSubjects.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Tag className="h-4 w-4 text-gray-500" />
+                      <p className="text-sm font-medium text-gray-700">
+                        Classified Subjects ({article.classifiedSubjects.length})
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {article.classifiedSubjects.map((subject) => (
+                        <span
+                          key={subject.subjectId}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${
+                            subject.isPrimary
+                              ? 'bg-blue-100 text-blue-800 ring-1 ring-blue-600/20'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                          title={`Confidence: ${(subject.confidence * 100).toFixed(0)}%`}
+                        >
+                          {subject.subjectSlug.split('-').map(
+                            (word: string) => word.charAt(0).toUpperCase() + word.slice(1)
+                          ).join(' ')}
+                          {subject.isPrimary && (
+                            <Star className="h-3 w-3 fill-current" />
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    {article.subjectClassifiedAt && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Classified at: {formatDate(article.subjectClassifiedAt)}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

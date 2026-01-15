@@ -507,7 +507,7 @@ export async function reanalyzeArticle(req: Request, res: Response) {
       where: { articleId: id },
     });
 
-    // Reset analysis status
+    // Reset analysis status (including subject classification)
     await prisma.ingestedArticle.update({
       where: { id },
       data: {
@@ -517,6 +517,8 @@ export async function reanalyzeArticle(req: Request, res: Response) {
         isMilestoneWorthy: false,
         milestoneRationale: null,
         analysisError: null,
+        classifiedSubjects: null,
+        subjectClassifiedAt: null,
       },
     });
 

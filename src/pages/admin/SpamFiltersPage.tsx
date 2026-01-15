@@ -44,10 +44,11 @@ interface SpamFilter {
 // =============================================================================
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
+const AUTH_TOKEN_KEY = 'ai-timeline-admin-token';
 
 async function getFilters(): Promise<{ filters: SpamFilter[]; total: number }> {
-  const token = localStorage.getItem('adminToken');
-  const response = await fetch(`${API_BASE}/api/admin/spam-filters`, {
+  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  const response = await fetch(`${API_BASE}/admin/spam-filters`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to fetch filters');
@@ -59,8 +60,8 @@ async function createFilter(data: {
   pattern: string;
   action: string;
 }): Promise<SpamFilter> {
-  const token = localStorage.getItem('adminToken');
-  const response = await fetch(`${API_BASE}/api/admin/spam-filters`, {
+  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  const response = await fetch(`${API_BASE}/admin/spam-filters`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -79,8 +80,8 @@ async function updateFilter(
   id: string,
   data: { isActive?: boolean }
 ): Promise<SpamFilter> {
-  const token = localStorage.getItem('adminToken');
-  const response = await fetch(`${API_BASE}/api/admin/spam-filters/${id}`, {
+  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  const response = await fetch(`${API_BASE}/admin/spam-filters/${id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -93,8 +94,8 @@ async function updateFilter(
 }
 
 async function deleteFilter(id: string): Promise<void> {
-  const token = localStorage.getItem('adminToken');
-  const response = await fetch(`${API_BASE}/api/admin/spam-filters/${id}`, {
+  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  const response = await fetch(`${API_BASE}/admin/spam-filters/${id}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });

@@ -1,6 +1,7 @@
 import {
   Activity,
   Book,
+  BookMarked,
   ChevronRight,
   ClipboardCheck,
   FileText,
@@ -66,6 +67,11 @@ const navItems: NavItem[] = [
     icon: <Newspaper className="h-5 w-5" />,
   },
   {
+    label: 'Subjects',
+    href: '/admin/subjects',
+    icon: <BookMarked className="h-5 w-5" />,
+  },
+  {
     label: 'Glossary',
     href: '/admin/glossary',
     icon: <Book className="h-5 w-5" />,
@@ -99,6 +105,11 @@ const navItems: NavItem[] = [
     label: 'Spam Filters',
     href: '/admin/spam-filters',
     icon: <Shield className="h-5 w-5" />,
+  },
+  {
+    label: 'User Management',
+    href: '/admin/users',
+    icon: <Users className="h-5 w-5" />,
   },
   {
     label: 'API Monitoring',

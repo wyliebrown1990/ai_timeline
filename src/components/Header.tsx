@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 import { useFlashcardContext } from '../contexts/FlashcardContext';
@@ -14,6 +14,7 @@ const navLinks = [
   { to: '/', label: 'Home', icon: Home, exact: true },
   { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
   { to: '/news', label: 'News', icon: Newspaper, exact: true },
+  { to: '/subjects', label: 'Subjects', icon: Layers, exact: false },
   { to: '/learn', label: 'Learn', icon: BookOpen, exact: false },
   { to: '/study', label: 'Study', icon: GraduationCap, exact: false },
   { to: '/glossary', label: 'Glossary', icon: FileText, exact: true },

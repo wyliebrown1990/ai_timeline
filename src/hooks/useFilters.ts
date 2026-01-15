@@ -20,6 +20,7 @@ interface UseFiltersReturn {
   setDateRange: (start: Date | null, end: Date | null) => void;
   setDatePreset: (preset: DatePreset) => void;
   setTags: (tags: string[]) => void;
+  setSubject: (subject: string | null) => void;
   toggleCategory: (category: MilestoneCategory) => void;
   toggleSignificance: (level: SignificanceLevel) => void;
   toggleTag: (tag: string) => void;
@@ -49,6 +50,7 @@ function parseFiltersFromUrl(searchParams: URLSearchParams): TimelineFilters {
     significanceLevels: [],
     dateRange: { start: null, end: null },
     tags: [],
+    subject: null,
   };
 
   // Parse categories
@@ -88,6 +90,12 @@ function parseFiltersFromUrl(searchParams: URLSearchParams): TimelineFilters {
     filters.tags = tagsParam.split(',');
   }
 
+  // Parse subject
+  const subjectParam = searchParams.get('subject');
+  if (subjectParam) {
+    filters.subject = subjectParam;
+  }
+
   return filters;
 }
 
@@ -117,6 +125,10 @@ function filtersToSearchParams(filters: TimelineFilters): URLSearchParams {
     params.set('tags', filters.tags.join(','));
   }
 
+  if (filters.subject) {
+    params.set('subject', filters.subject);
+  }
+
   return params;
 }
 
@@ -144,6 +156,10 @@ function filtersToQueryParams(filters: TimelineFilters): FilterQueryParams {
 
   if (filters.tags.length > 0) {
     params.tags = filters.tags.join(',');
+  }
+
+  if (filters.subject) {
+    params.subject = filters.subject;
   }
 
   params.limit = 100; // Get more results when filtering
@@ -177,7 +193,8 @@ export function useFilters(): UseFiltersReturn {
       filters.significanceLevels.length > 0 ||
       filters.dateRange.start !== null ||
       filters.dateRange.end !== null ||
-      filters.tags.length > 0
+      filters.tags.length > 0 ||
+      filters.subject !== null
     );
   }, [filters]);
 
@@ -188,6 +205,7 @@ export function useFilters(): UseFiltersReturn {
     count += filters.significanceLevels.length;
     if (filters.dateRange.start || filters.dateRange.end) count += 1;
     count += filters.tags.length;
+    if (filters.subject) count += 1;
     return count;
   }, [filters]);
 
@@ -270,6 +288,13 @@ export function useFilters(): UseFiltersReturn {
     [filters, setFilters]
   );
 
+  const setSubject = useCallback(
+    (subject: string | null) => {
+      setFilters({ ...filters, subject });
+    },
+    [filters, setFilters]
+  );
+
   const toggleCategory = useCallback(
     (category: MilestoneCategory) => {
       const newCategories = filters.categories.includes(category)
@@ -312,6 +337,7 @@ export function useFilters(): UseFiltersReturn {
     setDateRange,
     setDatePreset,
     setTags,
+    setSubject,
     toggleCategory,
     toggleSignificance,
     toggleTag,

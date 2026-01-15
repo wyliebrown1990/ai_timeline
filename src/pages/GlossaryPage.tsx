@@ -11,6 +11,8 @@ import type { GlossaryEntry } from '../types/glossary';
 import { KeyFiguresList } from '../components/Glossary/KeyFiguresList';
 import { KeyFigureModal } from '../components/Glossary/KeyFigureModal';
 import type { KeyFigure } from '../types/keyFigure';
+import { SubjectFilter } from '../components/Filters';
+import { subjectsApi } from '../services/api';
 
 /** Tab types for glossary view */
 type GlossaryTab = 'terms' | 'figures';
@@ -57,6 +59,11 @@ export default function GlossaryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<GlossaryCategory | 'all'>('all');
   const [selectedTermId, setSelectedTermId] = useState<string | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(() => {
+    return searchParams.get('subject');
+  });
+  const [subjectTermIds, setSubjectTermIds] = useState<Set<string> | null>(null);
+  const [isLoadingSubject, setIsLoadingSubject] = useState(false);
 
   // Tab state (Sprint 47 - Key Figures)
   const [activeTab, setActiveTab] = useState<GlossaryTab>(() => {
@@ -80,9 +87,42 @@ export default function GlossaryPage() {
     }
   }, [searchParams]);
 
-  // Filter terms based on search and category
+  // Fetch content IDs when subject is selected
+  useEffect(() => {
+    if (!selectedSubject) {
+      setSubjectTermIds(null);
+      return;
+    }
+
+    const fetchSubjectContent = async () => {
+      setIsLoadingSubject(true);
+      try {
+        const content = await subjectsApi.getContent(selectedSubject, {
+          types: ['glossary_term'],
+          includeChildren: true,
+          hydrated: false,
+        });
+        const ids = new Set(content.glossaryTerms?.map((t) => t.id) ?? []);
+        setSubjectTermIds(ids);
+      } catch (error) {
+        console.error('Failed to load subject content:', error);
+        setSubjectTermIds(new Set());
+      } finally {
+        setIsLoadingSubject(false);
+      }
+    };
+
+    fetchSubjectContent();
+  }, [selectedSubject]);
+
+  // Filter terms based on search, category, and subject
   const filteredTerms = useMemo(() => {
     let terms = allTerms;
+
+    // Filter by subject
+    if (selectedSubject && subjectTermIds) {
+      terms = terms.filter((term) => subjectTermIds.has(term.id));
+    }
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -101,7 +141,7 @@ export default function GlossaryPage() {
     }
 
     return terms;
-  }, [allTerms, searchQuery, selectedCategory]);
+  }, [allTerms, searchQuery, selectedCategory, selectedSubject, subjectTermIds]);
 
   // Group filtered terms by letter
   const groupedTerms = useMemo(() => groupTermsByLetter(filteredTerms), [filteredTerms]);
@@ -146,6 +186,19 @@ export default function GlossaryPage() {
   const handleCloseFigureModal = () => {
     setSelectedFigure(null);
   };
+
+  // Handle subject filter change
+  const handleSubjectChange = useCallback((subject: string | null) => {
+    setSelectedSubject(subject);
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (subject) {
+      newParams.set('subject', subject);
+    } else {
+      newParams.delete('subject');
+    }
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
 
   // Toggle select mode (Sprint 22)
   const toggleSelectMode = useCallback(() => {
@@ -409,6 +462,19 @@ export default function GlossaryPage() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Subject filter */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <SubjectFilter
+                selected={selectedSubject}
+                onChange={handleSubjectChange}
+              />
+              {isLoadingSubject && (
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Loading subject content...
+                </p>
+              )}
             </div>
           </div>
 

@@ -4,7 +4,7 @@
  * Allows new users to create accounts.
  */
 
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserAuth } from '../../contexts';
 
@@ -21,6 +21,9 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Honeypot field ref - bots will fill this, humans won't see it
+  const honeypotRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -78,11 +81,15 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
 
+    // Include honeypot field value (should be empty for humans)
+    const honeypotValue = honeypotRef.current?.value || '';
+
     const result = await register({
       email: formData.email,
       username: formData.username,
       password: formData.password,
       displayName: formData.displayName || undefined,
+      website: honeypotValue, // Honeypot field
     });
 
     if (result.success) {
@@ -132,6 +139,24 @@ export default function RegisterPage() {
 
           {/* Registration form */}
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Honeypot field - hidden from humans, bots will fill it */}
+            <input
+              ref={honeypotRef}
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                opacity: 0,
+                height: 0,
+                width: 0,
+                pointerEvents: 'none',
+              }}
+            />
+
             <div>
               <label
                 htmlFor="email"

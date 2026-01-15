@@ -11,6 +11,7 @@ import {
   Bot,
   User,
   Filter,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -21,6 +22,7 @@ import {
   type CreateGlossaryTermDto,
   type UpdateGlossaryTermDto,
 } from '../../services/api';
+import { AISuggestionsModal } from '../../components/admin/AISuggestionsModal';
 
 // Category labels for display
 const CATEGORY_LABELS: Record<GlossaryCategory, string> = {
@@ -61,6 +63,9 @@ export function GlossaryAdminPage() {
 
   // Delete state
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // AI Suggestions state
+  const [suggestingTerm, setSuggestingTerm] = useState<GlossaryTerm | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<CreateGlossaryTermDto>({
@@ -379,6 +384,14 @@ export function GlossaryAdminPage() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <button
+                      onClick={() => setSuggestingTerm(term)}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
+                      title="Get AI prerequisite suggestions"
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      AI Suggest
+                    </button>
+                    <button
                       onClick={() => handleEdit(term)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
                     >
@@ -594,6 +607,18 @@ export function GlossaryAdminPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI Suggestions Modal */}
+      {suggestingTerm && (
+        <AISuggestionsModal
+          term={suggestingTerm}
+          onClose={() => setSuggestingTerm(null)}
+          onApply={() => {
+            loadTerms();
+            setSuggestingTerm(null);
+          }}
+        />
       )}
     </div>
   );

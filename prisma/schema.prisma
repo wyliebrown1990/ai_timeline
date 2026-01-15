@@ -104,6 +104,10 @@ model IngestedArticle {
   duplicateScore  Float? // 0-1 similarity score
   duplicateReason String? // "title_match" | "content_match" | "url_match"
 
+  // Subject classification (Sprint Subj-2)
+  classifiedSubjects    Json?      // Array of {subjectId, confidence, isPrimary}
+  subjectClassifiedAt   DateTime?
+
   // Relations
   drafts          ContentDraft[]
   keyFigureDrafts KeyFigureDraft[] // Sprint 44 (legacy)
@@ -712,6 +716,20 @@ model User {
   hourlyVoteCount      Int       @default(0)
   hourlyVoteResetAt    DateTime?
 
+  // Trust & Verification (Sprint Spam-2)
+  trustScore             Float     @default(0)
+  canComment             Boolean   @default(false)
+  commentUnlockedAt      DateTime?
+  totalUpvotesReceived   Int       @default(0)
+  totalDownvotesReceived Int       @default(0)
+  commentsRemovedCount   Int       @default(0)
+  learningActionsCount   Int       @default(0)
+
+  // Shadowban (Sprint Spam-3)
+  isShadowbanned    Boolean   @default(false)
+  shadowbannedAt    DateTime?
+  shadowbanReason   String?
+
   // Relations
   sessions     UserSession[]
   comments     Comment[]
@@ -719,6 +737,7 @@ model User {
 
   @@index([email])
   @@index([username])
+  @@index([isShadowbanned])
 }
 
 // =============================================================================
@@ -986,6 +1005,7 @@ model Comment {
   upvotes      Int      @default(0)
   downvotes    Int      @default(0)
   score        Int      @default(0)  // upvotes - downvotes
+  legitimateScore Int   @default(0)  // Score excluding suspicious votes (Sprint Spam-4)
   hotScore     Float    @default(0)  // Time-weighted score for "Best" sort
   controversyScore Float @default(0) // High engagement, mixed votes
 
@@ -1018,11 +1038,17 @@ model CommentVote {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   value      Int      // 1 = upvote, -1 = downvote
 
+  // Vote integrity (Sprint Spam-4)
+  voterIp          String?
+  isSuspicious     Boolean  @default(false)
+  suspiciousReason String?  // 'same_ip_as_author', 'vote_pattern', 'vote_brigade'
+
   createdAt  DateTime @default(now())
 
   @@unique([commentId, userId])
   @@index([userId])
   @@index([commentId])
+  @@index([isSuspicious])
 }
 
 /// Report reason enum for comment moderation
@@ -1069,4 +1095,121 @@ model SpamFilter {
   updatedAt  DateTime @updatedAt
 
   @@index([filterType, isActive])
+}
+
+// =============================================================================
+// Moderation System (Sprint Spam-3)
+// =============================================================================
+
+/// Audit log for all moderation actions
+model ModerationLog {
+  id          String   @id @default(cuid())
+  moderatorId String?  // null if automated action
+  action      String   // 'shadowban', 'unshadowban', 'remove_comment', 'flag', 'approve', 'reject'
+  targetType  String   // 'user', 'comment'
+  targetId    String
+  reason      String?
+  automated   Boolean  @default(false)
+  metadata    Json?    // Additional context (IP, user agent, etc.)
+
+  createdAt   DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([moderatorId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+/// Content flagged for moderation review
+model FlaggedContent {
+  id          String    @id @default(cuid())
+  contentType String    // 'comment'
+  contentId   String
+  reason      String    // 'new_account_link', 'similar_text', 'rapid_posting', 'user_report', 'low_trust_long_comment'
+  severity    String    @default("medium")  // 'low', 'medium', 'high'
+  status      String    @default("pending") // 'pending', 'approved', 'removed'
+  reviewedBy  String?   // Admin who reviewed
+  reviewedAt  DateTime?
+
+  createdAt   DateTime  @default(now())
+
+  @@index([status, severity])
+  @@index([status, createdAt])
+  @@unique([contentType, contentId])
+}
+
+// =============================================================================
+// Subject Taxonomy System (Sprint Subj-1)
+// =============================================================================
+
+/// Hierarchical subject taxonomy node (Domain > Category > Subcategory)
+model Subject {
+  id          String   @id @default(cuid())
+  slug        String   @unique           // "science-cs-nlp"
+  name        String                     // "Natural Language Processing"
+  description String?
+
+  // Hierarchy
+  level       Int                        // 0=domain, 1=category, 2=subcategory
+  parentId    String?
+  parent      Subject?  @relation("SubjectHierarchy", fields: [parentId], references: [id])
+  children    Subject[] @relation("SubjectHierarchy")
+
+  // Denormalized for fast queries
+  path        String                     // "Science > Computer Science > NLP"
+  domainSlug  String                     // "science" (for domain filtering)
+
+  // Learning metadata
+  defaultDifficulty  String?             // beginner, intermediate, advanced
+  learningObjectives String @default("[]") // JSON array
+
+  // UI
+  color       String?
+  icon        String?
+
+  // Relations
+  contentSubjects ContentSubject[]
+  synonyms        SubjectSynonym[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([level])
+  @@index([domainSlug])
+  @@index([parentId])
+}
+
+/// Alternative names/terms that map to a subject
+model SubjectSynonym {
+  id        String  @id @default(cuid())
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  term      String  @unique  // "LLMs" → science-cs-nlp
+
+  @@index([subjectId])
+}
+
+/// Polymorphic junction linking any content type to subjects
+model ContentSubject {
+  id          String   @id @default(cuid())
+
+  // Polymorphic target (like Comment system)
+  contentType String   // milestone, glossary_term, current_event, person, organization
+  contentId   String
+
+  // Subject reference
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  // Classification metadata
+  isPrimary   Boolean  @default(false)   // One primary subject per content
+  confidence  Float?                     // AI classification confidence (0-1)
+  source      String   @default("auto")  // auto, manual, migration
+
+  createdAt   DateTime @default(now())
+
+  @@unique([contentType, contentId, subjectId])
+  @@index([contentType, contentId])
+  @@index([subjectId])
+  @@index([isPrimary, subjectId])
 }

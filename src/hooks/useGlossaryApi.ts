@@ -46,6 +46,10 @@ function transformToGlossaryEntry(term: GlossaryTerm): GlossaryEntry {
     relatedTermIds: term.relatedTermIds || [],
     relatedMilestoneIds: term.relatedMilestoneIds || [],
     category: term.category as GlossaryEntry['category'],
+    // Prerequisite system (Sprint LEarn-1)
+    prerequisiteIds: term.prerequisiteIds || [],
+    difficulty: term.difficulty || 1,
+    conceptType: (term.conceptType as GlossaryEntry['conceptType']) || 'foundational',
   };
 }
 
