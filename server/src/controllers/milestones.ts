@@ -323,6 +323,12 @@ export async function filterMilestones(
       }
     }
 
+    // Subject filter: ?subject=science-cs-nlp&includeSubjectChildren=true
+    if (req.query.subject) {
+      filters.subjectSlug = req.query.subject as string;
+      filters.includeSubjectChildren = req.query.includeSubjectChildren === 'true';
+    }
+
     const { milestones, total } = await milestonesService.getFiltered(filters, {
       skip,
       limit,

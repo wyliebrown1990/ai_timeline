@@ -56,10 +56,60 @@ export interface UpdateGlossaryTermDto {
 export async function getAll(options?: PaginationOptions & {
   category?: GlossaryCategory;
   search?: string;
+  subjectSlug?: string;
+  includeSubjectChildren?: boolean;
 }): Promise<{ terms: GlossaryTerm[]; total: number }> {
   if (!prisma) throw new Error('Database not available');
 
   const where: Record<string, unknown> = {};
+
+  // Subject filter - get term IDs that match the subject
+  if (options?.subjectSlug) {
+    const subject = await prisma.subject.findUnique({
+      where: { slug: options.subjectSlug },
+    });
+
+    if (subject) {
+      // Get subject IDs to query (including children if requested)
+      let subjectIds = [subject.id];
+
+      if (options.includeSubjectChildren) {
+        // Get all descendant subjects
+        const queue = [subject.id];
+        while (queue.length > 0) {
+          const currentId = queue.shift()!;
+          const children = await prisma.subject.findMany({
+            where: { parentId: currentId },
+            select: { id: true },
+          });
+          subjectIds = [...subjectIds, ...children.map(c => c.id)];
+          queue.push(...children.map(c => c.id));
+        }
+      }
+
+      // Get term IDs that have these subjects
+      const termLinks = await prisma.contentSubject.findMany({
+        where: {
+          subjectId: { in: subjectIds },
+          contentType: 'glossary_term',
+        },
+        select: { contentId: true },
+        distinct: ['contentId'],
+      });
+
+      const termIds = termLinks.map((l) => l.contentId);
+
+      if (termIds.length === 0) {
+        // No terms match this subject
+        return { terms: [], total: 0 };
+      }
+
+      where.id = { in: termIds };
+    } else {
+      // Subject not found, return empty
+      return { terms: [], total: 0 };
+    }
+  }
 
   if (options?.category) {
     where.category = options.category;

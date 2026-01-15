@@ -80,6 +80,8 @@ interface MilestoneRecord {
   historicalContext: string | null;
   whyItMattersToday: string | null;
   commonMisconceptions: string | null;
+  // Prerequisite concepts (Sprint LEarn-1)
+  prerequisiteConceptIds: string | null;
 }
 
 /**
@@ -316,6 +318,8 @@ export interface FilterOptions {
   dateStart?: Date;
   dateEnd?: Date;
   tags?: string[];
+  subjectSlug?: string;
+  includeSubjectChildren?: boolean;
 }
 
 /**
@@ -419,8 +423,33 @@ export async function search(
 }
 
 /**
+ * Helper: Get all descendant subjects (children, grandchildren, etc.)
+ * Used for subject filtering with includeSubjectChildren option
+ */
+async function getSubjectDescendants(
+  subjectId: string
+): Promise<{ id: string }[]> {
+  const descendants: { id: string }[] = [];
+  const queue: string[] = [subjectId];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const children = await prisma.subject.findMany({
+      where: { parentId: currentId },
+      select: { id: true },
+    });
+
+    descendants.push(...children);
+    queue.push(...children.map((c) => c.id));
+  }
+
+  return descendants;
+}
+
+/**
  * Get milestones with advanced filtering
  * Optionally includes linked key figures (Sprint 47)
+ * Supports subject filtering via ContentSubject table (Sprint Subj-4)
  */
 export async function getFiltered(
   filters: FilterOptions,
@@ -428,6 +457,46 @@ export async function getFiltered(
 ): Promise<PaginatedResult> {
   const where: Record<string, unknown> = {};
   const includeKeyFigures = options.includeContributors ?? false;
+
+  // Subject filter - get milestone IDs that match the subject
+  if (filters.subjectSlug) {
+    const subject = await prisma.subject.findUnique({
+      where: { slug: filters.subjectSlug },
+    });
+
+    if (subject) {
+      // Get subject IDs to query (including children if requested)
+      let subjectIds = [subject.id];
+
+      if (filters.includeSubjectChildren) {
+        // Get all descendant subjects
+        const descendants = await getSubjectDescendants(subject.id);
+        subjectIds = [...subjectIds, ...descendants.map((d) => d.id)];
+      }
+
+      // Get milestone IDs that have these subjects
+      const milestoneLinks = await prisma.contentSubject.findMany({
+        where: {
+          subjectId: { in: subjectIds },
+          contentType: 'milestone',
+        },
+        select: { contentId: true },
+        distinct: ['contentId'],
+      });
+
+      const milestoneIds = milestoneLinks.map((l) => l.contentId);
+
+      if (milestoneIds.length === 0) {
+        // No milestones match this subject
+        return { milestones: [], total: 0 };
+      }
+
+      where.id = { in: milestoneIds };
+    } else {
+      // Subject not found, return empty
+      return { milestones: [], total: 0 };
+    }
+  }
 
   // Category filter
   if (filters.categories && filters.categories.length > 0) {
@@ -588,6 +657,7 @@ function formatMilestoneResponse(
     imageUrl: milestone.imageUrl,
     tags: parseJsonArray<string>(milestone.tags),
     sources: parseJsonArray<Source>(milestone.sources),
+    prerequisiteConceptIds: parseJsonArray<string>(milestone.prerequisiteConceptIds || '[]'),
     createdAt: milestone.createdAt.toISOString(),
     updatedAt: milestone.updatedAt.toISOString(),
   };

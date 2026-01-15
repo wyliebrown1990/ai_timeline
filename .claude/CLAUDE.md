@@ -1,112 +1,79 @@
 # AI Timeline Atlas
 
-Interactive web app for exploring AI history from 1940s through modern LLMs.
+Interactive web app exploring AI history from 1940s to today.
 
-## Commands
+**Production:** https://letaiexplainai.com
+
+## Quick Commands
 ```bash
 npm run dev          # Vite dev server (localhost:5173)
-npm run build        # Production build (or `npx vite build` to skip typecheck)
-npm run typecheck    # TypeScript checking - run after code changes
+npm run build        # Production build
+npm run typecheck    # TypeScript check
 ```
 
-## AWS Hosting
-**Production URL:** https://letaiexplainai.com (CloudFront: d33f170a3u5yyl.cloudfront.net)
-
+## AWS Resources
 | Component | Resource |
 |-----------|----------|
 | Frontend | S3 (`ai-timeline-frontend-1765916222`) + CloudFront (`E23Z9QNRPDI3HW`) |
-| Custom Domain | letaiexplainai.com |
-| Backend API | API Gateway + Lambda (`ai-timeline-api-prod`) |
-| API Endpoint | https://nhnkwe8o6i.execute-api.us-east-1.amazonaws.com/prod |
+| Backend | API Gateway + Lambda (`ai-timeline-api-prod`) |
+| API | https://nhnkwe8o6i.execute-api.us-east-1.amazonaws.com/prod |
 | Database | RDS PostgreSQL (`ai-timeline-db`) in VPC |
-| Region | us-east-1 |
-
-## Database
-
-### Local Development (PostgreSQL via Docker)
-```bash
-# Start local PostgreSQL
-docker run --name ai-timeline-postgres \
-  -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=ai_timeline_dev \
-  -p 5432:5432 -d postgres:15
-
-# Set DATABASE_URL in .env (already configured)
-DATABASE_URL="postgresql://postgres:password@localhost:5432/ai_timeline_dev"
-
-# Run migrations
-npx prisma migrate dev
-
-# Seed initial data
-npm run db:seed
-```
-
-### Database Migrations (Production)
-Before deploying code changes that modify the database schema:
-
-```bash
-# 1. Get production DATABASE_URL from SSM
-export DATABASE_URL=$(aws ssm get-parameter \
-  --name "/ai-timeline/prod/database-url" \
-  --with-decryption \
-  --query "Parameter.Value" \
-  --output text)
-
-# 2. Run migrations
-npx prisma migrate deploy
-
-# 3. Then deploy Lambda
-cd infra && sam build && sam deploy --no-confirm-changeset
-```
-
-### SSM Parameters Required
-```bash
-# Database connection (required for Lambda)
-/ai-timeline/prod/database-url  # PostgreSQL connection string
-
-# VPC configuration (required for SAM deploy)
-# Pass as parameters: VpcId, SubnetIds, LambdaSecurityGroupId
-```
 
 ## Deployment
-**Frontend** - Deploy to S3 and invalidate CloudFront:
 ```bash
-npm run build
-aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete
+# Frontend
+npm run build && aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete
 aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"
-```
 
-**Backend** - Deploy Lambda via SAM:
-```bash
+# Backend
 cd infra && sam build && sam deploy --no-confirm-changeset
+
+# Database migrations (run before backend deploy if schema changed)
+export DATABASE_URL=$(aws ssm get-parameter --name "/ai-timeline/prod/database-url" --with-decryption --query "Parameter.Value" --output text)
+npx prisma migrate deploy
 ```
 
 ## Project Structure
 ```
 src/
-├── components/      # React components (PascalCase)
-├── pages/           # Route pages
-├── hooks/           # Custom hooks (API hooks, useUserProfile, useCheckpointProgress)
-├── contexts/        # React Context providers
+├── components/      # React components
+├── pages/           # Route pages (admin/, public profiles)
+├── services/        # API clients
 ├── types/           # Zod schemas + TypeScript types
-├── services/        # API clients (all content from database)
-└── lib/             # Utilities
-development-roadmap/ # Sprint planning documents
+└── contexts/        # React Context providers
+
+server/
+├── controllers/     # Route handlers
+├── services/        # Business logic
+│   └── ingestion/   # News pipeline (fetchers, analysis, entity extraction)
+└── routes/          # Express routes
 ```
 
-## Code Style
-- TypeScript strict mode, no `any`
-- Named exports over default exports
-- Conventional commits: `feat:`, `fix:`, `docs:`, `refactor:`
+## Key Routes
 
-## Key Patterns
-- **Data**: PostgreSQL via API (Sprint 39 - all static JSON removed)
-- **State**: Database (user data) + React hooks (caching)
+### Public
+- `/` - Timeline
+- `/people/:slug` - Person profile
+- `/organizations/:slug` - Organization profile
+- `/glossary` - AI terms
+
+### Admin (`/admin/*`)
+- `/admin` - Dashboard
+- `/admin/review` - Content review queue
+- `/admin/milestones` - Milestone management
+- `/admin/sources` - News sources (RSS, YouTube, Playwright)
+- `/admin/articles` - Ingested articles
+- `/admin/key-figures` - Key figures (legacy)
+- `/admin/person-drafts` - AI-detected person review
+
+## Code Patterns
 - **Modals**: Fixed overlay + backdrop blur + escape key dismiss
-- **Hover cards/tooltips**: MUST use React Portal (`createPortal`) to `document.body` with `position: fixed`. CSS z-index alone cannot escape parent stacking contexts.
-- **Testing**: `data-testid` attributes on interactive elements
+- **Hover cards/tooltips**: Use React Portal to `document.body` with `position: fixed`
+- **API calls**: Use services in `src/services/api.ts`
+- **Testing**: Add `data-testid` attributes on interactive elements
 
 ## Rules (in `.claude/rules/`)
-- `data-models.md` - Zod schemas for Event, Concept, Person, Org, Checkpoint
-- `frontend.md` - React, Tailwind, state management patterns
-- `backend.md` - AWS Lambda, DynamoDB, API design
+- `data-models.md` - Database schemas (Person, Organization, Milestone, etc.)
+- `subject-taxonomy.md` - 3-level subject hierarchy, ContentSubject linking
+- `news-ingestion.md` - Multi-source ingestion pipeline
+- `backend.md` - AWS Lambda, API design

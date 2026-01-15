@@ -46,6 +46,21 @@ const UpdateGlossaryTermSchema = z.object({
 });
 
 /**
+ * Safe JSON parse with fallback for arrays
+ */
+function safeParseJsonArray(value: string | null | undefined): string[] {
+  if (!value || value === 'undefined' || value === 'null') {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Helper to transform DB term to API response format
  * Parses JSON arrays back to actual arrays
  */
@@ -60,6 +75,9 @@ function transformTerm(term: {
   category: string;
   relatedTermIds: string;
   relatedMilestoneIds: string;
+  prerequisiteIds?: string | null;
+  difficulty?: number | null;
+  conceptType?: string | null;
   createdAt: Date;
   updatedAt: Date;
   sourceArticleId: string | null;
@@ -73,8 +91,11 @@ function transformTerm(term: {
     example: term.example,
     inMeetingExample: term.inMeetingExample,
     category: term.category,
-    relatedTermIds: JSON.parse(term.relatedTermIds) as string[],
-    relatedMilestoneIds: JSON.parse(term.relatedMilestoneIds) as string[],
+    relatedTermIds: safeParseJsonArray(term.relatedTermIds),
+    relatedMilestoneIds: safeParseJsonArray(term.relatedMilestoneIds),
+    prerequisiteIds: safeParseJsonArray(term.prerequisiteIds),
+    difficulty: term.difficulty ?? 1,
+    conceptType: term.conceptType ?? 'foundational',
     createdAt: term.createdAt.toISOString(),
     updatedAt: term.updatedAt.toISOString(),
     sourceArticleId: term.sourceArticleId,
@@ -91,7 +112,7 @@ export async function getAllTerms(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { category, search, page, limit } = req.query;
+    const { category, search, page, limit, subject, includeSubjectChildren } = req.query;
 
     const pageNum = parseInt(page as string, 10) || 1;
     const limitNum = parseInt(limit as string, 10) || 100;
@@ -100,6 +121,8 @@ export async function getAllTerms(
     const { terms, total } = await glossaryService.getAll({
       category: category as glossaryService.GlossaryCategory | undefined,
       search: search as string | undefined,
+      subjectSlug: subject as string | undefined,
+      includeSubjectChildren: includeSubjectChildren === 'true',
       skip,
       limit: limitNum,
     });
