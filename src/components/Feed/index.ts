@@ -15,3 +15,6 @@ export { FeedCommentPreview } from './FeedCommentPreview';
 export { FeedConceptChips } from './FeedConceptChips';
 export { FeedShareSheet } from './FeedShareSheet';
 export { FeedCollectionPicker } from './FeedCollectionPicker';
+export { FeedProgress } from './FeedProgress';
+export { BreakReminder } from './BreakReminder';
+export { FeedQuizPrompt } from './FeedQuizPrompt';

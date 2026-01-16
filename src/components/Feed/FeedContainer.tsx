@@ -15,9 +15,15 @@ import { useNavigate } from 'react-router-dom';
 import { FeedCard } from './FeedCard';
 import { FeedLoadingCard } from './FeedLoadingCard';
 import { FeedEmptyState } from './FeedEmptyState';
+import { FeedProgress } from './FeedProgress';
+import { BreakReminder } from './BreakReminder';
+import { FeedQuizPrompt } from './FeedQuizPrompt';
 import { useFeedVoting } from '../../hooks/useFeedVoting';
 import { useFeedSave } from '../../hooks/useFeedSave';
 import { useFeedSwipeActions } from '../../hooks/useFeedSwipeActions';
+import { useFeedSession } from '../../hooks/useFeedSession';
+import { streakService } from '../../services/streakService';
+import { hapticService } from '../../services/hapticService';
 import type { FeedItem } from '../../types/feed';
 
 interface FeedContainerProps {
@@ -75,6 +81,16 @@ function FeedContainerComponent({
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const [horizontalOffset, setHorizontalOffset] = useState(0);
 
+  // Gamification state
+  const [showBreakReminder, setShowBreakReminder] = useState(false);
+  const [showQuizPrompt, setShowQuizPrompt] = useState(false);
+  const [recentEventIds, setRecentEventIds] = useState<string[]>([]);
+  const lastBreakCheckRef = useRef<number>(0);
+  const quizShownAtRef = useRef<number>(0);
+
+  // Session tracking
+  const { getStats, markSeen } = useFeedSession();
+
   // Motion values for tracking drag
   const dragX = useMotionValue(0);
 
@@ -113,6 +129,90 @@ function FeedContainerComponent({
     }
   }, [items.length]);
 
+  // Update streak on first view
+  useEffect(() => {
+    if (items.length > 0) {
+      streakService.updateStreak();
+    }
+  }, [items.length]);
+
+  // Track current item as viewed and update recent IDs for quiz
+  useEffect(() => {
+    const currentItem = items[currentIndex];
+    if (currentItem) {
+      markSeen(currentItem.id);
+      setRecentEventIds((prev) => {
+        const updated = [...prev, currentItem.id];
+        return updated.slice(-10); // Keep last 10
+      });
+    }
+  }, [currentIndex, items, markSeen]);
+
+  // Check for break reminder triggers
+  useEffect(() => {
+    const checkBreakReminder = () => {
+      const stats = getStats();
+      const now = Date.now();
+
+      // Only check once per minute
+      if (now - lastBreakCheckRef.current < 60000) return;
+      lastBreakCheckRef.current = now;
+
+      // Trigger after 20 items or 15 minutes
+      if (stats.itemsViewed >= 20 || stats.sessionDurationMinutes >= 15) {
+        // Only show if not shown recently (reset after 5 min break)
+        const lastBreakShown = sessionStorage.getItem('feed_last_break_shown');
+        if (!lastBreakShown || now - parseInt(lastBreakShown) > 5 * 60 * 1000) {
+          setShowBreakReminder(true);
+        }
+      }
+    };
+
+    checkBreakReminder();
+    const interval = setInterval(checkBreakReminder, 30000);
+    return () => clearInterval(interval);
+  }, [getStats]);
+
+  // Check for quiz prompt triggers
+  useEffect(() => {
+    const stats = getStats();
+    const itemsSinceLastQuiz = stats.itemsViewed - quizShownAtRef.current;
+
+    // Show quiz prompt after 7-10 items (with some randomness)
+    const threshold = 7 + Math.floor(Math.random() * 4);
+    if (itemsSinceLastQuiz >= threshold && !showQuizPrompt && !showBreakReminder) {
+      // Only show once per session until dismissed
+      const quizDismissed = sessionStorage.getItem('feed_quiz_dismissed');
+      if (!quizDismissed) {
+        setShowQuizPrompt(true);
+        quizShownAtRef.current = stats.itemsViewed;
+      }
+    }
+  }, [getStats, showQuizPrompt, showBreakReminder]);
+
+  // Handle break reminder actions
+  const handleContinueFromBreak = useCallback(() => {
+    setShowBreakReminder(false);
+    sessionStorage.setItem('feed_last_break_shown', String(Date.now()));
+  }, []);
+
+  const handleTakeBreak = useCallback(() => {
+    setShowBreakReminder(false);
+    navigate('/');
+  }, [navigate]);
+
+  // Handle quiz prompt actions
+  const handleStartQuiz = useCallback(() => {
+    setShowQuizPrompt(false);
+    sessionStorage.setItem('feed_quiz_dismissed', 'true');
+    navigate('/news/quiz');
+  }, [navigate]);
+
+  const handleSkipQuiz = useCallback(() => {
+    setShowQuizPrompt(false);
+    sessionStorage.setItem('feed_quiz_dismissed', 'true');
+  }, []);
+
   // Handle swipe navigation
   const handleSwipe = useCallback(
     (newDirection: number) => {
@@ -128,10 +228,12 @@ function FeedContainerComponent({
         // Swipe up - next item
         setDirection(1);
         onIndexChange(newIndex);
+        hapticService.light();
       } else if (newDirection < 0 && currentIndex > 0) {
         // Swipe down - previous item
         setDirection(-1);
         onIndexChange(newIndex);
+        hapticService.light();
       }
     },
     [currentIndex, items.length, onIndexChange, showSwipeHint]
@@ -167,6 +269,7 @@ function FeedContainerComponent({
           const currentItem = items[currentIndex];
           if (currentItem) {
             handleSwipeRight(currentItem.id);
+            hapticService.success();
             // Move to next card after action
             if (currentIndex < items.length - 1) {
               setDirection(1);
@@ -183,6 +286,7 @@ function FeedContainerComponent({
           const currentItem = items[currentIndex];
           if (currentItem) {
             handleSwipeLeft(currentItem.id);
+            hapticService.medium();
             // Move to next card after action
             if (currentIndex < items.length - 1) {
               setDirection(1);
@@ -348,6 +452,46 @@ function FeedContainerComponent({
         {currentIndex + 1} / {items.length}
         {hasMore && '+'}
       </div>
+
+      {/* Progress Tracker */}
+      <div
+        className="absolute left-4 right-4 z-40"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 60px)' }}
+      >
+        <FeedProgress />
+      </div>
+
+      {/* Break Reminder Overlay */}
+      <AnimatePresence>
+        {showBreakReminder && (
+          <BreakReminder
+            itemsViewed={getStats().itemsViewed}
+            minutesSpent={getStats().sessionDurationMinutes}
+            conceptsLearned={getStats().conceptsLearned}
+            onContinue={handleContinueFromBreak}
+            onTakeBreak={handleTakeBreak}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Quiz Prompt Overlay */}
+      <AnimatePresence>
+        {showQuizPrompt && !showBreakReminder && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[90]"
+          >
+            <FeedQuizPrompt
+              recentEventIds={recentEventIds}
+              itemsViewed={getStats().itemsViewed}
+              onStartQuiz={handleStartQuiz}
+              onSkip={handleSkipQuiz}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Card Stack */}
       <AnimatePresence initial={false} custom={direction} mode="popLayout">
