@@ -51,9 +51,9 @@ function ActionButton({
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-center justify-center gap-0.5 p-2 rounded-lg',
+        'flex flex-col items-center justify-center gap-0.5 rounded-lg',
         'hover:bg-white/10 active:bg-white/20 transition-all duration-150',
-        'min-w-[48px] min-h-[48px]',
+        'w-12 h-12', // 48x48px for accessibility touch targets
         isActive ? activeColor : 'text-gray-400'
       )}
       aria-label={ariaLabel}
@@ -82,7 +82,7 @@ function FeedActionBarComponent({
   return (
     <footer
       className={cn(
-        'flex items-center justify-between px-2',
+        'flex items-center justify-between px-4',
         'bg-gray-950/80 backdrop-blur-md',
         'border-t border-white/5',
         'pb-[max(16px,env(safe-area-inset-bottom))]',
@@ -90,7 +90,7 @@ function FeedActionBarComponent({
       )}
     >
       {/* Frequent actions - left side (thumb zone for right-handed users) */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
         {/* Upvote */}
         <ActionButton
           icon={
@@ -137,7 +137,7 @@ function FeedActionBarComponent({
       </div>
 
       {/* Less frequent actions - right side */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3">
         {/* Save/Bookmark */}
         <ActionButton
           icon={

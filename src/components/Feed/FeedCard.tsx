@@ -261,9 +261,9 @@ function FeedCardComponent({
               onClick={() => setIsContextExpanded(!isContextExpanded)}
               className="w-full flex items-center justify-between p-3 text-left"
             >
-              <h3 className="text-sm font-semibold text-amber-400">
+              <span className="text-sm font-semibold text-amber-400">
                 Why it matters
-              </h3>
+              </span>
               {isContextExpanded ? (
                 <ChevronUp className="w-4 h-4 text-amber-400" />
               ) : (
