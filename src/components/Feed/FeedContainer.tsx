@@ -18,13 +18,17 @@ import { FeedEmptyState } from './FeedEmptyState';
 import { FeedProgress } from './FeedProgress';
 import { BreakReminder } from './BreakReminder';
 import { FeedQuizPrompt } from './FeedQuizPrompt';
+import { AchievementToast } from './AchievementToast';
 import { useFeedVoting } from '../../hooks/useFeedVoting';
+import { useAchievements } from '../../hooks/useAchievements';
+import { useImagePrefetch } from '../../hooks/useImagePrefetch';
 import { useFeedSave } from '../../hooks/useFeedSave';
 import { useFeedSwipeActions } from '../../hooks/useFeedSwipeActions';
 import { useFeedSession } from '../../hooks/useFeedSession';
 import { streakService } from '../../services/streakService';
 import { hapticService } from '../../services/hapticService';
 import { announceService } from '../../services/announceService';
+import { soundService } from '../../services/soundService';
 import type { FeedItem } from '../../types/feed';
 
 interface FeedContainerProps {
@@ -113,8 +117,14 @@ function FeedContainerComponent({
   // Save hook
   const { isSaved, toggleSave, checkSavedStatus } = useFeedSave();
 
+  // Achievements hook
+  const { pendingAchievements, dismissAchievement, checkAchievements } = useAchievements();
+
   // Swipe actions hook
   const { handleSwipeRight, handleSwipeLeft } = useFeedSwipeActions();
+
+  // Image prefetch hook for performance
+  useImagePrefetch(items, currentIndex);
 
   // Check if this is user's first visit
   useEffect(() => {
@@ -194,6 +204,18 @@ function FeedContainerComponent({
     }
   }, [getStats, showQuizPrompt, showBreakReminder]);
 
+  // Check achievements periodically
+  useEffect(() => {
+    const stats = getStats();
+    const streak = streakService.getCurrentStreak();
+
+    checkAchievements({
+      itemsViewed: stats.itemsViewed,
+      streak,
+      conceptsLearned: stats.conceptsLearned,
+    });
+  }, [getStats, checkAchievements]);
+
   // Handle break reminder actions
   const handleContinueFromBreak = useCallback(() => {
     setShowBreakReminder(false);
@@ -233,11 +255,13 @@ function FeedContainerComponent({
         setDirection(1);
         onIndexChange(newIndex);
         hapticService.light();
+        soundService.swipe();
       } else if (newDirection < 0 && currentIndex > 0) {
         // Swipe down - previous item
         setDirection(-1);
         onIndexChange(newIndex);
         hapticService.light();
+        soundService.swipe();
       }
     },
     [currentIndex, items.length, onIndexChange, showSwipeHint]
@@ -274,6 +298,7 @@ function FeedContainerComponent({
           if (currentItem) {
             handleSwipeRight(currentItem.id);
             hapticService.success();
+            soundService.save();
             announceService.announceSwipeAction('save');
             // Move to next card after action
             if (currentIndex < items.length - 1) {
@@ -292,6 +317,7 @@ function FeedContainerComponent({
           if (currentItem) {
             handleSwipeLeft(currentItem.id);
             hapticService.medium();
+            soundService.swipe();
             announceService.announceSwipeAction('not-interested');
             // Move to next card after action
             if (currentIndex < items.length - 1) {
@@ -496,6 +522,16 @@ function FeedContainerComponent({
               onSkip={handleSkipQuiz}
             />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Achievement Toast */}
+      <AnimatePresence>
+        {pendingAchievements.length > 0 && pendingAchievements[0] && (
+          <AchievementToast
+            achievement={pendingAchievements[0]}
+            onDismiss={dismissAchievement}
+          />
         )}
       </AnimatePresence>
 

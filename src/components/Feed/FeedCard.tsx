@@ -5,7 +5,7 @@
  * Composed of: Header, Media, Headline, Teaser, Context, ActionBar
  */
 
-import { memo, useState, useCallback, useEffect, useRef } from 'react';
+import { memo, useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
@@ -14,14 +14,18 @@ import type { FeedItem } from '../../types/feed';
 import { FeedCardHeader } from './FeedCardHeader';
 import { FeedCardMedia } from './FeedCardMedia';
 import { FeedActionBar } from './FeedActionBar';
-import { FeedCommentSheet } from './FeedCommentSheet';
-import { FeedAIChatSheet } from './FeedAIChatSheet';
 import { FeedCommentPreview } from './FeedCommentPreview';
 import { FeedConceptChips } from './FeedConceptChips';
-import { FeedShareSheet } from './FeedShareSheet';
+
+// Lazy load heavy modal components for better initial load time
+const FeedCommentSheet = lazy(() => import('./FeedCommentSheet'));
+const FeedAIChatSheet = lazy(() => import('./FeedAIChatSheet'));
+const FeedShareSheet = lazy(() => import('./FeedShareSheet'));
 import { cn } from '../../lib/utils';
 import { hapticService } from '../../services/hapticService';
 import { announceService } from '../../services/announceService';
+import { soundService } from '../../services/soundService';
+import { personalizationService } from '../../services/personalizationService';
 
 interface FeedCardProps {
   item: FeedItem;
@@ -56,6 +60,18 @@ function FeedCardComponent({
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const reducedMotion = useReducedMotion();
 
+  // Compute personalization type
+  const personalizationType = useMemo(() => {
+    const { reason } = personalizationService.getScore(
+      item.headline,
+      item.summary,
+      [] // Concepts loaded separately via FeedConceptChips
+    );
+    // Filter out 'trending' as FeedCardHeader only supports for_you and learning
+    if (reason === 'trending') return null;
+    return reason;
+  }, [item.headline, item.summary]);
+
   // Double-tap detection
   const lastTapTimeRef = useRef(0);
   const DOUBLE_TAP_DELAY = 300; // ms
@@ -81,13 +97,18 @@ function FeedCardComponent({
   const handleVote = useCallback(
     (vote: 'up' | 'down') => {
       hapticService.medium();
+      soundService.vote();
       onVote(item.id, vote);
       // Announce vote result (with updated totals)
       const newUpvotes = vote === 'up' ? voteState.upvotes + 1 : voteState.upvotes;
       const newDownvotes = vote === 'down' ? voteState.downvotes + 1 : voteState.downvotes;
       announceService.announceVote(vote, newUpvotes, newDownvotes);
+      // Record for personalization
+      if (vote === 'up') {
+        personalizationService.recordUpvote(item.headline, item.summary);
+      }
     },
-    [item.id, onVote, voteState.upvotes, voteState.downvotes]
+    [item.id, onVote, voteState.upvotes, voteState.downvotes, item.headline, item.summary]
   );
 
   const handleComment = useCallback(() => {
@@ -96,10 +117,15 @@ function FeedCardComponent({
 
   const handleSave = useCallback(() => {
     hapticService.success();
+    soundService.save();
     onToggleSave(item.id);
     // Announce save state change (toggling to opposite of current)
     announceService.announceSave(!isSaved);
-  }, [item.id, onToggleSave, isSaved]);
+    // Record for personalization if saving
+    if (!isSaved) {
+      personalizationService.recordSave(item.headline, item.summary);
+    }
+  }, [item.id, onToggleSave, isSaved, item.headline, item.summary]);
 
   const handleAIChat = useCallback(() => {
     setIsAIChatOpen(true);
@@ -116,6 +142,7 @@ function FeedCardComponent({
         e.preventDefault();
         if (!isSaved) {
           hapticService.double();
+          soundService.save();
           onToggleSave(item.id);
           setShowHeartAnimation(true);
           toast.success('Saved!', { duration: 1500 });
@@ -146,6 +173,7 @@ function FeedCardComponent({
         sourceUrl={item.sourceUrl}
         featured={item.featured}
         onShareClick={handleShareClick}
+        personalizationType={personalizationType}
       />
 
       {/* Media Section */}
@@ -300,31 +328,40 @@ function FeedCardComponent({
         onShare={handleShareClick}
       />
 
-      {/* Comment Sheet */}
-      <FeedCommentSheet
-        isOpen={isCommentSheetOpen}
-        onClose={() => setIsCommentSheetOpen(false)}
-        eventId={item.id}
-        headline={item.headline}
-        commentCount={item.commentCount}
-      />
+      {/* Lazy-loaded Modal Components */}
+      <Suspense fallback={null}>
+        {/* Comment Sheet */}
+        {isCommentSheetOpen && (
+          <FeedCommentSheet
+            isOpen={isCommentSheetOpen}
+            onClose={() => setIsCommentSheetOpen(false)}
+            eventId={item.id}
+            headline={item.headline}
+            commentCount={item.commentCount}
+          />
+        )}
 
-      {/* AI Chat Sheet */}
-      <FeedAIChatSheet
-        isOpen={isAIChatOpen}
-        onClose={() => setIsAIChatOpen(false)}
-        eventId={item.id}
-        headline={item.headline}
-        summary={item.summary}
-        whyItMatters={item.whyItMatters}
-      />
+        {/* AI Chat Sheet */}
+        {isAIChatOpen && (
+          <FeedAIChatSheet
+            isOpen={isAIChatOpen}
+            onClose={() => setIsAIChatOpen(false)}
+            eventId={item.id}
+            headline={item.headline}
+            summary={item.summary}
+            whyItMatters={item.whyItMatters}
+          />
+        )}
 
-      {/* Share Sheet */}
-      <FeedShareSheet
-        event={item}
-        isOpen={isShareSheetOpen}
-        onClose={() => setIsShareSheetOpen(false)}
-      />
+        {/* Share Sheet */}
+        {isShareSheetOpen && (
+          <FeedShareSheet
+            event={item}
+            isOpen={isShareSheetOpen}
+            onClose={() => setIsShareSheetOpen(false)}
+          />
+        )}
+      </Suspense>
     </article>
   );
 }

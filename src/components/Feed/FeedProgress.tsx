@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, BookOpen, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { useFeedSession } from '../../hooks/useFeedSession';
 import { streakService } from '../../services/streakService';
+import { soundService } from '../../services/soundService';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface FeedProgressProps {
@@ -50,6 +51,7 @@ function FeedProgressComponent({ className = '' }: FeedProgressProps) {
     const milestones = [7, 14, 30, 60, 100, 365];
     if (milestones.includes(streak)) {
       setShowStreakCelebration(true);
+      soundService.streakMilestone();
       setTimeout(() => setShowStreakCelebration(false), 3000);
     }
   }, [streak]);

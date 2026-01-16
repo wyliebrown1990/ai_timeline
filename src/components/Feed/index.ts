@@ -18,3 +18,4 @@ export { FeedCollectionPicker } from './FeedCollectionPicker';
 export { FeedProgress } from './FeedProgress';
 export { BreakReminder } from './BreakReminder';
 export { FeedQuizPrompt } from './FeedQuizPrompt';
+export { AchievementToast } from './AchievementToast';

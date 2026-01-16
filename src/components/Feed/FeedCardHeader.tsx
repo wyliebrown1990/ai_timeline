@@ -5,7 +5,7 @@
  */
 
 import { memo } from 'react';
-import { Clock, Share2, Sparkles } from 'lucide-react';
+import { Clock, Share2, Sparkles, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface FeedCardHeaderProps {
@@ -14,6 +14,7 @@ interface FeedCardHeaderProps {
   sourceUrl: string | null;
   featured: boolean;
   onShareClick: () => void;
+  personalizationType?: 'for_you' | 'learning' | null;
 }
 
 /**
@@ -29,6 +30,7 @@ function FeedCardHeaderComponent({
   publishedDate,
   featured,
   onShareClick,
+  personalizationType,
 }: FeedCardHeaderProps) {
   return (
     <header className="flex items-center justify-between px-4 py-3 z-10">
@@ -43,8 +45,21 @@ function FeedCardHeaderComponent({
         </span>
       </div>
 
-      <div className="flex items-center gap-3">
-        {featured && (
+      <div className="flex items-center gap-2">
+        {/* Personalization badges */}
+        {personalizationType === 'for_you' && (
+          <span className="flex items-center gap-1 text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">
+            <Sparkles className="w-3 h-3" />
+            For You
+          </span>
+        )}
+        {personalizationType === 'learning' && (
+          <span className="flex items-center gap-1 text-xs text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+            <BookOpen className="w-3 h-3" />
+            Learning
+          </span>
+        )}
+        {featured && !personalizationType && (
           <span className="flex items-center gap-1 text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
             <Sparkles className="w-3 h-3" />
             Featured

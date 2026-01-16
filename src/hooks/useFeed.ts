@@ -34,6 +34,7 @@ interface UseFeedReturn {
 }
 
 const DEFAULT_LIMIT = 10;
+const MAX_ITEMS_IN_MEMORY = 30; // Limit items to prevent memory bloat
 
 export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
   const { initialLimit = DEFAULT_LIMIT, autoFetch = true } = options;
@@ -102,7 +103,18 @@ export function useFeed(options: UseFeedOptions = {}): UseFeedReturn {
       });
 
       if (response.items.length > 0) {
-        setItems((prev) => [...prev, ...response.items]);
+        setItems((prev) => {
+          const newItems = [...prev, ...response.items];
+          // Memory optimization: trim old items if exceeding limit
+          // Keep a buffer around current index to allow going back
+          if (newItems.length > MAX_ITEMS_IN_MEMORY) {
+            const trimCount = newItems.length - MAX_ITEMS_IN_MEMORY;
+            // Adjust currentIndex when trimming from start
+            setCurrentIndex((idx) => Math.max(0, idx - trimCount));
+            return newItems.slice(trimCount);
+          }
+          return newItems;
+        });
       }
       setHasMore(response.hasMore);
     } catch (err) {
