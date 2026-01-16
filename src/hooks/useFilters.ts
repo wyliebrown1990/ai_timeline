@@ -162,7 +162,7 @@ function filtersToQueryParams(filters: TimelineFilters): FilterQueryParams {
     params.subject = filters.subject;
   }
 
-  params.limit = 100; // Get more results when filtering
+  params.limit = 500; // Get all milestones when filtering
 
   return params;
 }
@@ -219,7 +219,7 @@ export function useFilters(): UseFiltersReturn {
         const queryParams = filtersToQueryParams(filters);
         const response = hasActiveFilters
           ? await milestonesApi.getFiltered(queryParams)
-          : await milestonesApi.getAll({ limit: 100 });
+          : await milestonesApi.getAll({ limit: 500 });
 
         setMilestones(response.data);
         setTotal(response.pagination.total);

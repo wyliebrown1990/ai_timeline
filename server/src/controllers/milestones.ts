@@ -14,7 +14,7 @@ import type { FilterOptions } from '../services/milestones';
  * Retrieve all milestones with optional pagination
  * Query params:
  *   - page: Page number (default 1)
- *   - limit: Items per page (default 50, max 100)
+ *   - limit: Items per page (default 50, max 500)
  *   - includeContributors: Include linked key figures (Sprint 47)
  */
 export async function getAllMilestones(
@@ -24,7 +24,7 @@ export async function getAllMilestones(
 ): Promise<void> {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50));
     const skip = (page - 1) * limit;
     const includeContributors = req.query.includeContributors === 'true';
 
@@ -151,7 +151,7 @@ export async function getMilestonesByCategory(
     const validatedCategory = MilestoneCategorySchema.parse(category);
 
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50));
     const skip = (page - 1) * limit;
 
     const { milestones, total } = await milestonesService.getByCategory(validatedCategory, {
@@ -190,7 +190,7 @@ export async function getMilestonesByYear(
     }
 
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50));
     const skip = (page - 1) * limit;
 
     const { milestones, total } = await milestonesService.getByYear(year, { skip, limit });
@@ -258,7 +258,7 @@ export async function filterMilestones(
 ): Promise<void> {
   try {
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit as string) || 50));
     const skip = (page - 1) * limit;
     const includeContributors = req.query.includeContributors === 'true';
 

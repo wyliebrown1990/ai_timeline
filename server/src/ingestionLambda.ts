@@ -106,7 +106,19 @@ interface BackfillLayeredContentEvent {
   batchSize?: number;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent;
+/**
+ * Custom event payload for bulk updating layered content with pre-generated content
+ */
+interface BulkUpdateLayeredContentEvent {
+  action: 'bulkUpdateLayeredContent';
+  updates: Array<{
+    id: string;
+    whyItMattersToday?: string;
+    commonMisconceptions?: string;
+  }>;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -142,6 +154,10 @@ function isPopulateContributorsEvent(event: LambdaEvent): event is PopulateContr
 
 function isBackfillLayeredContentEvent(event: LambdaEvent): event is BackfillLayeredContentEvent {
   return (event as BackfillLayeredContentEvent).action === 'backfillLayeredContent';
+}
+
+function isBulkUpdateLayeredContentEvent(event: LambdaEvent): event is BulkUpdateLayeredContentEvent {
+  return (event as BulkUpdateLayeredContentEvent).action === 'bulkUpdateLayeredContent';
 }
 
 /**
@@ -966,6 +982,91 @@ Return ONLY the JSON object, no other text.`;
         statusCode: 500,
         body: JSON.stringify({
           message: 'Backfill layered content failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for bulk update layered content mode (manual content submission)
+  if (isBulkUpdateLayeredContentEvent(event)) {
+    console.log(`[IngestionLambda] Running bulk update layered content for ${event.updates.length} milestones`);
+
+    try {
+      const results: Array<{
+        id: string;
+        success: boolean;
+        error?: string;
+        fieldsUpdated: string[];
+      }> = [];
+
+      for (const update of event.updates) {
+        try {
+          const updateData: { whyItMattersToday?: string; commonMisconceptions?: string } = {};
+          const fieldsUpdated: string[] = [];
+
+          if (update.whyItMattersToday) {
+            updateData.whyItMattersToday = update.whyItMattersToday;
+            fieldsUpdated.push('whyItMattersToday');
+          }
+          if (update.commonMisconceptions) {
+            updateData.commonMisconceptions = update.commonMisconceptions;
+            fieldsUpdated.push('commonMisconceptions');
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            await prisma.milestone.update({
+              where: { id: update.id },
+              data: updateData,
+            });
+
+            results.push({
+              id: update.id,
+              success: true,
+              fieldsUpdated,
+            });
+            console.log(`[IngestionLambda] Updated ${update.id}: ${fieldsUpdated.join(', ')}`);
+          } else {
+            results.push({
+              id: update.id,
+              success: false,
+              error: 'No fields provided',
+              fieldsUpdated: [],
+            });
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          results.push({
+            id: update.id,
+            success: false,
+            error: errorMessage,
+            fieldsUpdated: [],
+          });
+          console.error(`[IngestionLambda] Failed to update ${update.id}:`, errorMessage);
+        }
+      }
+
+      const successCount = results.filter(r => r.success).length;
+      const failureCount = results.filter(r => !r.success).length;
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Bulk update layered content completed',
+          processed: results.length,
+          succeeded: successCount,
+          failed: failureCount,
+          results,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Bulk update layered content error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Bulk update layered content failed',
           error: errorMessage,
         }),
       };
