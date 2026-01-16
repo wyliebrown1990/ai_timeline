@@ -5,11 +5,16 @@
  */
 
 import { memo } from 'react';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 function FeedLoadingCardComponent() {
+  const reducedMotion = useReducedMotion();
+
   return (
     <div
-      className="absolute inset-0 flex flex-col bg-gray-950 text-white overflow-hidden animate-pulse"
+      className={`absolute inset-0 flex flex-col bg-gray-950 text-white overflow-hidden ${
+        reducedMotion ? '' : 'animate-pulse'
+      }`}
       style={{
         paddingTop: 'env(safe-area-inset-top, 0px)',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
@@ -64,6 +69,11 @@ function FeedLoadingCardComponent() {
           </div>
         ))}
       </div>
+
+      {/* Screen reader loading message */}
+      <span className="sr-only" role="status" aria-live="polite">
+        Loading AI news feed...
+      </span>
     </div>
   );
 }
