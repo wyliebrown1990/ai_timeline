@@ -13,6 +13,8 @@ import { FeedCardMedia } from './FeedCardMedia';
 import { FeedActionBar } from './FeedActionBar';
 import { FeedCommentSheet } from './FeedCommentSheet';
 import { FeedAIChatSheet } from './FeedAIChatSheet';
+import { FeedCommentPreview } from './FeedCommentPreview';
+import { FeedConceptChips } from './FeedConceptChips';
 import { cn } from '../../lib/utils';
 
 interface FeedCardProps {
@@ -154,6 +156,9 @@ function FeedCardComponent({
           )}
         </div>
 
+        {/* Concept Chips */}
+        <FeedConceptChips eventId={item.id} isActive={isActive} />
+
         {/* Why It Matters Section */}
         {item.whyItMatters && (
           <div
@@ -209,6 +214,14 @@ function FeedCardComponent({
           </a>
         )}
       </div>
+
+      {/* Comment Preview (Hot Takes) */}
+      <FeedCommentPreview
+        eventId={item.id}
+        commentCount={item.commentCount}
+        onViewAll={handleComment}
+        isActive={isActive}
+      />
 
       {/* Action Bar */}
       <FeedActionBar

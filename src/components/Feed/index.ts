@@ -11,3 +11,5 @@ export { FeedCardMedia } from './FeedCardMedia';
 export { FeedActionBar } from './FeedActionBar';
 export { FeedCommentSheet } from './FeedCommentSheet';
 export { FeedAIChatSheet } from './FeedAIChatSheet';
+export { FeedCommentPreview } from './FeedCommentPreview';
+export { FeedConceptChips } from './FeedConceptChips';
