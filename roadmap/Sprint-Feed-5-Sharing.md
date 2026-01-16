@@ -1,0 +1,323 @@
+# Sprint Feed-5: Sharing & Collections
+
+> **PROGRESS TRACKING**: Update this document as you complete tasks.
+> Mark checkboxes `[x]` when done. Do NOT create separate status docs.
+> Last updated: 2026-01-16 by Claude
+
+## Overview
+
+Implement social sharing functionality and personal collections system. Users can share news items to social platforms with pre-crafted templates, and save items to organized collections for later reference.
+
+## Prerequisites
+
+- [x] Sprint Feed-4 completed (engagement features work)
+- [x] Collections API endpoints from Sprint 1 are functional
+- [x] Session management is working
+
+## Tasks
+
+### 1. Share Sheet Component ✅
+
+#### 1.1 Create FeedShareSheet
+- [x] Created `src/components/Feed/FeedShareSheet.tsx`
+
+#### 1.2 Implement Share Sheet UI
+- [x] Slide up from bottom (50% of screen)
+- [x] Header: "Share this story" with headline preview
+- [x] Grid of share platform buttons
+- [x] Copy link button at bottom with "Copied!" feedback
+- [x] Drag handle to dismiss
+
+#### 1.3 Share Platforms
+| Platform | Icon | Action | Status |
+|----------|------|--------|--------|
+| Twitter/X | Twitter icon | Open tweet intent | ✅ |
+| LinkedIn | LinkedIn icon | Open share dialog | ✅ |
+| Facebook | Facebook icon | Open share dialog | ✅ |
+| WhatsApp | WhatsApp icon | Open wa.me link | ✅ |
+| Email | Mail icon | Open mailto | ✅ |
+| Copy Link | Link icon | Copy to clipboard | ✅ |
+
+### 2. Share Templates ✅
+
+#### 2.1 Create Share Template Generator
+- [x] Created `src/utils/shareTemplates.ts`
+- [x] Functions: generateTwitterText, generateLinkedInText, generateGenericText, generateShareUrl
+
+#### 2.2 Twitter/X Template
+- [x] Character limit: 280
+- [x] Includes headline (truncated), optional summary, "via AI Timeline" suffix
+
+#### 2.3 LinkedIn Template
+- [x] Professional tone with hashtags
+- [x] Includes headline, summary, "why it matters" excerpt, URL
+
+#### 2.4 Generic/Email Template
+- [x] Subject: "AI News: {headline}"
+- [x] Body includes full summary and URL
+
+### 3. Share URL Generation
+
+#### 3.1 Create Shareable URLs
+- [ ] Format: `https://letaiexplainai.com/news/{eventId}`
+- [ ] Or: `https://letaiexplainai.com/feed/{eventId}` (opens in feed mode)
+
+#### 3.2 Open Graph Meta Tags
+- [ ] Add OG tags to news detail page:
+  ```html
+  <meta property="og:title" content="{headline}" />
+  <meta property="og:description" content="{summary}" />
+  <meta property="og:image" content="{thumbnailUrl or default}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="{shareUrl}" />
+  ```
+- [ ] Twitter card meta tags:
+  ```html
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="{headline}" />
+  <meta name="twitter:description" content="{summary}" />
+  <meta name="twitter:image" content="{thumbnailUrl}" />
+  ```
+
+#### 3.3 Server-Side Rendering for Crawlers
+- [ ] Detect crawlers (User-Agent check)
+- [ ] Return pre-rendered meta tags for link previews
+- [ ] Or: Use dynamic OG image generation service
+
+### 4. Copy to Clipboard
+
+#### 4.1 Implement Copy Functionality
+- [ ] Use navigator.clipboard.writeText()
+- [ ] Fallback for older browsers: textarea + execCommand
+- [ ] Copy URL + optional short description
+
+#### 4.2 Copy Feedback
+- [ ] Button text changes: "Copy" → "Copied!"
+- [ ] Revert after 2 seconds
+- [ ] Haptic feedback if supported
+
+### 5. Share Tracking ✅
+
+#### 5.1 Record Share Interactions
+- [x] Created `POST /api/news/:id/share` endpoint
+- [x] Records platform in metadata via NewsInteraction model
+
+#### 5.2 Analytics (optional)
+- [ ] Track share completion (deferred - requires external integration)
+- [ ] Track which templates get edited vs used as-is (deferred)
+
+### 6. Collections System
+
+#### 6.1 Create CollectionManager Hook
+- [ ] Create `src/hooks/useCollections.ts`:
+  ```typescript
+  export function useCollections() {
+    const [collections, setCollections] = useState<SavedCollection[]>([]);
+
+    const fetchCollections = async () => { ... };
+    const createCollection = async (name: string) => { ... };
+    const deleteCollection = async (id: string) => { ... };
+    const addToCollection = async (collectionId: string, eventId: string) => { ... };
+    const removeFromCollection = async (collectionId: string, eventId: string) => { ... };
+    const isInCollection = (collectionId: string, eventId: string) => boolean;
+
+    return { collections, fetchCollections, createCollection, ... };
+  }
+  ```
+
+#### 6.2 Default Collection: "Saved"
+- [ ] Auto-create "Saved" collection on first save
+- [ ] This is the default when tapping bookmark icon
+- [ ] Cannot be deleted or renamed
+
+### 7. Save to Collection Flow
+
+#### 7.1 Create FeedSaveButton
+- [ ] Update save button in action bar
+- [ ] Single tap: Save to default "Saved" collection
+- [ ] Long press: Open collection picker
+
+#### 7.2 Create FeedCollectionPicker
+- [ ] Create `src/components/Feed/FeedCollectionPicker.tsx`:
+  ```typescript
+  interface FeedCollectionPickerProps {
+    eventId: string;
+    isOpen: boolean;
+    onClose: () => void;
+    onSaved: () => void;
+  }
+  ```
+
+#### 7.3 Collection Picker UI
+- [ ] List of existing collections with checkboxes
+- [ ] Checked if item is in collection
+- [ ] "Create new collection" option at bottom
+- [ ] Save/Done button
+
+#### 7.4 Create Collection Modal
+- [ ] Simple modal with name input
+- [ ] "Create" button
+- [ ] Validation: Name required, max 50 chars
+
+### 8. Collections Page
+
+#### 8.1 Create CollectionsPage
+- [ ] Create `src/pages/CollectionsPage.tsx`
+- [ ] Add route: `/collections`
+
+#### 8.2 Collections List View
+- [ ] Grid of collection cards
+- [ ] Each card shows:
+  - Collection name
+  - Item count
+  - Thumbnail collage (first 4 items)
+  - Last updated date
+- [ ] "New Collection" card at end
+
+#### 8.3 Single Collection View
+- [ ] Route: `/collections/:id`
+- [ ] List of saved items (card grid or list)
+- [ ] Edit collection name button
+- [ ] Delete collection button (with confirmation)
+- [ ] Share collection (if public)
+
+### 9. Quick Save Gestures
+
+#### 9.1 Double-Tap to Save
+- [ ] Detect double-tap on card content area
+- [ ] Save to default collection
+- [ ] Show heart animation (like Instagram)
+- [ ] Show toast: "Saved!"
+
+#### 9.2 Existing Bookmark Button
+- [ ] Keep single-tap save functionality
+- [ ] Visual state: Empty → Filled when saved
+- [ ] Filled state: Tap to unsave or long-press for options
+
+### 10. Saved Items Indicator
+
+#### 10.1 Show Save State on Cards
+- [ ] Check if item is in any collection
+- [ ] Show filled bookmark icon if saved
+- [ ] Update state when save/unsave occurs
+
+## Browser Testing & Validation
+
+> **CRITICAL**: Use Claude Chrome MCP tools to test sharing features.
+
+### Share Sheet Testing
+- [ ] Get browser context: `mcp__claude-in-chrome__tabs_context_mcp`
+- [ ] Navigate to feed page
+- [ ] Tap share button on a card
+- [ ] Verify share sheet appears with all platforms
+- [ ] Take screenshot of share sheet
+
+### Twitter Share Testing
+- [ ] Tap Twitter/X share option
+- [ ] Verify new window/tab opens with pre-filled tweet
+- [ ] Verify URL and text are correct
+- [ ] Close tab and return to app
+
+### Copy Link Testing
+- [ ] Tap "Copy Link" option
+- [ ] Verify feedback shows "Copied!"
+- [ ] Paste somewhere to verify link is correct
+
+### Collection Save Testing
+- [ ] Tap bookmark icon
+- [ ] Verify item saves to "Saved" collection
+- [ ] Verify icon changes to filled state
+- [ ] Tap again - verify item unsaves
+- [ ] Long-press bookmark - verify picker opens
+
+### Collection Picker Testing
+- [ ] Long-press bookmark
+- [ ] Verify collection picker opens
+- [ ] Select a collection
+- [ ] Verify checkmark appears
+- [ ] Tap "Create new collection"
+- [ ] Enter name and create
+- [ ] Verify new collection appears in list
+
+### Collections Page Testing
+- [ ] Navigate to /collections
+- [ ] Verify collections are listed
+- [ ] Tap a collection
+- [ ] Verify saved items are shown
+- [ ] Delete an item from collection
+- [ ] Verify removal
+
+### Console & Network Check
+- [ ] Check console for errors: `mcp__claude-in-chrome__read_console_messages`
+- [ ] Check network for API calls: `mcp__claude-in-chrome__read_network_requests`
+- [ ] Verify collection API calls succeed
+
+## Acceptance Criteria
+
+- [ ] Share sheet opens with all platform options
+- [ ] Twitter share opens with pre-filled text and URL
+- [ ] LinkedIn share opens with pre-filled content
+- [ ] Copy link copies URL to clipboard with feedback
+- [ ] Share interactions are tracked
+- [ ] Default "Saved" collection is auto-created
+- [ ] Single tap bookmark saves to default collection
+- [ ] Long press opens collection picker
+- [ ] New collections can be created
+- [ ] Collections page shows all collections
+- [ ] Single collection view shows saved items
+- [ ] Items can be removed from collections
+- [ ] Save state is reflected in bookmark icon
+- [ ] All browser validation tasks completed
+
+## Notes for Future Developers
+
+### Share Intent URLs
+```typescript
+// Twitter/X
+`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`
+
+// LinkedIn
+`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`
+
+// Facebook
+`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
+
+// WhatsApp
+`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`
+
+// Email
+`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+```
+
+### OG Image Generation
+For dynamic OG images, consider:
+1. Cloudflare Workers with @cloudflare/workers-og
+2. Vercel OG Image Generation
+3. Pre-generate and cache images on S3
+
+### Collection Item Storage
+Collections store item IDs as JSON array:
+```typescript
+items: string[] // ["event1", "event2", "event3"]
+```
+
+When displaying, fetch full event data:
+```typescript
+const eventIds = JSON.parse(collection.items);
+const events = await Promise.all(eventIds.map(id => feedApi.getById(id)));
+```
+
+Consider pagination for collections with many items (>50).
+
+### Web Share API
+For mobile browsers that support it:
+```typescript
+if (navigator.share) {
+  await navigator.share({
+    title: headline,
+    text: summary,
+    url: shareUrl,
+  });
+}
+```
+Falls back to custom share sheet on unsupported browsers.

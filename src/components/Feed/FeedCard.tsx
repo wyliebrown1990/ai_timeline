@@ -15,6 +15,7 @@ import { FeedCommentSheet } from './FeedCommentSheet';
 import { FeedAIChatSheet } from './FeedAIChatSheet';
 import { FeedCommentPreview } from './FeedCommentPreview';
 import { FeedConceptChips } from './FeedConceptChips';
+import { FeedShareSheet } from './FeedShareSheet';
 import { cn } from '../../lib/utils';
 
 interface FeedCardProps {
@@ -46,6 +47,7 @@ function FeedCardComponent({
   const [isContextExpanded, setIsContextExpanded] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
+  const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
 
   // Initialize vote state and check saved status when card mounts
   useEffect(() => {
@@ -55,16 +57,8 @@ function FeedCardComponent({
 
   // Action handlers
   const handleShareClick = useCallback(() => {
-    if (navigator.share) {
-      navigator.share({
-        title: item.headline,
-        url: item.sourceUrl || window.location.href,
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(item.sourceUrl || window.location.href);
-    }
-  }, [item.headline, item.sourceUrl]);
+    setIsShareSheetOpen(true);
+  }, []);
 
   const handleVideoClick = useCallback(() => {
     // TODO: Open video modal or expand video player
@@ -255,6 +249,13 @@ function FeedCardComponent({
         headline={item.headline}
         summary={item.summary}
         whyItMatters={item.whyItMatters}
+      />
+
+      {/* Share Sheet */}
+      <FeedShareSheet
+        event={item}
+        isOpen={isShareSheetOpen}
+        onClose={() => setIsShareSheetOpen(false)}
       />
     </article>
   );

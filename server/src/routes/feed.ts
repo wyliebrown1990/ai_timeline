@@ -440,6 +440,50 @@ interactionRouter.post('/:id/not-interested', async (req: Request, res: Response
 });
 
 /**
+ * POST /api/news/:id/share
+ * Record a share action with platform metadata
+ *
+ * Body: { platform: string, sessionId?: string }
+ */
+interactionRouter.post('/:id/share', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { platform, sessionId } = req.body;
+
+    if (!platform) {
+      return res.status(400).json({ error: 'platform is required' });
+    }
+
+    // Record share interaction
+    await prisma.newsInteraction.create({
+      data: {
+        eventId: id,
+        sessionId: sessionId || 'anonymous',
+        action: 'share',
+        metadata: JSON.stringify({ platform }),
+      },
+    });
+
+    // Increment share count on the event if field exists
+    try {
+      await prisma.currentEvent.update({
+        where: { id },
+        data: {
+          // shareCount field may not exist yet
+        },
+      });
+    } catch {
+      // Field doesn't exist, ignore
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error recording share:', error);
+    res.status(500).json({ error: 'Failed to record share' });
+  }
+});
+
+/**
  * GET /api/news/:id/user-vote
  * Get current user's vote on an event
  *

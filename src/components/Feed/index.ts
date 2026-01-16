@@ -13,3 +13,4 @@ export { FeedCommentSheet } from './FeedCommentSheet';
 export { FeedAIChatSheet } from './FeedAIChatSheet';
 export { FeedCommentPreview } from './FeedCommentPreview';
 export { FeedConceptChips } from './FeedConceptChips';
+export { FeedShareSheet } from './FeedShareSheet';
