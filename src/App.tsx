@@ -48,6 +48,9 @@ const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 // Sprint Feed-2: AI News Shorts feed
 const FeedPage = lazy(() => import('./pages/FeedPage'));
 
+// Sprint Feed-5: Collections page
+const CollectionsPage = lazy(() => import('./pages/CollectionsPage'));
+
 // Lazy-loaded study pages
 const StudyPage = lazy(() => import('./pages/StudyPage'));
 const StudySessionPage = lazy(() => import('./pages/StudySessionPage'));
@@ -184,6 +187,10 @@ function App() {
 
                   {/* Feed route - outside Layout for full-screen experience */}
                   <Route path="/feed" element={<FeedPage />} />
+
+                  {/* Collections route - outside Layout for full-screen experience */}
+                  <Route path="/collections" element={<CollectionsPage />} />
+                  <Route path="/collections/:id" element={<CollectionsPage />} />
 
                   {/* Admin routes - wrapped in AuthProvider for authentication */}
                   <Route

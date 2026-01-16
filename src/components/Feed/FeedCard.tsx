@@ -5,8 +5,10 @@
  * Composed of: Header, Media, Headline, Teaser, Context, ActionBar
  */
 
-import { memo, useState, useCallback, useEffect } from 'react';
-import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { memo, useState, useCallback, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ExternalLink, ChevronDown, ChevronUp, Heart } from 'lucide-react';
+import toast from 'react-hot-toast';
 import type { FeedItem } from '../../types/feed';
 import { FeedCardHeader } from './FeedCardHeader';
 import { FeedCardMedia } from './FeedCardMedia';
@@ -48,6 +50,11 @@ function FeedCardComponent({
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+
+  // Double-tap detection
+  const lastTapTimeRef = useRef(0);
+  const DOUBLE_TAP_DELAY = 300; // ms
 
   // Initialize vote state and check saved status when card mounts
   useEffect(() => {
@@ -86,6 +93,31 @@ function FeedCardComponent({
     setIsAIChatOpen(true);
   }, []);
 
+  // Double-tap to save handler
+  const handleDoubleTap = useCallback(
+    (e: React.TouchEvent | React.MouseEvent) => {
+      const now = Date.now();
+      const timeSinceLastTap = now - lastTapTimeRef.current;
+
+      if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
+        // Double tap detected - save the item
+        e.preventDefault();
+        if (!isSaved) {
+          onToggleSave(item.id);
+          setShowHeartAnimation(true);
+          toast.success('Saved!', { duration: 1500 });
+          setTimeout(() => setShowHeartAnimation(false), 1000);
+        } else {
+          toast('Already saved', { duration: 1500 });
+        }
+        lastTapTimeRef.current = 0; // Reset to prevent triple-tap
+      } else {
+        lastTapTimeRef.current = now;
+      }
+    },
+    [isSaved, item.id, onToggleSave]
+  );
+
   return (
     <article
       className="absolute inset-0 flex flex-col bg-gray-950 text-white overflow-hidden"
@@ -112,8 +144,30 @@ function FeedCardComponent({
         onVideoClick={handleVideoClick}
       />
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col px-4 py-4 overflow-y-auto">
+      {/* Content - with double-tap handler */}
+      <div
+        className="flex-1 flex flex-col px-4 py-4 overflow-y-auto relative"
+        onTouchEnd={handleDoubleTap}
+        onClick={handleDoubleTap}
+      >
+        {/* Heart animation overlay */}
+        <AnimatePresence>
+          {showHeartAnimation && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
+            >
+              <Heart
+                className="w-24 h-24 text-red-500 drop-shadow-lg"
+                fill="currentColor"
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Headline */}
         <h1
           className="font-bold leading-tight mb-3 text-[clamp(1.5rem,5vw,2rem)]"
