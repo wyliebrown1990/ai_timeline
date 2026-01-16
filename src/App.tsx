@@ -45,6 +45,9 @@ const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'));
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 
+// Sprint Feed-2: AI News Shorts feed
+const FeedPage = lazy(() => import('./pages/FeedPage'));
+
 // Lazy-loaded study pages
 const StudyPage = lazy(() => import('./pages/StudyPage'));
 const StudySessionPage = lazy(() => import('./pages/StudySessionPage'));
@@ -178,6 +181,9 @@ function App() {
                   <Route path="/register" element={<RegisterPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                   <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+                  {/* Feed route - outside Layout for full-screen experience */}
+                  <Route path="/feed" element={<FeedPage />} />
 
                   {/* Admin routes - wrapped in AuthProvider for authentication */}
                   <Route

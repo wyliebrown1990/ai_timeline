@@ -53,6 +53,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "framer-motion": "^12.26.2",
     "googleapis": "^170.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",

@@ -338,11 +338,24 @@ model CurrentEvent {
   whyItMatters             String?                   // AI-generated context explanation
   conceptLinks             NewsEventConcept[]
 
+  // Feed engagement fields (Sprint Feed-1)
+  upvotes                  Int       @default(0)
+  downvotes                Int       @default(0)
+  viewCount                Int       @default(0)
+  completionCount          Int       @default(0)    // Users who engaged (not just swiped)
+  hotScore                 Float     @default(0)    // Computed ranking score for feed
+  tldr                     String?                   // Auto-generated "3 things to know"
+
+  // Feed interactions relation
+  interactions             NewsInteraction[]
+
   @@index([featured])
   @@index([publishedDate])
   @@index([isPublished])
   @@index([expiresAt])
   @@index([mediaType])
+  @@index([hotScore(sort: Desc)])
+  @@index([isPublished, hotScore(sort: Desc)])
 }
 
 /// Junction table linking news events to glossary concepts (Sprint LEarn-2)
@@ -731,9 +744,10 @@ model User {
   shadowbanReason   String?
 
   // Relations
-  sessions     UserSession[]
-  comments     Comment[]
-  commentVotes CommentVote[]
+  sessions         UserSession[]
+  comments         Comment[]
+  commentVotes     CommentVote[]
+  savedCollections SavedCollection[] // Sprint Feed-1
 
   @@index([email])
   @@index([username])
@@ -1212,4 +1226,51 @@ model ContentSubject {
   @@index([contentType, contentId])
   @@index([subjectId])
   @@index([isPrimary, subjectId])
+}
+
+// =============================================================================
+// News Feed System (Sprint Feed-1)
+// =============================================================================
+
+/// User interaction with news events in the feed
+/// Tracks views, votes, saves, shares for engagement metrics
+model NewsInteraction {
+  id        String       @id @default(cuid())
+  sessionId String       // Anonymous session ID from frontend
+  eventId   String
+  event     CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // Interaction type
+  action    String       // view, upvote, downvote, save, share, chat, swipe_past, not_interested
+
+  // Additional context
+  metadata  String?      // JSON for additional context (platform for shares, etc.)
+
+  createdAt DateTime     @default(now())
+
+  @@index([sessionId, eventId])
+  @@index([eventId, action])
+  @@index([createdAt])
+  @@index([sessionId, createdAt])
+  @@index([sessionId, action])
+}
+
+/// User's saved collections for organizing news items
+model SavedCollection {
+  id        String       @id @default(cuid())
+  sessionId String       // Anonymous session ID
+  userId    String?      // Optional: linked to authenticated user
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name      String       // Collection name (e.g., "Saved", "AI Safety", "Business Impact")
+  items     String       @default("[]") // JSON array of event IDs
+  isPublic  Boolean      @default(false)
+  isDefault Boolean      @default(false) // The default "Saved" collection
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([isPublic])
 }

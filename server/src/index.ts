@@ -45,6 +45,7 @@ import adminUsersRouter from './routes/adminUsers'; // Sprint Spam-2 - Admin Use
 import adminModerationRouter from './routes/adminModeration'; // Sprint Spam-3 - Admin Moderation
 import subjectsRouter, { adminRouter as subjectsAdminRouter, contentSubjectRouter } from './routes/subjects'; // Sprint Subj-1 - Subject Taxonomy
 import bibliographyRouter from './routes/bibliography'; // Sprint Bib-1 - Bibliography Ingestion
+import { feedRouter, interactionRouter, collectionsRouter, adminFeedRouter } from './routes/feed'; // Sprint Feed-1 - News Feed
 
 /**
  * Create and configure the Express application
@@ -122,6 +123,9 @@ export function createApp() {
   app.use('/api/news-quiz', newsQuizRouter); // News quiz API (Sprint LEarn-2)
   app.use('/api/comments', commentsRouter); // Comments API (Sprint LEarn-4)
   app.use('/api/subjects', subjectsRouter); // Public subjects API (Sprint Subj-1)
+  app.use('/api/feed', feedRouter); // News feed API (Sprint Feed-1)
+  app.use('/api/news', interactionRouter); // News interaction API (Sprint Feed-1)
+  app.use('/api/collections', collectionsRouter); // Collections API (Sprint Feed-1)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
@@ -147,6 +151,7 @@ export function createApp() {
   app.use('/api/admin/subjects', subjectsAdminRouter); // Admin subjects API (Sprint Subj-1)
   app.use('/api/admin/content', contentSubjectRouter); // Admin content subjects API (Sprint Subj-1)
   app.use('/api/admin/bibliography', bibliographyRouter); // Admin bibliography ingestion API (Sprint Bib-1)
+  app.use('/api/admin/feed', adminFeedRouter); // Admin feed API (Sprint Feed-1)
 
   // Error handling
   app.use(notFoundHandler);

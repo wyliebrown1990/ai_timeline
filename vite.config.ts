@@ -31,12 +31,15 @@ export default defineConfig({
     proxy: {
       // Proxy API requests to the backend server
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         secure: false,
         configure: (proxy) => {
           proxy.on('proxyReq', (_proxyReq, req) => {
             console.log('Proxying:', req.method, req.url);
+          });
+          proxy.on('error', (err, _req, _res) => {
+            console.error('Proxy error:', err.message);
           });
         },
       },
