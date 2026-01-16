@@ -8,6 +8,7 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Coffee, BookOpen, Brain, ArrowRight } from 'lucide-react';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface BreakReminderProps {
   itemsViewed: number;
@@ -24,18 +25,27 @@ function BreakReminderComponent({
   onContinue,
   onTakeBreak,
 }: BreakReminderProps) {
+  const reducedMotion = useReducedMotion();
+
+  // Animation variants - disabled when reduced motion is preferred
+  const fadeIn = reducedMotion ? false : { opacity: 0 };
+  const fadeInSlide = reducedMotion ? false : { opacity: 0, y: 20 };
+  const scaleIn = reducedMotion ? false : { scale: 0 };
+  const instantTransition = reducedMotion ? { duration: 0 } : undefined;
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={fadeIn}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={instantTransition}
       className="fixed inset-0 z-[100] bg-gray-950 flex flex-col items-center justify-center p-6"
     >
       {/* Icon */}
       <motion.div
-        initial={{ scale: 0 }}
+        initial={scaleIn}
         animate={{ scale: 1 }}
-        transition={{ delay: 0.2, type: 'spring' }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.2, type: 'spring' }}
         className="mb-6"
       >
         <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -45,9 +55,9 @@ function BreakReminderComponent({
 
       {/* Heading */}
       <motion.h1
-        initial={{ opacity: 0, y: 20 }}
+        initial={fadeInSlide}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.3 }}
         className="text-2xl font-bold text-white text-center mb-2"
       >
         Great learning session!
@@ -55,9 +65,9 @@ function BreakReminderComponent({
 
       {/* Subtitle */}
       <motion.p
-        initial={{ opacity: 0, y: 20 }}
+        initial={fadeInSlide}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.4 }}
         className="text-gray-400 text-center mb-8"
       >
         You've been exploring AI news for {minutesSpent} minutes
@@ -65,9 +75,9 @@ function BreakReminderComponent({
 
       {/* Stats */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={fadeInSlide}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.5 }}
         className="flex gap-6 mb-10"
       >
         <div className="flex flex-col items-center">
@@ -91,9 +101,9 @@ function BreakReminderComponent({
 
       {/* Message */}
       <motion.p
-        initial={{ opacity: 0, y: 20 }}
+        initial={fadeInSlide}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.6 }}
         className="text-gray-300 text-center mb-8 max-w-sm"
       >
         Taking breaks helps information sink in. Your brain needs time to process what you've learned.
@@ -101,9 +111,9 @@ function BreakReminderComponent({
 
       {/* CTAs */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={fadeInSlide}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.7 }}
         className="flex flex-col gap-3 w-full max-w-xs"
       >
         <button
@@ -125,9 +135,9 @@ function BreakReminderComponent({
 
       {/* Footer note */}
       <motion.p
-        initial={{ opacity: 0 }}
+        initial={fadeIn}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.9 }}
+        transition={reducedMotion ? { duration: 0 } : { delay: 0.9 }}
         className="text-xs text-gray-600 mt-8 text-center"
       >
         You can adjust break reminders in settings

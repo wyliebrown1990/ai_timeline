@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Flame, BookOpen, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { useFeedSession } from '../../hooks/useFeedSession';
 import { streakService } from '../../services/streakService';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 interface FeedProgressProps {
   className?: string;
@@ -17,6 +18,7 @@ interface FeedProgressProps {
 
 function FeedProgressComponent({ className = '' }: FeedProgressProps) {
   const { getStats } = useFeedSession();
+  const reducedMotion = useReducedMotion();
   const [isExpanded, setIsExpanded] = useState(false);
   const [stats, setStats] = useState({
     itemsViewed: 0,
@@ -58,7 +60,7 @@ function FeedProgressComponent({ className = '' }: FeedProgressProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -10 }}
+      initial={reducedMotion ? false : { opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       className={`bg-gray-900/80 backdrop-blur-sm rounded-xl border border-gray-800 overflow-hidden ${className}`}
     >
@@ -72,8 +74,8 @@ function FeedProgressComponent({ className = '' }: FeedProgressProps) {
           {streak > 0 && (
             <motion.div
               className="flex items-center gap-1.5"
-              animate={showStreakCelebration ? { scale: [1, 1.2, 1] } : {}}
-              transition={{ duration: 0.5, repeat: showStreakCelebration ? 2 : 0 }}
+              animate={showStreakCelebration && !reducedMotion ? { scale: [1, 1.2, 1] } : {}}
+              transition={{ duration: 0.5, repeat: showStreakCelebration && !reducedMotion ? 2 : 0 }}
             >
               <Flame
                 className={`w-4 h-4 ${
@@ -96,7 +98,7 @@ function FeedProgressComponent({ className = '' }: FeedProgressProps) {
             <span className="text-sm">
               <motion.span
                 key={stats.itemsViewed}
-                initial={{ opacity: 0, y: -5 }}
+                initial={reducedMotion ? false : { opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="font-medium text-white"
               >
@@ -128,10 +130,10 @@ function FeedProgressComponent({ className = '' }: FeedProgressProps) {
       <AnimatePresence>
         {isExpanded && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            initial={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            animate={reducedMotion ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
+            exit={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.2 }}
             className="border-t border-gray-800"
           >
             <div className="p-4 space-y-3">
@@ -192,15 +194,17 @@ function FeedProgressComponent({ className = '' }: FeedProgressProps) {
       <AnimatePresence>
         {showStreakCelebration && (
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={reducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={reducedMotion ? { duration: 0 } : undefined}
             className="absolute inset-0 flex items-center justify-center bg-black/80 rounded-xl"
           >
             <motion.div
-              initial={{ scale: 0 }}
+              initial={reducedMotion ? false : { scale: 0 }}
               animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
+              exit={reducedMotion ? { opacity: 0 } : { scale: 0 }}
+              transition={reducedMotion ? { duration: 0 } : undefined}
               className="text-center"
             >
               <Flame className="w-12 h-12 text-orange-500 mx-auto mb-2" />

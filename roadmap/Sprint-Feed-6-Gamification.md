@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-16 by Claude
+> Last updated: 2026-01-16 by Claude (accessibility additions)
 
 ## Overview
 
@@ -108,8 +108,8 @@ Add gamification elements and final polish to create an addictive yet educationa
 - [x] Swipe complete: light
 - [x] Save (swipe right): success
 - [x] Not interested (swipe left): medium
-- [ ] Vote: medium (deferred - needs FeedCard integration)
-- [ ] Double-tap save: double (already has haptic in FeedCard)
+- [x] Vote: medium
+- [x] Double-tap save: double
 - [ ] Quiz answers (deferred)
 
 ### 6. Sound Design (Optional)
@@ -181,13 +181,13 @@ Add gamification elements and final polish to create an addictive yet educationa
 ### 10. Accessibility Polish
 
 #### 10.1 Screen Reader Announcements
-- [ ] Announce card changes: "Now viewing item 3 of 25"
-- [ ] Announce vote results: "Upvoted. 124 total upvotes."
-- [ ] Announce save: "Saved to collection"
+- [x] Announce card changes: "Now viewing item 3 of 25"
+- [x] Announce vote results: "Upvoted. 124 total upvotes."
+- [x] Announce save: "Saved to collection"
 
 #### 10.2 Reduced Motion Final Check
-- [ ] Verify all animations disabled when preferred
-- [ ] Ensure functionality still works
+- [x] Verify all animations disabled when preferred
+- [x] Ensure functionality still works
 - [ ] Test with macOS/iOS reduced motion setting
 
 #### 10.3 Color Contrast Audit
@@ -281,11 +281,11 @@ Add gamification elements and final polish to create an addictive yet educationa
 - [ ] Break reminder appears after 20 items or 15 minutes
 - [ ] Quiz prompt appears after 5-10 items
 - [ ] Mini quiz works inline or navigates to quiz page
-- [ ] Haptic feedback triggers on all major actions
+- [x] Haptic feedback triggers on all major actions
 - [ ] Performance is smooth (60fps on mid-tier devices)
 - [ ] Accessibility audit passes (Lighthouse 90+)
 - [ ] All empty/error/loading states are polished
-- [ ] Reduced motion preference is respected
+- [x] Reduced motion preference is respected
 - [ ] All browser validation tasks completed
 
 ## Notes for Future Developers

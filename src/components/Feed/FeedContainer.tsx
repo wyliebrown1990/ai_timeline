@@ -24,6 +24,7 @@ import { useFeedSwipeActions } from '../../hooks/useFeedSwipeActions';
 import { useFeedSession } from '../../hooks/useFeedSession';
 import { streakService } from '../../services/streakService';
 import { hapticService } from '../../services/hapticService';
+import { announceService } from '../../services/announceService';
 import type { FeedItem } from '../../types/feed';
 
 interface FeedContainerProps {
@@ -145,6 +146,9 @@ function FeedContainerComponent({
         const updated = [...prev, currentItem.id];
         return updated.slice(-10); // Keep last 10
       });
+
+      // Announce to screen readers
+      announceService.announceCardNavigation(currentIndex, items.length);
     }
   }, [currentIndex, items, markSeen]);
 
@@ -270,6 +274,7 @@ function FeedContainerComponent({
           if (currentItem) {
             handleSwipeRight(currentItem.id);
             hapticService.success();
+            announceService.announceSwipeAction('save');
             // Move to next card after action
             if (currentIndex < items.length - 1) {
               setDirection(1);
@@ -287,6 +292,7 @@ function FeedContainerComponent({
           if (currentItem) {
             handleSwipeLeft(currentItem.id);
             hapticService.medium();
+            announceService.announceSwipeAction('not-interested');
             // Move to next card after action
             if (currentIndex < items.length - 1) {
               setDirection(1);

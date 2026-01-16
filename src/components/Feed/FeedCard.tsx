@@ -8,6 +8,7 @@
 import { memo, useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, ChevronDown, ChevronUp, Heart } from 'lucide-react';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 import toast from 'react-hot-toast';
 import type { FeedItem } from '../../types/feed';
 import { FeedCardHeader } from './FeedCardHeader';
@@ -19,6 +20,8 @@ import { FeedCommentPreview } from './FeedCommentPreview';
 import { FeedConceptChips } from './FeedConceptChips';
 import { FeedShareSheet } from './FeedShareSheet';
 import { cn } from '../../lib/utils';
+import { hapticService } from '../../services/hapticService';
+import { announceService } from '../../services/announceService';
 
 interface FeedCardProps {
   item: FeedItem;
@@ -51,6 +54,7 @@ function FeedCardComponent({
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const reducedMotion = useReducedMotion();
 
   // Double-tap detection
   const lastTapTimeRef = useRef(0);
@@ -76,9 +80,14 @@ function FeedCardComponent({
 
   const handleVote = useCallback(
     (vote: 'up' | 'down') => {
+      hapticService.medium();
       onVote(item.id, vote);
+      // Announce vote result (with updated totals)
+      const newUpvotes = vote === 'up' ? voteState.upvotes + 1 : voteState.upvotes;
+      const newDownvotes = vote === 'down' ? voteState.downvotes + 1 : voteState.downvotes;
+      announceService.announceVote(vote, newUpvotes, newDownvotes);
     },
-    [item.id, onVote]
+    [item.id, onVote, voteState.upvotes, voteState.downvotes]
   );
 
   const handleComment = useCallback(() => {
@@ -86,8 +95,11 @@ function FeedCardComponent({
   }, []);
 
   const handleSave = useCallback(() => {
+    hapticService.success();
     onToggleSave(item.id);
-  }, [item.id, onToggleSave]);
+    // Announce save state change (toggling to opposite of current)
+    announceService.announceSave(!isSaved);
+  }, [item.id, onToggleSave, isSaved]);
 
   const handleAIChat = useCallback(() => {
     setIsAIChatOpen(true);
@@ -103,9 +115,11 @@ function FeedCardComponent({
         // Double tap detected - save the item
         e.preventDefault();
         if (!isSaved) {
+          hapticService.double();
           onToggleSave(item.id);
           setShowHeartAnimation(true);
           toast.success('Saved!', { duration: 1500 });
+          announceService.announceSave(true);
           setTimeout(() => setShowHeartAnimation(false), 1000);
         } else {
           toast('Already saved', { duration: 1500 });
@@ -154,10 +168,10 @@ function FeedCardComponent({
         <AnimatePresence>
           {showHeartAnimation && (
             <motion.div
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 1.5, opacity: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              initial={reducedMotion ? { opacity: 1 } : { scale: 0, opacity: 0 }}
+              animate={reducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
+              exit={reducedMotion ? { opacity: 0 } : { scale: 1.5, opacity: 0 }}
+              transition={reducedMotion ? { duration: 0 } : { duration: 0.4, ease: 'easeOut' }}
               className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
             >
               <Heart
