@@ -20,10 +20,11 @@ interface EventEngagementData {
  * Higher scores = more prominent in feed.
  *
  * Formula:
- * hotScore = engagementScore / (ageHours + 2)^gravity
+ * hotScore = (engagementScore + freshnessBoost) / (ageHours + 2)^gravity
  *
  * Where:
  * - engagementScore = (upvotes * 1.0) - (downvotes * 0.5) + (completionCount * 0.3) + (viewCount * 0.1)
+ * - freshnessBoost = decaying boost for content < 48 hours old (max 5 points, linear decay)
  * - gravity = 1.8 (controls how quickly older content decays)
  * - +2 prevents division issues for very new content
  */
@@ -39,8 +40,17 @@ export function calculateHotScore(event: EventEngagementData): number {
     event.completionCount * 0.3 +
     event.viewCount * 0.1;
 
+  // Freshness boost: new content gets a boost that decays over 48 hours
+  // This ensures new content surfaces even with zero engagement
+  const freshnessBoostMax = 5; // Equivalent to 5 upvotes
+  const freshnessDecayHours = 48;
+  const freshnessBoost =
+    ageHours < freshnessDecayHours
+      ? freshnessBoostMax * (1 - ageHours / freshnessDecayHours)
+      : 0;
+
   // Ensure minimum score of 0 to avoid negative rankings
-  const normalizedEngagement = Math.max(0, engagementScore);
+  const normalizedEngagement = Math.max(0, engagementScore + freshnessBoost);
 
   // Reddit-style hot ranking with time decay
   // Adding 2 to age prevents division by near-zero for very new content
