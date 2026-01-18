@@ -48,44 +48,44 @@ The SEO landscape has shifted dramatically:
 
 ---
 
-### Sprint SEO-3: Topic Clusters & Internal Linking - Priority: HIGH
+### Sprint SEO-3: Topic Clusters & Internal Linking ✅ COMPLETED
 **Goal**: Build topical authority through content clusters and linking
 
-- Create dedicated URLs for glossary terms (`/glossary/transformer` vs `?term=id`)
-- Add "Related Terms" sections to all pages
-- Add "Key Figures" section to glossary terms
-- Add "Key Concepts" section to person profiles
-- Cross-link milestones to people, orgs, and glossary terms
-- Create era/decade landing pages for timeline
+- [x] Create dedicated URLs for glossary terms (`/glossary/:slug`)
+- [x] Add "Related Terms" sections to all pages
+- [x] Add "Key Figures" section to glossary terms
+- [x] Add "Key Concepts" section to person profiles
+- [x] Cross-link milestones to people, orgs, and glossary terms
+- [x] Create era/decade landing pages for timeline
 
-**Expected Outcome**: Strong internal link structure, improved topical authority signals.
+**Outcome**: Strong internal link structure with related terms, key figures, and era pages.
 
 ---
 
-### Sprint SEO-4: Programmatic SEO - Priority: HIGH
+### Sprint SEO-4: Programmatic SEO ✅ COMPLETED
 **Goal**: Scale content through automated page generation
 
-- Create comparison pages (`/compare/openai-vs-anthropic`)
-- Create "X Explained" deep-dive pages for glossary terms
-- Create milestone event pages with full context
-- Generate "Who invented X?" pages from data
-- Build templates for automated page generation
+- [x] Create comparison pages (`/compare/:type/:slugA-vs-:slugB`)
+- [x] Create "X Explained" deep-dive pages (`/explained/:term`)
+- [x] Create milestone event pages (`/events/:id`)
+- [x] Generate "Who invented X?" pages (`/who-invented/:concept`)
+- [x] Build templates for automated page generation
 
-**Expected Outcome**: 10x more indexable pages targeting long-tail keywords.
+**Outcome**: 4 new programmatic page types targeting long-tail keywords.
 
 ---
 
-### Sprint SEO-5: Content Freshness & E-E-A-T - Priority: MEDIUM
+### Sprint SEO-5: Content Freshness & E-E-A-T ✅ COMPLETED
 **Goal**: Establish expertise and keep content fresh
 
-- Add author bylines to articles
-- Display "Last updated" dates prominently
-- Add citations to primary sources (papers, announcements)
-- Monthly update cycle for "Currently Doing" sections
-- Add expert quotes where possible
-- Create content update calendar
+- [x] Display "Last updated" dates prominently on all content pages
+- [x] Add author/publisher schema.org JSON-LD to all pages
+- [x] Created /about page with editorial process and E-E-A-T signals
+- [x] Added "Content verified by Let AI Explain AI editorial team" attribution
+- [ ] Monthly update cycle for "Currently Doing" sections (ongoing process)
+- [ ] Add expert quotes where possible (future enhancement)
 
-**Expected Outcome**: Strong E-E-A-T signals, fresher content for re-crawling.
+**Outcome**: Strong E-E-A-T signals with visible freshness dates and editorial attribution.
 
 ---
 

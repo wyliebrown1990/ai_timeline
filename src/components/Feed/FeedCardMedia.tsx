@@ -1,11 +1,11 @@
 /**
  * FeedCardMedia Component (Sprint Feed-3)
  *
- * Media section of feed cards showing thumbnails, video play buttons, or gradients.
+ * Media section of feed cards showing thumbnails, embedded YouTube videos, or gradients.
  */
 
 import { memo, useState } from 'react';
-import { Play } from 'lucide-react';
+import { Play, X } from 'lucide-react';
 
 interface FeedCardMediaProps {
   thumbnailUrl: string | null;
@@ -22,17 +22,45 @@ function FeedCardMediaComponent({
   mediaType,
   headline,
   isActive,
-  onVideoClick,
 }: FeedCardMediaProps) {
   const [imageError, setImageError] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
 
-  // Determine if we should show video overlay
+  // Determine if we should show video
   const isVideo = mediaType === 'video' && videoId;
 
-  // If we have a thumbnail and no error, show the image (reduced height)
+  // Privacy-enhanced YouTube embed URL
+  const embedUrl = videoId
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`
+    : '';
+
+  // If video is playing, show embedded player
+  if (isPlaying && isVideo) {
+    return (
+      <div className="relative w-full aspect-video bg-black flex-shrink-0">
+        <iframe
+          className="absolute top-0 left-0 w-full h-full"
+          src={embedUrl}
+          title={headline}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+        {/* Close button to stop video */}
+        <button
+          onClick={() => setIsPlaying(false)}
+          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/70 text-white hover:bg-black/90 transition-colors"
+          aria-label="Close video"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    );
+  }
+
+  // If we have a thumbnail and no error, show the image with play button
   if (thumbnailUrl && !imageError) {
     return (
-      <div className="relative w-full max-h-[25vh] bg-gray-900 flex-shrink-0 overflow-hidden">
+      <div className="relative w-full aspect-video max-h-[30vh] bg-gray-900 flex-shrink-0 overflow-hidden">
         <img
           src={thumbnailUrl}
           alt=""
@@ -42,12 +70,12 @@ function FeedCardMediaComponent({
         />
         {isVideo && (
           <button
-            onClick={onVideoClick}
+            onClick={() => setIsPlaying(true)}
             className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
             aria-label={`Play video: ${headline}`}
           >
-            <div className="w-14 h-14 rounded-full bg-white/90 group-hover:bg-white flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
-              <Play className="w-6 h-6 text-gray-900 ml-1" fill="currentColor" />
+            <div className="w-16 h-16 rounded-full bg-red-600 group-hover:bg-red-500 flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
+              <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
             </div>
           </button>
         )}
@@ -57,13 +85,13 @@ function FeedCardMediaComponent({
     );
   }
 
-  // No thumbnail: show minimal header bar instead of large placeholder
+  // No thumbnail but video exists: show play button
   if (isVideo) {
     return (
-      <div className="relative w-full h-16 bg-gradient-to-r from-gray-800 to-gray-900 flex-shrink-0 flex items-center justify-center">
+      <div className="relative w-full h-20 bg-gradient-to-r from-gray-800 to-gray-900 flex-shrink-0 flex items-center justify-center">
         <button
-          onClick={onVideoClick}
-          className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+          onClick={() => setIsPlaying(true)}
+          className="flex items-center gap-3 px-5 py-3 rounded-full bg-red-600 hover:bg-red-500 transition-colors"
           aria-label={`Play video: ${headline}`}
         >
           <Play className="w-5 h-5 text-white" fill="currentColor" />
