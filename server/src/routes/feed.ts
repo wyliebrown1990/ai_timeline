@@ -484,6 +484,48 @@ interactionRouter.post('/:id/share', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/news/:id
+ * Get a single news event by ID (for sharing/deep linking)
+ * Sprint Feed-5: OG tags support
+ */
+interactionRouter.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const event = await prisma.currentEvent.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        headline: true,
+        summary: true,
+        sourceUrl: true,
+        sourcePublisher: true,
+        publishedDate: true,
+        featured: true,
+        mediaType: true,
+        videoId: true,
+        thumbnailUrl: true,
+        upvotes: true,
+        downvotes: true,
+        viewCount: true,
+        hotScore: true,
+        whyItMatters: true,
+        connectionExplanation: true,
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.json(event);
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    res.status(500).json({ error: 'Failed to fetch event' });
+  }
+});
+
+/**
  * GET /api/news/:id/user-vote
  * Get current user's vote on an event
  *

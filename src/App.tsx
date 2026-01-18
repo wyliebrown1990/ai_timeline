@@ -61,6 +61,9 @@ const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
 // Sprint Feed-2: AI News Shorts feed
 const FeedPage = lazy(() => import('./pages/FeedPage'));
 
+// Sprint Feed-5: News detail page for sharing with OG tags
+const NewsDetailPage = lazy(() => import('./pages/NewsDetailPage'));
+
 // Sprint Feed-5: Collections page
 const CollectionsPage = lazy(() => import('./pages/CollectionsPage'));
 
@@ -222,6 +225,9 @@ function App() {
 
                   {/* Feed route - outside Layout for full-screen experience */}
                   <Route path="/feed" element={<FeedPage />} />
+
+                  {/* News detail page for sharing - Sprint Feed-5 OG tags */}
+                  <Route path="/news/:id" element={<NewsDetailPage />} />
 
                   {/* Collections route - outside Layout for full-screen experience */}
                   <Route path="/collections" element={<CollectionsPage />} />

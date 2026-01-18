@@ -7,7 +7,7 @@
  * - Collections management (save/organize items)
  */
 
-import type { SavedCollection, VoteResponse, FeedResponse } from '../types/feed';
+import type { SavedCollection, VoteResponse, FeedResponse, FeedItem } from '../types/feed';
 
 const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 
@@ -90,6 +90,15 @@ export const feedApi = {
   async getFresh(limit?: number): Promise<FeedResponse> {
     const params = limit ? `?limit=${limit}` : '';
     return fetchJson<FeedResponse>(`${API_BASE}/feed/fresh${params}`);
+  },
+
+  /**
+   * Get a single news event by ID
+   * Sprint Feed-5: For sharing and deep linking with OG tags
+   * Note: Returns partial FeedItem (commentCount may be missing)
+   */
+  async getById(id: string): Promise<Omit<FeedItem, 'commentCount'> & { commentCount?: number }> {
+    return fetchJson<Omit<FeedItem, 'commentCount'> & { commentCount?: number }>(`${API_BASE}/news/${id}`);
   },
 };
 
