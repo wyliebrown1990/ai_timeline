@@ -115,11 +115,15 @@ async function backfillMilestones(dryRun: boolean): Promise<BackfillStats> {
 
   const stats: BackfillStats = { processed: 0, created: 0, skipped: 0, errors: 0 };
 
-  // Get milestones without subjects
-  const milestones = await prisma.milestone.findMany({
-    where: {
-      contentSubjects: { none: {} },
-    },
+  // Get IDs of milestones that already have subjects
+  const existingSubjects = await prisma.contentSubject.findMany({
+    where: { contentType: 'milestone' },
+    select: { contentId: true },
+  });
+  const classifiedIds = new Set(existingSubjects.map((s) => s.contentId));
+
+  // Get all milestones
+  const allMilestones = await prisma.milestone.findMany({
     select: {
       id: true,
       title: true,
@@ -127,6 +131,9 @@ async function backfillMilestones(dryRun: boolean): Promise<BackfillStats> {
       tags: true,
     },
   });
+
+  // Filter to only unclassified
+  const milestones = allMilestones.filter((m) => !classifiedIds.has(m.id));
 
   console.log(`Found ${milestones.length} milestones without subjects`);
 
@@ -167,17 +174,24 @@ async function backfillGlossaryTerms(dryRun: boolean): Promise<BackfillStats> {
 
   const stats: BackfillStats = { processed: 0, created: 0, skipped: 0, errors: 0 };
 
-  const terms = await prisma.glossaryTerm.findMany({
-    where: {
-      contentSubjects: { none: {} },
-    },
+  // Get IDs of glossary terms that already have subjects
+  const existingSubjects = await prisma.contentSubject.findMany({
+    where: { contentType: 'glossary_term' },
+    select: { contentId: true },
+  });
+  const classifiedIds = new Set(existingSubjects.map((s) => s.contentId));
+
+  // Get all glossary terms
+  const allTerms = await prisma.glossaryTerm.findMany({
     select: {
       id: true,
       term: true,
       category: true,
-      relatedTerms: true,
     },
   });
+
+  // Filter to only unclassified
+  const terms = allTerms.filter((t) => !classifiedIds.has(t.id));
 
   console.log(`Found ${terms.length} glossary terms without subjects`);
 
@@ -225,17 +239,24 @@ async function backfillCurrentEvents(dryRun: boolean): Promise<BackfillStats> {
 
   const stats: BackfillStats = { processed: 0, created: 0, skipped: 0, errors: 0 };
 
-  const events = await prisma.currentEvent.findMany({
-    where: {
-      contentSubjects: { none: {} },
-    },
+  // Get IDs of events that already have subjects
+  const existingSubjects = await prisma.contentSubject.findMany({
+    where: { contentType: 'current_event' },
+    select: { contentId: true },
+  });
+  const classifiedIds = new Set(existingSubjects.map((s) => s.contentId));
+
+  // Get all current events
+  const allEvents = await prisma.currentEvent.findMany({
     select: {
       id: true,
       headline: true,
-      category: true,
-      tags: true,
+      summary: true,
     },
   });
+
+  // Filter to only unclassified
+  const events = allEvents.filter((e) => !classifiedIds.has(e.id));
 
   console.log(`Found ${events.length} current events without subjects`);
 
@@ -275,10 +296,15 @@ async function backfillPersons(dryRun: boolean): Promise<BackfillStats> {
 
   const stats: BackfillStats = { processed: 0, created: 0, skipped: 0, errors: 0 };
 
-  const persons = await prisma.person.findMany({
-    where: {
-      contentSubjects: { none: {} },
-    },
+  // Get IDs of persons that already have subjects
+  const existingSubjects = await prisma.contentSubject.findMany({
+    where: { contentType: 'person' },
+    select: { contentId: true },
+  });
+  const classifiedIds = new Set(existingSubjects.map((s) => s.contentId));
+
+  // Get all persons
+  const allPersons = await prisma.person.findMany({
     select: {
       id: true,
       canonicalName: true,
@@ -286,6 +312,9 @@ async function backfillPersons(dryRun: boolean): Promise<BackfillStats> {
       focusAreas: true,
     },
   });
+
+  // Filter to only unclassified
+  const persons = allPersons.filter((p) => !classifiedIds.has(p.id));
 
   console.log(`Found ${persons.length} persons without subjects`);
 
@@ -324,10 +353,15 @@ async function backfillOrganizations(dryRun: boolean): Promise<BackfillStats> {
 
   const stats: BackfillStats = { processed: 0, created: 0, skipped: 0, errors: 0 };
 
-  const orgs = await prisma.organization.findMany({
-    where: {
-      contentSubjects: { none: {} },
-    },
+  // Get IDs of organizations that already have subjects
+  const existingSubjects = await prisma.contentSubject.findMany({
+    where: { contentType: 'organization' },
+    select: { contentId: true },
+  });
+  const classifiedIds = new Set(existingSubjects.map((s) => s.contentId));
+
+  // Get all organizations
+  const allOrgs = await prisma.organization.findMany({
     select: {
       id: true,
       name: true,
@@ -335,6 +369,9 @@ async function backfillOrganizations(dryRun: boolean): Promise<BackfillStats> {
       focusAreas: true,
     },
   });
+
+  // Filter to only unclassified
+  const orgs = allOrgs.filter((o) => !classifiedIds.has(o.id));
 
   console.log(`Found ${orgs.length} organizations without subjects`);
 

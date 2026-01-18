@@ -48,13 +48,28 @@ Research             Academic                   Papers, Conferences
 
 ## Sprint Overview
 
-| Sprint | Focus | Key Deliverables |
-|--------|-------|------------------|
-| **Subj-1** | Data Model & Seed Taxonomy | Prisma schema, seed data, admin CRUD |
-| **Subj-2** | Pipeline Integration | Stage 1.5 classification, propagation to drafts |
-| **Subj-3** | Content Backfill | Migration script, existing content tagging |
-| **Subj-4** | Learning Paths & Queries | Subject-based paths, API endpoints, filtering |
-| **Subj-5** | UI & Discovery | Subject badges, navigation, recommendations |
+| Sprint | Focus | Key Deliverables | Status |
+|--------|-------|------------------|--------|
+| **Subj-1** | Data Model & Seed Taxonomy | Prisma schema, seed data, admin CRUD | ✅ COMPLETE |
+| **Subj-2** | Pipeline Integration | Stage 1.5 classification, propagation to drafts | ⏳ Partial (classifier exists) |
+| **Subj-3** | Content Backfill | Migration script, existing content tagging | ✅ COMPLETE (99%+ coverage) |
+| **Subj-4** | Learning Paths & Queries | Subject-based paths, API endpoints, filtering | ✅ COMPLETE |
+| **Subj-5** | UI & Discovery | Subject badges, navigation, recommendations | ❌ Not started |
+
+### Coverage Stats (2026-01-18)
+- **Overall: 100%** (552/554 content items classified)
+- Milestones: 99% (298/300)
+- Glossary Terms: 100% (163/163)
+- Current Events: 100% (76/76)
+- Persons: 100% (14/14)
+- Organizations: 100% (1/1)
+
+### Top Subjects by Content Count
+1. Papers & Preprints (269)
+2. Machine Learning (210)
+3. Software (116)
+4. Natural Language Processing (24)
+5. Computer Vision (11)
 
 ## Database Schema Additions
 
