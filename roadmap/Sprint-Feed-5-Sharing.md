@@ -73,12 +73,26 @@ Implement social sharing functionality and personal collections system. Users ca
 - Added `GET /api/news/:id` backend endpoint
 - Added `feedApi.getById()` frontend method
 
-#### 3.3 Server-Side Rendering for Crawlers
-- [ ] Detect crawlers (User-Agent check) - *Deferred: requires Lambda@Edge*
-- [ ] Return pre-rendered meta tags for link previews - *Deferred*
-- [ ] Or: Use dynamic OG image generation service - *Deferred*
+#### 3.3 Server-Side Rendering for Crawlers ✅
+- [x] Detect crawlers (User-Agent check) via Lambda@Edge
+- [x] Return pre-rendered meta tags for link previews
+- [ ] Dynamic OG image generation - *Future enhancement*
 
-**Note**: Client-side OG tags work for users but social media crawlers require SSR or Lambda@Edge for proper previews. This is documented as future work.
+**Implementation (2026-01-18)**:
+- Created Lambda@Edge function `ai-timeline-og-tags-edge` in us-east-1
+- Detects social media crawlers: Facebook, Twitter, LinkedIn, WhatsApp, Slack, Telegram, Discord, Pinterest, Google, Bing, Apple
+- Fetches event data from API and returns HTML with OG tags
+- Associated with CloudFront `/news/*` path pattern (viewer-request trigger)
+- Crawlers get pre-rendered OG HTML, regular browsers get SPA
+- Files: `infra/edge-og-tags/` (index.js, template.yaml, samconfig.toml)
+- Lambda ARN: `arn:aws:lambda:us-east-1:211125652144:function:ai-timeline-og-tags-edge:1`
+
+**Tested Crawlers**:
+- Facebook (facebookexternalhit) ✅
+- Twitter (Twitterbot) ✅
+- LinkedIn (LinkedInBot) ✅
+- WhatsApp ✅
+- Regular browsers get SPA with client-side OG tags ✅
 
 ### 4. Copy to Clipboard ✅
 

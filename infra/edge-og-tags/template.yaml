@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda@Edge function for OG meta tags on social media shares
+
+# Lambda@Edge must be deployed in us-east-1
+# Run: sam deploy --region us-east-1 --config-file samconfig.toml
+
+Resources:
+  # Lambda@Edge function for OG meta tags
+  OgTagsEdgeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: ai-timeline-og-tags-edge
+      Description: Serves OG meta tags for social media crawlers on /news/:id URLs
+      CodeUri: .
+      Handler: index.handler
+      Runtime: nodejs20.x
+      MemorySize: 128
+      Timeout: 5  # Lambda@Edge origin-request max is 30s, but we want fast responses
+      Role: !GetAtt EdgeLambdaRole.Arn
+      AutoPublishAlias: live
+
+  # IAM Role for Lambda@Edge
+  EdgeLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ai-timeline-og-tags-edge-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+                - edgelambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: EdgeLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: 'arn:aws:logs:*:*:*'
+
+Outputs:
+  EdgeFunctionArn:
+    Description: Lambda@Edge function ARN (use the version ARN for CloudFront)
+    Value: !Ref OgTagsEdgeFunction.Version
+    Export:
+      Name: ai-timeline-og-tags-edge-arn
+
+  EdgeFunctionVersionArn:
+    Description: Lambda@Edge function version ARN for CloudFront association
+    Value: !Ref OgTagsEdgeFunction.Version

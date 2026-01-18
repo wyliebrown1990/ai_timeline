@@ -1,0 +1,10 @@
+# SAM configuration for Lambda@Edge OG tags function
+# Lambda@Edge must be deployed in us-east-1
+
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "ai-timeline-og-tags-edge"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM CAPABILITY_NAMED_IAM"
+confirm_changeset = false
