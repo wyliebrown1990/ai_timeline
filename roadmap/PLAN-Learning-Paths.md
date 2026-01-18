@@ -145,11 +145,14 @@ POST /api/learning-paths/:slug/step/:seq    # Mark step complete
 - [x] Quiz components (multiple choice, ordering, matching)
 - [x] Progress tracking UI (localStorage-based)
 
-### Phase 4: User Progress - PARTIAL
+### Phase 4: User Progress - PARTIAL (Auth Required)
 - [x] Progress persistence (localStorage for anonymous users)
-- [ ] Server-side progress persistence (requires user auth)
-- [ ] Completion certificates
-- [ ] Gamification elements
+- [ ] Server-side progress persistence (requires user auth system)
+- [ ] Completion certificates (requires user auth system)
+- [ ] Gamification elements (see Feed Sprint 6)
+
+> **Note**: Remaining Phase 4 items blocked on user authentication implementation.
+> Current localStorage-based progress tracking provides good anonymous UX.
 
 ## Cross-Path Validation
 

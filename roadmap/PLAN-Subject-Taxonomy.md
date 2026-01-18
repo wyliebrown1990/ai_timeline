@@ -54,7 +54,7 @@ Research             Academic                   Papers, Conferences
 | **Subj-2** | Pipeline Integration | Stage 1.5 classification, propagation to drafts | ⏳ Partial (classifier exists) |
 | **Subj-3** | Content Backfill | Migration script, existing content tagging | ✅ COMPLETE (99%+ coverage) |
 | **Subj-4** | Learning Paths & Queries | Subject-based paths, API endpoints, filtering | ✅ COMPLETE |
-| **Subj-5** | UI & Discovery | Subject badges, navigation, recommendations | ❌ Not started |
+| **Subj-5** | UI & Discovery | Subject badges, navigation, recommendations | ✅ COMPLETE |
 
 ### Coverage Stats (2026-01-18)
 - **Overall: 100%** (552/554 content items classified)

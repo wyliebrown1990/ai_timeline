@@ -89,14 +89,16 @@ The SEO landscape has shifted dramatically:
 
 ---
 
-### Sprint SEO-6: Multi-Platform Presence - Priority: MEDIUM
+### Sprint SEO-6: Multi-Platform Presence - MANUAL TASKS
 **Goal**: Expand visibility beyond Google search
 
-- Create YouTube channel (repurpose Feed content)
-- Share on Reddit (r/MachineLearning, r/artificial)
-- Answer questions on Quora about AI history
-- Create social cards for sharing
-- Build backlinks through educational outreach
+> **Note**: These are marketing/outreach tasks, not code implementation.
+
+- [ ] Create YouTube channel (repurpose Feed content) - manual
+- [ ] Share on Reddit (r/MachineLearning, r/artificial) - manual
+- [ ] Answer questions on Quora about AI history - manual
+- [x] Create social cards for sharing - OG meta tags already implemented
+- [ ] Build backlinks through educational outreach - manual
 
 **Expected Outcome**: Diversified traffic sources, increased branded search volume.
 
