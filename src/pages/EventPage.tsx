@@ -344,6 +344,7 @@ function LinkedTermsSection({ terms }: { terms: EventGlossaryTerm[] }) {
 
 /**
  * Generate JSON-LD for event page
+ * Sprint SEO-5: Includes publisher for E-E-A-T signals
  */
 function generateEventJsonLd(data: EventPageData) {
   return {
@@ -353,6 +354,9 @@ function generateEventJsonLd(data: EventPageData) {
     description: data.tldr || data.description,
     startDate: data.date,
     url: data.canonicalUrl,
+    // Sprint SEO-5: E-E-A-T freshness signals
+    ...(data.createdAt && { datePublished: data.createdAt }),
+    ...(data.updatedAt && { dateModified: data.updatedAt }),
     eventStatus: 'https://schema.org/EventScheduled',
     eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
     ...(data.organization && {
@@ -372,6 +376,15 @@ function generateEventJsonLd(data: EventPageData) {
     about: {
       '@type': 'Thing',
       name: 'Artificial Intelligence',
+    },
+    // Sprint SEO-5: E-E-A-T publisher signal
+    recordedIn: {
+      '@type': 'WebPage',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'Let AI Explain AI',
+        url: 'https://letaiexplainai.com',
+      },
     },
   };
 }
@@ -678,6 +691,21 @@ export default function EventPage() {
               View on Timeline
             </Link>
           </div>
+        </div>
+
+        {/* Last Updated Metadata (Sprint SEO-5: E-E-A-T signals) */}
+        <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          {data.updatedAt && (
+            <p>
+              Last updated: {new Date(data.updatedAt).toLocaleDateString()}
+            </p>
+          )}
+          <p className={data.updatedAt ? "mt-1" : ""}>
+            Content verified by{' '}
+            <Link to="/about" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Let AI Explain AI editorial team
+            </Link>
+          </p>
         </div>
       </div>
     </>

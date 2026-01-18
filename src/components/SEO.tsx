@@ -130,6 +130,7 @@ export function generatePersonJsonLd(person: {
   url: string;
   image?: string;
   sameAs?: string[];
+  dateModified?: string; // Sprint SEO-5: E-E-A-T freshness signal
 }): Record<string, unknown> {
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -138,6 +139,11 @@ export function generatePersonJsonLd(person: {
     description: person.description,
     url: person.url,
   };
+
+  // Sprint SEO-5: Add dateModified for E-E-A-T signals
+  if (person.dateModified) {
+    schema.dateModified = person.dateModified;
+  }
 
   if (person.jobTitle) {
     schema.jobTitle = person.jobTitle;
@@ -172,6 +178,7 @@ export function generateOrganizationJsonLd(org: {
   foundingDate?: string;
   location?: string;
   sameAs?: string[];
+  dateModified?: string; // Sprint SEO-5: E-E-A-T freshness signal
 }): Record<string, unknown> {
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -180,6 +187,11 @@ export function generateOrganizationJsonLd(org: {
     description: org.description,
     url: org.url,
   };
+
+  // Sprint SEO-5: Add dateModified for E-E-A-T signals
+  if (org.dateModified) {
+    schema.dateModified = org.dateModified;
+  }
 
   if (org.logo) {
     schema.logo = org.logo;

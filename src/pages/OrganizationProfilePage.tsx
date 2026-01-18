@@ -12,6 +12,7 @@
 
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { SEO, generateOrganizationJsonLd, generateOrganizationFAQs, generateFAQJsonLd } from '../components/SEO';
 import {
   ArrowLeft,
   Building2,
@@ -26,7 +27,7 @@ import {
   Package,
   BookOpen,
 } from 'lucide-react';
-import { organizationsApi, type OrganizationWithRelations } from '../services/api';
+import { organizationsApi, type OrganizationWithRelations, type OrganizationKeyConcept } from '../services/api';
 import { CommentThread } from '../components/Comments';
 
 /**
@@ -198,6 +199,7 @@ export default function OrganizationProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [org, setOrg] = useState<OrganizationWithRelations | null>(null);
+  const [keyConcepts, setKeyConcepts] = useState<OrganizationKeyConcept[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -211,6 +213,15 @@ export default function OrganizationProfilePage() {
       try {
         const data = await organizationsApi.getBySlug(slug);
         setOrg(data);
+
+        // Fetch key concepts (Sprint SEO-3)
+        try {
+          const keyConceptsResponse = await organizationsApi.getKeyConcepts(slug);
+          setKeyConcepts(keyConceptsResponse.data || []);
+        } catch (kcErr) {
+          console.warn('Failed to fetch key concepts:', kcErr);
+          setKeyConcepts([]);
+        }
       } catch (err) {
         console.error('Failed to fetch organization:', err);
         setError('Organization not found');
@@ -222,15 +233,6 @@ export default function OrganizationProfilePage() {
     fetchOrg();
   }, [slug]);
 
-  // Update document title
-  useEffect(() => {
-    if (org) {
-      document.title = `${org.name} - AI Timeline`;
-    }
-    return () => {
-      document.title = 'AI Timeline';
-    };
-  }, [org]);
 
   if (isLoading) {
     return (
@@ -266,8 +268,48 @@ export default function OrganizationProfilePage() {
   const typeColor = TYPE_COLORS[org.type] || TYPE_COLORS.company;
   const typeLabel = TYPE_LABELS[org.type] || 'Organization';
 
+  // Generate Organization JSON-LD structured data
+  const orgJsonLd = generateOrganizationJsonLd({
+    name: org.name,
+    description: org.shortDescription,
+    url: `https://letaiexplainai.com/organizations/${org.slug}`,
+    logo: org.logoUrl || undefined,
+    foundingDate: org.foundedYear ? `${org.foundedYear}` : undefined,
+    location: org.headquarters || undefined,
+    sameAs: [
+      org.websiteUrl,
+      org.wikipediaUrl,
+      org.linkedInUrl,
+    ].filter(Boolean) as string[],
+    // Sprint SEO-5: E-E-A-T freshness signal
+    dateModified: org.updatedAt ? new Date(org.updatedAt).toISOString() : undefined,
+  });
+
+  // Generate FAQ JSON-LD for Answer Engine Optimization
+  const faqItems = generateOrganizationFAQs({
+    name: org.name,
+    shortDescription: org.shortDescription,
+    mission: org.mission,
+    foundedYear: org.foundedYear,
+    headquarters: org.headquarters,
+    products: org.products,
+  });
+  const faqJsonLd = generateFAQJsonLd(faqItems);
+
+  // Combine schemas (filter out null FAQ if no valid items)
+  const jsonLdSchemas = [orgJsonLd, faqJsonLd].filter(Boolean) as Record<string, unknown>[];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <>
+      <SEO
+        title={org.name}
+        description={org.shortDescription}
+        canonical={`https://letaiexplainai.com/organizations/${org.slug}`}
+        type="profile"
+        image={org.logoUrl || undefined}
+        jsonLd={jsonLdSchemas}
+      />
+      <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Back link */}
       <button
         onClick={() => navigate(-1)}
@@ -395,6 +437,35 @@ export default function OrganizationProfilePage() {
         </section>
       )}
 
+      {/* Key Concepts - Sprint SEO-3 */}
+      {keyConcepts.length > 0 && (
+        <ProfileSection title="Key Concepts" icon={<BookOpen className="w-5 h-5 text-gray-500" />}>
+          <div className="space-y-3">
+            {keyConcepts.map(({ id, glossaryTerm, contributionNote }) => (
+              <Link
+                key={id}
+                to={glossaryTerm.slug ? `/glossary/${glossaryTerm.slug}` : `/glossary?term=${encodeURIComponent(glossaryTerm.term)}`}
+                className="block p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {glossaryTerm.term}
+                  </span>
+                  {contributionNote && (
+                    <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                      {contributionNote}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                  {glossaryTerm.shortDefinition}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </ProfileSection>
+      )}
+
       {/* Two-column layout for People and Milestones */}
       <div className="grid md:grid-cols-2 gap-8 mt-8">
         {/* Key People */}
@@ -490,10 +561,27 @@ export default function OrganizationProfilePage() {
         </ProfileSection>
       )}
 
+      {/* Last Updated Metadata (Sprint SEO-5: E-E-A-T signals) */}
+      <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <p>
+          Profile created: {new Date(org.createdAt).toLocaleDateString()}
+          {org.updatedAt !== org.createdAt && (
+            <> · Last updated: {new Date(org.updatedAt).toLocaleDateString()}</>
+          )}
+        </p>
+        <p className="mt-1">
+          Content verified by{' '}
+          <Link to="/about" className="text-blue-600 dark:text-blue-400 hover:underline">
+            Let AI Explain AI editorial team
+          </Link>
+        </p>
+      </div>
+
       {/* Comment Thread (Sprint LEarn-4) */}
       <div className="mt-12">
         <CommentThread targetType="organization" targetId={org.id} />
       </div>
     </div>
+    </>
   );
 }

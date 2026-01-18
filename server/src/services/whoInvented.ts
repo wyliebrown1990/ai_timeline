@@ -93,6 +93,10 @@ export interface WhoInventedPageData {
 
   // SEO
   canonicalUrl?: string;
+
+  // Timestamps (Sprint SEO-5: E-E-A-T freshness signals)
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -271,6 +275,9 @@ export async function getWhoInventedPageData(slug: string): Promise<WhoInventedP
       organizationCount: organizations.length,
       milestoneCount: milestones.length,
     },
+    // Sprint SEO-5: E-E-A-T freshness signals
+    createdAt: term.createdAt.toISOString(),
+    updatedAt: term.updatedAt.toISOString(),
   };
 }
 

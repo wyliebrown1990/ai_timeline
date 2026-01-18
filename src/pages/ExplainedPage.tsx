@@ -318,6 +318,7 @@ function FAQSection({ faqs }: { faqs: ExplainedFAQ[] }) {
 
 /**
  * Generate JSON-LD for explained page
+ * Sprint SEO-5: Includes author/publisher for E-E-A-T signals
  */
 function generateExplainedJsonLd(data: ExplainedPageData) {
   return {
@@ -326,11 +327,23 @@ function generateExplainedJsonLd(data: ExplainedPageData) {
     headline: `${data.term} Explained`,
     description: data.shortDefinition,
     url: data.canonicalUrl,
-    dateModified: new Date().toISOString(),
+    // Sprint SEO-5: E-E-A-T freshness signals
+    datePublished: data.createdAt || data.updatedAt || new Date().toISOString(),
+    dateModified: data.updatedAt || new Date().toISOString(),
+    // Sprint SEO-5: E-E-A-T author/publisher signals
+    author: {
+      '@type': 'Organization',
+      name: 'Let AI Explain AI',
+      url: 'https://letaiexplainai.com',
+    },
     publisher: {
       '@type': 'Organization',
       name: 'Let AI Explain AI',
       url: 'https://letaiexplainai.com',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://letaiexplainai.com/og-image.png',
+      },
     },
     mainEntity: {
       '@type': 'DefinedTerm',
@@ -574,6 +587,21 @@ export default function ExplainedPage() {
               View in Glossary
             </Link>
           </div>
+        </div>
+
+        {/* Last Updated Metadata (Sprint SEO-5: E-E-A-T signals) */}
+        <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+          {data.updatedAt && (
+            <p>
+              Last updated: {new Date(data.updatedAt).toLocaleDateString()}
+            </p>
+          )}
+          <p className={data.updatedAt ? "mt-1" : ""}>
+            Content verified by{' '}
+            <Link to="/about" className="text-blue-600 dark:text-blue-400 hover:underline">
+              Let AI Explain AI editorial team
+            </Link>
+          </p>
         </div>
       </div>
     </>

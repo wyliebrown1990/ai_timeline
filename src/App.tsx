@@ -41,6 +41,7 @@ const NewsPage = lazy(() => import('./pages/NewsPage'));
 const NewsQuizPage = lazy(() => import('./pages/NewsQuizPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
+const AboutPage = lazy(() => import('./pages/AboutPage')); // Sprint SEO-5 - E-E-A-T signals
 
 // Sprint KPC-2: Profile pages
 const PersonProfilePage = lazy(() => import('./pages/PersonProfilePage'));
@@ -173,6 +174,7 @@ function App() {
                     <Route path="glossary/:slug" element={<GlossaryTermPage />} />
                     <Route path="concepts" element={<ConceptsPage />} />
                     <Route path="contact" element={<ContactPage />} />
+                    <Route path="about" element={<AboutPage />} /> {/* Sprint SEO-5 - E-E-A-T */}
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* Sprint KPC-2: Profile pages */}

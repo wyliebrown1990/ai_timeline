@@ -12,6 +12,7 @@
 
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { SEO, generatePersonJsonLd, generatePersonFAQs, generateFAQJsonLd } from '../components/SEO';
 import {
   ArrowLeft,
   Building2,
@@ -27,8 +28,10 @@ import {
   ChevronDown,
   ChevronUp,
   User,
+  Lightbulb,
+  ArrowRight,
 } from 'lucide-react';
-import { personsApi, type PersonWithRelations } from '../services/api';
+import { personsApi, type PersonWithRelations, type PersonKeyConcept } from '../services/api';
 import type { Affiliation, Organization } from '../types';
 import { CommentThread } from '../components/Comments';
 
@@ -255,6 +258,7 @@ export default function PersonProfilePage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [person, setPerson] = useState<PersonWithRelations | null>(null);
+  const [keyConcepts, setKeyConcepts] = useState<PersonKeyConcept[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -268,6 +272,11 @@ export default function PersonProfilePage() {
       try {
         const data = await personsApi.getBySlug(slug);
         setPerson(data);
+
+        // Fetch key concepts linked to this person (Sprint SEO-3)
+        personsApi.getKeyConcepts(slug)
+          .then((result) => setKeyConcepts(result.data))
+          .catch((err) => console.error('Failed to fetch key concepts:', err));
       } catch (err) {
         console.error('Failed to fetch person:', err);
         setError('Person not found');
@@ -279,15 +288,6 @@ export default function PersonProfilePage() {
     fetchPerson();
   }, [slug]);
 
-  // Update document title
-  useEffect(() => {
-    if (person) {
-      document.title = `${person.canonicalName} - AI Timeline`;
-    }
-    return () => {
-      document.title = 'AI Timeline';
-    };
-  }, [person]);
 
   if (isLoading) {
     return (
@@ -323,8 +323,49 @@ export default function PersonProfilePage() {
   const roleColor = ROLE_COLORS[person.role] || ROLE_COLORS.other;
   const roleLabel = ROLE_LABELS[person.role] || 'Other';
 
+  // Generate Person JSON-LD structured data
+  const personJsonLd = generatePersonJsonLd({
+    name: person.canonicalName,
+    description: person.shortBio,
+    url: `https://letaiexplainai.com/people/${person.slug}`,
+    image: person.imageUrl || undefined,
+    jobTitle: person.currentRole || undefined,
+    worksFor: person.currentOrg?.name,
+    sameAs: [
+      person.wikipediaUrl,
+      person.linkedInUrl,
+      person.twitterHandle ? `https://twitter.com/${person.twitterHandle}` : null,
+      person.personalWebsite,
+    ].filter(Boolean) as string[],
+    // Sprint SEO-5: E-E-A-T freshness signal
+    dateModified: person.updatedAt ? new Date(person.updatedAt).toISOString() : undefined,
+  });
+
+  // Generate FAQ JSON-LD for Answer Engine Optimization
+  const faqItems = generatePersonFAQs({
+    canonicalName: person.canonicalName,
+    shortBio: person.shortBio,
+    contributions: person.contributions,
+    currentRole: person.currentRole,
+    currentOrgName: person.currentOrg?.name,
+    background: person.background,
+  });
+  const faqJsonLd = generateFAQJsonLd(faqItems);
+
+  // Combine schemas (filter out null FAQ if no valid items)
+  const jsonLdSchemas = [personJsonLd, faqJsonLd].filter(Boolean) as Record<string, unknown>[];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
+    <>
+      <SEO
+        title={person.canonicalName}
+        description={person.shortBio}
+        canonical={`https://letaiexplainai.com/people/${person.slug}`}
+        type="profile"
+        image={person.imageUrl || undefined}
+        jsonLd={jsonLdSchemas}
+      />
+      <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Back link */}
       <button
         onClick={() => navigate(-1)}
@@ -518,6 +559,39 @@ export default function PersonProfilePage() {
         </ProfileSection>
       )}
 
+      {/* Key Concepts (Sprint SEO-3) */}
+      {keyConcepts.length > 0 && (
+        <ProfileSection
+          title="Key Concepts"
+          icon={<Lightbulb className="w-5 h-5 text-gray-500" />}
+        >
+          <div className="space-y-3">
+            {keyConcepts.map(({ glossaryTerm, contributionNote }) => (
+              <Link
+                key={glossaryTerm.id}
+                to={glossaryTerm.slug ? `/glossary/${glossaryTerm.slug}` : `/glossary?term=${glossaryTerm.id}`}
+                className="block p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {glossaryTerm.term}
+                  </p>
+                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                </div>
+                {contributionNote && (
+                  <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                    {contributionNote}
+                  </p>
+                )}
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                  {glossaryTerm.shortDefinition}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </ProfileSection>
+      )}
+
       {/* Focus Areas */}
       {person.focusAreas && person.focusAreas.length > 0 && (
         <section className="mt-8">
@@ -537,10 +611,27 @@ export default function PersonProfilePage() {
         </section>
       )}
 
+      {/* Last Updated Metadata (Sprint SEO-5: E-E-A-T signals) */}
+      <div className="mt-8 pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        <p>
+          Profile created: {new Date(person.createdAt).toLocaleDateString()}
+          {person.updatedAt !== person.createdAt && (
+            <> · Last updated: {new Date(person.updatedAt).toLocaleDateString()}</>
+          )}
+        </p>
+        <p className="mt-1">
+          Content verified by{' '}
+          <Link to="/about" className="text-blue-600 dark:text-blue-400 hover:underline">
+            Let AI Explain AI editorial team
+          </Link>
+        </p>
+      </div>
+
       {/* Comment Thread (Sprint LEarn-4) */}
       <div className="mt-12">
         <CommentThread targetType="person" targetId={person.id} />
       </div>
     </div>
+    </>
   );
 }

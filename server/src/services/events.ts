@@ -94,6 +94,10 @@ export interface EventPageData {
 
   // SEO
   canonicalUrl?: string;
+
+  // Timestamps (Sprint SEO-5: E-E-A-T freshness signals)
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -302,6 +306,9 @@ export async function getEventPageData(id: string): Promise<EventPageData | null
       linkedTermCount: linkedTerms.length,
       relatedMilestoneCount: relatedMilestones.length,
     },
+    // Sprint SEO-5: E-E-A-T freshness signals
+    createdAt: milestone.createdAt.toISOString(),
+    updatedAt: milestone.updatedAt.toISOString(),
   };
 }
 

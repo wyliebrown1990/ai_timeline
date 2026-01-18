@@ -87,6 +87,10 @@ export interface ExplainedPageData {
     relatedTermCount: number;
     milestoneCount: number;
   };
+
+  // Timestamps (Sprint SEO-5: E-E-A-T freshness signals)
+  createdAt: string;
+  updatedAt: string;
 }
 
 /**
@@ -314,6 +318,9 @@ export async function getExplainedPageData(
       relatedTermCount: relatedTerms.length,
       milestoneCount: relatedMilestones.length,
     },
+    // Sprint SEO-5: E-E-A-T freshness signals
+    createdAt: term.createdAt.toISOString(),
+    updatedAt: term.updatedAt.toISOString(),
   };
 }
 

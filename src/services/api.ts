@@ -5013,6 +5013,9 @@ export interface ExplainedPageData {
     milestoneCount: number;
   };
   canonicalUrl: string;
+  // Sprint SEO-5: E-E-A-T freshness signals
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -5138,6 +5141,9 @@ export interface EventPageData {
 
   // SEO
   canonicalUrl: string;
+  // Sprint SEO-5: E-E-A-T freshness signals
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -5256,6 +5262,9 @@ export interface WhoInventedPageData {
     milestoneCount: number;
   };
   canonicalUrl: string;
+  // Sprint SEO-5: E-E-A-T freshness signals
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
