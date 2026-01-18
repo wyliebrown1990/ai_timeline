@@ -402,3 +402,48 @@ export async function getAllFocusAreas(): Promise<string[]> {
 
   return Array.from(focusAreasSet).sort();
 }
+
+/**
+ * Organization key concept linked via GlossaryTermOrganization (Sprint SEO-3)
+ */
+export interface OrganizationKeyConcept {
+  id: string;
+  glossaryTermId: string;
+  contributionNote: string | null;
+  glossaryTerm: {
+    id: string;
+    term: string;
+    slug: string | null;
+    shortDefinition: string;
+    category: string;
+  };
+}
+
+/**
+ * Get glossary terms linked to an organization via GlossaryTermOrganization (Sprint SEO-3)
+ */
+export async function getKeyConcepts(organizationId: string): Promise<OrganizationKeyConcept[]> {
+  if (!prisma) throw new Error('Database not available');
+
+  const links = await prisma.glossaryTermOrganization.findMany({
+    where: { organizationId },
+    include: {
+      glossaryTerm: {
+        select: {
+          id: true,
+          term: true,
+          slug: true,
+          shortDefinition: true,
+          category: true,
+        },
+      },
+    },
+  });
+
+  return links.map((link) => ({
+    id: link.id,
+    glossaryTermId: link.glossaryTermId,
+    contributionNote: link.contributionNote,
+    glossaryTerm: link.glossaryTerm,
+  }));
+}

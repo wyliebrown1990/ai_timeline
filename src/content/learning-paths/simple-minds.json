@@ -1,0 +1,25 @@
+{
+  "id": "simple-minds",
+  "title": "Simple Minds, Profound Lessons",
+  "description": "Explore intelligence at its most fundamental level - bacteria navigating chemical gradients, worms seeking warmth, fish solving spatial puzzles. These 'simple' minds reveal core computational principles that scale to complex cognition.",
+  "targetAudience": "Those curious about the evolutionary origins of intelligence",
+  "milestoneIds": [
+    "E1938_the_roundabout_path_of_the_fighting_fish",
+    "E1972_mirror_self_recognition_study_establishe",
+    "E1973_chemotaxis_by_the_nematode_caenorhabditi",
+    "E1974_flagellar_rotation_and_the_mechanism_of_",
+    "E1975_normal_and_mutant_thermotaxis_in_the_nem",
+    "E2023_study_shows_humans_retain_understanding_"
+  ],
+  "estimatedMinutes": 30,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["intelligence-before-brains", "neuromodulator-code"],
+  "keyTakeaways": [
+    "Bacteria exhibit intelligent behavior without neurons",
+    "C. elegans has only 302 neurons but complete behavioral repertoire",
+    "Intelligence exists on a spectrum from simple to complex",
+    "Understanding simple minds illuminates complex cognition"
+  ],
+  "conceptsCovered": ["Chemotaxis", "Thermotaxis", "Model-Free Learning", "Habituation"],
+  "icon": "🦠"
+}

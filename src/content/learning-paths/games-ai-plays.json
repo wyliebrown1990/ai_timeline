@@ -1,0 +1,24 @@
+{
+  "id": "games-ai-plays",
+  "title": "Games AI Plays",
+  "description": "See how games became the proving ground for AI. From checkers to chess to Go to StarCraft, each challenge pushed researchers to invent new techniques that later transformed AI.",
+  "targetAudience": "Gamers and those interested in AI breakthroughs through games",
+  "milestoneIds": [
+    "E1994_td_gammon_a_self_teaching_backgammon_pro",
+    "E1997_DEEP_BLUE",
+    "E2000_learning_to_play_chess_using_temporal_di",
+    "E2016_ALPHAGO",
+    "E2017_ALPHAZERO"
+  ],
+  "estimatedMinutes": 40,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["reward-revolution", "neurons-networks"],
+  "keyTakeaways": [
+    "Arthur Samuel coined 'machine learning' with his checkers program",
+    "Deep Blue's chess victory showed brute-force search limits",
+    "AlphaGo used deep RL to develop intuition for Go",
+    "AlphaZero learned superhuman play from self-play alone"
+  ],
+  "conceptsCovered": ["Monte Carlo Tree Search", "Deep Reinforcement Learning", "Self-play", "Game-playing AI"],
+  "icon": "🎮"
+}

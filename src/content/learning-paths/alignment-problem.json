@@ -1,0 +1,28 @@
+{
+  "id": "alignment-problem",
+  "title": "The Alignment Problem",
+  "description": "How do we make AI systems do what we actually want? Explore from early safety research through RLHF to Constitutional AI and the emerging regulatory landscape.",
+  "targetAudience": "Anyone concerned with AI safety and governance",
+  "milestoneIds": [
+    "E2018_OPENAI_CHARTER",
+    "E2022_INSTRUCTGPT",
+    "E2022_CONSTITUTIONAL_AI",
+    "E2023_NIST_AIRMF",
+    "E2023_DPO",
+    "E2023_US_EO_14110",
+    "E2024_EU_AI_ACT",
+    "E2025_US_EO_14110_REVOKED",
+    "E2025_CLAUDE_OPUS_4_5"
+  ],
+  "estimatedMinutes": 40,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["reward-revolution", "attention-economy"],
+  "keyTakeaways": [
+    "Alignment ensures AI pursues goals beneficial to humans",
+    "RLHF trains models using human preference comparisons",
+    "Constitutional AI uses explicit principles for self-critique",
+    "The EU AI Act established the first comprehensive AI regulation"
+  ],
+  "conceptsCovered": ["AI Alignment", "RLHF", "Constitutional AI", "AI Governance", "EU AI Act"],
+  "icon": "⚖️"
+}

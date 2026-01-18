@@ -1,0 +1,29 @@
+{
+  "id": "attention-economy",
+  "title": "The Attention Economy",
+  "description": "Follow the development of attention mechanisms from a translation trick to the dominant paradigm in AI. Trace the line from seq2seq through Transformers to GPT-4 and beyond.",
+  "targetAudience": "Those wanting to understand how modern LLMs work",
+  "milestoneIds": [
+    "E2014_ATTENTION_NMT",
+    "E2017_TRANSFORMER",
+    "E2018_GPT1",
+    "E2018_BERT",
+    "E2019_GPT2",
+    "E2020_GPT3",
+    "E2020_SCALING_LAWS",
+    "E2022_CHATGPT",
+    "E2023_GPT4",
+    "E2024_CLAUDE3"
+  ],
+  "estimatedMinutes": 45,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["alignment-problem", "neurons-networks"],
+  "keyTakeaways": [
+    "Attention lets models focus on relevant parts of input dynamically",
+    "Transformers process all positions in parallel, enabling massive scale",
+    "Scaling laws predict performance improvements from larger models",
+    "ChatGPT made AI accessible to 100 million users in 2 months"
+  ],
+  "conceptsCovered": ["Attention Mechanism", "Transformer", "GPT", "BERT", "Context Window", "Scaling Laws"],
+  "icon": "👁️"
+}

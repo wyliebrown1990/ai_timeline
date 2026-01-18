@@ -1,0 +1,25 @@
+{
+  "id": "neuromodulator-code",
+  "title": "The Neuromodulator Code",
+  "description": "Explore how brain chemistry shapes learning, emotion, and behavior. Dopamine, serotonin, and norepinephrine orchestrate brain function in ways that directly inspired reinforcement learning.",
+  "targetAudience": "Those interested in the neuroscience behind AI algorithms",
+  "milestoneIds": [
+    "E1897_PAVLOVIAN_CONDITIONING",
+    "E1949_HEBBIAN_LEARNING",
+    "E1960_TRIUNE_BRAIN",
+    "E1990_dopamine_neurons_of_the_monkey_midbrain_",
+    "E1997_DOPAMINE_PREDICTION_ERROR",
+    "E1998_dopamine_s_role_in_reward_systems_founda"
+  ],
+  "estimatedMinutes": 40,
+  "difficulty": "advanced",
+  "suggestedNextPathIds": ["reward-revolution", "intelligence-before-brains"],
+  "keyTakeaways": [
+    "Dopamine neurons encode reward prediction errors",
+    "The brain's reward system inspired TD learning algorithms",
+    "Serotonin modulates patience and temporal discounting",
+    "Understanding neuromodulation informs AI architecture design"
+  ],
+  "conceptsCovered": ["Dopamine Prediction Error", "Basal Ganglia", "Hebbian Learning", "Neuromodulator"],
+  "icon": "⚗️"
+}

@@ -24,6 +24,9 @@ router.get('/focus-areas', organizationsController.getFocusAreas);
 // GET /api/organizations/:slug - Get organization by slug
 router.get('/:slug', organizationsController.getOrganizationBySlug);
 
+// GET /api/organizations/:slug/key-concepts - Get glossary terms linked to organization (Sprint SEO-3)
+router.get('/:slug/key-concepts', organizationsController.getOrgKeyConcepts);
+
 export default router;
 
 /**

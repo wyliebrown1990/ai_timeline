@@ -1,0 +1,31 @@
+{
+  "id": "vision-quest",
+  "title": "The Vision Quest",
+  "description": "Trace computer vision from the Neocognitron through AlexNet's deep learning revolution to the generative explosion of DALL-E and Stable Diffusion. Seeing became creating.",
+  "targetAudience": "Visual artists and those interested in AI image generation",
+  "milestoneIds": [
+    "E1980_neocognitron_a_self_organizing_neural_ne",
+    "E1998_LENET",
+    "E2009_IMAGENET",
+    "E2012_ALEXNET",
+    "E2014_GANS",
+    "E2015_RESNET",
+    "E2021_CLIP",
+    "E2021_DALLE",
+    "E2022_STABLE_DIFFUSION_RELEASE",
+    "E2022_MIDJOURNEY",
+    "E2023_DALLE3",
+    "E2025_GPT_IMAGE_1_5"
+  ],
+  "estimatedMinutes": 45,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["neurons-networks", "attention-economy"],
+  "keyTakeaways": [
+    "CNNs learn hierarchical visual features automatically",
+    "ImageNet provided the dataset that proved deep learning",
+    "GANs enabled generation through adversarial training",
+    "Diffusion models surpassed GANs for image quality and diversity"
+  ],
+  "conceptsCovered": ["CNN", "Computer Vision", "GAN", "Diffusion Model", "CLIP", "DALL-E"],
+  "icon": "🎨"
+}

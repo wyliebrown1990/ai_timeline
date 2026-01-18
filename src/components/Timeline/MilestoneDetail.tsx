@@ -29,7 +29,7 @@ import { PersonContributorChip } from './PersonContributorChip';
 import { KeyFigureModal } from '../Glossary/KeyFigureModal';
 import { PrerequisiteChip } from '../Learning/PrerequisiteChip';
 import { CommentThread } from '../Comments';
-import { keyFiguresApi, milestonesApi, glossaryApi, type KeyFigureWithContribution, type MilestoneContributor, type GlossaryTerm } from '../../services/api';
+import { keyFiguresApi, milestonesApi, glossaryApi, type KeyFigureWithContribution, type MilestoneContributor, type GlossaryTerm, type MilestoneLinkedTerm } from '../../services/api';
 
 interface MilestoneDetailProps {
   /** The milestone to display (includes layered content from API) */
@@ -116,6 +116,10 @@ export function MilestoneDetail({
   const [isLoadingConcepts, setIsLoadingConcepts] = useState(false);
   const { hasSeenConcept } = useConceptProgress();
   const navigate = useNavigate();
+
+  // State for linked glossary terms (Sprint SEO-3)
+  const [linkedTerms, setLinkedTerms] = useState<MilestoneLinkedTerm[]>([]);
+  const [isLoadingTerms, setIsLoadingTerms] = useState(false);
 
   // Get the card for this milestone if it exists
   const flashcard = getCardBySource('milestone', milestone.id);
@@ -242,6 +246,24 @@ export function MilestoneDetail({
 
     fetchConceptTerms();
   }, [milestone.id, milestone.prerequisiteConceptIds]);
+
+  // Fetch linked glossary terms when milestone changes (Sprint SEO-3)
+  useEffect(() => {
+    async function fetchLinkedTerms() {
+      try {
+        setIsLoadingTerms(true);
+        const response = await milestonesApi.getLinkedTerms(milestone.id);
+        setLinkedTerms(response.data);
+      } catch (err) {
+        console.error('[MilestoneDetail] Failed to fetch linked terms:', err);
+        setLinkedTerms([]);
+      } finally {
+        setIsLoadingTerms(false);
+      }
+    }
+
+    fetchLinkedTerms();
+  }, [milestone.id]);
 
   // Layered content is now included in the milestone response from the API (Sprint 35)
   const layeredContent = milestone.layeredContent;
@@ -493,6 +515,36 @@ export function MilestoneDetail({
                   {conceptTerms.filter((t) => hasSeenConcept(t.id)).length}/{conceptTerms.length} concepts seen
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Linked Glossary Terms (Sprint SEO-3) */}
+          {(linkedTerms.length > 0 || isLoadingTerms) && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2 text-gray-600 dark:text-gray-400">
+                <BookOpen className="h-5 w-5 text-blue-500" />
+                <span className="font-medium">Related Terms</span>
+                {isLoadingTerms && (
+                  <span className="text-xs text-gray-400">(loading...)</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 pl-7">
+                {linkedTerms.map((link) => (
+                  <button
+                    key={link.id}
+                    onClick={() => navigate(link.slug ? `/glossary/${link.slug}` : `/glossary?term=${link.id}`)}
+                    className="group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-sm transition-colors"
+                    title={link.shortDefinition}
+                  >
+                    <span className="font-medium">{link.term}</span>
+                    {link.relevanceNote && (
+                      <span className="text-blue-500 dark:text-blue-400 text-xs">
+                        ({link.relevanceNote})
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

@@ -5,11 +5,8 @@
  * Composed of: Header, Media, Headline, Teaser, Context, ActionBar
  */
 
-import { memo, useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, ChevronDown, ChevronUp, Heart } from 'lucide-react';
-import { useReducedMotion } from '../../hooks/useReducedMotion';
-import toast from 'react-hot-toast';
+import { memo, useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
+import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 import type { FeedItem } from '../../types/feed';
 import { FeedCardHeader } from './FeedCardHeader';
 import { FeedCardMedia } from './FeedCardMedia';
@@ -57,8 +54,6 @@ function FeedCardComponent({
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
-  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
-  const reducedMotion = useReducedMotion();
 
   // Compute personalization type
   const personalizationType = useMemo(() => {
@@ -71,10 +66,6 @@ function FeedCardComponent({
     if (reason === 'trending') return null;
     return reason;
   }, [item.headline, item.summary]);
-
-  // Double-tap detection
-  const lastTapTimeRef = useRef(0);
-  const DOUBLE_TAP_DELAY = 300; // ms
 
   // Initialize vote state and check saved status when card mounts
   useEffect(() => {
@@ -131,39 +122,11 @@ function FeedCardComponent({
     setIsAIChatOpen(true);
   }, []);
 
-  // Double-tap to save handler
-  const handleDoubleTap = useCallback(
-    (e: React.TouchEvent | React.MouseEvent) => {
-      const now = Date.now();
-      const timeSinceLastTap = now - lastTapTimeRef.current;
-
-      if (timeSinceLastTap < DOUBLE_TAP_DELAY && timeSinceLastTap > 0) {
-        // Double tap detected - save the item
-        e.preventDefault();
-        if (!isSaved) {
-          hapticService.double();
-          soundService.save();
-          onToggleSave(item.id);
-          setShowHeartAnimation(true);
-          toast.success('Saved!', { duration: 1500 });
-          announceService.announceSave(true);
-          setTimeout(() => setShowHeartAnimation(false), 1000);
-        } else {
-          toast('Already saved', { duration: 1500 });
-        }
-        lastTapTimeRef.current = 0; // Reset to prevent triple-tap
-      } else {
-        lastTapTimeRef.current = now;
-      }
-    },
-    [isSaved, item.id, onToggleSave]
-  );
-
   return (
     <article
       className="absolute inset-0 flex flex-col bg-gray-950 text-white overflow-hidden"
       style={{
-        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 110px)',
       }}
     >
       {/* Header */}
@@ -186,30 +149,8 @@ function FeedCardComponent({
         onVideoClick={handleVideoClick}
       />
 
-      {/* Content - with double-tap handler */}
-      <div
-        className="flex-1 flex flex-col px-4 py-4 overflow-y-auto relative"
-        onTouchEnd={handleDoubleTap}
-        onClick={handleDoubleTap}
-      >
-        {/* Heart animation overlay */}
-        <AnimatePresence>
-          {showHeartAnimation && (
-            <motion.div
-              initial={reducedMotion ? { opacity: 1 } : { scale: 0, opacity: 0 }}
-              animate={reducedMotion ? { opacity: 1 } : { scale: 1, opacity: 1 }}
-              exit={reducedMotion ? { opacity: 0 } : { scale: 1.5, opacity: 0 }}
-              transition={reducedMotion ? { duration: 0 } : { duration: 0.4, ease: 'easeOut' }}
-              className="absolute inset-0 flex items-center justify-center pointer-events-none z-10"
-            >
-              <Heart
-                className="w-24 h-24 text-red-500 drop-shadow-lg"
-                fill="currentColor"
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+      {/* Content */}
+      <div className="flex-1 min-h-0 flex flex-col px-4 py-4 overflow-y-auto relative">
         {/* Headline */}
         <h1
           className="font-bold leading-tight mb-3 text-[clamp(1.5rem,5vw,2rem)]"

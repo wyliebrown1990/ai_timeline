@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   X,
   BookOpen,
@@ -9,12 +9,14 @@ import {
   Link2,
   ArrowRight,
   Clock,
+  Users,
 } from 'lucide-react';
 import { useGlossary, useConceptProgress } from '../../hooks';
 import { GLOSSARY_CATEGORY_LABELS } from '../../types/glossary';
 import type { GlossaryEntry } from '../../types/glossary';
 import { PrerequisitesSection, DifficultyBadge } from '../Learning';
 import { CommentThread } from '../Comments';
+import { glossaryApi, type GlossaryKeyFigure } from '../../services/api';
 
 interface GlossaryTermDetailProps {
   /** The term to display */
@@ -39,9 +41,43 @@ export function GlossaryTermDetail({
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const { data: allTerms } = useGlossary();
   const { markConceptSeen, seenConceptIds } = useConceptProgress();
+  const [keyFigures, setKeyFigures] = useState<GlossaryKeyFigure[]>([]);
 
-  // Get related terms
-  const relatedTerms = allTerms.filter((t) => term.relatedTermIds.includes(t.id));
+  // Fetch key figures when term changes
+  useEffect(() => {
+    if (term?.id) {
+      glossaryApi.getKeyFigures(term.id)
+        .then(setKeyFigures)
+        .catch((err) => console.error('Failed to fetch key figures:', err));
+    }
+    return () => setKeyFigures([]);
+  }, [term?.id]);
+
+  // Get related terms - combine manually linked + same category, limit to 8
+  const relatedTerms = useMemo(() => {
+    // Start with manually linked terms
+    const manuallyLinked = allTerms.filter((t) =>
+      term.relatedTermIds.includes(t.id)
+    );
+
+    // If we have fewer than 8, add terms from the same category
+    const MAX_RELATED = 8;
+    if (manuallyLinked.length >= MAX_RELATED) {
+      return manuallyLinked.slice(0, MAX_RELATED);
+    }
+
+    // Get additional terms from same category
+    const linkedIds = new Set(manuallyLinked.map((t) => t.id));
+    const sameCategoryTerms = allTerms.filter(
+      (t) =>
+        t.category === term.category &&
+        t.id !== term.id &&
+        !linkedIds.has(t.id)
+    );
+
+    // Combine and limit
+    return [...manuallyLinked, ...sameCategoryTerms].slice(0, MAX_RELATED);
+  }, [term, allTerms]);
 
   // Mark term as seen when viewed
   useEffect(() => {
@@ -155,6 +191,21 @@ export function GlossaryTermDetail({
             </p>
           </div>
 
+          {/* Quick Answer - for SEO featured snippets */}
+          {term.quickAnswer && (
+            <div className="mb-6 p-4 rounded-lg bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2 mb-2">
+                <Lightbulb className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                  Quick Answer
+                </span>
+              </div>
+              <p className="text-gray-800 dark:text-gray-200 leading-relaxed">
+                {term.quickAnswer}
+              </p>
+            </div>
+          )}
+
           {/* Prerequisites section */}
           {term.prerequisiteIds && term.prerequisiteIds.length > 0 && (
             <PrerequisitesSection
@@ -232,6 +283,49 @@ export function GlossaryTermDetail({
                     {relatedTerm.term}
                     <ArrowRight className="h-3 w-3" />
                   </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key Figures */}
+          {keyFigures.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3 text-gray-600 dark:text-gray-400">
+                <Users className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                <span className="font-medium">Key Figures</span>
+              </div>
+              <div className="space-y-2 pl-7">
+                {keyFigures.map(({ person, contributionNote }) => (
+                  <Link
+                    key={person.id}
+                    to={`/people/${person.slug}`}
+                    onClick={onClose}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    {person.imageUrl ? (
+                      <img
+                        src={person.imageUrl}
+                        alt={person.canonicalName}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <Users className="h-5 w-5 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 dark:text-white truncate">
+                        {person.canonicalName}
+                      </div>
+                      {contributionNote && (
+                        <div className="text-sm text-blue-600 dark:text-blue-400">
+                          {contributionNote}
+                        </div>
+                      )}
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  </Link>
                 ))}
               </div>
             </div>

@@ -1,0 +1,24 @@
+{
+  "id": "intelligence-before-brains",
+  "title": "Intelligence Before Brains",
+  "description": "Explore how intelligence emerged in evolution - from bacterial chemotaxis to the first nervous systems. Understanding biological intelligence illuminates what we're trying to build artificially.",
+  "targetAudience": "Those interested in the evolutionary origins of cognition",
+  "milestoneIds": [
+    "E1973_chemotaxis_by_the_nematode_caenorhabditi",
+    "E1974_flagellar_rotation_and_the_mechanism_of_",
+    "E1975_normal_and_mutant_thermotaxis_in_the_nem",
+    "E1960_TRIUNE_BRAIN",
+    "E1991_intelligence_without_representation"
+  ],
+  "estimatedMinutes": 35,
+  "difficulty": "beginner",
+  "suggestedNextPathIds": ["simple-minds", "neuromodulator-code"],
+  "keyTakeaways": [
+    "Intelligence predates neurons by billions of years",
+    "Bacteria use temporal comparison for navigation",
+    "C. elegans demonstrates sophisticated behavior with 302 neurons",
+    "Understanding evolution helps design better AI architectures"
+  ],
+  "conceptsCovered": ["Chemotaxis", "Bilateral Symmetry", "Encephalization Quotient", "Model-Free Learning"],
+  "icon": "🧬"
+}

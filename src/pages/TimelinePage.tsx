@@ -1,6 +1,7 @@
 import { AlertCircle, Clock, LayoutGrid, Workflow, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SEO } from '../components/SEO';
 import {
   CategoryLegend,
   KeyboardShortcutsHelp,
@@ -260,8 +261,14 @@ function TimelinePage() {
   }, [zoomLevel, handleJumpToEarliest, handleJumpToLatest]);
 
   return (
-    <div className="animate-fade-in">
-      {/* Context Path Banner (shown when navigating from a current event) */}
+    <>
+      <SEO
+        title="AI Timeline"
+        description="Explore the complete history of artificial intelligence from the 1940s to today. Interactive timeline with semantic zoom from decades to individual months."
+        canonical="https://letaiexplainai.com/timeline"
+      />
+      <div className="animate-fade-in">
+        {/* Context Path Banner (shown when navigating from a current event) */}
       <ContextPathBanner
         currentMilestoneId={selectedId ?? undefined}
         onNavigate={select}
@@ -490,6 +497,7 @@ function TimelinePage() {
         onClose={() => setShowKeyboardHelp(false)}
       />
     </div>
+    </>
   );
 }
 

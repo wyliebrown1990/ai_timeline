@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, BookOpen, Filter, X, Sparkles, CheckSquare, Square, Bookmark, Users } from 'lucide-react';
+import { SEO, generateGlossaryFAQs, generateFAQJsonLd } from '../components/SEO';
 import { useOnboarding } from '../components/Onboarding';
 import { useGlossary } from '../hooks';
 import { GlossaryTermDetail } from '../components/Glossary/GlossaryTermDetail';
@@ -312,9 +313,25 @@ export default function GlossaryPage() {
     );
   }
 
+  // Generate FAQ schema from top glossary terms for Answer Engine Optimization
+  const faqItems = generateGlossaryFAQs(
+    allTerms.slice(0, 5).map((t) => ({
+      term: t.term,
+      shortDefinition: t.shortDefinition,
+    }))
+  );
+  const faqJsonLd = generateFAQJsonLd(faqItems);
+
   return (
-    <div className="container-main py-8">
-      {/* Header */}
+    <>
+      <SEO
+        title="AI Glossary"
+        description="Comprehensive glossary of artificial intelligence terms and concepts. Learn key AI terminology from neural networks to transformers, explained clearly."
+        canonical="https://letaiexplainai.com/glossary"
+        jsonLd={faqJsonLd || undefined}
+      />
+      <div className="container-main py-8">
+        {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
@@ -696,5 +713,6 @@ export default function GlossaryPage() {
         <KeyFigureModal figure={selectedFigure} onClose={handleCloseFigureModal} />
       )}
     </div>
+    </>
   );
 }

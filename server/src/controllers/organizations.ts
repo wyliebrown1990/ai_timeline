@@ -340,3 +340,30 @@ export async function getStats(
     next(error);
   }
 }
+
+/**
+ * GET /api/organizations/:slug/key-concepts
+ * Get glossary terms linked to an organization (Sprint SEO-3)
+ */
+export async function getOrgKeyConcepts(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { slug } = req.params;
+
+    // First get the organization by slug
+    const org = await organizationsService.getBySlug(slug);
+    if (!org) {
+      throw ApiError.notFound(`Organization with slug "${slug}" not found`);
+    }
+
+    // Get key concepts for this organization
+    const keyConcepts = await organizationsService.getKeyConcepts(org.id);
+
+    res.json({ data: keyConcepts });
+  } catch (error) {
+    next(error);
+  }
+}

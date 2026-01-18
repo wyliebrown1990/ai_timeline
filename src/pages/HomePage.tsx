@@ -4,6 +4,7 @@ import { useOnboarding } from '../components/Onboarding';
 import { InTheNewsSection } from '../components/CurrentEvents';
 import { AnimatedLogo } from '../components/AnimatedLogo';
 import { AnimatedTitle } from '../components/AnimatedTitle';
+import { SEO } from '../components/SEO';
 
 /**
  * Feature card data for the home page
@@ -42,7 +43,13 @@ function HomePage() {
   const { openOnboarding } = useOnboarding();
 
   return (
-    <div className="animate-fade-in">
+    <>
+      <SEO
+        title="Let AI Explain AI"
+        description="Explore the history of artificial intelligence from the 1940s to today. Interactive timeline, learning paths, and AI news with historical context."
+        canonical="https://letaiexplainai.com"
+      />
+      <div className="animate-fade-in">
       {/* Hero Section */}
       <section className="bg-gradient-to-b from-orange-50 to-white py-16 dark:from-gray-800 dark:to-gray-900 sm:py-24">
         <div className="container-main text-center">
@@ -147,6 +154,7 @@ function HomePage() {
         </div>
       </section>
     </div>
+    </>
   );
 }
 

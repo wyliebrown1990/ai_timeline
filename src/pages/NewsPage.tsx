@@ -22,7 +22,10 @@ import {
   X,
   SlidersHorizontal,
   Brain,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
+import { SEO } from '../components/SEO';
 import { useCurrentEvents } from '../hooks/useLearningPathsApi';
 import { CurrentEventCard } from '../components/CurrentEvents/CurrentEventCard';
 import { NewsContextModal } from '../components/CurrentEvents/NewsContextModal';
@@ -118,8 +121,14 @@ export function NewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Hero header */}
+    <>
+      <SEO
+        title="AI News Hub"
+        description="Stay current with the latest AI news and developments. Each story includes historical context showing how today's breakthroughs connect to AI's rich history."
+        canonical="https://letaiexplainai.com/news"
+      />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Hero header */}
       <div className="bg-gradient-to-br from-orange-500 via-orange-600 to-red-600 text-white">
         <div className="container-main py-12 sm:py-16">
           {/* Breadcrumb */}
@@ -282,6 +291,37 @@ export function NewsPage() {
         </div>
       </div>
 
+      {/* Feed CTA Banner */}
+      <div className="container-main pt-6">
+        <Link
+          to="/feed"
+          className="group block relative overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-pink-500 to-orange-500 p-[2px] shadow-lg hover:shadow-xl transition-shadow"
+        >
+          <div className="relative flex items-center justify-between gap-4 rounded-[14px] bg-gray-900/95 dark:bg-gray-950/95 px-6 py-4 backdrop-blur">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-white">Try the New Swipeable Feed</h3>
+                  <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full">
+                    New
+                  </span>
+                </div>
+                <p className="text-sm text-gray-400">
+                  Swipe through AI news like TikTok. Quick, engaging, and fun.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-white font-medium group-hover:gap-3 transition-all">
+              <span className="hidden sm:inline">Open Feed</span>
+              <ChevronRight className="h-5 w-5" />
+            </div>
+          </div>
+        </Link>
+      </div>
+
       {/* Main content */}
       <div className="container-main py-8">
         {isLoading ? (
@@ -332,6 +372,7 @@ export function NewsPage() {
         <NewsContextModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       )}
     </div>
+    </>
   );
 }
 

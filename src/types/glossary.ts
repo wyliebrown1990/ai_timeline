@@ -43,6 +43,9 @@ export const GlossaryEntrySchema = z.object({
   // The term being defined (e.g., "Transformer", "Neural Network")
   term: z.string().min(1).max(100),
 
+  // URL-friendly identifier for dedicated term pages (Sprint SEO-3)
+  slug: z.string().optional(),
+
   // Brief definition for tooltips (max 200 chars, no jargon)
   shortDefinition: z.string().max(200),
 
@@ -67,6 +70,9 @@ export const GlossaryEntrySchema = z.object({
 
   // Category for filtering and organization
   category: GlossaryCategorySchema,
+
+  // Quick answer for SEO featured snippets (50-70 words)
+  quickAnswer: z.string().optional(),
 
   // Prerequisite system (Sprint LEarn-1)
   // IDs of terms that should be learned before this one

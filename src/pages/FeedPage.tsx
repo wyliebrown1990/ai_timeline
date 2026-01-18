@@ -5,9 +5,9 @@
  * This is a full-screen experience outside the main layout.
  */
 
-import { useEffect } from 'react';
 import { FeedContainer } from '../components/Feed/FeedContainer';
 import { useFeed } from '../hooks/useFeed';
+import { SEO } from '../components/SEO';
 
 export function FeedPage() {
   const {
@@ -21,16 +21,14 @@ export function FeedPage() {
     refresh,
   } = useFeed({ initialLimit: 10, autoFetch: true });
 
-  // Set document title
-  useEffect(() => {
-    document.title = 'AI News Shorts | AI Timeline';
-    return () => {
-      document.title = 'AI Timeline';
-    };
-  }, []);
-
   return (
-    <FeedContainer
+    <>
+      <SEO
+        title="AI News Shorts"
+        description="Watch bite-sized AI news updates in a TikTok-style feed. Stay current on the latest developments in artificial intelligence."
+        canonical="https://letaiexplainai.com/feed"
+      />
+      <FeedContainer
       items={items}
       currentIndex={currentIndex}
       isLoading={isLoading}
@@ -40,6 +38,7 @@ export function FeedPage() {
       onLoadMore={loadMore}
       onRefresh={refresh}
     />
+    </>
   );
 }
 

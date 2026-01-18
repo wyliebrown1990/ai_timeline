@@ -1,0 +1,31 @@
+{
+  "id": "neurons-networks",
+  "title": "From Neurons to Networks",
+  "description": "Trace the complete history of neural networks - from McCulloch-Pitts' logical neurons through the perceptron controversy, the backpropagation revival, and the deep learning revolution that gave us modern AI.",
+  "targetAudience": "Those wanting to understand neural network architecture evolution",
+  "milestoneIds": [
+    "E1943_MCCULLOCH_PITTS",
+    "E1949_HEBBIAN_LEARNING",
+    "E1958_PERCEPTRON",
+    "E1969_PERCEPTRONS_BOOK",
+    "E1980_neocognitron_a_self_organizing_neural_ne",
+    "E1986_BACKPROP",
+    "E1997_LSTM",
+    "E1998_LENET",
+    "E2012_ALEXNET",
+    "E2014_GANS",
+    "E2015_RESNET",
+    "E2017_TRANSFORMER"
+  ],
+  "estimatedMinutes": 50,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["attention-economy", "vision-quest"],
+  "keyTakeaways": [
+    "The Perceptrons book nearly killed neural networks for a decade",
+    "Backpropagation enabled training of multi-layer networks",
+    "AlexNet proved deep learning's superiority in 2012",
+    "Skip connections in ResNet enabled training networks 1000+ layers deep"
+  ],
+  "conceptsCovered": ["Perceptron", "Backpropagation", "CNN", "LSTM", "Transformer", "Deep Learning"],
+  "icon": "🧠"
+}

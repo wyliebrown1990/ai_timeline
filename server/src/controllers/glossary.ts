@@ -67,6 +67,7 @@ function safeParseJsonArray(value: string | null | undefined): string[] {
 function transformTerm(term: {
   id: string;
   term: string;
+  slug?: string | null;
   shortDefinition: string;
   fullDefinition: string;
   businessContext: string | null;
@@ -78,6 +79,7 @@ function transformTerm(term: {
   prerequisiteIds?: string | null;
   difficulty?: number | null;
   conceptType?: string | null;
+  quickAnswer?: string | null;
   createdAt: Date;
   updatedAt: Date;
   sourceArticleId: string | null;
@@ -85,6 +87,7 @@ function transformTerm(term: {
   return {
     id: term.id,
     term: term.term,
+    slug: term.slug ?? null,
     shortDefinition: term.shortDefinition,
     fullDefinition: term.fullDefinition,
     businessContext: term.businessContext,
@@ -96,6 +99,7 @@ function transformTerm(term: {
     prerequisiteIds: safeParseJsonArray(term.prerequisiteIds),
     difficulty: term.difficulty ?? 1,
     conceptType: term.conceptType ?? 'foundational',
+    quickAnswer: term.quickAnswer ?? null,
     createdAt: term.createdAt.toISOString(),
     updatedAt: term.updatedAt.toISOString(),
     sourceArticleId: term.sourceArticleId,
@@ -182,6 +186,67 @@ export async function getTermByName(
     }
 
     res.json(transformTerm(term));
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/glossary/slug/:slug
+ * Retrieve a glossary term by slug (public endpoint, Sprint SEO-3)
+ */
+export async function getTermBySlug(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { slug } = req.params;
+    const term = await glossaryService.getBySlug(slug);
+
+    if (!term) {
+      throw ApiError.notFound(`Glossary term with slug "${slug}" not found`);
+    }
+
+    res.json(transformTerm(term));
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/glossary/:id/key-figures
+ * Get key figures linked to a glossary term (public endpoint, Sprint SEO-3)
+ */
+export async function getTermKeyFigures(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const keyFigures = await glossaryService.getKeyFigures(id);
+
+    res.json(keyFigures);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/glossary/:id/linked-milestones
+ * Get milestones linked to a glossary term (public endpoint, Sprint SEO-3)
+ */
+export async function getTermLinkedMilestones(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const milestones = await glossaryService.getLinkedMilestones(id);
+
+    res.json(milestones);
   } catch (error) {
     next(error);
   }

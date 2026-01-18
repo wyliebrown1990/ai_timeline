@@ -1,0 +1,23 @@
+{
+  "id": "other-minds",
+  "title": "Understanding Other Minds",
+  "description": "Explore the deep questions: What is intelligence? Can machines think? How do we test for consciousness? Trace from Turing's philosophical thought experiment through modern debates about AI sentience.",
+  "targetAudience": "Philosophers and AI enthusiasts exploring consciousness questions",
+  "milestoneIds": [
+    "E1950_TURING_TEST",
+    "E1966_ELIZA",
+    "E1972_mirror_self_recognition_study_establishe",
+    "E2023_study_shows_humans_retain_understanding_"
+  ],
+  "estimatedMinutes": 35,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["simple-minds", "alignment-problem"],
+  "keyTakeaways": [
+    "Turing proposed behavior as the test for thinking",
+    "The ELIZA effect shows humans readily attribute understanding",
+    "Mirror self-recognition reveals something about self-awareness",
+    "The consciousness question remains philosophically open"
+  ],
+  "conceptsCovered": ["Turing Test", "Theory of Mind", "ELIZA Effect", "Consciousness"],
+  "icon": "🪞"
+}

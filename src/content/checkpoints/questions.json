@@ -1,0 +1,875 @@
+[
+  {
+    "id": "reward-revolution-quiz-1",
+    "title": "Reward Revolution: Core Concepts",
+    "pathId": "reward-revolution",
+    "afterMilestoneId": "E1997_DOPAMINE_PREDICTION_ERROR",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "rr1-q1",
+        "question": "What was the key insight from Pavlov's dog experiments?",
+        "options": [
+          "Dogs can be trained to perform complex tasks",
+          "Neutral stimuli can trigger learned responses through association",
+          "Animals have an innate understanding of reward",
+          "Salivation is controlled by conscious decision-making"
+        ],
+        "correctIndex": 1,
+        "explanation": "Pavlov showed that a neutral stimulus (bell) could trigger a biological response (salivation) when repeatedly paired with a reward (food)."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "rr1-q2",
+        "question": "What did Wolfram Schultz discover about dopamine neurons?",
+        "options": [
+          "They fire constantly during all brain activity",
+          "They only respond to direct food consumption",
+          "They encode reward prediction errors, not rewards themselves",
+          "They are unique to primates"
+        ],
+        "correctIndex": 2,
+        "explanation": "Schultz found that dopamine neurons fire for the difference between expected and received rewards - exactly what TD learning algorithms compute."
+      },
+      {
+        "type": "ordering",
+        "id": "rr1-q3",
+        "prompt": "Order these foundational discoveries from earliest to latest:",
+        "items": [
+          { "id": "thorndike", "label": "Thorndike's Law of Effect", "date": "1898" },
+          { "id": "pavlov", "label": "Pavlov's Classical Conditioning", "date": "1897" },
+          { "id": "hebb", "label": "Hebb's Learning Rule", "date": "1949" },
+          { "id": "shannon", "label": "Shannon's Information Theory", "date": "1948" }
+        ],
+        "correctOrder": ["pavlov", "thorndike", "shannon", "hebb"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "rr1-q4",
+        "question": "Complete Hebb's rule: 'Neurons that fire together...'",
+        "options": [
+          "...die together",
+          "...wire together",
+          "...tire together",
+          "...fire faster"
+        ],
+        "correctIndex": 1,
+        "explanation": "This captures synaptic plasticity - simultaneous activation strengthens neural connections."
+      }
+    ]
+  },
+  {
+    "id": "reward-revolution-quiz-2",
+    "title": "Reward Revolution: Modern Alignment",
+    "pathId": "reward-revolution",
+    "afterMilestoneId": "E2023_DPO",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "rr2-q1",
+        "question": "What does RLHF stand for and what problem does it solve?",
+        "options": [
+          "Rapid Learning for Higher Functions - speeds up training",
+          "Reinforcement Learning from Human Feedback - aligns AI with human preferences",
+          "Recursive Learning with Hybrid Features - improves model architecture",
+          "Reward Learning with Hierarchical Frameworks - structures reward signals"
+        ],
+        "correctIndex": 1,
+        "explanation": "RLHF uses human feedback to shape AI behavior toward human preferences, solving the alignment problem."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "rr2-q2",
+        "question": "Why is PPO (Proximal Policy Optimization) significant in modern AI?",
+        "options": [
+          "It was the first RL algorithm ever created",
+          "It enables stable training and was used to train ChatGPT",
+          "It only works for video game applications",
+          "It requires no compute resources"
+        ],
+        "correctIndex": 1,
+        "explanation": "PPO solved stability issues in policy gradient methods, making RL practical for training language models."
+      },
+      {
+        "type": "matching",
+        "id": "rr2-q3",
+        "prompt": "Match each researcher to their key contribution:",
+        "pairs": [
+          { "id": "pavlov", "left": "Ivan Pavlov", "right": "Classical conditioning" },
+          { "id": "sutton", "left": "Richard Sutton", "right": "TD Learning algorithm" },
+          { "id": "schultz", "left": "Wolfram Schultz", "right": "Dopamine prediction errors" },
+          { "id": "hebb", "left": "Donald Hebb", "right": "Synaptic plasticity rule" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "rr2-q4",
+        "question": "RLHF trains AI systems to align with human _____ rather than simple reward functions.",
+        "options": [
+          "commands",
+          "preferences",
+          "restrictions",
+          "limitations"
+        ],
+        "correctIndex": 1,
+        "explanation": "RLHF collects human preference comparisons to train a reward model."
+      }
+    ]
+  },
+  {
+    "id": "simple-minds-quiz-1",
+    "title": "Simple Minds: Understanding Basic Intelligence",
+    "pathId": "simple-minds",
+    "afterMilestoneId": "E1975_normal_and_mutant_thermotaxis_in_the_nem",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "sm1-q1",
+        "question": "How do bacteria 'decide' which direction to swim?",
+        "options": [
+          "They have a tiny brain that processes environmental data",
+          "They compare chemical concentrations over time and bias random tumbling",
+          "They follow other bacteria in a swarm",
+          "They only swim in straight lines"
+        ],
+        "correctIndex": 1,
+        "explanation": "Bacteria use temporal comparison and adjust the probability of tumbling - remarkably similar to gradient descent optimization."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "sm1-q2",
+        "question": "Why is C. elegans special for understanding intelligence?",
+        "options": [
+          "It's the smartest invertebrate",
+          "It has exactly 302 neurons and we've mapped every connection",
+          "It can communicate with humans",
+          "It has the fastest reflexes of any animal"
+        ],
+        "correctIndex": 1,
+        "explanation": "C. elegans is the only organism with a completely mapped connectome (302 neurons, ~7,000 synapses)."
+      },
+      {
+        "type": "ordering",
+        "id": "sm1-q3",
+        "prompt": "Order these discoveries about simple organisms:",
+        "items": [
+          { "id": "flagella", "label": "Bacterial flagellar rotation mechanism", "date": "1974" },
+          { "id": "chemotaxis", "label": "C. elegans chemotaxis characterized", "date": "1973" },
+          { "id": "fish", "label": "Betta fish spatial navigation study", "date": "1938" },
+          { "id": "mirror", "label": "Mirror self-recognition test", "date": "1972" }
+        ],
+        "correctOrder": ["fish", "mirror", "chemotaxis", "flagella"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "sm1-q4",
+        "question": "C. elegans has exactly how many neurons, making it the only animal with a completely mapped brain?",
+        "options": [
+          "102",
+          "302",
+          "502",
+          "1002"
+        ],
+        "correctIndex": 1,
+        "explanation": "This precise number (302) allows researchers to simulate the entire nervous system."
+      }
+    ]
+  },
+  {
+    "id": "neurons-networks-quiz-1",
+    "title": "Neural Networks: Foundations",
+    "pathId": "neurons-networks",
+    "afterMilestoneId": "E1986_BACKPROP",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "nn1-q1",
+        "question": "Why did Minsky-Papert's 'Perceptrons' book cause an 'AI Winter'?",
+        "options": [
+          "It proved neural networks were mathematically impossible",
+          "It showed single-layer perceptrons couldn't learn XOR, and people generalized incorrectly",
+          "It was too expensive to publish",
+          "It contained errors that misled researchers"
+        ],
+        "correctIndex": 1,
+        "explanation": "The book proved real limitations of single-layer perceptrons, but the field incorrectly assumed these applied to multi-layer networks."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "nn1-q2",
+        "question": "What does backpropagation actually compute?",
+        "options": [
+          "The final output of the network",
+          "The gradient of the loss with respect to each weight",
+          "The optimal network architecture",
+          "The probability of correct classification"
+        ],
+        "correctIndex": 1,
+        "explanation": "Backpropagation efficiently computes gradients using the chain rule, enabling gradient descent optimization."
+      },
+      {
+        "type": "ordering",
+        "id": "nn1-q3",
+        "prompt": "Order these foundational neural network developments:",
+        "items": [
+          { "id": "hebb", "label": "Hebb's Learning Rule", "date": "1949" },
+          { "id": "mcculloch", "label": "McCulloch-Pitts Neuron", "date": "1943" },
+          { "id": "perceptron", "label": "Rosenblatt's Perceptron", "date": "1958" },
+          { "id": "minsky", "label": "Minsky's Perceptrons critique", "date": "1969" }
+        ],
+        "correctOrder": ["mcculloch", "hebb", "perceptron", "minsky"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "nn1-q4",
+        "question": "Minsky and Papert proved that a single-layer perceptron cannot learn which function?",
+        "options": [
+          "AND",
+          "OR",
+          "XOR",
+          "NOT"
+        ],
+        "correctIndex": 2,
+        "explanation": "XOR is not linearly separable, which single-layer perceptrons require."
+      }
+    ]
+  },
+  {
+    "id": "neurons-networks-quiz-2",
+    "title": "Neural Networks: Deep Learning Era",
+    "pathId": "neurons-networks",
+    "afterMilestoneId": "E2017_TRANSFORMER",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "nn2-q1",
+        "question": "What key innovation did ResNet introduce?",
+        "options": [
+          "More training data",
+          "Skip connections that let gradients flow directly through layers",
+          "Smaller filter sizes",
+          "Faster GPUs"
+        ],
+        "correctIndex": 1,
+        "explanation": "Skip connections allow gradients to bypass layers, solving the vanishing gradient problem."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "nn2-q2",
+        "question": "What makes Transformers fundamentally different from RNNs?",
+        "options": [
+          "They use more memory",
+          "They process all positions in parallel using attention",
+          "They only work for images",
+          "They don't need training data"
+        ],
+        "correctIndex": 1,
+        "explanation": "Unlike RNNs that process step-by-step, Transformers use self-attention to process all positions simultaneously."
+      },
+      {
+        "type": "matching",
+        "id": "nn2-q3",
+        "prompt": "Match each researcher to their architectural contribution:",
+        "pairs": [
+          { "id": "lecun", "left": "Yann LeCun", "right": "Convolutional Neural Networks" },
+          { "id": "hinton", "left": "Geoffrey Hinton", "right": "Deep Belief Networks" },
+          { "id": "goodfellow", "left": "Ian Goodfellow", "right": "Generative Adversarial Networks" },
+          { "id": "vaswani", "left": "Vaswani et al.", "right": "Transformer" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "nn2-q4",
+        "question": "AlexNet reduced ImageNet top-5 error from 26% to approximately what percentage?",
+        "options": [
+          "25%",
+          "20%",
+          "15%",
+          "10%"
+        ],
+        "correctIndex": 2,
+        "explanation": "This dramatic improvement (to ~15%) launched the modern AI era."
+      }
+    ]
+  },
+  {
+    "id": "attention-economy-quiz-1",
+    "title": "Attention Economy: Understanding Transformers",
+    "pathId": "attention-economy",
+    "afterMilestoneId": "E2020_GPT3",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "ae1-q1",
+        "question": "What problem does the attention mechanism solve?",
+        "options": [
+          "It makes training faster",
+          "It lets the model focus on relevant parts of input when generating output",
+          "It reduces parameters needed",
+          "It eliminates training data requirements"
+        ],
+        "correctIndex": 1,
+        "explanation": "Attention allows dynamic weighting of different input parts for each output token."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ae1-q2",
+        "question": "What was the key insight of 'Attention Is All You Need'?",
+        "options": [
+          "Recurrence is essential for sequence processing",
+          "Self-attention alone can replace recurrence, enabling parallel processing",
+          "Convolutional networks work best for text",
+          "Smaller models are better"
+        ],
+        "correctIndex": 1,
+        "explanation": "By removing recurrence and relying on attention, Transformers process all positions in parallel."
+      },
+      {
+        "type": "ordering",
+        "id": "ae1-q3",
+        "prompt": "Order the GPT model releases:",
+        "items": [
+          { "id": "gpt3", "label": "GPT-3", "date": "2020" },
+          { "id": "gpt2", "label": "GPT-2", "date": "2019" },
+          { "id": "gpt4", "label": "GPT-4", "date": "2023" },
+          { "id": "gpt1", "label": "GPT-1", "date": "2018" }
+        ],
+        "correctOrder": ["gpt1", "gpt2", "gpt3", "gpt4"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ae1-q4",
+        "question": "GPT-3 has how many billion parameters?",
+        "options": [
+          "1.5 billion",
+          "17.5 billion",
+          "175 billion",
+          "1.75 trillion"
+        ],
+        "correctIndex": 2,
+        "explanation": "GPT-3's 175 billion parameters enabled emergent capabilities like few-shot learning."
+      }
+    ]
+  },
+  {
+    "id": "attention-economy-quiz-2",
+    "title": "Attention Economy: The LLM Era",
+    "pathId": "attention-economy",
+    "afterMilestoneId": "E2024_CLAUDE3",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "ae2-q1",
+        "question": "Why was ChatGPT such a breakthrough moment?",
+        "options": [
+          "It was the first language model ever created",
+          "It was the largest model by parameter count",
+          "It made AI accessible and intuitive for the general public",
+          "It achieved superintelligence"
+        ],
+        "correctIndex": 2,
+        "explanation": "ChatGPT's chat interface made powerful AI accessible to everyone, reaching 100 million users in 2 months."
+      },
+      {
+        "type": "matching",
+        "id": "ae2-q2",
+        "prompt": "Match each company to their flagship LLM:",
+        "pairs": [
+          { "id": "openai", "left": "OpenAI", "right": "GPT-4" },
+          { "id": "anthropic", "left": "Anthropic", "right": "Claude" },
+          { "id": "google", "left": "Google", "right": "Gemini" },
+          { "id": "meta", "left": "Meta", "right": "LLaMA" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ae2-q3",
+        "question": "ChatGPT reached 100 million users in how many months?",
+        "options": [
+          "1 month",
+          "2 months",
+          "6 months",
+          "12 months"
+        ],
+        "correctIndex": 1,
+        "explanation": "For comparison, TikTok took 9 months, Instagram took 2.5 years."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ae2-q4",
+        "question": "Complete the title: 'Attention Is All You _____.'",
+        "options": [
+          "Want",
+          "Need",
+          "Have",
+          "Require"
+        ],
+        "correctIndex": 1,
+        "explanation": "This 2017 paper title emphasized that attention alone, without recurrence, was sufficient."
+      }
+    ]
+  },
+  {
+    "id": "other-minds-quiz-1",
+    "title": "Other Minds: Philosophy of Intelligence",
+    "pathId": "other-minds",
+    "afterMilestoneId": "E2023_study_shows_humans_retain_understanding_",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "om1-q1",
+        "question": "Why did Turing propose the 'imitation game' instead of directly answering 'Can machines think?'",
+        "options": [
+          "He didn't believe machines could think",
+          "He thought 'thinking' was too ambiguous to answer directly",
+          "He wanted to make the test easier",
+          "He was primarily interested in games"
+        ],
+        "correctIndex": 1,
+        "explanation": "Turing argued that 'thinking' is too vague. The imitation game tests behavior over metaphysics."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "om1-q2",
+        "question": "What does the 'ELIZA Effect' describe?",
+        "options": [
+          "The tendency of AI to become more intelligent over time",
+          "The human tendency to attribute understanding to simple programs",
+          "The difficulty of programming emotional responses",
+          "The superiority of rule-based AI"
+        ],
+        "correctIndex": 1,
+        "explanation": "People interacting with ELIZA believed it understood them, despite being a simple pattern-matcher."
+      },
+      {
+        "type": "matching",
+        "id": "om1-q3",
+        "prompt": "Match each thinker to their key contribution:",
+        "pairs": [
+          { "id": "turing", "left": "Alan Turing", "right": "Imitation Game" },
+          { "id": "weizenbaum", "left": "Joseph Weizenbaum", "right": "ELIZA chatbot" },
+          { "id": "gallup", "left": "Gordon Gallup", "right": "Mirror self-recognition test" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "om1-q4",
+        "question": "Complete: Turing's 1950 paper begins: 'I propose to consider the question, Can machines _____?'",
+        "options": [
+          "learn",
+          "think",
+          "feel",
+          "reason"
+        ],
+        "correctIndex": 1,
+        "explanation": "Turing then argues this question is too vague and proposes the imitation game instead."
+      }
+    ]
+  },
+  {
+    "id": "games-ai-plays-quiz-1",
+    "title": "Games AI Plays: From Chess to Go",
+    "pathId": "games-ai-plays",
+    "afterMilestoneId": "E2017_ALPHAZERO",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "gp1-q1",
+        "question": "Why was AlphaGo's victory considered bigger than Deep Blue's chess victory?",
+        "options": [
+          "Lee Sedol was a better player than Kasparov",
+          "Go has far more positions and requires intuition, not just calculation",
+          "AlphaGo used faster computers",
+          "Chess was already easy for computers"
+        ],
+        "correctIndex": 1,
+        "explanation": "Go has 10^170 possible positions vs chess's 10^47. Expert Go requires intuition that can't be brute-forced."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "gp1-q2",
+        "question": "What made AlphaGo Zero fundamentally different from the original AlphaGo?",
+        "options": [
+          "It used bigger computers",
+          "It learned entirely from self-play without any human game data",
+          "It focused only on opening moves",
+          "It was programmed with explicit Go rules by experts"
+        ],
+        "correctIndex": 1,
+        "explanation": "AlphaGo Zero started with only the rules and learned by playing itself, surpassing human-data-trained AlphaGo."
+      },
+      {
+        "type": "ordering",
+        "id": "gp1-q3",
+        "prompt": "Order these game AI milestones:",
+        "items": [
+          { "id": "alphago", "label": "AlphaGo beats Lee Sedol", "date": "2016" },
+          { "id": "deepblue", "label": "Deep Blue beats Kasparov", "date": "1997" },
+          { "id": "tdgammon", "label": "TD-Gammon masters backgammon", "date": "1992" },
+          { "id": "alphazero", "label": "AlphaZero masters three games", "date": "2017" }
+        ],
+        "correctOrder": ["tdgammon", "deepblue", "alphago", "alphazero"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "gp1-q4",
+        "question": "Go has approximately 10^X possible board positions. What is X?",
+        "options": [
+          "47",
+          "100",
+          "170",
+          "300"
+        ],
+        "correctIndex": 2,
+        "explanation": "Go has ~10^170 positions, far more than chess's ~10^47. This massive state space is why brute-force search fails."
+      }
+    ]
+  },
+  {
+    "id": "vision-quest-quiz-1",
+    "title": "Vision Quest: Seeing to Creating",
+    "pathId": "vision-quest",
+    "afterMilestoneId": "E2015_RESNET",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "vq1-q1",
+        "question": "What is the key advantage of convolutional neural networks for images?",
+        "options": [
+          "They use more memory",
+          "They share weights across spatial locations, detecting features regardless of position",
+          "They only work with color images",
+          "They don't require training"
+        ],
+        "correctIndex": 1,
+        "explanation": "CNNs use the same filters across the image, capturing translation invariance."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "vq1-q2",
+        "question": "Why was ImageNet so important for AI progress?",
+        "options": [
+          "It was the smallest dataset available",
+          "It provided millions of labeled images and annual competition that drove research",
+          "It only contained medical images",
+          "It was created by Google"
+        ],
+        "correctIndex": 1,
+        "explanation": "ImageNet's 14 million labeled images and challenge drove innovation. AlexNet's 2012 victory launched the deep learning era."
+      },
+      {
+        "type": "ordering",
+        "id": "vq1-q3",
+        "prompt": "Order these early computer vision milestones:",
+        "items": [
+          { "id": "imagenet", "label": "ImageNet database created", "date": "2009" },
+          { "id": "lenet", "label": "LeNet-5 demonstrated", "date": "1998" },
+          { "id": "alexnet", "label": "AlexNet wins ImageNet", "date": "2012" },
+          { "id": "neocog", "label": "Neocognitron introduced", "date": "1980" }
+        ],
+        "correctOrder": ["neocog", "lenet", "imagenet", "alexnet"]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "vq1-q4",
+        "question": "ImageNet contains approximately how many million labeled images?",
+        "options": [
+          "1 million",
+          "7 million",
+          "14 million",
+          "100 million"
+        ],
+        "correctIndex": 2,
+        "explanation": "ImageNet contains ~14 million labeled images across 1000+ categories."
+      }
+    ]
+  },
+  {
+    "id": "vision-quest-quiz-2",
+    "title": "Vision Quest: Generative Revolution",
+    "pathId": "vision-quest",
+    "afterMilestoneId": "E2025_GPT_IMAGE_1_5",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "vq2-q1",
+        "question": "How do Generative Adversarial Networks (GANs) learn to create images?",
+        "options": [
+          "By copying existing images exactly",
+          "Through two networks competing: a generator creates, a discriminator judges",
+          "By random pixel generation",
+          "Through manual image editing"
+        ],
+        "correctIndex": 1,
+        "explanation": "GANs pit a generator against a discriminator, driving quality up through competition."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "vq2-q2",
+        "question": "What advantage do diffusion models have over GANs?",
+        "options": [
+          "They're faster",
+          "They're more stable to train and produce more diverse outputs",
+          "They don't require GPUs",
+          "They only work for text"
+        ],
+        "correctIndex": 1,
+        "explanation": "Diffusion models avoid GAN training instabilities and naturally produce diverse samples."
+      },
+      {
+        "type": "matching",
+        "id": "vq2-q3",
+        "prompt": "Match each model to its creator:",
+        "pairs": [
+          { "id": "dalle", "left": "DALL-E", "right": "OpenAI" },
+          { "id": "sd", "left": "Stable Diffusion", "right": "Stability AI" },
+          { "id": "mj", "left": "Midjourney", "right": "Midjourney Inc." },
+          { "id": "clip", "left": "CLIP", "right": "OpenAI" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "vq2-q4",
+        "question": "Diffusion models work by learning to reverse a gradual _____ process.",
+        "options": [
+          "compression",
+          "noising",
+          "resizing",
+          "colorizing"
+        ],
+        "correctIndex": 1,
+        "explanation": "Images are progressively corrupted with noise, and the model learns to reverse each step."
+      }
+    ]
+  },
+  {
+    "id": "intelligence-before-brains-quiz-1",
+    "title": "Intelligence Before Brains: Evolution",
+    "pathId": "intelligence-before-brains",
+    "afterMilestoneId": "E1991_intelligence_without_representation",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "ib1-q1",
+        "question": "How do bacteria exhibit 'intelligent' behavior without neurons?",
+        "options": [
+          "They have microscopic brains",
+          "They use molecular sensors to detect chemicals and bias their movement",
+          "They communicate with radio waves",
+          "They copy behavior from other bacteria"
+        ],
+        "correctIndex": 1,
+        "explanation": "Bacteria use receptor proteins to detect chemicals, comparing levels over time - simple but effective decision-making."
+      },
+      {
+        "type": "ordering",
+        "id": "ib1-q2",
+        "prompt": "Order these scientific discoveries:",
+        "items": [
+          { "id": "chemotaxis", "label": "C. elegans chemotaxis characterized", "date": "1973" },
+          { "id": "triune", "label": "MacLean's Triune Brain", "date": "1960" },
+          { "id": "flagella", "label": "Flagellar rotation mechanism", "date": "1974" },
+          { "id": "brooks", "label": "Brooks' 'Intelligence without Representation'", "date": "1991" }
+        ],
+        "correctOrder": ["triune", "chemotaxis", "flagella", "brooks"]
+      },
+      {
+        "type": "matching",
+        "id": "ib1-q3",
+        "prompt": "Match each organism to its intelligence architecture:",
+        "pairs": [
+          { "id": "ecoli", "left": "E. coli", "right": "Molecular sensors" },
+          { "id": "celegans", "left": "C. elegans", "right": "Complete neural circuit" },
+          { "id": "octopus", "left": "Octopus", "right": "Distributed network" },
+          { "id": "human", "left": "Human", "right": "Cortical hierarchy" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ib1-q4",
+        "question": "The C. elegans worm has exactly how many neurons?",
+        "options": [
+          "102",
+          "302",
+          "502",
+          "1002"
+        ],
+        "correctIndex": 1,
+        "explanation": "302 neurons - this exact count comes from electron microscopy reconstruction of every synapse."
+      }
+    ]
+  },
+  {
+    "id": "alignment-problem-quiz-1",
+    "title": "Alignment Problem: Technical Approaches",
+    "pathId": "alignment-problem",
+    "afterMilestoneId": "E2023_DPO",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "ap1-q1",
+        "question": "What is the 'alignment problem' in AI?",
+        "options": [
+          "Making AI faster",
+          "Ensuring AI systems pursue goals actually beneficial to humans",
+          "Aligning hardware components",
+          "Making AI systems agree with each other"
+        ],
+        "correctIndex": 1,
+        "explanation": "Alignment ensures AI does what we actually want, not just what we literally ask for."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ap1-q2",
+        "question": "How does Constitutional AI differ from standard RLHF?",
+        "options": [
+          "It uses more training data",
+          "It trains the model to critique itself according to stated principles",
+          "It's faster to train",
+          "It only works for chatbots"
+        ],
+        "correctIndex": 1,
+        "explanation": "Constitutional AI gives principles to follow and trains self-critique, reducing reliance on human feedback."
+      },
+      {
+        "type": "matching",
+        "id": "ap1-q3",
+        "prompt": "Match each technique to its purpose:",
+        "pairs": [
+          { "id": "rlhf", "left": "RLHF", "right": "Learn from human preferences" },
+          { "id": "cai", "left": "Constitutional AI", "right": "Train on explicit principles" },
+          { "id": "redteam", "left": "Red teaming", "right": "Discover vulnerabilities" },
+          { "id": "guardrails", "left": "Guardrails", "right": "Run-time safety constraints" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ap1-q4",
+        "question": "RLHF stands for Reinforcement Learning from Human _____.",
+        "options": [
+          "Features",
+          "Feedback",
+          "Functions",
+          "Frameworks"
+        ],
+        "correctIndex": 1,
+        "explanation": "RLHF uses human comparison judgments to train a reward model."
+      }
+    ]
+  },
+  {
+    "id": "alignment-problem-quiz-2",
+    "title": "Alignment Problem: Governance",
+    "pathId": "alignment-problem",
+    "afterMilestoneId": "E2025_CLAUDE_OPUS_4_5",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "ap2-q1",
+        "question": "What is the core framework of the EU AI Act?",
+        "options": [
+          "Ban all AI systems",
+          "Risk-based regulation with different requirements for high/limited/minimal risk",
+          "Only regulate chatbots",
+          "Let companies self-regulate"
+        ],
+        "correctIndex": 1,
+        "explanation": "The EU AI Act categorizes AI by risk level with appropriate requirements for each."
+      },
+      {
+        "type": "ordering",
+        "id": "ap2-q2",
+        "prompt": "Order these AI governance developments:",
+        "items": [
+          { "id": "euai", "label": "EU AI Act becomes law", "date": "2024" },
+          { "id": "eorevoked", "label": "US EO 14110 revoked", "date": "2025" },
+          { "id": "eo", "label": "US EO 14110 issued", "date": "2023-10" },
+          { "id": "nist", "label": "NIST AI RMF published", "date": "2023-01" }
+        ],
+        "correctOrder": ["nist", "eo", "euai", "eorevoked"]
+      },
+      {
+        "type": "matching",
+        "id": "ap2-q3",
+        "prompt": "Match EU AI Act risk levels to requirements:",
+        "pairs": [
+          { "id": "unacceptable", "left": "Unacceptable risk", "right": "Banned outright" },
+          { "id": "high", "left": "High risk", "right": "Conformity assessment required" },
+          { "id": "limited", "left": "Limited risk", "right": "Transparency obligations" },
+          { "id": "minimal", "left": "Minimal risk", "right": "No requirements" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "ap2-q4",
+        "question": "The EU AI Act became law in which year?",
+        "options": [
+          "2022",
+          "2023",
+          "2024",
+          "2025"
+        ],
+        "correctIndex": 2,
+        "explanation": "After years of negotiation, the EU AI Act was adopted in 2024, making it the world's first comprehensive AI regulation."
+      }
+    ]
+  },
+  {
+    "id": "neuromodulator-code-quiz-1",
+    "title": "Neuromodulator Code: Brain Chemistry",
+    "pathId": "neuromodulator-code",
+    "afterMilestoneId": "E1998_dopamine_s_role_in_reward_systems_founda",
+    "questions": [
+      {
+        "type": "multiple_choice",
+        "id": "nc1-q1",
+        "question": "What did Wolfram Schultz discover about dopamine neurons?",
+        "options": [
+          "They fire constantly during happy experiences",
+          "They encode reward prediction errors - the difference between expected and received reward",
+          "They only respond to food",
+          "They inhibit all learning"
+        ],
+        "correctIndex": 1,
+        "explanation": "Dopamine neurons fire for unexpected rewards and dip below baseline when expected rewards don't come - exactly computing TD error."
+      },
+      {
+        "type": "multiple_choice",
+        "id": "nc1-q2",
+        "question": "What is the amygdala's primary function in emotional learning?",
+        "options": [
+          "Storing long-term memories",
+          "Rapid threat detection and fear conditioning",
+          "Motor control",
+          "Language processing"
+        ],
+        "correctIndex": 1,
+        "explanation": "The amygdala processes threatening stimuli faster than conscious awareness, enabling rapid defensive responses."
+      },
+      {
+        "type": "matching",
+        "id": "nc1-q3",
+        "prompt": "Match each neuromodulator to its primary function:",
+        "pairs": [
+          { "id": "dopamine", "left": "Dopamine", "right": "Reward prediction" },
+          { "id": "serotonin", "left": "Serotonin", "right": "Patience and mood" },
+          { "id": "norepinephrine", "left": "Norepinephrine", "right": "Arousal and alertness" },
+          { "id": "acetylcholine", "left": "Acetylcholine", "right": "Attention and learning" }
+        ]
+      },
+      {
+        "type": "multiple_choice",
+        "id": "nc1-q4",
+        "question": "Dopamine neurons encode reward prediction _____, not rewards themselves.",
+        "options": [
+          "signals",
+          "errors",
+          "patterns",
+          "frequencies"
+        ],
+        "correctIndex": 1,
+        "explanation": "This was Schultz's key insight - dopamine signals the difference between expected and actual reward."
+      }
+    ]
+  }
+]

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers, ChevronDown } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers, ChevronDown, Sparkles } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 import { useFlashcardContext } from '../contexts/FlashcardContext';
@@ -16,6 +16,7 @@ const navLinks = [
   { to: '/', label: 'Home', icon: Home, exact: true },
   { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
   { to: '/news', label: 'News', icon: Newspaper, exact: true },
+  { to: '/feed', label: 'Feed', icon: Sparkles, exact: true, isNew: true },
   { to: '/subjects', label: 'Subjects', icon: Layers, exact: false, hasDropdown: true },
   { to: '/learn', label: 'Learn', icon: BookOpen, exact: false },
   { to: '/study', label: 'Study', icon: GraduationCap, exact: false },
@@ -136,25 +137,37 @@ function Header() {
             <nav aria-label="Main navigation" role="navigation">
               <ul className="flex items-center gap-1">
                 {navLinks.map((navLink) => {
-                  const { to, label, icon: Icon, exact, hasDropdown } = navLink as typeof navLink & { hasDropdown?: boolean };
+                  const { to, label, icon: Icon, exact, hasDropdown, isNew } = navLink as typeof navLink & { hasDropdown?: boolean; isNew?: boolean };
                   const isActive = exact
                     ? location.pathname === to
                     : location.pathname.startsWith(to);
                   // Show badge for Study link when there are cards due
                   const showBadge = to === '/study' && dueToday > 0;
+                  // Special styling for Feed link
+                  const isFeedLink = isNew;
                   return (
                     <li key={to} className="flex items-center">
                       <Link
                         to={to}
                         className={`relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          isActive
-                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
+                          isFeedLink
+                            ? isActive
+                              ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-md'
+                              : 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-600 dark:text-purple-400 hover:from-purple-500/20 hover:to-pink-500/20 border border-purple-200 dark:border-purple-800'
+                            : isActive
+                              ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white'
                         }`}
                         aria-current={isActive ? 'page' : undefined}
                       >
-                        <Icon className="h-4 w-4" />
+                        <Icon className={`h-4 w-4 ${isFeedLink && !isActive ? 'text-purple-500' : ''}`} />
                         <span>{label}</span>
+                        {/* NEW badge for Feed */}
+                        {isFeedLink && !isActive && (
+                          <span className="ml-0.5 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full">
+                            New
+                          </span>
+                        )}
                         {/* Due cards badge */}
                         {showBadge && (
                           <span
@@ -261,26 +274,39 @@ function Header() {
             </button>
 
             <ul className="space-y-1">
-              {navLinks.map(({ to, label, icon: Icon, exact }) => {
+              {navLinks.map((navLink) => {
+                const { to, label, icon: Icon, exact, isNew } = navLink as typeof navLink & { isNew?: boolean };
                 const isActive = exact
                   ? location.pathname === to
                   : location.pathname.startsWith(to);
                 // Show badge for Study link when there are cards due
                 const showBadge = to === '/study' && dueToday > 0;
+                // Special styling for Feed link
+                const isFeedLink = isNew;
                 return (
                   <li key={to}>
                     <Link
                       to={to}
                       onClick={closeMobileMenu}
                       className={`flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium transition-colors ${
-                        isActive
-                          ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
-                          : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                        isFeedLink
+                          ? isActive
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                            : 'bg-gradient-to-r from-purple-500/10 to-pink-500/10 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800'
+                          : isActive
+                            ? 'bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                            : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
                       }`}
                       aria-current={isActive ? 'page' : undefined}
                     >
-                      <Icon className="h-5 w-5" />
+                      <Icon className={`h-5 w-5 ${isFeedLink && !isActive ? 'text-purple-500' : ''}`} />
                       <span>{label}</span>
+                      {/* NEW badge for Feed */}
+                      {isFeedLink && !isActive && (
+                        <span className="ml-auto px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full">
+                          New
+                        </span>
+                      )}
                       {/* Due cards badge */}
                       {showBadge && (
                         <span

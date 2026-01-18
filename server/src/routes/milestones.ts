@@ -37,6 +37,9 @@ router.get('/:id', milestonesController.getMilestoneById);
 // GET /api/milestones/:id/linked-persons - Get linked person contributors (Sprint KPC-3)
 router.get('/:id/linked-persons', milestonesController.getContributors);
 
+// GET /api/milestones/:id/linked-terms - Get linked glossary terms (Sprint SEO-3)
+router.get('/:id/linked-terms', milestonesController.getLinkedTerms);
+
 // Sprint LEarn-1: Prerequisite concept routes
 // GET /api/milestones/:id/prerequisites - Get prerequisite concepts for a milestone
 router.get('/:id/prerequisites', prerequisiteController.getMilestonePrerequisites);
@@ -65,5 +68,12 @@ router.get('/:id/with-contributors', requireAdmin, milestonesController.getMiles
 
 // PUT /api/milestones/:id/prerequisites - Update prerequisite concepts (Admin only)
 router.put('/:id/prerequisites', requireAdmin, prerequisiteController.updateMilestonePrerequisites);
+
+// Sprint SEO-3: Glossary term links management (Admin only)
+// POST /api/milestones/:id/linked-terms - Add a glossary term link
+router.post('/:id/linked-terms', requireAdmin, milestonesController.addLinkedTerm);
+
+// DELETE /api/milestones/:id/linked-terms/:termId - Remove a glossary term link
+router.delete('/:id/linked-terms/:termId', requireAdmin, milestonesController.removeLinkedTerm);
 
 export default router;

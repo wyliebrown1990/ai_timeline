@@ -310,6 +310,51 @@ export async function getBySlugWithRelations(slug: string): Promise<{
 }
 
 /**
+ * Key concept linked to a person (Sprint SEO-3)
+ */
+export interface PersonKeyConcept {
+  id: string;
+  glossaryTermId: string;
+  contributionNote: string | null;
+  glossaryTerm: {
+    id: string;
+    term: string;
+    slug: string | null;
+    shortDefinition: string;
+    category: string;
+  };
+}
+
+/**
+ * Get glossary terms linked to a person via GlossaryTermPerson (Sprint SEO-3)
+ */
+export async function getKeyConcepts(personId: string): Promise<PersonKeyConcept[]> {
+  if (!prisma) throw new Error('Database not available');
+
+  const links = await prisma.glossaryTermPerson.findMany({
+    where: { personId },
+    include: {
+      glossaryTerm: {
+        select: {
+          id: true,
+          term: true,
+          slug: true,
+          shortDefinition: true,
+          category: true,
+        },
+      },
+    },
+  });
+
+  return links.map((link) => ({
+    id: link.id,
+    glossaryTermId: link.glossaryTermId,
+    contributionNote: link.contributionNote,
+    glossaryTerm: link.glossaryTerm,
+  }));
+}
+
+/**
  * Create a new person
  */
 export async function create(data: CreatePersonDto): Promise<Person> {

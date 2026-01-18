@@ -869,3 +869,122 @@ export async function getByIdWithContributors(id: string): Promise<(MilestoneRes
 
   return { ...formatted, linkedContributors };
 }
+
+// =============================================================================
+// Sprint SEO-3: Linked Glossary Terms
+// =============================================================================
+
+/**
+ * Glossary term linked to a milestone
+ */
+export interface MilestoneLinkedTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  category: string;
+  relevanceNote: string | null;
+}
+
+/**
+ * Get glossary terms linked to a milestone
+ */
+export async function getLinkedTerms(milestoneId: string): Promise<MilestoneLinkedTerm[]> {
+  const links = await prisma.milestoneGlossaryTerm.findMany({
+    where: { milestoneId },
+    include: {
+      glossaryTerm: {
+        select: {
+          id: true,
+          term: true,
+          slug: true,
+          shortDefinition: true,
+          category: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return links.map((link) => ({
+    id: link.glossaryTerm.id,
+    term: link.glossaryTerm.term,
+    slug: link.glossaryTerm.slug,
+    shortDefinition: link.glossaryTerm.shortDefinition,
+    category: link.glossaryTerm.category,
+    relevanceNote: link.relevanceNote,
+  }));
+}
+
+/**
+ * Add a glossary term link to a milestone
+ */
+export async function addLinkedTerm(
+  milestoneId: string,
+  glossaryTermId: string,
+  relevanceNote: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Check if link already exists
+    const existing = await prisma.milestoneGlossaryTerm.findUnique({
+      where: {
+        milestoneId_glossaryTermId: { milestoneId, glossaryTermId },
+      },
+    });
+
+    if (existing) {
+      return { success: false, error: 'Term is already linked to this milestone' };
+    }
+
+    // Check if glossary term exists
+    const term = await prisma.glossaryTerm.findUnique({
+      where: { id: glossaryTermId },
+    });
+
+    if (!term) {
+      return { success: false, error: 'Glossary term not found' };
+    }
+
+    await prisma.milestoneGlossaryTerm.create({
+      data: {
+        milestoneId,
+        glossaryTermId,
+        relevanceNote,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error adding linked term:', error);
+    return { success: false, error: 'Failed to add linked term' };
+  }
+}
+
+/**
+ * Remove a glossary term link from a milestone
+ */
+export async function removeLinkedTerm(
+  milestoneId: string,
+  glossaryTermId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const existing = await prisma.milestoneGlossaryTerm.findUnique({
+      where: {
+        milestoneId_glossaryTermId: { milestoneId, glossaryTermId },
+      },
+    });
+
+    if (!existing) {
+      return { success: false, error: 'Linked term not found on this milestone' };
+    }
+
+    await prisma.milestoneGlossaryTerm.delete({
+      where: { id: existing.id },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing linked term:', error);
+    return { success: false, error: 'Failed to remove linked term' };
+  }
+}

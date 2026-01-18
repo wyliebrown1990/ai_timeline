@@ -489,3 +489,103 @@ export async function getMilestoneWithContributors(
     next(error);
   }
 }
+
+// =============================================================================
+// Sprint SEO-3: Linked Glossary Terms Management
+// =============================================================================
+
+/**
+ * GET /api/milestones/:id/linked-terms
+ * Get glossary terms linked to a milestone
+ */
+export async function getLinkedTerms(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+
+    // Check if milestone exists
+    const milestone = await milestonesService.getById(id);
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    const linkedTerms = await milestonesService.getLinkedTerms(id);
+    res.json({ data: linkedTerms });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/admin/milestones/:id/linked-terms
+ * Add a glossary term link to a milestone
+ */
+export async function addLinkedTerm(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { glossaryTermId, relevanceNote } = req.body;
+
+    if (!glossaryTermId) {
+      throw ApiError.badRequest('glossaryTermId is required');
+    }
+
+    // Check if milestone exists
+    const milestone = await milestonesService.getById(id);
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    const result = await milestonesService.addLinkedTerm(
+      id,
+      glossaryTermId,
+      relevanceNote || null
+    );
+
+    if (!result.success) {
+      throw ApiError.badRequest(result.error || 'Failed to add linked term');
+    }
+
+    // Return updated linked terms list
+    const linkedTerms = await milestonesService.getLinkedTerms(id);
+    res.status(201).json({ data: linkedTerms });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * DELETE /api/admin/milestones/:id/linked-terms/:termId
+ * Remove a glossary term link from a milestone
+ */
+export async function removeLinkedTerm(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { id, termId } = req.params;
+
+    // Check if milestone exists
+    const milestone = await milestonesService.getById(id);
+    if (!milestone) {
+      throw ApiError.notFound(`Milestone with ID ${id} not found`);
+    }
+
+    const result = await milestonesService.removeLinkedTerm(id, termId);
+
+    if (!result.success) {
+      throw ApiError.notFound(result.error || 'Linked term not found');
+    }
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}

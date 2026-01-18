@@ -628,6 +628,100 @@ BEGIN
 END $$;
 `;
 
+const MIGRATION_0014_FEED_ENGAGEMENT = `
+-- Add engagement fields to CurrentEvent table
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'CurrentEvent' AND column_name = 'upvotes'
+    ) THEN
+        ALTER TABLE "CurrentEvent" ADD COLUMN "upvotes" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "CurrentEvent" ADD COLUMN "downvotes" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "CurrentEvent" ADD COLUMN "viewCount" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "CurrentEvent" ADD COLUMN "completionCount" INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE "CurrentEvent" ADD COLUMN "hotScore" DOUBLE PRECISION NOT NULL DEFAULT 0;
+        ALTER TABLE "CurrentEvent" ADD COLUMN "tldr" TEXT;
+        RAISE NOTICE 'Added engagement fields to CurrentEvent table';
+    ELSE
+        RAISE NOTICE 'Engagement fields already exist in CurrentEvent table, skipping';
+    END IF;
+END $$;
+
+-- Create NewsInteraction table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'NewsInteraction') THEN
+        CREATE TABLE "NewsInteraction" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "eventId" TEXT NOT NULL,
+            "action" TEXT NOT NULL,
+            "metadata" TEXT,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "NewsInteraction_pkey" PRIMARY KEY ("id")
+        );
+
+        CREATE INDEX "NewsInteraction_sessionId_eventId_idx" ON "NewsInteraction"("sessionId", "eventId");
+        CREATE INDEX "NewsInteraction_eventId_action_idx" ON "NewsInteraction"("eventId", "action");
+        CREATE INDEX "NewsInteraction_createdAt_idx" ON "NewsInteraction"("createdAt");
+        CREATE INDEX "NewsInteraction_sessionId_createdAt_idx" ON "NewsInteraction"("sessionId", "createdAt");
+        CREATE INDEX "NewsInteraction_sessionId_action_idx" ON "NewsInteraction"("sessionId", "action");
+
+        ALTER TABLE "NewsInteraction" ADD CONSTRAINT "NewsInteraction_eventId_fkey"
+            FOREIGN KEY ("eventId") REFERENCES "CurrentEvent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+        RAISE NOTICE 'Created NewsInteraction table';
+    ELSE
+        RAISE NOTICE 'NewsInteraction table already exists, skipping';
+    END IF;
+END $$;
+
+-- Create SavedCollection table
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'SavedCollection') THEN
+        CREATE TABLE "SavedCollection" (
+            "id" TEXT NOT NULL,
+            "sessionId" TEXT NOT NULL,
+            "userId" TEXT,
+            "name" TEXT NOT NULL,
+            "items" TEXT NOT NULL DEFAULT '[]',
+            "isPublic" BOOLEAN NOT NULL DEFAULT false,
+            "isDefault" BOOLEAN NOT NULL DEFAULT false,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "SavedCollection_pkey" PRIMARY KEY ("id")
+        );
+
+        CREATE INDEX "SavedCollection_sessionId_idx" ON "SavedCollection"("sessionId");
+        CREATE INDEX "SavedCollection_userId_idx" ON "SavedCollection"("userId");
+        CREATE INDEX "SavedCollection_isPublic_idx" ON "SavedCollection"("isPublic");
+
+        ALTER TABLE "SavedCollection" ADD CONSTRAINT "SavedCollection_userId_fkey"
+            FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+        RAISE NOTICE 'Created SavedCollection table';
+    ELSE
+        RAISE NOTICE 'SavedCollection table already exists, skipping';
+    END IF;
+END $$;
+
+-- Add indexes for hot score ranking
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes WHERE indexname = 'CurrentEvent_hotScore_idx'
+    ) THEN
+        CREATE INDEX "CurrentEvent_hotScore_idx" ON "CurrentEvent"("hotScore" DESC);
+        CREATE INDEX "CurrentEvent_isPublished_hotScore_idx" ON "CurrentEvent"("isPublished", "hotScore" DESC);
+        RAISE NOTICE 'Created hotScore indexes on CurrentEvent';
+    ELSE
+        RAISE NOTICE 'hotScore indexes already exist, skipping';
+    END IF;
+END $$;
+`;
+
 const MIGRATION_0009_COMMENT_SYSTEM = `
 -- Create CommentTargetType enum
 DO $$
@@ -1052,7 +1146,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -1175,6 +1269,19 @@ export async function runMigrations(
         changes: [
           'CommentVote table now has vote integrity columns (voterIp, isSuspicious, suspiciousReason)',
           'Comment table now has legitimateScore column',
+        ],
+      });
+    } else if (migration === '0014_feed_engagement') {
+      await prisma.$executeRawUnsafe(MIGRATION_0014_FEED_ENGAGEMENT);
+      console.log('[Migrations] Migration 0014_feed_engagement completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0014_feed_engagement completed successfully - Feed engagement system enabled',
+        tables: ['NewsInteraction', 'SavedCollection'],
+        changes: [
+          'CurrentEvent table now has engagement columns (upvotes, downvotes, viewCount, completionCount, hotScore, tldr)',
+          'NewsInteraction table created for tracking user feed interactions',
+          'SavedCollection table created for bookmarking feed items',
         ],
       });
     }
@@ -1319,7 +1426,8 @@ export async function getMigrationStatus(
         'NewsQuiz', 'NewsQuizAttempt',
         'User',
         'Comment', 'CommentVote', 'CommentReport',
-        'SpamFilter'
+        'SpamFilter',
+        'NewsInteraction', 'SavedCollection'
       )
       ORDER BY tablename
     `;
@@ -1405,6 +1513,7 @@ export async function getMigrationStatus(
         '0011_trust_system': hasTrustSystem,
         '0012_moderation_system': hasModerationSystem,
         '0013_vote_integrity': hasVoteIntegrity,
+        '0014_feed_engagement': existingTables.includes('NewsInteraction'),
       },
     });
   } catch (error) {

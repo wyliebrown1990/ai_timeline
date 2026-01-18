@@ -1,0 +1,29 @@
+{
+  "id": "reward-revolution",
+  "title": "The Reward Revolution",
+  "description": "Trace the evolution of reinforcement learning from Pavlov's dogs to modern RLHF. Discover how our understanding of reward-driven learning in biological systems directly inspired the algorithms that now align AI behavior.",
+  "targetAudience": "Anyone interested in how reward shapes both biological and artificial intelligence",
+  "milestoneIds": [
+    "E1897_PAVLOVIAN_CONDITIONING",
+    "E1898_LAW_OF_EFFECT",
+    "E1949_HEBBIAN_LEARNING",
+    "E1960_TRIUNE_BRAIN",
+    "E1988_TD_LEARNING",
+    "E1997_DOPAMINE_PREDICTION_ERROR",
+    "E2017_PPO",
+    "E2021_ALPHAFOLD",
+    "E2022_INSTRUCTGPT",
+    "E2023_DPO"
+  ],
+  "estimatedMinutes": 45,
+  "difficulty": "intermediate",
+  "suggestedNextPathIds": ["alignment-problem", "neuromodulator-code"],
+  "keyTakeaways": [
+    "Pavlov and Thorndike discovered that reward shapes behavior",
+    "Dopamine neurons compute the same signal as TD learning algorithms",
+    "RLHF uses human preferences to align AI with human values",
+    "PPO is the workhorse algorithm behind ChatGPT's training"
+  ],
+  "conceptsCovered": ["Classical Conditioning", "Reinforcement Learning", "RLHF", "Dopamine Prediction Error", "TD Learning"],
+  "icon": "🎯"
+}

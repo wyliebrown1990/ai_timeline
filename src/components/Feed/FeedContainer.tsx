@@ -9,8 +9,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState, memo } from 'react';
-import { motion, AnimatePresence, PanInfo, useMotionValue, useTransform } from 'framer-motion';
-import { X, ChevronUp, ChevronDown, Bookmark, XCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ArrowUp, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FeedCard } from './FeedCard';
 import { FeedLoadingCard } from './FeedLoadingCard';
@@ -23,7 +23,6 @@ import { useFeedVoting } from '../../hooks/useFeedVoting';
 import { useAchievements } from '../../hooks/useAchievements';
 import { useImagePrefetch } from '../../hooks/useImagePrefetch';
 import { useFeedSave } from '../../hooks/useFeedSave';
-import { useFeedSwipeActions } from '../../hooks/useFeedSwipeActions';
 import { useFeedSession } from '../../hooks/useFeedSession';
 import { streakService } from '../../services/streakService';
 import { hapticService } from '../../services/hapticService';
@@ -43,10 +42,6 @@ interface FeedContainerProps {
 }
 
 // Animation configuration
-const SWIPE_THRESHOLD = 100; // pixels for vertical swipe
-const HORIZONTAL_SWIPE_THRESHOLD = 80; // pixels for horizontal swipe
-const VELOCITY_THRESHOLD = 500; // pixels per second
-const HORIZONTAL_VELOCITY_THRESHOLD = 400; // pixels per second for horizontal
 
 const cardVariants = {
   enter: (direction: number) => ({
@@ -82,9 +77,6 @@ function FeedContainerComponent({
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [showSwipeHint, setShowSwipeHint] = useState(false);
-  const [horizontalOffset, setHorizontalOffset] = useState(0);
 
   // Gamification state
   const [showBreakReminder, setShowBreakReminder] = useState(false);
@@ -96,21 +88,6 @@ function FeedContainerComponent({
   // Session tracking
   const { getStats, markSeen } = useFeedSession();
 
-  // Motion values for tracking drag
-  const dragX = useMotionValue(0);
-
-  // Transform horizontal offset to overlay opacity (max at threshold)
-  const rightOverlayOpacity = useTransform(
-    dragX,
-    [0, HORIZONTAL_SWIPE_THRESHOLD],
-    [0, 1]
-  );
-  const leftOverlayOpacity = useTransform(
-    dragX,
-    [0, -HORIZONTAL_SWIPE_THRESHOLD],
-    [0, 1]
-  );
-
   // Voting hook
   const { getVoteState, vote, initializeVoteState } = useFeedVoting();
 
@@ -120,25 +97,8 @@ function FeedContainerComponent({
   // Achievements hook
   const { pendingAchievements, dismissAchievement, checkAchievements } = useAchievements();
 
-  // Swipe actions hook
-  const { handleSwipeRight, handleSwipeLeft } = useFeedSwipeActions();
-
   // Image prefetch hook for performance
   useImagePrefetch(items, currentIndex);
-
-  // Check if this is user's first visit
-  useEffect(() => {
-    const hasSeenHint = sessionStorage.getItem('feed_swipe_hint_seen');
-    if (!hasSeenHint && items.length > 0) {
-      setShowSwipeHint(true);
-      // Auto-hide after 3 seconds
-      const timer = setTimeout(() => {
-        setShowSwipeHint(false);
-        sessionStorage.setItem('feed_swipe_hint_seen', 'true');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [items.length]);
 
   // Update streak on first view
   useEffect(() => {
@@ -239,116 +199,24 @@ function FeedContainerComponent({
     sessionStorage.setItem('feed_quiz_dismissed', 'true');
   }, []);
 
-  // Handle swipe navigation
-  const handleSwipe = useCallback(
-    (newDirection: number) => {
-      // Hide hint on first swipe
-      if (showSwipeHint) {
-        setShowSwipeHint(false);
-        sessionStorage.setItem('feed_swipe_hint_seen', 'true');
-      }
+  // Navigation handlers
+  const handlePrevious = useCallback(() => {
+    if (currentIndex > 0) {
+      setDirection(-1);
+      onIndexChange(currentIndex - 1);
+      hapticService.light();
+      soundService.swipe();
+    }
+  }, [currentIndex, onIndexChange]);
 
-      const newIndex = currentIndex + newDirection;
-
-      if (newDirection > 0 && currentIndex < items.length - 1) {
-        // Swipe up - next item
-        setDirection(1);
-        onIndexChange(newIndex);
-        hapticService.light();
-        soundService.swipe();
-      } else if (newDirection < 0 && currentIndex > 0) {
-        // Swipe down - previous item
-        setDirection(-1);
-        onIndexChange(newIndex);
-        hapticService.light();
-        soundService.swipe();
-      }
-    },
-    [currentIndex, items.length, onIndexChange, showSwipeHint]
-  );
-
-  // Handle drag (track horizontal offset for visual feedback)
-  const handleDrag = useCallback(
-    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      setHorizontalOffset(info.offset.x);
-      dragX.set(info.offset.x);
-    },
-    [dragX]
-  );
-
-  // Handle drag end
-  const handleDragEnd = useCallback(
-    (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-      setIsDragging(false);
-      setHorizontalOffset(0);
-      dragX.set(0);
-
-      const { offset, velocity } = info;
-
-      // Determine if horizontal swipe is more dominant than vertical
-      const isHorizontalSwipe = Math.abs(offset.x) > Math.abs(offset.y);
-
-      if (isHorizontalSwipe) {
-        // Swipe right (save to collection)
-        if (
-          offset.x > HORIZONTAL_SWIPE_THRESHOLD ||
-          velocity.x > HORIZONTAL_VELOCITY_THRESHOLD
-        ) {
-          const currentItem = items[currentIndex];
-          if (currentItem) {
-            handleSwipeRight(currentItem.id);
-            hapticService.success();
-            soundService.save();
-            announceService.announceSwipeAction('save');
-            // Move to next card after action
-            if (currentIndex < items.length - 1) {
-              setDirection(1);
-              onIndexChange(currentIndex + 1);
-            }
-          }
-          return;
-        }
-        // Swipe left (not interested)
-        if (
-          offset.x < -HORIZONTAL_SWIPE_THRESHOLD ||
-          velocity.x < -HORIZONTAL_VELOCITY_THRESHOLD
-        ) {
-          const currentItem = items[currentIndex];
-          if (currentItem) {
-            handleSwipeLeft(currentItem.id);
-            hapticService.medium();
-            soundService.swipe();
-            announceService.announceSwipeAction('not-interested');
-            // Move to next card after action
-            if (currentIndex < items.length - 1) {
-              setDirection(1);
-              onIndexChange(currentIndex + 1);
-            }
-          }
-          return;
-        }
-      }
-
-      // Swipe up (next item)
-      if (offset.y < -SWIPE_THRESHOLD || velocity.y < -VELOCITY_THRESHOLD) {
-        handleSwipe(1);
-      }
-      // Swipe down (previous item)
-      else if (offset.y > SWIPE_THRESHOLD || velocity.y > VELOCITY_THRESHOLD) {
-        handleSwipe(-1);
-      }
-      // Otherwise, card snaps back (handled by framer-motion)
-    },
-    [
-      handleSwipe,
-      handleSwipeRight,
-      handleSwipeLeft,
-      items,
-      currentIndex,
-      onIndexChange,
-      dragX,
-    ]
-  );
+  const handleNext = useCallback(() => {
+    if (currentIndex < items.length - 1) {
+      setDirection(1);
+      onIndexChange(currentIndex + 1);
+      hapticService.light();
+      soundService.swipe();
+    }
+  }, [currentIndex, items.length, onIndexChange]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -366,12 +234,12 @@ function FeedContainerComponent({
         case 'j':
         case ' ':
           event.preventDefault();
-          handleSwipe(1);
+          handleNext();
           break;
         case 'ArrowUp':
         case 'k':
           event.preventDefault();
-          handleSwipe(-1);
+          handlePrevious();
           break;
         case 'Escape':
           event.preventDefault();
@@ -382,7 +250,7 @@ function FeedContainerComponent({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSwipe, navigate]);
+  }, [handleNext, handlePrevious, navigate]);
 
   // Prevent body scroll when feed is active
   useEffect(() => {
@@ -545,17 +413,9 @@ function FeedContainerComponent({
           animate="center"
           exit="exit"
           transition={springTransition}
-          drag
-          dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
-          dragElastic={0.2}
-          onDragStart={() => setIsDragging(true)}
-          onDrag={handleDrag}
-          onDragEnd={handleDragEnd}
-          className="absolute inset-0 cursor-grab active:cursor-grabbing"
+          className="absolute inset-0"
           style={{
             willChange: 'transform',
-            touchAction: 'none',
-            x: dragX,
           }}
         >
           <FeedCard
@@ -571,94 +431,27 @@ function FeedContainerComponent({
         </motion.div>
       </AnimatePresence>
 
-      {/* Horizontal Swipe Visual Feedback Overlays */}
-      {isDragging && (
-        <>
-          {/* Right swipe (Save) indicator */}
-          <motion.div
-            style={{ opacity: rightOverlayOpacity }}
-            className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
-          >
-            <div className="absolute inset-0 bg-gradient-to-l from-emerald-500/30 to-transparent" />
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: horizontalOffset > 0 ? 1 : 0.8 }}
-              className="relative z-10 flex flex-col items-center gap-2"
-            >
-              <div className="p-4 rounded-full bg-emerald-500/80 backdrop-blur-sm">
-                <Bookmark className="w-10 h-10 text-white" />
-              </div>
-              <span className="text-lg font-semibold text-white drop-shadow-lg">
-                Save
-              </span>
-            </motion.div>
-          </motion.div>
-
-          {/* Left swipe (Not Interested) indicator */}
-          <motion.div
-            style={{ opacity: leftOverlayOpacity }}
-            className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500/30 to-transparent" />
-            <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: horizontalOffset < 0 ? 1 : 0.8 }}
-              className="relative z-10 flex flex-col items-center gap-2"
-            >
-              <div className="p-4 rounded-full bg-red-500/80 backdrop-blur-sm">
-                <XCircle className="w-10 h-10 text-white" />
-              </div>
-              <span className="text-lg font-semibold text-white drop-shadow-lg">
-                Not Interested
-              </span>
-            </motion.div>
-          </motion.div>
-        </>
-      )}
-
-      {/* Swipe Hint Overlay */}
-      {showSwipeHint && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+      {/* Navigation Buttons */}
+      <div className="absolute bottom-28 left-0 right-0 z-40 flex justify-center gap-4 px-4">
+        <button
+          onClick={handlePrevious}
+          disabled={currentIndex === 0}
+          className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-800/90 backdrop-blur-sm text-white font-medium transition-all hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          aria-label="Previous article"
         >
-          <div className="flex flex-col items-center gap-4 text-white/80">
-            <motion.div
-              animate={{ y: [-10, 10, -10] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-            >
-              <ChevronUp className="w-8 h-8" />
-            </motion.div>
-            <span className="text-lg font-medium">Swipe to explore</span>
-            <motion.div
-              animate={{ y: [10, -10, 10] }}
-              transition={{ repeat: Infinity, duration: 1.5 }}
-            >
-              <ChevronDown className="w-8 h-8" />
-            </motion.div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Navigation Hints (subtle) */}
-      {!isDragging && (
-        <>
-          {/* Previous indicator */}
-          {currentIndex > 0 && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[calc(50%+200px)] z-30 pointer-events-none">
-              <ChevronUp className="w-6 h-6 text-white/20" />
-            </div>
-          )}
-          {/* Next indicator */}
-          {currentIndex < items.length - 1 && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 translate-y-[calc(-50%+200px)] z-30 pointer-events-none">
-              <ChevronDown className="w-6 h-6 text-white/20" />
-            </div>
-          )}
-        </>
-      )}
+          <ArrowUp className="w-5 h-5" />
+          <span>Previous</span>
+        </button>
+        <button
+          onClick={handleNext}
+          disabled={currentIndex >= items.length - 1}
+          className="flex items-center gap-2 px-5 py-3 rounded-full bg-blue-600/90 backdrop-blur-sm text-white font-medium transition-all hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          aria-label="Next article"
+        >
+          <span>Next</span>
+          <ArrowDown className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* End of Feed Indicator */}
       {isAtEnd && (

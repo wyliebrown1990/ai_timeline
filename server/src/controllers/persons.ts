@@ -336,6 +336,33 @@ export async function getPersonAffiliations(
 }
 
 /**
+ * GET /api/persons/:slug/key-concepts
+ * Get glossary terms linked to a person (Sprint SEO-3)
+ */
+export async function getPersonKeyConcepts(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { slug } = req.params;
+    const person = await personsService.getBySlug(slug);
+
+    if (!person) {
+      throw ApiError.notFound(`Person with slug "${slug}" not found`);
+    }
+
+    const keyConcepts = await personsService.getKeyConcepts(person.id);
+
+    res.json({
+      data: keyConcepts,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * POST /api/admin/persons
  * Create a new person (admin only)
  */

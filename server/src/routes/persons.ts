@@ -27,6 +27,9 @@ router.get('/:slug', personsController.getPersonBySlug);
 // GET /api/persons/:slug/affiliations - Get person's affiliations
 router.get('/:slug/affiliations', personsController.getPersonAffiliations);
 
+// GET /api/persons/:slug/key-concepts - Get glossary terms linked to person (Sprint SEO-3)
+router.get('/:slug/key-concepts', personsController.getPersonKeyConcepts);
+
 export default router;
 
 /**
