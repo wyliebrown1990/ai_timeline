@@ -35,10 +35,21 @@ function calculateExpiresAt(publishedDate: string): Date {
 }
 
 /**
+ * Options for publishing a news event
+ */
+interface PublishOptions {
+  /** Skip AI learning processing (concept linking, context generation) for faster bulk operations */
+  skipLearning?: boolean;
+}
+
+/**
  * Publish a news event draft to the CurrentEvent database table
  * Returns the created event ID
  */
-export async function publishNewsEvent(draftData: NewsEventDraft): Promise<string> {
+export async function publishNewsEvent(
+  draftData: NewsEventDraft,
+  options: PublishOptions = {}
+): Promise<string> {
   // Validate required fields
   if (!draftData.headline || !draftData.summary || !draftData.sourceUrl) {
     throw new Error('Missing required fields: headline, summary, or sourceUrl');
@@ -84,14 +95,17 @@ export async function publishNewsEvent(draftData: NewsEventDraft): Promise<strin
 
   console.log(`Published news event: ${newEvent.id} - ${draftData.headline} (mediaType: ${draftData.mediaType || 'text'})`);
 
-  // Sprint LEarn-2: Process news learning features (non-blocking)
-  // Run concept detection and context generation after publishing
-  // Wrapped in try-catch to ensure publishing succeeds even if learning fails
-  try {
-    await processNewsLearning(newEvent.id);
-  } catch (learningError) {
-    // Log but don't fail the publish
-    console.error(`[NewsPublisher] Learning processing error (non-fatal):`, learningError);
+  // Sprint LEarn-2: Process news learning features
+  // Skip during bulk operations to avoid timeout (can be processed later via processNewsLearning endpoint)
+  if (!options.skipLearning) {
+    try {
+      await processNewsLearning(newEvent.id);
+    } catch (learningError) {
+      // Log but don't fail the publish
+      console.error(`[NewsPublisher] Learning processing error (non-fatal):`, learningError);
+    }
+  } else {
+    console.log(`[NewsPublisher] Skipped learning processing for bulk operation (event: ${newEvent.id})`);
   }
 
   return newEvent.id;
@@ -159,12 +173,13 @@ export async function removeExpiredEvents(): Promise<number> {
 }
 
 /**
- * Process news learning features for a newly published event
+ * Process news learning features for a published event
  * Sprint LEarn-2: Runs concept detection and context generation
+ * Exported for use by bulk processing endpoint
  *
  * @param eventId - The ID of the published CurrentEvent
  */
-async function processNewsLearning(eventId: string): Promise<void> {
+export async function processNewsLearning(eventId: string): Promise<void> {
   console.log(`[NewsPublisher] Starting learning processing for event: ${eventId}`);
 
   // Step 1: Detect and link concepts

@@ -7,7 +7,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../db';
 import { publishMilestone } from '../services/publishing/milestonePublisher';
-import { publishNewsEvent } from '../services/publishing/newsPublisher';
+import { publishNewsEvent, processNewsLearning } from '../services/publishing/newsPublisher';
 import { publishGlossaryTerm } from '../services/publishing/glossaryPublisher';
 
 /**
@@ -423,7 +423,9 @@ export async function bulkApprove(req: Request, res: Response) {
             publishedId = await publishMilestone(draftData);
             break;
           case 'news_event':
-            publishedId = await publishNewsEvent(draftData);
+            // Skip AI learning processing during bulk approval to avoid timeout
+            // Learning can be processed later via the process-learning endpoint
+            publishedId = await publishNewsEvent(draftData, { skipLearning: true });
             break;
           case 'glossary_term':
             publishedId = await publishGlossaryTerm(draftData, draft.articleId);
@@ -552,5 +554,84 @@ export async function getPublished(req: Request, res: Response) {
   } catch (error) {
     console.error('Error getting published items:', error);
     return res.status(500).json({ error: 'Failed to get published items' });
+  }
+}
+
+/**
+ * Process news learning for recently published events that were bulk approved
+ * This runs AI concept linking and context generation for events that skipped it
+ */
+export async function processNewsEventLearning(req: Request, res: Response) {
+  try {
+    const { limit = 5 } = req.query;
+    const batchSize = Math.min(Number(limit), 10); // Cap at 10 to avoid timeout
+
+    // Find published news event drafts from the last 7 days that might need learning processing
+    // We check CurrentEvent for events without concept links
+    const recentEvents = await prisma.currentEvent.findMany({
+      where: {
+        isPublished: true,
+        publishedDate: {
+          gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+        },
+      },
+      select: {
+        id: true,
+        headline: true,
+        conceptLinks: {
+          select: { id: true },
+        },
+      },
+      orderBy: { publishedDate: 'desc' },
+      take: 100, // Check up to 100 recent events
+    });
+
+    // Filter to events without concept links (likely skipped during bulk approval)
+    const eventsNeedingProcessing = recentEvents.filter(
+      (event) => event.conceptLinks.length === 0
+    );
+
+    if (eventsNeedingProcessing.length === 0) {
+      return res.json({
+        message: 'All recent news events already have learning processing',
+        processed: 0,
+        remaining: 0,
+      });
+    }
+
+    // Process up to batchSize events
+    const toProcess = eventsNeedingProcessing.slice(0, batchSize);
+    const results: Array<{ id: string; headline: string; success: boolean; error?: string }> = [];
+
+    for (const event of toProcess) {
+      try {
+        await processNewsLearning(event.id);
+        results.push({ id: event.id, headline: event.headline, success: true });
+      } catch (err) {
+        results.push({
+          id: event.id,
+          headline: event.headline,
+          success: false,
+          error: err instanceof Error ? err.message : 'Unknown error',
+        });
+      }
+    }
+
+    const successful = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    return res.json({
+      message: `Processed ${successful} events, ${failed} failed`,
+      processed: successful,
+      failed,
+      remaining: eventsNeedingProcessing.length - toProcess.length,
+      results,
+    });
+  } catch (error) {
+    console.error('Error processing news event learning:', error);
+    return res.status(500).json({
+      error: 'Failed to process news event learning',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
 }

@@ -28,6 +28,9 @@ router.post('/bulk-approve', reviewController.bulkApprove);
 // POST /api/admin/review/bulk-reject - Bulk reject multiple drafts
 router.post('/bulk-reject', reviewController.bulkReject);
 
+// POST /api/admin/review/process-learning - Process AI learning for bulk-approved news events
+router.post('/process-learning', reviewController.processNewsEventLearning);
+
 // GET /api/admin/review/:id - Get single draft with article context
 router.get('/:id', reviewController.getDraft);
 
