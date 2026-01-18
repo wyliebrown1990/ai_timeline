@@ -20,10 +20,22 @@ import HomePage from './pages/HomePage';
 
 // Lazy-loaded main pages
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
+const EraPage = lazy(() => import('./pages/EraPage')); // Sprint SEO-3 - Era landing pages
+const ComparePage = lazy(() => import('./pages/ComparePage')); // Sprint SEO-4 - Comparison pages
+const ExplainedPage = lazy(() => import('./pages/ExplainedPage')); // Sprint SEO-4 - Explained pages
+const EventPage = lazy(() => import('./pages/EventPage')); // Sprint SEO-4 - Event pages
+const WhoInventedPage = lazy(() => import('./pages/WhoInventedPage')); // Sprint SEO-4 - Who Invented pages
+
+// Sprint SEO-4: Hub pages
+const CompareHubPage = lazy(() => import('./pages/CompareHubPage'));
+const ExplainedHubPage = lazy(() => import('./pages/ExplainedHubPage'));
+const EventsHubPage = lazy(() => import('./pages/EventsHubPage'));
+const WhoInventedHubPage = lazy(() => import('./pages/WhoInventedHubPage'));
 
 // Lazy-loaded secondary pages
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage'));
+const GlossaryTermPage = lazy(() => import('./pages/GlossaryTermPage'));
 const ConceptsPage = lazy(() => import('./pages/ConceptsPage'));
 const NewsPage = lazy(() => import('./pages/NewsPage'));
 const NewsQuizPage = lazy(() => import('./pages/NewsQuizPage'));
@@ -82,6 +94,7 @@ const CommentModerationPage = lazy(() => import('./pages/admin/CommentModeration
 const SpamFiltersPage = lazy(() => import('./pages/admin/SpamFiltersPage'));
 const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage'));
 const SubjectsAdminPage = lazy(() => import('./pages/admin/SubjectsAdminPage'));
+const SeoContentGeneratorPage = lazy(() => import('./pages/admin/SeoContentGeneratorPage')); // Sprint SEO-4 Task 8
 
 /**
  * Scrolls to top of page on route change
@@ -148,6 +161,7 @@ function App() {
                     {/* Eagerly loaded entry points */}
                     <Route index element={<HomePage />} />
                     <Route path="timeline" element={<TimelinePage />} />
+                    <Route path="timeline/:slug" element={<EraPage />} /> {/* Sprint SEO-3 - Era pages */}
 
                     {/* Lazy-loaded secondary pages */}
                     <Route path="learn" element={<LearningPathsPage />} />
@@ -156,6 +170,7 @@ function App() {
                     <Route path="news" element={<NewsPage />} />
                     <Route path="news/quiz" element={<NewsQuizPage />} />
                     <Route path="glossary" element={<GlossaryPage />} />
+                    <Route path="glossary/:slug" element={<GlossaryTermPage />} />
                     <Route path="concepts" element={<ConceptsPage />} />
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="settings" element={<SettingsPage />} />
@@ -167,6 +182,24 @@ function App() {
                     {/* Sprint Subj-5: Subject discovery pages */}
                     <Route path="subjects" element={<SubjectsPage />} />
                     <Route path="subjects/:slug" element={<SubjectPage />} />
+
+                    {/* Sprint SEO-4: Hub pages (must come before individual pages) */}
+                    <Route path="compare" element={<CompareHubPage />} />
+                    <Route path="explained" element={<ExplainedHubPage />} />
+                    <Route path="events" element={<EventsHubPage />} />
+                    <Route path="who-invented" element={<WhoInventedHubPage />} />
+
+                    {/* Sprint SEO-4: Comparison pages */}
+                    <Route path="compare/:type/:slugs" element={<ComparePage />} />
+
+                    {/* Sprint SEO-4: Explained pages */}
+                    <Route path="explained/:slug" element={<ExplainedPage />} />
+
+                    {/* Sprint SEO-4: Event pages */}
+                    <Route path="events/:id" element={<EventPage />} />
+
+                    {/* Sprint SEO-4: Who Invented pages */}
+                    <Route path="who-invented/:slug" element={<WhoInventedPage />} />
 
                     {/* Sprint LEarn-3: User profiles */}
                     <Route path="u/:username" element={<UserProfilePage />} />
@@ -226,6 +259,7 @@ function App() {
                     <Route path="spam-filters" element={<SpamFiltersPage />} />
                     <Route path="users" element={<UserManagementPage />} />
                     <Route path="subjects" element={<SubjectsAdminPage />} />
+                    <Route path="seo-content" element={<SeoContentGeneratorPage />} />
                   </Route>
 
                   {/* Admin login route - outside protected wrapper */}

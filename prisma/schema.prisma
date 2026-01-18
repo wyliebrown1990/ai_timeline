@@ -41,6 +41,9 @@ model Milestone {
   // Key Figures relation (Sprint 44)
   keyFigures MilestoneContributor[]
 
+  // Glossary term links (Sprint SEO-3)
+  glossaryTermLinks MilestoneGlossaryTerm[]
+
   @@index([date])
   @@index([category])
   @@index([era])
@@ -152,6 +155,7 @@ model ContentDraft {
 model GlossaryTerm {
   id                  String   @id @default(cuid())
   term                String   @unique
+  slug                String?  @unique // URL-friendly identifier (kebab-case)
   shortDefinition     String // For tooltips (max 200 chars)
   fullDefinition      String // 2-3 sentences
   businessContext     String? // Why it matters to business professionals
@@ -164,6 +168,9 @@ model GlossaryTerm {
   updatedAt           DateTime @updatedAt
   sourceArticleId     String? // Link to ingested article if AI-generated
 
+  // Quick Answer for SEO (Sprint SEO-2)
+  quickAnswer         String? // 50-70 word direct answer optimized for featured snippets
+
   // Prerequisite system (Sprint LEarn-1)
   prerequisiteIds     String   @default("[]") // JSON array of term IDs to learn first
   difficulty          Int      @default(1) // 1-5 scale (1=beginner, 5=expert)
@@ -171,6 +178,23 @@ model GlossaryTerm {
 
   // News event links (Sprint LEarn-2)
   newsEventLinks      NewsEventConcept[]
+
+  // Key figures links (Sprint SEO-3)
+  keyFigures          GlossaryTermPerson[]
+
+  // Organization links (Sprint SEO-3)
+  organizationLinks   GlossaryTermOrganization[]
+
+  // Milestone links (Sprint SEO-3)
+  milestoneLinks      MilestoneGlossaryTerm[]
+
+  // SEO Content Generation (Sprint SEO-4 Task 8)
+  historySection           String?  // History of the concept - AI generated
+  howItWorksSection        String?  // Technical explanation - AI generated
+  faqItems                 String   @default("[]") // JSON array of {question, answer} objects
+  whoInventedQuickAnswer   String?  // Quick answer for "Who invented X?" - AI generated
+  seoContentGeneratedAt    DateTime? // When SEO content was last generated
+  seoContentStatus         String   @default("pending") // pending, generating, complete, error
 
   @@index([term])
   @@index([category])
@@ -376,6 +400,57 @@ model NewsEventConcept {
   @@index([conceptId])
 }
 
+/// Junction table linking glossary terms to key figures (Sprint SEO-3)
+model GlossaryTermPerson {
+  id               String       @id @default(cuid())
+  glossaryTermId   String
+  glossaryTerm     GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
+  personId         String
+  person           Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  contributionNote String?      // e.g., "Invented", "Pioneered", "Popularized", "Co-developed"
+
+  createdAt        DateTime     @default(now())
+
+  @@unique([glossaryTermId, personId])
+  @@index([glossaryTermId])
+  @@index([personId])
+}
+
+/// Junction table linking glossary terms to organizations (Sprint SEO-3)
+model GlossaryTermOrganization {
+  id               String       @id @default(cuid())
+  glossaryTermId   String
+  glossaryTerm     GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  contributionNote String?      // e.g., "Developed", "Pioneered", "Commercialized", "Open-sourced"
+
+  createdAt        DateTime     @default(now())
+
+  @@unique([glossaryTermId, organizationId])
+  @@index([glossaryTermId])
+  @@index([organizationId])
+}
+
+/// Junction table linking milestones to glossary terms (Sprint SEO-3)
+model MilestoneGlossaryTerm {
+  id               String       @id @default(cuid())
+  milestoneId      String
+  milestone        Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  glossaryTermId   String
+  glossaryTerm     GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
+
+  relevanceNote    String?      // e.g., "Key technology", "First application", "Breakthrough in"
+
+  createdAt        DateTime     @default(now())
+
+  @@unique([milestoneId, glossaryTermId])
+  @@index([milestoneId])
+  @@index([glossaryTermId])
+}
+
 // =============================================================================
 // Key People & Companies System (Sprint KPC)
 // =============================================================================
@@ -426,6 +501,7 @@ model Organization {
   affiliations     Affiliation[]
   milestones       Milestone[]
   newsEventMentions NewsEventOrgMention[]
+  glossaryTermLinks GlossaryTermOrganization[]
 
   // Metadata
   status           String   @default("published") // draft, published
@@ -483,6 +559,7 @@ model Person {
   milestoneLinks   MilestoneContributor[]
   newsEventMentions NewsEventPersonMention[]
   matchedDrafts    PersonDraft[] @relation("MatchedPerson")
+  glossaryTermLinks GlossaryTermPerson[]
 
   // Metadata
   status          String   @default("published") // draft, pending_review, published

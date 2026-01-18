@@ -316,7 +316,75 @@ export const milestonesApi = {
       { headers: getAuthHeaders() }
     );
   },
+
+  /**
+   * Get linked glossary terms for a milestone (Sprint SEO-3)
+   */
+  async getLinkedTerms(milestoneId: string): Promise<{ data: MilestoneLinkedTerm[] }> {
+    return fetchJson<{ data: MilestoneLinkedTerm[] }>(
+      `${API_BASE}/milestones/${milestoneId}/linked-terms`
+    );
+  },
+
+  /**
+   * Add a glossary term link to a milestone (admin)
+   */
+  async addLinkedTerm(
+    milestoneId: string,
+    glossaryTermId: string,
+    relevanceNote?: string
+  ): Promise<{ data: MilestoneLinkedTerm[] }> {
+    return fetchJson<{ data: MilestoneLinkedTerm[] }>(
+      `${API_BASE}/milestones/${milestoneId}/linked-terms`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ glossaryTermId, relevanceNote }),
+      }
+    );
+  },
+
+  /**
+   * Remove a glossary term link from a milestone (admin)
+   */
+  async removeLinkedTerm(milestoneId: string, termId: string): Promise<void> {
+    return fetchJson<void>(
+      `${API_BASE}/milestones/${milestoneId}/linked-terms/${termId}`,
+      {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      }
+    );
+  },
 };
+
+/**
+ * Glossary term linked to a milestone (Sprint SEO-3)
+ */
+export interface MilestoneLinkedTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  category: string;
+  relevanceNote: string | null;
+}
+
+/**
+ * Milestone linked to a glossary term (Sprint SEO-3)
+ */
+export interface GlossaryLinkedMilestone {
+  id: string;
+  milestoneId: string;
+  relevanceNote: string | null;
+  milestone: {
+    id: string;
+    title: string;
+    date: string;
+    category: string;
+    significance: number;
+  };
+}
 
 /**
  * Source types for multi-source ingestion (Sprint 48)
@@ -1083,6 +1151,7 @@ export type GlossaryCategory =
 export interface GlossaryTerm {
   id: string;
   term: string;
+  slug: string | null; // Sprint SEO-3
   shortDefinition: string;
   fullDefinition: string;
   businessContext: string | null;
@@ -1095,9 +1164,27 @@ export interface GlossaryTerm {
   prerequisiteIds: string[];
   difficulty: number;
   conceptType: string;
+  quickAnswer: string | null; // Sprint SEO-2
   createdAt: string;
   updatedAt: string;
   sourceArticleId: string | null;
+}
+
+/**
+ * Key figure linked to a glossary term (Sprint SEO-3)
+ */
+export interface GlossaryKeyFigure {
+  id: string;
+  personId: string;
+  contributionNote: string | null;
+  person: {
+    id: string;
+    canonicalName: string;
+    slug: string;
+    imageUrl: string | null;
+    shortBio: string;
+    currentRole: string | null;
+  };
 }
 
 export interface CreateGlossaryTermDto {
@@ -1193,6 +1280,27 @@ export const glossaryApi = {
     return fetchJson<GlossaryTerm>(
       `${API_BASE}/glossary/term/${encodeURIComponent(termName)}`
     );
+  },
+
+  /**
+   * Get a glossary term by slug (Sprint SEO-3)
+   */
+  async getBySlug(slug: string): Promise<GlossaryTerm> {
+    return fetchJson<GlossaryTerm>(`${API_BASE}/glossary/slug/${slug}`);
+  },
+
+  /**
+   * Get key figures linked to a glossary term (Sprint SEO-3)
+   */
+  async getKeyFigures(termId: string): Promise<GlossaryKeyFigure[]> {
+    return fetchJson<GlossaryKeyFigure[]>(`${API_BASE}/glossary/${termId}/key-figures`);
+  },
+
+  /**
+   * Get milestones linked to a glossary term (Sprint SEO-3)
+   */
+  async getLinkedMilestones(termId: string): Promise<GlossaryLinkedMilestone[]> {
+    return fetchJson<GlossaryLinkedMilestone[]>(`${API_BASE}/glossary/${termId}/linked-milestones`);
   },
 
   /**
@@ -3500,7 +3608,30 @@ export const organizationsApi = {
       headers: getAuthHeaders(),
     });
   },
+
+  /**
+   * Get glossary terms (key concepts) linked to an organization (Sprint SEO-3)
+   */
+  async getKeyConcepts(slug: string): Promise<{ data: OrganizationKeyConcept[] }> {
+    return fetchJson<{ data: OrganizationKeyConcept[] }>(`${API_BASE}/organizations/${slug}/key-concepts`);
+  },
 };
+
+/**
+ * Glossary term linked to an organization (Sprint SEO-3)
+ */
+export interface OrganizationKeyConcept {
+  id: string;
+  glossaryTermId: string;
+  contributionNote: string | null;
+  glossaryTerm: {
+    id: string;
+    term: string;
+    slug: string | null;
+    shortDefinition: string;
+    category: string;
+  };
+}
 
 // =============================================================================
 // Persons API (Sprint KPC-1)
@@ -3544,6 +3675,22 @@ export interface PersonWithRelations extends Person {
     date: string;
     mentionType: string;
   }>;
+}
+
+/**
+ * Glossary term linked to a person (Sprint SEO-3)
+ */
+export interface PersonKeyConcept {
+  id: string;
+  glossaryTermId: string;
+  contributionNote: string | null;
+  glossaryTerm: {
+    id: string;
+    term: string;
+    slug: string | null;
+    shortDefinition: string;
+    category: string;
+  };
 }
 
 /**
@@ -3604,6 +3751,13 @@ export const personsApi = {
    */
   async getFocusAreas(): Promise<{ data: string[] }> {
     return fetchJson<{ data: string[] }>(`${API_BASE}/persons/focus-areas`);
+  },
+
+  /**
+   * Get glossary terms (key concepts) linked to a person (Sprint SEO-3)
+   */
+  async getKeyConcepts(slug: string): Promise<{ data: PersonKeyConcept[] }> {
+    return fetchJson<{ data: PersonKeyConcept[] }>(`${API_BASE}/persons/${slug}/key-concepts`);
   },
 
   /**
@@ -4481,5 +4635,826 @@ export const subjectsApi = {
         headers: getAuthHeaders(),
       }
     );
+  },
+};
+
+// =============================================================================
+// Sprint SEO-3: Era Landing Pages API
+// =============================================================================
+
+/**
+ * Era milestone summary
+ */
+export interface EraMilestone {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  significance: number;
+  organization: string | null;
+  description: string;
+}
+
+/**
+ * Era key figure summary
+ */
+export interface EraKeyFigure {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  shortBio: string;
+  currentRole: string | null;
+  imageUrl: string | null;
+  contributionCount: number;
+}
+
+/**
+ * Era key term summary
+ */
+export interface EraKeyTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  category: string;
+}
+
+/**
+ * Era page data response from API
+ */
+export interface EraPageResponse {
+  slug: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  milestones: EraMilestone[];
+  keyFigures: EraKeyFigure[];
+  keyTerms: EraKeyTerm[];
+  stats: {
+    totalMilestones: number;
+    totalContributors: number;
+    totalTerms: number;
+    topCategories: { category: string; count: number }[];
+  };
+}
+
+/**
+ * Era list item
+ */
+export interface EraListItem {
+  slug: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+}
+
+/**
+ * Era API client
+ */
+export const erasApi = {
+  /**
+   * Get all available eras
+   */
+  async getAll(): Promise<{ data: EraListItem[] }> {
+    return fetchJson<{ data: EraListItem[] }>(`${API_BASE}/eras`);
+  },
+
+  /**
+   * Get era page data by slug
+   */
+  async getBySlug(
+    slug: string,
+    options?: {
+      milestoneLimit?: number;
+      figureLimit?: number;
+      termLimit?: number;
+    }
+  ): Promise<EraPageResponse> {
+    const params = new URLSearchParams();
+    if (options?.milestoneLimit) {
+      params.set('milestoneLimit', options.milestoneLimit.toString());
+    }
+    if (options?.figureLimit) {
+      params.set('figureLimit', options.figureLimit.toString());
+    }
+    if (options?.termLimit) {
+      params.set('termLimit', options.termLimit.toString());
+    }
+    const queryString = params.toString();
+    const url = queryString
+      ? `${API_BASE}/eras/${slug}?${queryString}`
+      : `${API_BASE}/eras/${slug}`;
+    return fetchJson<EraPageResponse>(url);
+  },
+};
+
+// =============================================================================
+// Comparison API (Sprint SEO-4)
+// =============================================================================
+
+/**
+ * Comparison entity types
+ */
+export type ComparisonEntityType = 'organization' | 'person' | 'term';
+
+/**
+ * Organization comparison data
+ */
+export interface OrganizationComparisonData {
+  id: string;
+  name: string;
+  slug: string;
+  type: string;
+  shortDescription: string;
+  mission: string | null;
+  foundedYear: number | null;
+  headquarters: string | null;
+  focusAreas: string[];
+  products: string[];
+  logoUrl: string | null;
+  websiteUrl: string | null;
+  wikipediaUrl: string | null;
+  linkedInUrl: string | null;
+  employeeCount: number;
+  milestoneCount: number;
+  notablePeople: {
+    id: string;
+    name: string;
+    slug: string;
+    role: string | null;
+    imageUrl: string | null;
+  }[];
+}
+
+/**
+ * Person comparison data
+ */
+export interface PersonComparisonData {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  shortBio: string;
+  role: string;
+  currentRole: string | null;
+  currentOrg: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  focusAreas: string[];
+  imageUrl: string | null;
+  wikipediaUrl: string | null;
+  linkedInUrl: string | null;
+  twitterHandle: string | null;
+  contributions: string | null;
+  milestoneCount: number;
+  affiliationCount: number;
+}
+
+/**
+ * Glossary term comparison data
+ */
+export interface TermComparisonData {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  fullDefinition: string;
+  category: string;
+  difficulty: number;
+  conceptType: string;
+  example: string | null;
+  businessContext: string | null;
+  relatedTermCount: number;
+  keyFigureCount: number;
+  milestoneCount: number;
+}
+
+/**
+ * Comparison response structure
+ */
+export interface ComparisonResponse<T = unknown> {
+  type: ComparisonEntityType;
+  entityA: T;
+  entityB: T;
+  comparisonFields: string[];
+  comparisonSlug: string;
+  canonicalUrl: string;
+}
+
+/**
+ * Comparison list item
+ */
+export interface ComparisonListItem {
+  slugA: string;
+  slugB: string;
+  nameA: string;
+  nameB: string;
+  comparisonSlug: string;
+  url: string;
+}
+
+/**
+ * Comparison type overview
+ */
+export interface ComparisonTypeOverview {
+  type: ComparisonEntityType;
+  label: string;
+  description: string;
+  sampleComparisons: {
+    nameA: string;
+    nameB: string;
+    url: string;
+  }[];
+}
+
+/**
+ * Comparison API client
+ */
+export const comparisonApi = {
+  /**
+   * Get overview of all comparison types (for hub page)
+   */
+  async getOverview(): Promise<{ types: ComparisonTypeOverview[] }> {
+    return fetchJson<{ types: ComparisonTypeOverview[] }>(`${API_BASE}/compare`);
+  },
+
+  /**
+   * Get list of comparisons for a specific type
+   */
+  async getList(
+    type: ComparisonEntityType,
+    limit?: number
+  ): Promise<{ type: string; count: number; comparisons: ComparisonListItem[] }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{ type: string; count: number; comparisons: ComparisonListItem[] }>(
+      `${API_BASE}/compare/${type}${params}`
+    );
+  },
+
+  /**
+   * Get comparison data for two entities
+   */
+  async getComparison<T = unknown>(
+    type: ComparisonEntityType,
+    slugA: string,
+    slugB: string
+  ): Promise<ComparisonResponse<T>> {
+    return fetchJson<ComparisonResponse<T>>(
+      `${API_BASE}/compare/${type}/${slugA}/${slugB}`
+    );
+  },
+
+  /**
+   * Get organization comparison
+   */
+  async compareOrganizations(
+    slugA: string,
+    slugB: string
+  ): Promise<ComparisonResponse<OrganizationComparisonData>> {
+    return this.getComparison<OrganizationComparisonData>('organization', slugA, slugB);
+  },
+
+  /**
+   * Get person comparison
+   */
+  async comparePersons(
+    slugA: string,
+    slugB: string
+  ): Promise<ComparisonResponse<PersonComparisonData>> {
+    return this.getComparison<PersonComparisonData>('person', slugA, slugB);
+  },
+
+  /**
+   * Get term comparison
+   */
+  async compareTerms(
+    slugA: string,
+    slugB: string
+  ): Promise<ComparisonResponse<TermComparisonData>> {
+    return this.getComparison<TermComparisonData>('term', slugA, slugB);
+  },
+};
+
+// =============================================================================
+// Explained Pages API (Sprint SEO-4)
+// =============================================================================
+
+/**
+ * Key figure linked to a term
+ */
+export interface ExplainedKeyFigure {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  shortBio: string;
+  imageUrl: string | null;
+  currentRole: string | null;
+  contributionNote: string | null;
+}
+
+/**
+ * Related term
+ */
+export interface ExplainedRelatedTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  category: string;
+}
+
+/**
+ * Related milestone
+ */
+export interface ExplainedMilestone {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  significance: number;
+  relevanceNote: string | null;
+}
+
+/**
+ * FAQ item
+ */
+export interface ExplainedFAQ {
+  question: string;
+  answer: string;
+}
+
+/**
+ * Full explained page data
+ */
+export interface ExplainedPageData {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  fullDefinition: string;
+  quickAnswer: string | null;
+  example: string | null;
+  businessContext: string | null;
+  inMeetingExample: string | null;
+  category: string;
+  difficulty: number;
+  conceptType: string;
+  // AI-generated content (Sprint SEO-4 Task 8)
+  historySection: string | null;
+  howItWorksSection: string | null;
+  keyFigures: ExplainedKeyFigure[];
+  relatedTerms: ExplainedRelatedTerm[];
+  relatedMilestones: ExplainedMilestone[];
+  faqs: ExplainedFAQ[];
+  stats: {
+    keyFigureCount: number;
+    relatedTermCount: number;
+    milestoneCount: number;
+  };
+  canonicalUrl: string;
+}
+
+/**
+ * Explained page list item
+ */
+export interface ExplainedListItem {
+  slug: string;
+  term: string;
+  url: string;
+  lastmod: string;
+}
+
+/**
+ * Explained pages API client
+ */
+export const explainedApi = {
+  /**
+   * Get list of all explained pages
+   */
+  async getList(limit?: number): Promise<{ count: number; pages: ExplainedListItem[] }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{ count: number; pages: ExplainedListItem[] }>(
+      `${API_BASE}/explained${params}`
+    );
+  },
+
+  /**
+   * Get explained page data for a term
+   */
+  async getBySlug(slug: string): Promise<ExplainedPageData> {
+    return fetchJson<ExplainedPageData>(`${API_BASE}/explained/${slug}`);
+  },
+};
+
+// ============================================================================
+// Events API (Sprint SEO-4 - Milestone Event Pages)
+// ============================================================================
+
+/**
+ * Event page contributor
+ */
+export interface EventContributor {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  shortBio: string;
+  role: string;
+  imageUrl: string | null;
+  contributionType: string | null;
+}
+
+/**
+ * Related milestone for event page
+ */
+export interface EventRelatedMilestone {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  significance: number;
+  tldr: string | null;
+  relation: 'before' | 'after' | 'related';
+}
+
+/**
+ * Linked glossary term for event page
+ */
+export interface EventGlossaryTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  relevanceNote: string | null;
+}
+
+/**
+ * Organization for event page
+ */
+export interface EventOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string;
+  logoUrl: string | null;
+}
+
+/**
+ * Full event page data
+ */
+export interface EventPageData {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  category: string;
+  significance: number;
+  era: string | null;
+  sourceUrl: string | null;
+  imageUrl: string | null;
+  tags: string[];
+
+  // Layered content
+  tldr: string | null;
+  simpleExplanation: string | null;
+  businessImpact: string | null;
+  technicalDepth: string | null;
+  historicalContext: string | null;
+  whyItMattersToday: string | null;
+  commonMisconceptions: string | null;
+
+  // Enriched relations
+  organization: EventOrganization | null;
+  contributors: EventContributor[];
+  linkedTerms: EventGlossaryTerm[];
+  relatedMilestones: EventRelatedMilestone[];
+
+  // Stats for display
+  stats: {
+    contributorCount: number;
+    linkedTermCount: number;
+    relatedMilestoneCount: number;
+  };
+
+  // SEO
+  canonicalUrl: string;
+}
+
+/**
+ * Event list item for hub page
+ */
+export interface EventListItem {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  significance: number;
+  url: string;
+  tldr: string | null;
+  organization: string | null;
+}
+
+/**
+ * Events API client
+ */
+export const eventsApi = {
+  /**
+   * Get list of all events
+   */
+  async getList(limit?: number): Promise<{ count: number; total: number; events: EventListItem[] }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{ count: number; total: number; events: EventListItem[] }>(
+      `${API_BASE}/events${params}`
+    );
+  },
+
+  /**
+   * Get event page data for a milestone
+   */
+  async getById(id: string): Promise<EventPageData> {
+    return fetchJson<EventPageData>(`${API_BASE}/events/${id}`);
+  },
+};
+
+// ============================================================================
+// Who Invented API (Sprint SEO-4 - Who Invented X? Pages)
+// ============================================================================
+
+/**
+ * Person who contributed to a concept
+ */
+export interface WhoInventedPerson {
+  id: string;
+  canonicalName: string;
+  slug: string;
+  shortBio: string;
+  role: string;
+  imageUrl: string | null;
+  contributionNote: string | null;
+  currentOrg: string | null;
+  currentRole: string | null;
+}
+
+/**
+ * Milestone for who-invented page
+ */
+export interface WhoInventedMilestone {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  significance: number;
+  tldr: string | null;
+  organization: string | null;
+}
+
+/**
+ * Organization for who-invented page
+ */
+export interface WhoInventedOrganization {
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string;
+  logoUrl: string | null;
+  contributionNote: string | null;
+}
+
+/**
+ * Related term for who-invented page
+ */
+export interface WhoInventedRelatedTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+}
+
+/**
+ * Full who-invented page data
+ */
+export interface WhoInventedPageData {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  fullDefinition: string;
+  category: string;
+  difficulty: number;
+  quickAnswer: string | null;
+  inventors: WhoInventedPerson[];
+  pioneers: WhoInventedPerson[];
+  contributors: WhoInventedPerson[];
+  organizations: WhoInventedOrganization[];
+  milestones: WhoInventedMilestone[];
+  relatedTerms: WhoInventedRelatedTerm[];
+  stats: {
+    inventorCount: number;
+    pioneerCount: number;
+    contributorCount: number;
+    organizationCount: number;
+    milestoneCount: number;
+  };
+  canonicalUrl: string;
+}
+
+/**
+ * Who-invented list item for hub page
+ */
+export interface WhoInventedListItem {
+  slug: string;
+  term: string;
+  shortDefinition: string;
+  url: string;
+  inventorCount: number;
+  hasInventors: boolean;
+}
+
+/**
+ * Who Invented API client
+ */
+export const whoInventedApi = {
+  /**
+   * Get list of all who-invented pages
+   */
+  async getList(limit?: number): Promise<{ count: number; pages: WhoInventedListItem[] }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{ count: number; pages: WhoInventedListItem[] }>(
+      `${API_BASE}/who-invented${params}`
+    );
+  },
+
+  /**
+   * Get who-invented page data for a term
+   */
+  async getBySlug(slug: string): Promise<WhoInventedPageData> {
+    return fetchJson<WhoInventedPageData>(`${API_BASE}/who-invented/${slug}`);
+  },
+};
+
+// =============================================================================
+// SEO Content Generation API (Sprint SEO-4 Task 8)
+// =============================================================================
+
+/**
+ * SEO content generation stats
+ */
+export interface SeoContentStats {
+  total: number;
+  pending: number;
+  generating: number;
+  complete: number;
+  error: number;
+}
+
+/**
+ * Term needing SEO content generation
+ */
+export interface SeoContentTerm {
+  id: string;
+  term: string;
+  slug: string | null;
+  shortDefinition: string;
+  fullDefinition: string;
+  category: string;
+  seoContentStatus: string;
+  hasKeyFigures: boolean;
+}
+
+/**
+ * Term content for preview/editing
+ */
+export interface SeoTermContent {
+  id: string;
+  term: string;
+  slug: string | null;
+  historySection: string | null;
+  howItWorksSection: string | null;
+  faqItems: Array<{ question: string; answer: string }>;
+  whoInventedQuickAnswer: string | null;
+  seoContentStatus: string;
+  seoContentGeneratedAt: string | null;
+}
+
+/**
+ * Generation result
+ */
+export interface SeoGenerationResult {
+  success: boolean;
+  termId: string;
+  term: string;
+  error?: string;
+}
+
+/**
+ * Bulk generation result
+ */
+export interface SeoBulkGenerationResult {
+  total: number;
+  success: number;
+  failed: number;
+  skipped?: number;
+  results: SeoGenerationResult[];
+}
+
+export const seoContentApi = {
+  /**
+   * Get generation statistics
+   */
+  async getStats(): Promise<SeoContentStats> {
+    return fetchJson<SeoContentStats>(`${API_BASE}/admin/seo-content/stats`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Get terms needing generation
+   */
+  async getTermsNeedingGeneration(limit?: number): Promise<{ terms: SeoContentTerm[]; total: number }> {
+    const params = limit ? `?limit=${limit}` : '';
+    return fetchJson<{ terms: SeoContentTerm[]; total: number }>(
+      `${API_BASE}/admin/seo-content/terms${params}`,
+      { headers: getAuthHeaders() }
+    );
+  },
+
+  /**
+   * Get a term's generated content
+   */
+  async getTermContent(termId: string): Promise<SeoTermContent> {
+    return fetchJson<SeoTermContent>(`${API_BASE}/admin/seo-content/terms/${termId}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Update a term's generated content
+   */
+  async updateTermContent(
+    termId: string,
+    data: {
+      historySection?: string;
+      howItWorksSection?: string;
+      faqItems?: Array<{ question: string; answer: string }>;
+      whoInventedQuickAnswer?: string;
+    }
+  ): Promise<{ success: boolean }> {
+    return fetchJson<{ success: boolean }>(`${API_BASE}/admin/seo-content/terms/${termId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+  },
+
+  /**
+   * Reset a term's status to pending
+   */
+  async resetTermStatus(termId: string): Promise<{ success: boolean }> {
+    return fetchJson<{ success: boolean }>(`${API_BASE}/admin/seo-content/terms/${termId}/reset`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Generate Explained content for a single term
+   */
+  async generateExplained(termId: string): Promise<SeoGenerationResult> {
+    return fetchJson<SeoGenerationResult>(`${API_BASE}/admin/seo-content/generate/explained/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Generate Who Invented content for a single term
+   */
+  async generateWhoInvented(termId: string): Promise<SeoGenerationResult> {
+    return fetchJson<SeoGenerationResult>(`${API_BASE}/admin/seo-content/generate/who-invented/${termId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Bulk generate Explained content
+   */
+  async bulkGenerateExplained(termIds: string[]): Promise<SeoBulkGenerationResult> {
+    return fetchJson<SeoBulkGenerationResult>(`${API_BASE}/admin/seo-content/generate/explained/bulk`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ termIds }),
+    });
+  },
+
+  /**
+   * Bulk generate Who Invented content
+   */
+  async bulkGenerateWhoInvented(termIds: string[]): Promise<SeoBulkGenerationResult> {
+    return fetchJson<SeoBulkGenerationResult>(`${API_BASE}/admin/seo-content/generate/who-invented/bulk`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ termIds }),
+    });
   },
 };

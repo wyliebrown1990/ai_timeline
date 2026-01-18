@@ -7,6 +7,7 @@
 
 import { Router } from 'express';
 import { prisma } from '../db';
+import { getComparisonPairs, ComparisonEntityType } from '../services/comparison';
 
 const router = Router();
 
@@ -48,11 +49,23 @@ router.get('/', async (_req, res) => {
       { loc: `${BASE_URL}/timeline`, changefreq: 'weekly', priority: 0.9, lastmod: now },
       { loc: `${BASE_URL}/learn`, changefreq: 'weekly', priority: 0.9, lastmod: now },
       { loc: `${BASE_URL}/news`, changefreq: 'daily', priority: 0.8, lastmod: now },
+      { loc: `${BASE_URL}/feed`, changefreq: 'daily', priority: 0.8, lastmod: now },
       { loc: `${BASE_URL}/glossary`, changefreq: 'weekly', priority: 0.8, lastmod: now },
       { loc: `${BASE_URL}/study`, changefreq: 'weekly', priority: 0.7 },
       { loc: `${BASE_URL}/study/stats`, changefreq: 'weekly', priority: 0.5 },
       { loc: `${BASE_URL}/settings`, changefreq: 'monthly', priority: 0.3 }
     );
+
+    // Era landing pages (Sprint SEO-3)
+    const eras = ['1950s', '1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];
+    for (const era of eras) {
+      urls.push({
+        loc: `${BASE_URL}/timeline/${era}`,
+        changefreq: 'monthly',
+        priority: 0.8,
+        lastmod: now,
+      });
+    }
 
     // Dynamic: Learning paths
     const learningPaths = await prisma.learningPath.findMany({
@@ -68,6 +81,119 @@ router.get('/', async (_req, res) => {
         priority: 0.8,
         lastmod: path.updatedAt.toISOString().split('T')[0],
       });
+    }
+
+    // Dynamic: Persons (key AI figures)
+    const persons = await prisma.person.findMany({
+      select: { slug: true, updatedAt: true },
+      orderBy: { canonicalName: 'asc' },
+    });
+
+    for (const person of persons) {
+      urls.push({
+        loc: `${BASE_URL}/people/${person.slug}`,
+        changefreq: 'weekly',
+        priority: 0.7,
+        lastmod: person.updatedAt.toISOString().split('T')[0],
+      });
+    }
+
+    // Dynamic: Organizations (AI companies, labs, universities)
+    const organizations = await prisma.organization.findMany({
+      select: { slug: true, updatedAt: true },
+      orderBy: { name: 'asc' },
+    });
+
+    for (const org of organizations) {
+      urls.push({
+        loc: `${BASE_URL}/organizations/${org.slug}`,
+        changefreq: 'weekly',
+        priority: 0.7,
+        lastmod: org.updatedAt.toISOString().split('T')[0],
+      });
+    }
+
+    // Dynamic: Glossary terms (Sprint SEO-3: use dedicated slug URLs)
+    const glossaryTerms = await prisma.glossaryTerm.findMany({
+      select: { id: true, slug: true, updatedAt: true },
+      orderBy: { term: 'asc' },
+    });
+
+    for (const term of glossaryTerms) {
+      // Use slug URL if available, fallback to query param for unmigrated terms
+      const termUrl = term.slug
+        ? `${BASE_URL}/glossary/${term.slug}`
+        : `${BASE_URL}/glossary?term=${term.id}`;
+      urls.push({
+        loc: termUrl,
+        changefreq: 'monthly',
+        priority: 0.6,
+        lastmod: term.updatedAt.toISOString().split('T')[0],
+      });
+    }
+
+    // Dynamic: Comparison pages (Sprint SEO-4)
+    // Generate comparison URLs for persons and terms
+    const comparisonTypes: ComparisonEntityType[] = ['person', 'term'];
+    for (const type of comparisonTypes) {
+      try {
+        const pairs = await getComparisonPairs(type, 50); // Top 50 pairs per type
+        for (const pair of pairs) {
+          urls.push({
+            loc: `${BASE_URL}/compare/${type}/${pair.slugA}-vs-${pair.slugB}`,
+            changefreq: 'monthly',
+            priority: 0.5,
+            lastmod: now,
+          });
+        }
+      } catch (err) {
+        console.log(`[Sitemap] Could not generate ${type} comparisons:`, err);
+      }
+    }
+
+    // Dynamic: Explained pages (Sprint SEO-4)
+    // "X Explained" deep-dive pages for glossary terms with slugs
+    for (const term of glossaryTerms) {
+      if (term.slug) {
+        urls.push({
+          loc: `${BASE_URL}/explained/${term.slug}`,
+          changefreq: 'monthly',
+          priority: 0.6,
+          lastmod: term.updatedAt.toISOString().split('T')[0],
+        });
+      }
+    }
+
+    // Dynamic: Event pages (Sprint SEO-4)
+    // Milestone event pages with full narratives
+    const milestones = await prisma.milestone.findMany({
+      select: { id: true, updatedAt: true, significance: true },
+      orderBy: { date: 'desc' },
+      take: 500, // Limit to most recent 500 milestones
+    });
+
+    for (const milestone of milestones) {
+      // Higher significance milestones get higher priority
+      const priority = milestone.significance >= 3 ? 0.7 : 0.5;
+      urls.push({
+        loc: `${BASE_URL}/events/${milestone.id}`,
+        changefreq: 'monthly',
+        priority,
+        lastmod: milestone.updatedAt.toISOString().split('T')[0],
+      });
+    }
+
+    // Dynamic: Who Invented pages (Sprint SEO-4)
+    // "Who Invented X?" pages for glossary terms with slugs
+    for (const term of glossaryTerms) {
+      if (term.slug) {
+        urls.push({
+          loc: `${BASE_URL}/who-invented/${term.slug}`,
+          changefreq: 'monthly',
+          priority: 0.5,
+          lastmod: term.updatedAt.toISOString().split('T')[0],
+        });
+      }
     }
 
     // Generate XML

@@ -46,6 +46,12 @@ import adminModerationRouter from './routes/adminModeration'; // Sprint Spam-3 -
 import subjectsRouter, { adminRouter as subjectsAdminRouter, contentSubjectRouter } from './routes/subjects'; // Sprint Subj-1 - Subject Taxonomy
 import bibliographyRouter from './routes/bibliography'; // Sprint Bib-1 - Bibliography Ingestion
 import { feedRouter, interactionRouter, collectionsRouter, adminFeedRouter } from './routes/feed'; // Sprint Feed-1 - News Feed
+import erasRouter from './routes/eras'; // Sprint SEO-3 - Era Landing Pages
+import comparisonRouter from './routes/comparison'; // Sprint SEO-4 - Comparison Pages
+import explainedRouter from './routes/explained'; // Sprint SEO-4 - Explained Pages
+import eventsRouter from './routes/events'; // Sprint SEO-4 - Event Pages
+import whoInventedRouter from './routes/whoInvented'; // Sprint SEO-4 - Who Invented Pages
+import seoContentRouter from './routes/seoContent'; // Sprint SEO-4 - SEO Content Generation
 
 /**
  * Create and configure the Express application
@@ -126,6 +132,11 @@ export function createApp() {
   app.use('/api/feed', feedRouter); // News feed API (Sprint Feed-1)
   app.use('/api/news', interactionRouter); // News interaction API (Sprint Feed-1)
   app.use('/api/collections', collectionsRouter); // Collections API (Sprint Feed-1)
+  app.use('/api/eras', erasRouter); // Era landing pages API (Sprint SEO-3)
+  app.use('/api/compare', comparisonRouter); // Comparison pages API (Sprint SEO-4)
+  app.use('/api/explained', explainedRouter); // Explained pages API (Sprint SEO-4)
+  app.use('/api/events', eventsRouter); // Event pages API (Sprint SEO-4)
+  app.use('/api/who-invented', whoInventedRouter); // Who Invented pages API (Sprint SEO-4)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
@@ -152,6 +163,7 @@ export function createApp() {
   app.use('/api/admin/content', contentSubjectRouter); // Admin content subjects API (Sprint Subj-1)
   app.use('/api/admin/bibliography', bibliographyRouter); // Admin bibliography ingestion API (Sprint Bib-1)
   app.use('/api/admin/feed', adminFeedRouter); // Admin feed API (Sprint Feed-1)
+  app.use('/api/admin/seo-content', seoContentRouter); // Admin SEO content generation API (Sprint SEO-4)
 
   // Error handling
   app.use(notFoundHandler);
