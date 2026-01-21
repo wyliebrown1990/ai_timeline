@@ -310,7 +310,7 @@ function ConceptList({
                 <tr
                   key={term.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
-                  onClick={() => (window.location.href = `/glossary?term=${term.id}`)}
+                  onClick={() => (window.location.href = term.slug ? `/glossary/${term.slug}` : `/glossary?term=${term.id}`)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900 dark:text-white">{term.term}</div>

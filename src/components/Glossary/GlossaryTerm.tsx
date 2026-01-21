@@ -112,7 +112,8 @@ export function GlossaryTerm({ termId, children, inline = true }: GlossaryTermPr
   };
 
   const handleClick = () => {
-    navigate(`/glossary?term=${termId}`);
+    // Sprint SEO-7: use slug URL for SEO
+    navigate(term?.slug ? `/glossary/${term.slug}` : `/glossary?term=${termId}`);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

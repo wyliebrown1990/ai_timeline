@@ -104,6 +104,25 @@ The SEO landscape has shifted dramatically:
 
 ---
 
+### Sprint SEO-7: Glossary URL Canonicalization - IN PROGRESS
+**Goal**: Fix Google Search Console indexing issues for glossary `?term=ID` URLs
+
+Google Search Console shows glossary URLs like `/glossary?term=cmjd...` as "not indexed" because:
+- `GlossaryPage` sets same canonical for all query variations
+- 20+ components link to `?term=ID` instead of `/glossary/:slug`
+- Google treats query params as duplicate/filtered content
+
+**Tasks:**
+- [ ] Add server-side 301 redirect from `?term=ID` → `/glossary/:slug`
+- [ ] Create URL helper utility for consistent link generation
+- [ ] Update 12+ components to use slug-based URLs
+- [ ] Verify all terms have slugs in database
+- [ ] Browser validation with Claude Chrome
+
+**Expected Outcome**: All glossary term URLs properly indexed, redirects consolidate SEO value.
+
+---
+
 ## Success Metrics
 
 ### Indexing (Sprint 1)

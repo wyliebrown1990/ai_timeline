@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, BookOpen, Filter, X, Sparkles, CheckSquare, Square, Bookmark, Users } from 'lucide-react';
 import { SEO, generateGlossaryFAQs, generateFAQJsonLd } from '../components/SEO';
 import { useOnboarding } from '../components/Onboarding';
@@ -54,6 +54,7 @@ export default function GlossaryPage() {
   const { data: glossaryData, isLoading } = useGlossary();
   const allTerms = glossaryData ?? [];
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { openOnboarding } = useOnboarding();
 
   // State
@@ -80,13 +81,22 @@ export default function GlossaryPage() {
   // Flashcard context for batch operations (Sprint 22)
   const { addCard, isCardSaved } = useFlashcardContext();
 
-  // Handle URL hash for direct linking to terms
+  // Handle URL ?term=ID param - redirect to slug URL for SEO (Sprint SEO-7)
+  // This ensures Google indexes the canonical /glossary/:slug URL
   useEffect(() => {
     const termId = searchParams.get('term');
-    if (termId) {
-      setSelectedTermId(termId);
+    if (termId && allTerms.length > 0) {
+      const term = allTerms.find((t) => t.id === termId);
+      if (term?.slug) {
+        // Redirect to canonical slug URL (replaces history entry)
+        navigate(`/glossary/${term.slug}`, { replace: true });
+      } else if (term) {
+        // Term exists but no slug - show detail panel (legacy fallback)
+        setSelectedTermId(termId);
+      }
+      // If term not found, just ignore the param
     }
-  }, [searchParams]);
+  }, [searchParams, allTerms, navigate]);
 
   // Fetch content IDs when subject is selected
   useEffect(() => {
@@ -150,10 +160,15 @@ export default function GlossaryPage() {
   // Get letters that have terms
   const availableLetters = useMemo(() => new Set(Object.keys(groupedTerms)), [groupedTerms]);
 
-  // Handle term selection
+  // Handle term selection - navigate to slug URL for SEO (Sprint SEO-7)
   const handleTermClick = (term: GlossaryEntry) => {
-    setSelectedTermId(term.id);
-    setSearchParams({ term: term.id });
+    if (term.slug) {
+      navigate(`/glossary/${term.slug}`);
+    } else {
+      // Fallback for terms without slugs (legacy)
+      setSelectedTermId(term.id);
+      setSearchParams({ term: term.id });
+    }
   };
 
   // Handle closing the detail panel

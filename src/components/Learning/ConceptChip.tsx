@@ -85,9 +85,9 @@ export function ConceptChip({
   };
 
   const handleLearnMore = () => {
-    // Mark as seen and navigate to glossary
+    // Mark as seen and navigate to glossary (Sprint SEO-7: use slug URL)
     markConceptSeen(concept.id);
-    navigate(`/glossary?term=${concept.id}`);
+    navigate(concept.slug ? `/glossary/${concept.slug}` : `/glossary?term=${concept.id}`);
   };
 
   const handleAddToFlashcards = () => {

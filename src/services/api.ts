@@ -2214,6 +2214,7 @@ export interface LinkedConcept {
   difficulty: number;
   mentionContext: string | null;
   isKeyTopic: boolean;
+  slug?: string; // Sprint SEO-7: for slug-based URLs
 }
 
 /**
@@ -3381,6 +3382,7 @@ export interface GlossarySearchResult {
   term: string;
   shortDefinition: string;
   category: string;
+  slug?: string; // Sprint SEO-7: for slug-based URLs
 }
 
 export interface KeyFigureSearchResult {

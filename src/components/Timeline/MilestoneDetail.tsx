@@ -504,7 +504,7 @@ export function MilestoneDetail({
                   <PrerequisiteChip
                     key={term.id}
                     term={term}
-                    onClick={(id) => navigate(`/glossary?term=${id}`)}
+                    onClick={() => navigate(term.slug ? `/glossary/${term.slug}` : `/glossary?term=${term.id}`)}
                     isCompleted={hasSeenConcept(term.id)}
                     showDefinition
                   />

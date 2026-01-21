@@ -259,7 +259,8 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       } else if (isMilestone(result)) {
         navigate(`/timeline?milestone=${result.id}`);
       } else if (isGlossary(result)) {
-        navigate(`/glossary?term=${result.id}`);
+        // Use slug-based URL for SEO (Sprint SEO-7)
+        navigate(result.slug ? `/glossary/${result.slug}` : `/glossary?term=${result.id}`);
       } else if (isKeyFigure(result)) {
         navigate(`/glossary?tab=figures&figure=${result.id}`);
       }

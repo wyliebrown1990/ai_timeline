@@ -115,7 +115,8 @@ function ContentList({
       case 'timeline':
         return `/timeline?milestone=${item.id}`;
       case 'concepts':
-        return `/glossary?term=${item.id}`;
+        // Sprint SEO-7: use slug URL for SEO
+        return item.slug ? `/glossary/${item.slug}` : `/glossary?term=${item.id}`;
       case 'news':
         return `/news/${item.id}`;
       case 'people':

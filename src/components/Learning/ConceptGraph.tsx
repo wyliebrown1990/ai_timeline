@@ -97,9 +97,11 @@ export function ConceptGraph({
 
   const handleNodeClick = useCallback(
     (nodeId: string) => {
-      navigate(`/glossary?term=${nodeId}`);
+      // Find term to get slug (Sprint SEO-7: use slug URL)
+      const term = terms.find((t) => t.id === nodeId);
+      navigate(term?.slug ? `/glossary/${term.slug}` : `/glossary?term=${nodeId}`);
     },
-    [navigate]
+    [navigate, terms]
   );
 
   useEffect(() => {
