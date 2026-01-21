@@ -8,4 +8,4 @@ Allow: /
 Disallow: /admin/
 
 # Dynamic sitemap (auto-updated with new content)
-Sitemap: https://nhnkwe8o6i.execute-api.us-east-1.amazonaws.com/prod/api/sitemap.xml
+Sitemap: https://letaiexplainai.com/api/sitemap.xml
