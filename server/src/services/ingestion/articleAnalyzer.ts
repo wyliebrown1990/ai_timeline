@@ -15,6 +15,7 @@
 import { prisma } from '../../db';
 import { screenArticle, ScreeningResult } from './screening';
 import { generateContent, ContentGenerationResult } from './contentGenerator';
+import { generateNewsEventOnly, NewsEventOnlyDraft } from './newsEventGenerator';
 import { extractGlossaryTerms, GlossaryTermDraft } from './glossaryExtractor';
 import {
   extractKeyFigures,
@@ -287,6 +288,78 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
       });
       draftsCreated++;
       console.log(`[Analyzer] Created news event draft (valid=${eventValidation.success}, hasVideo=${!!videoId})`);
+    }
+  }
+
+  // Stage 2b: News Event Generation for NON-milestone but relevant articles
+  // This ensures all relevant AI content becomes a Current Event, not just milestone-worthy content
+  if (!screening.isMilestoneWorthy && screening.relevanceScore >= 0.6) {
+    console.log(`[Analyzer] Stage 2b: Generating news event for relevant non-milestone article`);
+
+    try {
+      // Get recent milestones for context (reuse if already fetched, otherwise fetch)
+      const milestonesForContext = await prisma.milestone.findMany({
+        take: 50,
+        orderBy: { date: 'desc' },
+        select: { id: true, title: true, date: true },
+      });
+
+      const newsEventDraft = await generateNewsEventOnly(
+        {
+          title: article.title,
+          content: article.content,
+          sourceUrl: article.externalUrl,
+          source: article.source?.name || 'Manual Submission',
+          publishedAt: article.publishedAt,
+        },
+        milestonesForContext.map((m) => ({
+          id: m.id,
+          title: m.title,
+          date: m.date.toISOString().split('T')[0],
+        })),
+        apiKey
+      );
+
+      // Enrich with video info if source is YouTube
+      const videoId = extractYouTubeVideoId(article.externalUrl);
+      const mediaType = videoId ? 'video' : 'text';
+      const enrichedNewsEvent: NewsEventOnlyDraft = {
+        ...newsEventDraft,
+        mediaType,
+        ...(videoId && {
+          videoId,
+          thumbnailUrl: getYouTubeThumbnailUrl(videoId),
+        }),
+      };
+
+      const eventData = {
+        ...enrichedNewsEvent,
+        id: `evt_${Date.now()}`,
+      };
+      const eventValidation = CurrentEventSchema.safeParse(eventData);
+
+      // Include suggested subjects from classification
+      const newsEventDraftData = {
+        ...enrichedNewsEvent,
+        suggestedSubjects: subjectClassification,
+      };
+
+      await prisma.contentDraft.create({
+        data: {
+          articleId,
+          contentType: 'news_event',
+          draftData: newsEventDraftData,
+          isValid: eventValidation.success,
+          validationErrors: eventValidation.success
+            ? null
+            : JSON.stringify(eventValidation.error.errors),
+        },
+      });
+      draftsCreated++;
+      console.log(`[Analyzer] Created news event draft for non-milestone article (valid=${eventValidation.success}, hasVideo=${!!videoId})`);
+    } catch (newsEventError) {
+      // Log error but don't fail pipeline - news event generation is non-critical
+      console.error(`[Analyzer] News event generation error for non-milestone article (non-fatal):`, newsEventError);
     }
   }
 
