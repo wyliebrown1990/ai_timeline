@@ -432,11 +432,11 @@ function FeedContainerComponent({
       </AnimatePresence>
 
       {/* Navigation Buttons */}
-      <div className="absolute bottom-28 left-0 right-0 z-40 flex justify-center gap-4 px-4">
+      <div className="absolute bottom-28 left-0 right-0 z-40 flex justify-center gap-4 px-4 pointer-events-none">
         <button
           onClick={handlePrevious}
           disabled={currentIndex === 0}
-          className="flex items-center gap-2 px-5 py-3 rounded-full bg-gray-800/90 backdrop-blur-sm text-white font-medium transition-all hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full bg-gray-800/90 backdrop-blur-sm text-white font-medium transition-all hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
           aria-label="Previous article"
         >
           <ArrowUp className="w-5 h-5" />
@@ -445,7 +445,7 @@ function FeedContainerComponent({
         <button
           onClick={handleNext}
           disabled={currentIndex >= items.length - 1}
-          className="flex items-center gap-2 px-5 py-3 rounded-full bg-blue-600/90 backdrop-blur-sm text-white font-medium transition-all hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
+          className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full bg-blue-600/90 backdrop-blur-sm text-white font-medium transition-all hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
           aria-label="Next article"
         >
           <span>Next</span>
@@ -455,7 +455,7 @@ function FeedContainerComponent({
 
       {/* End of Feed Indicator */}
       {isAtEnd && (
-        <div className="absolute bottom-24 left-0 right-0 z-40 flex justify-center">
+        <div className="absolute bottom-24 left-0 right-0 z-40 flex justify-center pointer-events-none">
           <div className="bg-gray-800/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-300">
             You've reached the end!
           </div>

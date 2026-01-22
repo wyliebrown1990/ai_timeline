@@ -139,7 +139,10 @@ export async function updateAllHotScores(): Promise<{
 }
 
 /**
- * Get events sorted by hot score for feed display.
+ * Get events sorted by recency first, then by upvotes within the same day.
+ * This ensures newest content always appears first, with popular content
+ * rising to the top within each day.
+ *
  * Excludes events the user has already seen (by session).
  */
 export async function getFeedEvents(options: {
@@ -173,16 +176,18 @@ export async function getFeedEvents(options: {
   const excludeCondition =
     excludeIds.length > 0 ? { id: { notIn: excludeIds } } : {};
 
+  // Fetch more events than needed so we can sort by day + upvotes in memory
   const events = await prisma.currentEvent.findMany({
     where: {
       isPublished: true,
       ...excludeCondition,
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
-    orderBy: {
-      hotScore: 'desc',
-    },
-    take: limit,
+    orderBy: [
+      { publishedDate: 'desc' },
+      { upvotes: 'desc' },
+    ],
+    take: limit * 3, // Fetch more to allow proper day-based sorting
     select: {
       id: true,
       headline: true,
@@ -203,8 +208,26 @@ export async function getFeedEvents(options: {
     },
   });
 
+  // Sort by day (most recent first), then by upvotes within each day
+  const sortedEvents = events.sort((a, b) => {
+    // Get date only (no time) for comparison
+    const dayA = new Date(a.publishedDate).toISOString().split('T')[0];
+    const dayB = new Date(b.publishedDate).toISOString().split('T')[0];
+
+    // If different days, sort by date (newest first)
+    if (dayA !== dayB) {
+      return dayB.localeCompare(dayA);
+    }
+
+    // Same day: sort by upvotes (highest first)
+    return b.upvotes - a.upvotes;
+  });
+
+  // Return only the requested limit
+  const limitedEvents = sortedEvents.slice(0, limit);
+
   // Get comment counts for all events in a single query
-  const eventIds = events.map((e) => e.id);
+  const eventIds = limitedEvents.map((e) => e.id);
   const commentCounts = await prisma.comment.groupBy({
     by: ['targetId'],
     where: {
@@ -222,7 +245,7 @@ export async function getFeedEvents(options: {
   );
 
   // Attach comment counts to events
-  return events.map((event) => ({
+  return limitedEvents.map((event) => ({
     ...event,
     commentCount: countMap.get(event.id) || 0,
   }));

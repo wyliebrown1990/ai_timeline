@@ -35,52 +35,58 @@ function FeedCardMediaComponent({
     : '';
 
   // If video is playing, show embedded player
+  // Mobile: full width | Desktop: contained with max-width, centered
   if (isPlaying && isVideo) {
     return (
-      <div className="relative w-full aspect-video bg-black flex-shrink-0">
-        <iframe
-          className="absolute top-0 left-0 w-full h-full"
-          src={embedUrl}
-          title={headline}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-        {/* Close button to stop video */}
-        <button
-          onClick={() => setIsPlaying(false)}
-          className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/70 text-white hover:bg-black/90 transition-colors"
-          aria-label="Close video"
-        >
-          <X className="w-5 h-5" />
-        </button>
+      <div className="flex-shrink-0 w-full bg-black md:bg-transparent md:flex md:justify-center md:px-4">
+        <div className="relative w-full md:max-w-2xl aspect-video">
+          <iframe
+            className="w-full h-full md:rounded-lg"
+            src={embedUrl}
+            title={headline}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+          {/* Close button to stop video */}
+          <button
+            onClick={() => setIsPlaying(false)}
+            className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/70 text-white hover:bg-black/90 transition-colors"
+            aria-label="Close video"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
     );
   }
 
   // If we have a thumbnail and no error, show the image with play button
+  // Mobile: full width | Desktop: contained with max-width, centered
   if (thumbnailUrl && !imageError) {
     return (
-      <div className="relative w-full aspect-video max-h-[30vh] bg-gray-900 flex-shrink-0 overflow-hidden">
-        <img
-          src={thumbnailUrl}
-          alt=""
-          className="w-full h-full object-cover"
-          loading={isActive ? 'eager' : 'lazy'}
-          onError={() => setImageError(true)}
-        />
-        {isVideo && (
-          <button
-            onClick={() => setIsPlaying(true)}
-            className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
-            aria-label={`Play video: ${headline}`}
-          >
-            <div className="w-16 h-16 rounded-full bg-red-600 group-hover:bg-red-500 flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
-              <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
-            </div>
-          </button>
-        )}
-        {/* Gradient overlay at bottom for text readability */}
-        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-950 to-transparent" />
+      <div className="flex-shrink-0 w-full md:flex md:justify-center md:px-4">
+        <div className="relative w-full md:max-w-2xl aspect-video max-h-[30vh] md:max-h-[40vh] bg-gray-900 overflow-hidden md:rounded-lg">
+          <img
+            src={thumbnailUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            loading={isActive ? 'eager' : 'lazy'}
+            onError={() => setImageError(true)}
+          />
+          {isVideo && (
+            <button
+              onClick={() => setIsPlaying(true)}
+              className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-colors group"
+              aria-label={`Play video: ${headline}`}
+            >
+              <div className="w-16 h-16 rounded-full bg-red-600 group-hover:bg-red-500 flex items-center justify-center shadow-lg transition-all group-hover:scale-110">
+                <Play className="w-7 h-7 text-white ml-1" fill="currentColor" />
+              </div>
+            </button>
+          )}
+          {/* Gradient overlay at bottom for text readability */}
+          <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-950 to-transparent md:rounded-b-lg" />
+        </div>
       </div>
     );
   }

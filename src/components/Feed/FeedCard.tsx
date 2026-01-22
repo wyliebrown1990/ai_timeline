@@ -6,13 +6,14 @@
  */
 
 import { memo, useState, useCallback, useEffect, useMemo, lazy, Suspense } from 'react';
-import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
+import { ExternalLink, ChevronDown, ChevronUp, Link2 } from 'lucide-react';
 import type { FeedItem } from '../../types/feed';
 import { FeedCardHeader } from './FeedCardHeader';
 import { FeedCardMedia } from './FeedCardMedia';
 import { FeedActionBar } from './FeedActionBar';
 import { FeedCommentPreview } from './FeedCommentPreview';
 import { FeedConceptChips } from './FeedConceptChips';
+import { FeedContextSection } from './FeedContextSection';
 
 // Lazy load heavy modal components for better initial load time
 const FeedCommentSheet = lazy(() => import('./FeedCommentSheet'));
@@ -51,6 +52,7 @@ function FeedCardComponent({
 }: FeedCardProps) {
   const [isSummaryExpanded, setIsSummaryExpanded] = useState(false);
   const [isContextExpanded, setIsContextExpanded] = useState(false);
+  const [isConnectionExpanded, setIsConnectionExpanded] = useState(false);
   const [isCommentSheetOpen, setIsCommentSheetOpen] = useState(false);
   const [isAIChatOpen, setIsAIChatOpen] = useState(false);
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
@@ -228,6 +230,51 @@ function FeedCardComponent({
             )}
           </div>
         )}
+
+        {/* Connection to AI History Section */}
+        {item.connectionExplanation && (
+          <div
+            className={cn(
+              'bg-purple-500/10 border border-purple-500/20 rounded-lg mb-4',
+              'transition-all duration-200'
+            )}
+          >
+            <button
+              onClick={() => setIsConnectionExpanded(!isConnectionExpanded)}
+              className="w-full flex items-center justify-between p-3 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-purple-400" />
+                <span className="text-sm font-semibold text-purple-400">
+                  Connection to AI history
+                </span>
+              </div>
+              {isConnectionExpanded ? (
+                <ChevronUp className="w-4 h-4 text-purple-400" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-purple-400" />
+              )}
+            </button>
+            <div
+              className={cn(
+                'overflow-hidden transition-all duration-200',
+                isConnectionExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+              )}
+            >
+              <p className="px-3 pb-3 text-sm text-gray-300 leading-relaxed">
+                {item.connectionExplanation}
+              </p>
+            </div>
+            {!isConnectionExpanded && (
+              <p className="px-3 pb-3 text-sm text-gray-400 line-clamp-1">
+                {item.connectionExplanation}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Historical Context Section - Lazy loaded milestones */}
+        <FeedContextSection eventId={item.id} isActive={isActive} />
 
         {/* Spacer */}
         <div className="flex-1 min-h-4" />

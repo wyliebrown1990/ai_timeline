@@ -238,7 +238,9 @@ export async function generateNewsContext(
 }
 
 /**
- * Get context for a news event (from DB or generate if missing)
+ * Get context for a news event (from DB, or generate once and cache)
+ * First request: generates with LLM and saves to DB
+ * Subsequent requests: returns instantly from DB cache
  */
 export async function getNewsContext(
   eventId: string,
@@ -260,20 +262,25 @@ export async function getNewsContext(
     throw new Error(`News event not found: ${eventId}`);
   }
 
-  // Return existing context if available and not regenerating
-  if (!regenerate && event.whyItMatters && event.relatedMilestoneIds !== '[]') {
-    const milestoneIds = JSON.parse(event.relatedMilestoneIds) as string[];
+  // Return cached context if available (and not forcing regeneration)
+  // Only require whyItMatters to exist - milestones may legitimately be empty
+  if (!regenerate && event.whyItMatters) {
+    const milestoneIds = event.relatedMilestoneIds
+      ? JSON.parse(event.relatedMilestoneIds) as string[]
+      : [];
 
-    // Get milestone details
-    const milestones = await prisma.milestone.findMany({
-      where: { id: { in: milestoneIds } },
-      select: {
-        id: true,
-        title: true,
-        date: true,
-        category: true,
-      },
-    });
+    // Get milestone details if we have any
+    const milestones = milestoneIds.length > 0
+      ? await prisma.milestone.findMany({
+          where: { id: { in: milestoneIds } },
+          select: {
+            id: true,
+            title: true,
+            date: true,
+            category: true,
+          },
+        })
+      : [];
 
     return {
       whyItMatters: event.whyItMatters,
@@ -288,7 +295,8 @@ export async function getNewsContext(
     };
   }
 
-  // Generate new context
+  // No cached context - generate with LLM and save to DB for future requests
+  console.log(`[newsContextGenerator] Generating context for event ${eventId} (first request)`);
   return generateNewsContext(eventId, prisma);
 }
 
