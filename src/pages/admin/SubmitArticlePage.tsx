@@ -149,6 +149,11 @@ export function SubmitArticlePage() {
 
       if (response.success) {
         toast.success('Article saved! Go to Ingested Articles to analyze it.');
+        // Clear form for next submission
+        setSourceUrl('');
+        setTitle('');
+        setContent('');
+        setDuplicateArticleId(null);
       }
     } catch (error) {
       console.error('Submit error:', error);
@@ -197,6 +202,10 @@ export function SubmitArticlePage() {
           ? `with transcript (${response.wordCount.toLocaleString()} words)`
           : 'using description (no transcript available)';
         toast.success(`YouTube video submitted ${transcriptInfo}`);
+        // Clear form for next submission
+        setSourceUrl('');
+        setTitle('');
+        setContent('');
       }
     } catch (error) {
       console.error('YouTube submit error:', error);
