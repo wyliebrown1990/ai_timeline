@@ -57,6 +57,7 @@ export interface FilterQueryParams {
   dateEnd?: string;
   tags?: string;
   subject?: string;
+  organization?: string; // Sprint TD-2: Filter by organization name
   page?: number;
   limit?: number;
 }

@@ -1,7 +1,7 @@
 import { AlertCircle, Clock, LayoutGrid, Workflow, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SEO } from '../components/SEO';
+import { SEO, generateTimelineItemListJsonLd } from '../components/SEO';
 import {
   CategoryLegend,
   KeyboardShortcutsHelp,
@@ -260,12 +260,38 @@ function TimelinePage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zoomLevel, handleJumpToEarliest, handleJumpToLatest]);
 
+  // Calculate the most recent milestone date for freshness signal
+  const lastUpdatedDate = useMemo(() => {
+    if (!milestones || milestones.length === 0) return null;
+    const sortedByDate = [...milestones].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    return sortedByDate[0] ? new Date(sortedByDate[0].date) : null;
+  }, [milestones]);
+
+  // Generate ItemList schema for timeline milestones
+  const timelineSchema = useMemo(() => {
+    if (!milestones || milestones.length === 0) return null;
+    return generateTimelineItemListJsonLd(
+      milestones.map((m) => ({
+        id: m.id,
+        title: m.title,
+        date: m.date,
+        description: m.description,
+        organization: m.organization,
+      })),
+      'AI Timeline - Complete History of Artificial Intelligence',
+      'Comprehensive interactive timeline covering 250+ milestones in artificial intelligence history from the 1940s to present day. Track major model releases, research breakthroughs, and industry developments.'
+    );
+  }, [milestones]);
+
   return (
     <>
       <SEO
-        title="AI Timeline"
-        description="Explore the complete history of artificial intelligence from the 1940s to today. Interactive timeline with semantic zoom from decades to individual months."
+        title="AI Timeline: Complete History of Artificial Intelligence"
+        description="Explore the complete AI timeline from 1950 to 2026. Interactive history of artificial intelligence milestones, major model releases, and breakthroughs. Updated weekly with the latest AI developments."
         canonical="https://letaiexplainai.com/timeline"
+        jsonLd={timelineSchema || undefined}
       />
       <div className="animate-fade-in">
         {/* Context Path Banner (shown when navigating from a current event) */}
@@ -289,6 +315,16 @@ function TimelinePage() {
                   </span>
                 )}
               </p>
+              {/* Freshness signal for SEO and user trust */}
+              {lastUpdatedDate && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Last updated: {lastUpdatedDate.toLocaleDateString('en-US', {
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
+                </p>
+              )}
             </div>
 
             {/* Toolbar */}

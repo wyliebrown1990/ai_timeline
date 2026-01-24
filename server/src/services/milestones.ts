@@ -320,6 +320,8 @@ export interface FilterOptions {
   tags?: string[];
   subjectSlug?: string;
   includeSubjectChildren?: boolean;
+  /** Filter by organization name (case-insensitive partial match) - Sprint TD-2 */
+  organization?: string;
 }
 
 /**
@@ -517,6 +519,15 @@ export async function getFiltered(
     if (filters.dateEnd) {
       (where.date as Record<string, Date>).lte = filters.dateEnd;
     }
+  }
+
+  // Organization filter - Sprint TD-2: SEO landing pages
+  // Case-insensitive partial match on organization field
+  if (filters.organization) {
+    where.organization = {
+      contains: filters.organization,
+      mode: 'insensitive',
+    };
   }
 
   const [milestones, total] = await Promise.all([

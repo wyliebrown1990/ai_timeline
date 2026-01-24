@@ -45,8 +45,8 @@ function HomePage() {
   return (
     <>
       <SEO
-        title="Let AI Explain AI"
-        description="Explore the history of artificial intelligence from the 1940s to today. Interactive timeline, learning paths, and AI news with historical context."
+        title="LAEA - Interactive AI Timeline, History & Learning Platform"
+        description="Explore the complete history of artificial intelligence through interactive timelines, learning paths, and AI news with historical context. From Turing to GPT-5, understand how AI evolved."
         canonical="https://letaiexplainai.com"
       />
       <div className="animate-fade-in">

@@ -375,4 +375,67 @@ export function generateGlossaryFAQs(terms: {
   }));
 }
 
+/**
+ * Timeline milestone for ItemList schema
+ */
+export interface TimelineMilestoneForSchema {
+  id: string;
+  title: string;
+  date: string | Date;
+  description?: string;
+  organization?: string | null;
+}
+
+/**
+ * Helper: Generate ItemList JSON-LD schema for Timeline pages
+ *
+ * Creates an ItemList schema with Event items for Google rich results.
+ * Limits to 100 items to avoid schema bloat.
+ *
+ * @example
+ * const schema = generateTimelineItemListJsonLd(milestones, 'AI Timeline');
+ */
+export function generateTimelineItemListJsonLd(
+  milestones: TimelineMilestoneForSchema[],
+  listName: string,
+  listDescription?: string
+): Record<string, unknown> {
+  // Limit to 100 most significant milestones for schema
+  const limitedMilestones = milestones.slice(0, 100);
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: listName,
+    description: listDescription || `Interactive timeline of ${milestones.length}+ AI milestones`,
+    numberOfItems: milestones.length,
+    itemListElement: limitedMilestones.map((milestone, index) => {
+      const date = milestone.date instanceof Date
+        ? milestone.date.toISOString().split('T')[0]
+        : new Date(milestone.date).toISOString().split('T')[0];
+
+      const item: Record<string, unknown> = {
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'Event',
+          name: milestone.title,
+          startDate: date,
+          description: milestone.description?.slice(0, 200) || undefined,
+        },
+      };
+
+      // Add organizer if organization exists
+      if (milestone.organization) {
+        (item.item as Record<string, unknown>).organizer = {
+          '@type': 'Organization',
+          name: milestone.organization,
+        };
+      }
+
+      return item;
+    }),
+  };
+}
+
 export default SEO;

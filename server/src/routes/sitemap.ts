@@ -43,10 +43,10 @@ router.get('/', async (_req, res) => {
     const urls: SitemapUrl[] = [];
     const now = new Date().toISOString().split('T')[0];
 
-    // Static pages
+    // Static pages - Timeline gets highest priority for SEO targeting
     urls.push(
       { loc: `${BASE_URL}/`, changefreq: 'weekly', priority: 1.0, lastmod: now },
-      { loc: `${BASE_URL}/timeline`, changefreq: 'weekly', priority: 0.9, lastmod: now },
+      { loc: `${BASE_URL}/timeline`, changefreq: 'daily', priority: 1.0, lastmod: now }, // Highest priority - main target
       { loc: `${BASE_URL}/learn`, changefreq: 'weekly', priority: 0.9, lastmod: now },
       { loc: `${BASE_URL}/news`, changefreq: 'daily', priority: 0.8, lastmod: now },
       { loc: `${BASE_URL}/feed`, changefreq: 'daily', priority: 0.8, lastmod: now },
@@ -55,6 +55,28 @@ router.get('/', async (_req, res) => {
       { loc: `${BASE_URL}/study/stats`, changefreq: 'weekly', priority: 0.5 },
       { loc: `${BASE_URL}/settings`, changefreq: 'monthly', priority: 0.3 }
     );
+
+    // Company-specific timeline pages (Sprint TD-2 - SEO landing pages)
+    const companyTimelines = ['openai', 'anthropic', 'google', 'meta'];
+    for (const company of companyTimelines) {
+      urls.push({
+        loc: `${BASE_URL}/timeline/${company}`,
+        changefreq: 'weekly',
+        priority: 0.9,
+        lastmod: now,
+      });
+    }
+
+    // Category-specific timeline pages (Sprint TD-2)
+    const categoryTimelines = ['generative-ai', 'llm', 'models', 'complete-history'];
+    for (const category of categoryTimelines) {
+      urls.push({
+        loc: `${BASE_URL}/timeline/${category}`,
+        changefreq: 'weekly',
+        priority: 0.9,
+        lastmod: now,
+      });
+    }
 
     // Era landing pages (Sprint SEO-3)
     const eras = ['1950s', '1960s', '1970s', '1980s', '1990s', '2000s', '2010s', '2020s'];

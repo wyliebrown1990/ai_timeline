@@ -329,6 +329,11 @@ export async function filterMilestones(
       filters.includeSubjectChildren = req.query.includeSubjectChildren === 'true';
     }
 
+    // Organization filter: ?organization=openai (Sprint TD-2: SEO landing pages)
+    if (req.query.organization) {
+      filters.organization = req.query.organization as string;
+    }
+
     const { milestones, total } = await milestonesService.getFiltered(filters, {
       skip,
       limit,
