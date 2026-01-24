@@ -685,6 +685,7 @@ export function MilestoneDetail({
               <img
                 src={milestone.imageUrl}
                 alt={milestone.title}
+                loading="lazy"
                 className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
               />
             </div>

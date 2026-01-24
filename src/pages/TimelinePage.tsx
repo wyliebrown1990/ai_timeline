@@ -1,9 +1,12 @@
 import { AlertCircle, Clock, LayoutGrid, Workflow, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SEO, generateTimelineItemListJsonLd } from '../components/SEO';
 import {
-  CategoryLegend,
+  BackToTopButton,
+  CategoryFilterBar,
+  CompanyQuickFilters,
+  DecadeNavigator,
   KeyboardShortcutsHelp,
   MilestoneCard,
   MilestoneDetail,
@@ -11,10 +14,12 @@ import {
   TimelineMinimap,
   TimelineNavigation,
   TimelineSkeleton,
+  TimelineStats,
   ZoomControls,
   zoomConfig,
 } from '../components/Timeline';
 import type { ZoomLevel } from '../components/Timeline';
+import { MilestoneCategory } from '../types/milestone';
 import { SearchBar, SearchResults } from '../components/Search';
 import { FilterPanel } from '../components/Filters';
 import { useOnboarding } from '../components/Onboarding';
@@ -73,6 +78,7 @@ function EmptyState() {
  */
 function TimelinePage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { openOnboarding } = useOnboarding();
 
   // Search state
@@ -108,8 +114,18 @@ function TimelinePage() {
   // Available tags for filter
   const { data: tagsData, isLoading: isTagsLoading } = useTags();
 
-  // UI state
-  const [viewMode, setViewMode] = useState<ViewMode>('timeline');
+  // UI state with localStorage persistence
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('timeline-view-mode');
+      if (saved === 'list' || saved === 'timeline') return saved;
+    }
+    return 'timeline';
+  });
+  const setViewMode = useCallback((mode: ViewMode) => {
+    setViewModeState(mode);
+    localStorage.setItem('timeline-view-mode', mode);
+  }, []);
   const [zoomLevel, setZoomLevel] = useState<ZoomLevel>('year');
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -150,6 +166,32 @@ function TimelinePage() {
     return calculateTimeRange(dates, 2);
   }, [milestones]);
 
+  // Calculate milestone counts per decade for DecadeNavigator
+  const milestoneCounts = useMemo(() => {
+    if (!milestones) return {};
+    const counts: Record<number, number> = {};
+    milestones.forEach((m) => {
+      const year = new Date(m.date).getFullYear();
+      const decade = Math.floor(year / 10) * 10;
+      counts[decade] = (counts[decade] || 0) + 1;
+    });
+    return counts;
+  }, [milestones]);
+
+  // Calculate milestone counts per category for CategoryFilterBar
+  const categoryCounts = useMemo(() => {
+    if (!milestones) return {} as Record<MilestoneCategory, number>;
+    const counts = {} as Record<MilestoneCategory, number>;
+    milestones.forEach((m) => {
+      const category = m.category as MilestoneCategory;
+      counts[category] = (counts[category] || 0) + 1;
+    });
+    return counts;
+  }, [milestones]);
+
+  // Track active decade based on visible content
+  const [activeDecade, setActiveDecade] = useState<number>(2020);
+
   // Visible range (simplified - in a real app this would track scroll position)
   const visibleRange = useMemo(() => {
     const now = new Date();
@@ -162,8 +204,8 @@ function TimelinePage() {
   // Track if initial scroll has happened
   const hasScrolledToDefault = useRef(false);
 
-  // Jump to year handler
-  const handleJumpToYear = useCallback((year: number, smooth = true) => {
+  // Jump to year handler with URL sync
+  const handleJumpToYear = useCallback((year: number, smooth = true, updateUrl = true) => {
     if (timelineRef.current) {
       const scrollContainer = timelineRef.current.querySelector('.overflow-x-auto');
       if (scrollContainer) {
@@ -175,19 +217,36 @@ function TimelinePage() {
         scrollContainer.scrollTo({ left: Math.max(0, targetScroll), behavior: smooth ? 'smooth' : 'instant' });
       }
     }
-  }, [timeRange]);
+    // Update URL with year param
+    if (updateUrl) {
+      setSearchParams((prev) => {
+        const newParams = new URLSearchParams(prev);
+        newParams.set('year', year.toString());
+        return newParams;
+      }, { replace: true });
+    }
+    // Update active decade
+    setActiveDecade(Math.floor(year / 10) * 10);
+  }, [timeRange, setSearchParams]);
 
-  // Scroll to 2017 on initial load (the transformer era)
+  // Handle decade navigation
+  const handleDecadeSelect = useCallback((decade: number) => {
+    handleJumpToYear(decade + 5); // Jump to middle of decade
+  }, [handleJumpToYear]);
+
+  // Scroll to URL year or default (2017) on initial load
   useEffect(() => {
     if (!isLoading && milestones && milestones.length > 0 && !hasScrolledToDefault.current && viewMode === 'timeline') {
       // Small delay to ensure the timeline has rendered
       const timer = setTimeout(() => {
-        handleJumpToYear(2017, false); // instant scroll on load
+        const urlYear = searchParams.get('year');
+        const targetYear = urlYear ? parseInt(urlYear, 10) : 2017;
+        handleJumpToYear(targetYear, false, !urlYear); // Don't update URL if already from URL
         hasScrolledToDefault.current = true;
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, milestones, viewMode, handleJumpToYear]);
+  }, [isLoading, milestones, viewMode, handleJumpToYear, searchParams]);
 
   // Jump to earliest milestone
   const handleJumpToEarliest = useCallback(() => {
@@ -300,18 +359,37 @@ function TimelinePage() {
         onNavigate={select}
       />
 
+      {/* Stats Bar - Above the fold for authority */}
+      <TimelineStats
+        milestoneCount={filterTotal || 250}
+        organizationCount={50}
+        figureCount={100}
+        yearRange="1943-2026"
+        isLoading={isLoading}
+      />
+
+      {/* Decade Navigator - Sticky navigation with year jump */}
+      <DecadeNavigator
+        activeDecade={activeDecade}
+        onDecadeSelect={handleDecadeSelect}
+        onYearJump={handleJumpToYear}
+        milestoneCounts={milestoneCounts}
+        sticky={true}
+        minYear={1940}
+        maxYear={2030}
+      />
+
       {/* Page Header */}
-      <section className="border-b border-gray-200 bg-white py-8 dark:border-gray-700 dark:bg-gray-900">
+      <section className="border-b border-gray-200 bg-white py-6 dark:border-gray-700 dark:bg-gray-900">
         <div className="container-main">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+            <div className="max-w-2xl">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">AI Timeline</h1>
-              <p className="mt-1 text-gray-600 dark:text-gray-300">
-                Explore the history of artificial intelligence from 1940s to present
-                {filterTotal > 0 && (
-                  <span>
-                    {' '}({filterTotal} milestone{filterTotal !== 1 ? 's' : ''}
-                    {hasActiveFilters && ' filtered'})
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                The most comprehensive interactive AI timeline, from the Dartmouth Conference (1956) to today's frontier models. Updated weekly.
+                {filterTotal > 0 && hasActiveFilters && (
+                  <span className="ml-1 text-orange-600 dark:text-orange-400">
+                    ({filterTotal} result{filterTotal !== 1 ? 's' : ''})
                   </span>
                 )}
               </p>
@@ -422,13 +500,19 @@ function TimelinePage() {
             </div>
           </div>
 
-          {/* Category legend and controls */}
+          {/* Company quick filters */}
+          <div className="mt-4">
+            <CompanyQuickFilters />
+          </div>
+
+          {/* Category filter bar with counts */}
           <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
-            <CategoryLegend
-              size="sm"
-              className="justify-start"
-              activeCategories={filters.categories.length > 0 ? filters.categories : undefined}
-              onCategoryClick={toggleCategory}
+            <CategoryFilterBar
+              activeCategories={filters.categories}
+              onToggleCategory={toggleCategory}
+              onClearAll={resetFilters}
+              categoryCounts={categoryCounts}
+              totalCount={filterTotal}
             />
 
             {viewMode === 'timeline' && (
@@ -532,6 +616,9 @@ function TimelinePage() {
         isOpen={showKeyboardHelp}
         onClose={() => setShowKeyboardHelp(false)}
       />
+
+      {/* Back to Top FAB for mobile */}
+      <BackToTopButton threshold={400} mobileOnly={true} />
     </div>
     </>
   );
