@@ -27,6 +27,7 @@ import { glossaryApi, type GlossaryTerm, type GlossaryKeyFigure, type GlossaryLi
 import { GLOSSARY_CATEGORY_LABELS } from '../types/glossary';
 import { PrerequisitesSection, DifficultyBadge } from '../components/Learning';
 import { CommentThread } from '../components/Comments';
+import { RelatedBySubject } from '../components/RelatedBySubject';
 import { useGlossary, useConceptProgress } from '../hooks';
 
 /**
@@ -426,6 +427,15 @@ export default function GlossaryTermPage() {
             </div>
           </section>
         )}
+
+        {/* Related by Subject (Sprint Subj-5) */}
+        <RelatedBySubject
+          contentType="glossary_term"
+          contentId={term.id}
+          limit={5}
+          excludeTypes={['glossary_term']}
+          className="mb-8"
+        />
 
         {/* Related milestones (Sprint SEO-3: using linked milestones with full data) */}
         {(linkedMilestones.length > 0 || (term.relatedMilestoneIds && term.relatedMilestoneIds.length > 0)) && (

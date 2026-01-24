@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-14 by Claude
+> Last updated: 2026-01-23 by Claude (RelatedBySubject component and detail page integrations)
 >
 > **STATUS: IN PROGRESS**
 
@@ -214,7 +214,7 @@ export function SubjectsPage() {
   - News tab (current events)
   - People tab
   - Organizations tab
-- [ ] Auto-generated learning path CTA
+- [x] Auto-generated learning path CTA ✅ (SubjectPage shows LearningPathCTA)
 
 ```tsx
 export function SubjectPage() {
@@ -314,8 +314,8 @@ export function SubjectSidebar() {
 
 **File**: `src/components/RelatedBySubject.tsx` (new)
 
-- [ ] Show on milestone/event/term detail pages
-- [ ] "More in [Subject]" section
+- [x] Show on milestone/event/term detail pages ✅
+- [x] "Related by Subject" section with content type badges ✅
 
 ```tsx
 interface RelatedBySubjectProps {
@@ -346,9 +346,10 @@ export function RelatedBySubject({
 }
 ```
 
-- [ ] Add to MilestoneDetailPage
-- [ ] Add to GlossaryTermPage
-- [ ] Add to CurrentEventPage
+- [x] Add to MilestoneDetail (src/components/Timeline/MilestoneDetail.tsx) ✅
+- [x] Add to GlossaryTermPage (src/pages/GlossaryTermPage.tsx) ✅
+- [x] Add to EventPage (src/pages/EventPage.tsx - milestone events) ✅
+- [x] Add to NewsDetailPage (src/pages/NewsDetailPage.tsx - current events) ✅
 
 ### 8. Subject Search/Autocomplete
 
@@ -451,6 +452,7 @@ export function SubjectSearch({ onSelect }: { onSelect: (subject: Subject) => vo
 
 ### Related Content - Browser Validation
 
+> **NOTE**: RelatedBySubject component deployed 2026-01-23. Test after deploy.
 - [ ] Navigate to a milestone detail page
 - [ ] Verify "Related by Subject" section appears
 - [ ] Click a related item and verify navigation

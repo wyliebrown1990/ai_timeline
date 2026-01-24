@@ -36,6 +36,7 @@ import {
   type EventRelatedMilestone,
   type EventGlossaryTerm,
 } from '../services/api';
+import { RelatedBySubject } from '../components/RelatedBySubject';
 
 /**
  * Loading skeleton
@@ -682,6 +683,14 @@ export default function EventPage() {
 
             {/* Related Milestones */}
             <RelatedMilestonesSection milestones={data.relatedMilestones} />
+
+            {/* Related by Subject (Sprint Subj-5) */}
+            <RelatedBySubject
+              contentType="milestone"
+              contentId={data.id}
+              limit={5}
+              excludeTypes={['milestone']}
+            />
 
             {/* View on Timeline link */}
             <Link

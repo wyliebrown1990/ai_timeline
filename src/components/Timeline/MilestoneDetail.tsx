@@ -29,6 +29,7 @@ import { PersonContributorChip } from './PersonContributorChip';
 import { KeyFigureModal } from '../Glossary/KeyFigureModal';
 import { PrerequisiteChip } from '../Learning/PrerequisiteChip';
 import { CommentThread } from '../Comments';
+import { RelatedBySubject } from '../RelatedBySubject';
 import { keyFiguresApi, milestonesApi, glossaryApi, type KeyFigureWithContribution, type MilestoneContributor, type GlossaryTerm, type MilestoneLinkedTerm } from '../../services/api';
 
 interface MilestoneDetailProps {
@@ -637,6 +638,15 @@ export function MilestoneDetail({
               </div>
             </div>
           )}
+
+          {/* Related by Subject (Sprint Subj-5) */}
+          <RelatedBySubject
+            contentType="milestone"
+            contentId={milestone.id}
+            limit={5}
+            excludeTypes={['milestone']}
+            className="mb-6"
+          />
 
           {/* Sources */}
           {milestone.sources && milestone.sources.length > 0 && (

@@ -11,6 +11,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, ExternalLink, Calendar, Eye, ThumbsUp, ThumbsDown, Play } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { feedApi } from '../services/feedApi';
+import { RelatedBySubject } from '../components/RelatedBySubject';
 import type { FeedItem } from '../types/feed';
 
 // News detail may not have commentCount from API
@@ -276,6 +277,15 @@ function NewsDetailPage() {
             </div>
           </div>
         </article>
+
+        {/* Related by Subject (Sprint Subj-5) */}
+        <RelatedBySubject
+          contentType="current_event"
+          contentId={event.id}
+          limit={5}
+          excludeTypes={['current_event']}
+          className="mt-8"
+        />
 
         {/* CTA Section */}
         <div className="mt-8 text-center">
