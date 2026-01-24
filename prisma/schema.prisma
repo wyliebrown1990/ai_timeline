@@ -1351,3 +1351,17 @@ model SavedCollection {
   @@index([userId])
   @@index([isPublic])
 }
+
+/// Domains where article scraping consistently fails (CAPTCHA, paywall, blocked)
+/// Used to warn admins before attempting to scrape known-problematic domains
+model BlockedDomain {
+  id          String   @id @default(cuid())
+  domain      String   @unique // Root domain (e.g., "bloomberg.com")
+  failureType String   // captcha, paywall, forbidden, blocked, empty
+  failureUrl  String   // Original URL that triggered the block record
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([domain])
+  @@index([createdAt])
+}

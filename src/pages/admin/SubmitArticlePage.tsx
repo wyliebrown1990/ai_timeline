@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { articlesApi, ApiError } from '../../services/api';
-import { Loader2, Send, ExternalLink, CheckCircle, AlertCircle, Download, Youtube, FileText } from 'lucide-react';
+import { Loader2, Send, ExternalLink, CheckCircle, AlertCircle, Download, Youtube, FileText, ShieldX, Trash2 } from 'lucide-react';
 
 /**
  * Check if a URL is a YouTube video URL
@@ -24,6 +24,15 @@ function isYouTubeUrl(url: string): boolean {
  * Sprint 41: URL Scraper Integration
  * Supports: Web URLs (scraped via Playwright/Jina) and YouTube videos (with transcript extraction)
  */
+interface BlockedDomain {
+  id: string;
+  domain: string;
+  failureType: string;
+  failureUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function SubmitArticlePage() {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +47,26 @@ export function SubmitArticlePage() {
     message?: string;
   } | null>(null);
   const [duplicateArticleId, setDuplicateArticleId] = useState<string | null>(null);
+  const [blockedDomains, setBlockedDomains] = useState<BlockedDomain[]>([]);
+
+  // Fetch blocked domains on mount
+  useEffect(() => {
+    articlesApi.getBlockedDomains().then((res) => {
+      setBlockedDomains(res.domains);
+    }).catch(console.error);
+  }, []);
+
+  // Delete a blocked domain
+  const handleDeleteBlockedDomain = async (id: string) => {
+    try {
+      await articlesApi.deleteBlockedDomain(id);
+      setBlockedDomains((prev) => prev.filter((d) => d.id !== id));
+      toast.success('Domain removed from blocked list');
+    } catch (error) {
+      console.error('Failed to delete blocked domain:', error);
+      toast.error('Failed to remove domain');
+    }
+  };
 
   // Detect if the URL is a YouTube video
   const isYouTube = useMemo(() => isYouTubeUrl(sourceUrl.trim()), [sourceUrl]);
@@ -234,14 +263,16 @@ export function SubmitArticlePage() {
   const isLoading = isSubmitting || isScraping;
 
   return (
-    <div data-testid="submit-article-page" className="max-w-4xl">
-      {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Submit Article</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Fetch article content from a URL or paste it manually for AI analysis.
-        </p>
-      </div>
+    <div data-testid="submit-article-page" className="flex gap-6">
+      {/* Main content */}
+      <div className="flex-1 max-w-4xl">
+        {/* Page header */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Submit Article</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Fetch article content from a URL or paste it manually for AI analysis.
+          </p>
+        </div>
 
       {/* Form card */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -506,6 +537,45 @@ export function SubmitArticlePage() {
           <span className="flex items-center gap-1">
             <Youtube className="w-3 h-3" /> YouTube Videos
           </span>
+        </div>
+      </div>
+      </div>
+
+      {/* Blocked Domains Sidebar */}
+      <div className="w-72 flex-shrink-0">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 sticky top-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldX className="w-5 h-5 text-red-500" />
+            <h2 className="font-semibold text-gray-900">Blocked Domains</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">
+            These domains have failed to scrape. Don't waste time trying them.
+          </p>
+
+          {blockedDomains.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">No blocked domains yet</p>
+          ) : (
+            <ul className="space-y-2 max-h-96 overflow-y-auto">
+              {blockedDomains.map((domain) => (
+                <li
+                  key={domain.id}
+                  className="flex items-start justify-between gap-2 p-2 bg-red-50 rounded-lg border border-red-100"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-red-900 truncate">{domain.domain}</p>
+                    <p className="text-xs text-red-600 capitalize">{domain.failureType.replace('_', ' ')}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteBlockedDomain(domain.id)}
+                    className="p-1 text-red-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors"
+                    title="Remove from blocked list"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

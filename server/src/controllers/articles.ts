@@ -608,6 +608,29 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
     const result = await scrapeUrl(url);
 
     if (!result.success) {
+      // Record the blocked domain for future reference
+      if (result.failureType) {
+        try {
+          const domain = new URL(cleanUrl).hostname.replace(/^www\./, '');
+          await prisma.blockedDomain.upsert({
+            where: { domain },
+            create: {
+              domain,
+              failureType: result.failureType,
+              failureUrl: cleanUrl,
+            },
+            update: {
+              failureType: result.failureType,
+              failureUrl: cleanUrl,
+              updatedAt: new Date(),
+            },
+          });
+          console.log(`[Scraper] Recorded blocked domain: ${domain} (${result.failureType})`);
+        } catch (e) {
+          console.error('[Scraper] Failed to record blocked domain:', e);
+        }
+      }
+
       return res.status(400).json({
         success: false,
         error: result.error || 'Failed to scrape URL',
@@ -1095,6 +1118,96 @@ export async function reclassifySubjects(req: Request, res: Response) {
     console.error('Error re-classifying article subjects:', error);
     return res.status(500).json({
       error: 'Failed to re-classify article subjects',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Get all blocked domains (domains where scraping fails)
+ * Returns list sorted by most recently encountered
+ */
+export async function getBlockedDomains(req: Request, res: Response) {
+  try {
+    const blockedDomains = await prisma.blockedDomain.findMany({
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return res.json({
+      count: blockedDomains.length,
+      domains: blockedDomains,
+    });
+  } catch (error) {
+    console.error('Error fetching blocked domains:', error);
+    return res.status(500).json({
+      error: 'Failed to fetch blocked domains',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Delete a blocked domain (allow retrying scrapes from that domain)
+ */
+export async function deleteBlockedDomain(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+
+    await prisma.blockedDomain.delete({
+      where: { id },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Blocked domain removed',
+    });
+  } catch (error) {
+    console.error('Error deleting blocked domain:', error);
+    return res.status(500).json({
+      error: 'Failed to delete blocked domain',
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
+/**
+ * Run database migration for BlockedDomain table
+ * Temporary endpoint to create the table if it doesn't exist
+ */
+export async function runBlockedDomainMigration(req: Request, res: Response) {
+  try {
+    await prisma.$executeRaw`
+      CREATE TABLE IF NOT EXISTS "BlockedDomain" (
+        "id" TEXT NOT NULL,
+        "domain" TEXT NOT NULL,
+        "failureType" TEXT NOT NULL,
+        "failureUrl" TEXT NOT NULL,
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL,
+        CONSTRAINT "BlockedDomain_pkey" PRIMARY KEY ("id")
+      )
+    `;
+
+    await prisma.$executeRaw`
+      CREATE UNIQUE INDEX IF NOT EXISTS "BlockedDomain_domain_key" ON "BlockedDomain"("domain")
+    `;
+
+    await prisma.$executeRaw`
+      CREATE INDEX IF NOT EXISTS "BlockedDomain_domain_idx" ON "BlockedDomain"("domain")
+    `;
+
+    await prisma.$executeRaw`
+      CREATE INDEX IF NOT EXISTS "BlockedDomain_createdAt_idx" ON "BlockedDomain"("createdAt")
+    `;
+
+    return res.json({
+      success: true,
+      message: 'BlockedDomain table created/verified',
+    });
+  } catch (error) {
+    console.error('Error running migration:', error);
+    return res.status(500).json({
+      error: 'Failed to run migration',
       details: error instanceof Error ? error.message : 'Unknown error',
     });
   }

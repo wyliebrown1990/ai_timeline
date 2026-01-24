@@ -966,6 +966,35 @@ export const articlesApi = {
       }
     );
   },
+
+  /**
+   * Get all blocked domains (domains where scraping fails)
+   */
+  async getBlockedDomains(): Promise<{
+    count: number;
+    domains: Array<{
+      id: string;
+      domain: string;
+      failureType: string;
+      failureUrl: string;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+  }> {
+    return fetchJson(`${API_BASE}/admin/articles/blocked-domains`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  /**
+   * Delete a blocked domain (allow retrying scrapes from that domain)
+   */
+  async deleteBlockedDomain(id: string): Promise<{ success: boolean; message: string }> {
+    return fetchJson(`${API_BASE}/admin/articles/blocked-domains/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
 };
 
 /**

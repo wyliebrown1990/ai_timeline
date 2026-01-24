@@ -33,6 +33,15 @@ router.post('/submit-youtube', articlesController.submitYouTubeVideo);
 // POST /api/admin/articles/scrape - Scrape article content from URL
 router.post('/scrape', articlesController.scrapeArticleUrl);
 
+// GET /api/admin/articles/blocked-domains - Get all blocked domains
+router.get('/blocked-domains', articlesController.getBlockedDomains);
+
+// DELETE /api/admin/articles/blocked-domains/:id - Remove a blocked domain
+router.delete('/blocked-domains/:id', articlesController.deleteBlockedDomain);
+
+// POST /api/admin/articles/blocked-domains/migrate - Run migration for BlockedDomain table
+router.post('/blocked-domains/migrate', articlesController.runBlockedDomainMigration);
+
 // DELETE /api/admin/articles/by-url - Delete article by external URL (cleanup bad scrapes)
 router.delete('/by-url', articlesController.deleteArticleByUrl);
 
