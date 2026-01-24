@@ -22,6 +22,7 @@ import HomePage from './pages/HomePage';
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 const TimelineSlugPage = lazy(() => import('./pages/TimelineSlugPage')); // Sprint TD-2 - Era + Filter landing pages
 const DataExportPage = lazy(() => import('./pages/DataExportPage')); // Sprint TD-4 - Linkable Assets
+const ResourcesPage = lazy(() => import('./pages/ResourcesPage')); // Sprint TD-4 - Resources hub
 const ComparePage = lazy(() => import('./pages/ComparePage')); // Sprint SEO-4 - Comparison pages
 const ExplainedPage = lazy(() => import('./pages/ExplainedPage')); // Sprint SEO-4 - Explained pages
 const EventPage = lazy(() => import('./pages/EventPage')); // Sprint SEO-4 - Event pages
@@ -179,6 +180,7 @@ function App() {
                     <Route path="glossary/:slug" element={<GlossaryTermPage />} />
                     <Route path="concepts" element={<ConceptsPage />} />
                     <Route path="contact" element={<ContactPage />} />
+                    <Route path="resources" element={<ResourcesPage />} /> {/* Sprint TD-4 - Resources hub */}
                     <Route path="about" element={<AboutPage />} /> {/* Sprint SEO-5 - E-E-A-T */}
                     <Route path="settings" element={<SettingsPage />} />
 

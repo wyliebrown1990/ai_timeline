@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-23 by Claude (Data Export feature)
+> Last updated: 2026-01-23 by Claude (Data Export + Resources hub)
 
 ## Overview
 
@@ -216,13 +216,13 @@ Choose one approach:
 
 **Page**: `/resources`
 
-- [ ] Create `/resources` hub page linking to all assets:
+- [x] Create `/resources` hub page linking to all assets ✅:
   - PDF Download
   - Embed Widget
   - Annual Reports
   - Infographics
   - Data Export
-- [ ] Design for educators/researchers:
+- [x] Design for educators/researchers ✅:
   ```
   # AI Timeline Resources
 
