@@ -25,6 +25,9 @@ router.get('/filter', milestonesController.filterMilestones);
 // GET /api/milestones/tags - Get all unique tags
 router.get('/tags', milestonesController.getTags);
 
+// GET /api/milestones/export - Export milestones as JSON or CSV (Sprint TD-4)
+router.get('/export', milestonesController.exportMilestones);
+
 // GET /api/milestones/category/:category - Filter milestones by category
 router.get('/category/:category', milestonesController.getMilestonesByCategory);
 

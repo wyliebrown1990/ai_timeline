@@ -594,3 +594,84 @@ export async function removeLinkedTerm(
     next(error);
   }
 }
+
+/**
+ * GET /api/milestones/export
+ * Export all milestones as JSON or CSV
+ * Query params:
+ *   - format: 'json' (default) or 'csv'
+ * Sprint TD-4: Linkable Assets
+ */
+export async function exportMilestones(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const format = (req.query.format as string)?.toLowerCase() || 'json';
+
+    // Get all milestones without pagination
+    const { milestones } = await milestonesService.getAll({
+      skip: 0,
+      limit: 10000, // Get all
+      includeContributors: false,
+    });
+
+    // Transform data for export (cleaner format)
+    const exportData = milestones.map((m) => ({
+      id: m.id,
+      title: m.title,
+      date: m.date,
+      category: m.category,
+      significance: m.significance,
+      description: m.description,
+      organization: m.organization,
+      tags: Array.isArray(m.tags) ? m.tags : JSON.parse(m.tags as string || '[]'),
+      sourceUrl: m.sourceUrl,
+      tldr: m.tldr,
+    }));
+
+    if (format === 'csv') {
+      // Generate CSV
+      const headers = ['id', 'title', 'date', 'category', 'significance', 'description', 'organization', 'tags', 'sourceUrl'];
+      const csvRows = [headers.join(',')];
+
+      for (const m of exportData) {
+        const row = [
+          `"${m.id}"`,
+          `"${(m.title || '').replace(/"/g, '""')}"`,
+          `"${m.date}"`,
+          `"${m.category}"`,
+          m.significance,
+          `"${(m.description || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`,
+          `"${(m.organization || '').replace(/"/g, '""')}"`,
+          `"${Array.isArray(m.tags) ? m.tags.join(';') : ''}"`,
+          `"${m.sourceUrl || ''}"`,
+        ];
+        csvRows.push(row.join(','));
+      }
+
+      const csv = csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=ai-timeline-data.csv');
+      res.send(csv);
+    } else {
+      // JSON format
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', 'attachment; filename=ai-timeline-data.json');
+      res.json({
+        metadata: {
+          source: 'Let AI Explain AI (letaiexplainai.com)',
+          exportDate: new Date().toISOString(),
+          totalMilestones: exportData.length,
+          license: 'CC BY 4.0 - Attribution required',
+          licenseUrl: 'https://creativecommons.org/licenses/by/4.0/',
+        },
+        data: exportData,
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+}

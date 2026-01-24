@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-23 by Claude
+> Last updated: 2026-01-23 by Claude (Data Export feature)
 
 ## Overview
 
@@ -10,7 +10,7 @@ Create high-value linkable assets that attract backlinks from AI newsletters, ed
 
 **Priority**: MEDIUM
 **Estimated Effort**: 3-4 days
-**Status**: NOT STARTED
+**Status**: IN PROGRESS ⏳ (Data Export complete)
 
 ## Asset Types to Create
 
@@ -182,24 +182,23 @@ Choose one approach:
 **Page**: `/timeline/data`
 
 #### Data Export Options
-- [ ] JSON export: `GET /api/timeline/export?format=json`
-- [ ] CSV export: `GET /api/timeline/export?format=csv`
-- [ ] Include all milestone fields:
+- [x] JSON export: `GET /api/milestones/export?format=json` ✅
+- [x] CSV export: `GET /api/milestones/export?format=csv` ✅
+- [x] Include all milestone fields ✅
   - id, title, date, description, category
   - organization, significance, tags
   - sourceUrl
 
 #### Data Page UI
-- [ ] Create `/timeline/data` page
-- [ ] Explain data format and fields
-- [ ] Download buttons for JSON/CSV
-- [ ] Optional: Simple API documentation
-- [ ] License terms (CC BY 4.0 or similar)
+- [x] Create `/timeline/data` page ✅
+- [x] Explain data format and fields ✅
+- [x] Download buttons for JSON/CSV ✅
+- [x] License terms (CC BY 4.0) ✅
 
 #### Data SEO
-- [ ] Title: `AI Timeline Data - Free JSON/CSV Download | LAEA`
-- [ ] Target developers and researchers
-- [ ] Add Dataset schema:
+- [x] Title: `AI Timeline Data - Free JSON/CSV Download` ✅
+- [x] Target developers and researchers ✅
+- [x] Add Dataset schema ✅:
   ```json
   {
     "@type": "Dataset",
