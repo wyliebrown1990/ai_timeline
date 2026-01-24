@@ -25,6 +25,8 @@ const DataExportPage = lazy(() => import('./pages/DataExportPage')); // Sprint T
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage')); // Sprint TD-4 - Resources hub
 const EmbedTimelinePage = lazy(() => import('./pages/EmbedTimelinePage')); // Sprint TD-4 - Embed widget
 const EmbedConfigPage = lazy(() => import('./pages/EmbedConfigPage')); // Sprint TD-4 - Embed config
+const ReportsPage = lazy(() => import('./pages/ReportsPage')); // Sprint TD-4 - Annual reports
+const YearReportPage = lazy(() => import('./pages/YearReportPage')); // Sprint TD-4 - Year report
 const ComparePage = lazy(() => import('./pages/ComparePage')); // Sprint SEO-4 - Comparison pages
 const ExplainedPage = lazy(() => import('./pages/ExplainedPage')); // Sprint SEO-4 - Explained pages
 const EventPage = lazy(() => import('./pages/EventPage')); // Sprint SEO-4 - Event pages
@@ -184,6 +186,8 @@ function App() {
                     <Route path="concepts" element={<ConceptsPage />} />
                     <Route path="contact" element={<ContactPage />} />
                     <Route path="resources" element={<ResourcesPage />} /> {/* Sprint TD-4 - Resources hub */}
+                    <Route path="reports" element={<ReportsPage />} /> {/* Sprint TD-4 - Annual reports */}
+                    <Route path="reports/:year" element={<YearReportPage />} /> {/* Sprint TD-4 - Year report */}
                     <Route path="about" element={<AboutPage />} /> {/* Sprint SEO-5 - E-E-A-T */}
                     <Route path="settings" element={<SettingsPage />} />
 

@@ -183,7 +183,7 @@ function ResourcesPage() {
                   icon={<Newspaper className="h-6 w-6 text-purple-600" />}
                   title="Annual AI Reports"
                   description="Yearly summaries of AI progress with key highlights, trends, and analysis. Perfect for articles and presentations."
-                  comingSoon
+                  linkTo="/reports"
                   tags={['Reports', 'Analysis', 'Free']}
                 />
                 <ResourceCard

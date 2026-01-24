@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-23 by Claude (Data Export + Resources hub + Embed Widget)
+> Last updated: 2026-01-23 by Claude (Data Export + Resources hub + Embed Widget + Annual Reports)
 
 ## Overview
 
@@ -101,7 +101,7 @@ Create high-value linkable assets that attract backlinks from AI newsletters, ed
 **Page**: `/reports` and `/reports/:year`
 
 #### Report Structure
-- [ ] Create annual report template:
+- [x] Create annual report template ✅:
   ```
   # AI Progress Report [Year]
 
@@ -130,15 +130,15 @@ Create high-value linkable assets that attract backlinks from AI newsletters, ed
   ```
 
 #### Reports Page
-- [ ] Create `/reports` index page listing all years
-- [ ] Create `/reports/2025` (and other years) pages
-- [ ] Auto-generate reports from milestone data
+- [x] Create `/reports` index page listing all years ✅
+- [x] Create `/reports/2025` (and other years) pages ✅
+- [x] Auto-generate reports from milestone data ✅
 - [ ] Add editorial commentary (can be AI-assisted)
 
 #### Report SEO
-- [ ] Title: `AI Progress Report 2025: Year in Review | LAEA`
-- [ ] Target queries like "ai 2025 review", "ai progress 2025"
-- [ ] Add Report schema:
+- [x] Title: `AI Progress Report 2025: Year in Review | LAEA` ✅
+- [x] Target queries like "ai 2025 review", "ai progress 2025" ✅
+- [x] Add Report schema ✅:
   ```json
   {
     "@type": "Report",
