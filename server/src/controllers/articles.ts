@@ -35,6 +35,31 @@ async function invokeAnalysisLambda(articleId: string): Promise<void> {
 }
 
 /**
+ * Strip tracking parameters (UTM, etc.) from URLs
+ * Keeps only the base URL without marketing/tracking query params
+ */
+function stripTrackingParams(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const trackingPrefixes = ['utm_', '_bhlid', 'fbclid', 'gclid', 'mc_eid', 'oly_', 'ref_', 'source'];
+
+    // Remove tracking params
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (trackingPrefixes.some(prefix => key.startsWith(prefix) || key === prefix)) {
+        parsed.searchParams.delete(key);
+      }
+    }
+
+    // If no params left, return URL without trailing ?
+    const result = parsed.toString();
+    return result.endsWith('?') ? result.slice(0, -1) : result;
+  } catch {
+    // If URL parsing fails, return original
+    return url;
+  }
+}
+
+/**
  * Get a single article with its drafts
  */
 export async function getArticle(req: Request, res: Response) {
@@ -270,9 +295,12 @@ export async function submitArticle(req: Request, res: Response) {
       return res.status(400).json({ error: 'content is required' });
     }
 
+    // Strip tracking params (UTM, etc.) from URL
+    const cleanUrl = stripTrackingParams(sourceUrl);
+
     // Check for duplicate article by URL
     const existingArticle = await prisma.ingestedArticle.findUnique({
-      where: { externalUrl: sourceUrl },
+      where: { externalUrl: cleanUrl },
     });
     if (existingArticle) {
       return res.status(409).json({
@@ -284,21 +312,21 @@ export async function submitArticle(req: Request, res: Response) {
     // Extract hostname for source name
     let hostname = 'Manual Submission';
     try {
-      hostname = new URL(sourceUrl).hostname;
+      hostname = new URL(cleanUrl).hostname;
     } catch {
       // Keep default
     }
 
     // Check if source already exists (for this URL) or create a new one-time source
     let source = await prisma.newsSource.findUnique({
-      where: { url: sourceUrl },
+      where: { url: cleanUrl },
     });
 
     if (!source) {
       source = await prisma.newsSource.create({
         data: {
           name: title || `Submission: ${hostname}`,
-          url: sourceUrl,
+          url: cleanUrl,
           sourceType: 'single_url',
           config: { usePlaywright: false },
           isActive: false, // One-time sources are never in daily sync
@@ -311,7 +339,7 @@ export async function submitArticle(req: Request, res: Response) {
     const article = await prisma.ingestedArticle.create({
       data: {
         sourceId: source.id,
-        externalUrl: sourceUrl,
+        externalUrl: cleanUrl,
         title: title || 'Manual Submission',
         content: content,
         publishedAt: new Date(),
@@ -573,7 +601,10 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
       return res.status(400).json({ error: 'url is required' });
     }
 
-    // Scrape the URL
+    // Strip tracking params (UTM, etc.) from URL for storage
+    const cleanUrl = stripTrackingParams(url);
+
+    // Scrape the URL (use original URL for fetching)
     const result = await scrapeUrl(url);
 
     if (!result.success) {
@@ -589,9 +620,9 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
 
     // If submitForAnalysis is true, create source + article and start async analysis
     if (submitForAnalysis && result.content) {
-      // Check for duplicate article
+      // Check for duplicate article (use clean URL)
       const existingArticle = await prisma.ingestedArticle.findUnique({
-        where: { externalUrl: url },
+        where: { externalUrl: cleanUrl },
       });
       if (existingArticle) {
         return res.status(409).json({
@@ -607,21 +638,21 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
       // Extract hostname for source name
       let hostname = 'Scraped URL';
       try {
-        hostname = new URL(url).hostname;
+        hostname = new URL(cleanUrl).hostname;
       } catch {
         // Keep default
       }
 
       // Check if source already exists or create a new one-time source
       let source = await prisma.newsSource.findUnique({
-        where: { url },
+        where: { url: cleanUrl },
       });
 
       if (!source) {
         source = await prisma.newsSource.create({
           data: {
             name: result.title || `Scraped: ${hostname}`,
-            url: url,
+            url: cleanUrl,
             sourceType: 'single_url',
             config: {
               usePlaywright: result.scrapedBy === 'playwright', // Track if Playwright was used
@@ -636,7 +667,7 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
       const article = await prisma.ingestedArticle.create({
         data: {
           sourceId: source.id,
-          externalUrl: url,
+          externalUrl: cleanUrl,
           title: result.title || 'Scraped Article',
           content: result.content,
           publishedAt: new Date(),
@@ -700,9 +731,12 @@ export async function deleteArticleByUrl(req: Request, res: Response) {
       return res.status(400).json({ error: 'url is required' });
     }
 
+    // Strip tracking params for lookup (articles are stored with clean URLs)
+    const cleanUrl = stripTrackingParams(url);
+
     // Find the article
     const article = await prisma.ingestedArticle.findUnique({
-      where: { externalUrl: url },
+      where: { externalUrl: cleanUrl },
       include: { drafts: true },
     });
 
