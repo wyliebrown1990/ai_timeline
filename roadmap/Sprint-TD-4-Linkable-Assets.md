@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-01-23 by Claude (Data Export + Resources hub)
+> Last updated: 2026-01-23 by Claude (Data Export + Resources hub + Embed Widget)
 
 ## Overview
 
@@ -64,8 +64,8 @@ Create high-value linkable assets that attract backlinks from AI newsletters, ed
 **Page**: `/timeline/embed`
 
 #### Widget Implementation
-- [ ] Create lightweight embeddable React component
-- [ ] Generate embed code snippet:
+- [x] Create lightweight embeddable React component ✅
+- [x] Generate embed code snippet ✅:
   ```html
   <iframe
     src="https://letaiexplainai.com/embed/timeline?theme=light&limit=20"
@@ -74,7 +74,7 @@ Create high-value linkable assets that attract backlinks from AI newsletters, ed
     frameborder="0"
   ></iframe>
   ```
-- [ ] Support customization params:
+- [x] Support customization params ✅:
   - `theme`: light/dark
   - `limit`: number of milestones
   - `category`: filter by category
@@ -82,19 +82,19 @@ Create high-value linkable assets that attract backlinks from AI newsletters, ed
   - `startYear` / `endYear`: date range
 
 #### Embed Route
-- [ ] Create `/embed/timeline` route (minimal UI, no header/footer)
-- [ ] Optimize for iframe loading (minimal JS bundle)
-- [ ] Add "Powered by LAEA" footer with link back
+- [x] Create `/embed/timeline` route (minimal UI, no header/footer) ✅
+- [x] Optimize for iframe loading (minimal JS bundle) ✅
+- [x] Add "Powered by LAEA" footer with link back ✅
 
 #### Embed Page UI
-- [ ] Create `/timeline/embed` configuration page
-- [ ] Live preview of widget
-- [ ] Copy-to-clipboard for embed code
-- [ ] Customization options UI
+- [x] Create `/timeline/embed` configuration page ✅
+- [x] Live preview of widget ✅
+- [x] Copy-to-clipboard for embed code ✅
+- [x] Customization options UI ✅
 
 #### SEO for Embed Page
-- [ ] Title: `Embed AI Timeline on Your Website - Free Widget | LAEA`
-- [ ] Description: `Add an interactive AI timeline to your website for free. Customizable, lightweight, and always up-to-date. Perfect for AI blogs and educational sites.`
+- [x] Title: `Embed AI Timeline on Your Website - Free Widget | LAEA` ✅
+- [x] Description: `Add an interactive AI timeline to your website for free. Customizable, lightweight, and always up-to-date. Perfect for AI blogs and educational sites.` ✅
 
 ### 3. Annual AI Progress Reports
 

@@ -23,6 +23,8 @@ const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 const TimelineSlugPage = lazy(() => import('./pages/TimelineSlugPage')); // Sprint TD-2 - Era + Filter landing pages
 const DataExportPage = lazy(() => import('./pages/DataExportPage')); // Sprint TD-4 - Linkable Assets
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage')); // Sprint TD-4 - Resources hub
+const EmbedTimelinePage = lazy(() => import('./pages/EmbedTimelinePage')); // Sprint TD-4 - Embed widget
+const EmbedConfigPage = lazy(() => import('./pages/EmbedConfigPage')); // Sprint TD-4 - Embed config
 const ComparePage = lazy(() => import('./pages/ComparePage')); // Sprint SEO-4 - Comparison pages
 const ExplainedPage = lazy(() => import('./pages/ExplainedPage')); // Sprint SEO-4 - Explained pages
 const EventPage = lazy(() => import('./pages/EventPage')); // Sprint SEO-4 - Event pages
@@ -168,6 +170,7 @@ function App() {
                     <Route index element={<HomePage />} />
                     <Route path="timeline" element={<TimelinePage />} />
                     <Route path="timeline/data" element={<DataExportPage />} /> {/* Sprint TD-4 - Data export */}
+                    <Route path="timeline/embed" element={<EmbedConfigPage />} /> {/* Sprint TD-4 - Embed config */}
                     <Route path="timeline/:slug" element={<TimelineSlugPage />} /> {/* Sprint TD-2 - Era + Filter pages */}
 
                     {/* Lazy-loaded secondary pages */}
@@ -236,6 +239,9 @@ function App() {
                   {/* Collections route - outside Layout for full-screen experience */}
                   <Route path="/collections" element={<CollectionsPage />} />
                   <Route path="/collections/:id" element={<CollectionsPage />} />
+
+                  {/* Embed route - outside Layout for iframe embedding (Sprint TD-4) */}
+                  <Route path="/embed/timeline" element={<EmbedTimelinePage />} />
 
                   {/* Admin routes - wrapped in AuthProvider for authentication */}
                   <Route

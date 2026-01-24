@@ -142,7 +142,7 @@ function ResourcesPage() {
                   icon={<Code className="h-6 w-6 text-orange-600" />}
                   title="Embeddable Widget"
                   description="Add an interactive AI timeline to your course website or LMS. Customizable, lightweight, and always up-to-date."
-                  comingSoon
+                  linkTo="/timeline/embed"
                   tags={['iframe', 'Interactive', 'Free']}
                 />
               </div>
