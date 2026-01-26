@@ -13,7 +13,7 @@ import Anthropic from '@anthropic-ai/sdk';
 
 export interface NewsEventOnlyDraft {
   headline: string; // 10-200 chars, educational angle
-  summary: string; // 50-500 chars
+  summary: string; // 100-1500 chars, TLDR with key points
   sourceUrl: string;
   sourcePublisher: string;
   publishedDate: string; // YYYY-MM-DD
@@ -45,7 +45,7 @@ Content: {{content}}
 
 {
   "headline": "<Educational headline explaining what this means for AI, 10-200 chars>",
-  "summary": "<Plain English summary for business professionals explaining why this matters, 50-500 chars>",
+  "summary": "<TLDR summary for business professionals: Cover the key facts, why it matters, and main implications. Include 3-5 critical points in plain English. 100-1500 chars>",
   "sourceUrl": "{{sourceUrl}}",
   "sourcePublisher": "<Publisher name>",
   "publishedDate": "{{publishedDate}}",
@@ -57,7 +57,7 @@ Content: {{content}}
 ## Important Rules:
 - Return ONLY valid JSON (no markdown code blocks, no explanation text)
 - headline should explain significance, not just state facts
-- summary should be accessible to non-technical readers
+- summary should be a comprehensive TLDR with key facts, significance, and implications - not just a single sentence. Include the critical points someone needs to understand this news.
 - prerequisiteMilestoneIds: Select 2-6 milestones that help explain this news
 - If no suitable prerequisite milestones exist, use an empty array []
 - featured should almost always be false (only true for truly groundbreaking news)`;
@@ -120,8 +120,8 @@ export async function generateNewsEventOnly(
     if (!result.headline || result.headline.length < 10) {
       result.headline = article.title.slice(0, 200);
     }
-    if (!result.summary || result.summary.length < 50) {
-      result.summary = `${article.source} reports on developments in AI.`;
+    if (!result.summary || result.summary.length < 100) {
+      result.summary = `${article.source} reports on this AI development. The article discusses key implications for the industry and what it means for businesses and professionals following AI progress.`;
     }
     if (!result.sourceUrl) {
       result.sourceUrl = article.sourceUrl;

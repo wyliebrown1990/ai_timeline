@@ -36,7 +36,7 @@ export interface MilestoneDraft {
 
 export interface NewsEventDraft {
   headline: string; // 10-200 chars, educational angle
-  summary: string; // 50-500 chars
+  summary: string; // 100-1500 chars, TLDR with key points
   sourceUrl: string;
   sourcePublisher: string;
   publishedDate: string; // YYYY-MM-DD
@@ -118,7 +118,7 @@ Content: {{content}}
   },
   "newsEvent": {
     "headline": "<Educational headline, 10-200 chars, what it means not just what happened>",
-    "summary": "<Plain English summary for business professionals, 50-500 chars>",
+    "summary": "<TLDR summary for business professionals: Cover the key facts, why it matters, and main implications. Include 3-5 critical points in plain English. 100-1500 chars>",
     "sourceUrl": "<URL to original article>",
     "sourcePublisher": "<Publisher name like 'The Neuron Daily'>",
     "publishedDate": "<YYYY-MM-DD>",
