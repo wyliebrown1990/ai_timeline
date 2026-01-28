@@ -9,6 +9,10 @@ import { prisma } from '../db';
 import { publishMilestone } from '../services/publishing/milestonePublisher';
 import { publishNewsEvent, processNewsLearning } from '../services/publishing/newsPublisher';
 import { publishGlossaryTerm } from '../services/publishing/glossaryPublisher';
+import {
+  promoteNewsEventToMilestone,
+  type MilestoneOverrides,
+} from '../services/publishing/milestonePromoter';
 
 /**
  * Subject classification from draft data
@@ -257,10 +261,18 @@ export async function updateDraft(req: Request, res: Response) {
 
 /**
  * Approve and publish a draft
+ *
+ * For news_event drafts, optionally promote to milestone by passing:
+ * - promoteToMilestone: boolean
+ * - milestoneOverrides: { category?, significance?, tags?, title?, description? }
  */
 export async function approveDraft(req: Request, res: Response) {
   try {
     const { id } = req.params;
+    const { promoteToMilestone, milestoneOverrides } = req.body as {
+      promoteToMilestone?: boolean;
+      milestoneOverrides?: MilestoneOverrides;
+    };
 
     const draft = await prisma.contentDraft.findUnique({
       where: { id },
@@ -285,6 +297,7 @@ export async function approveDraft(req: Request, res: Response) {
     const draftData = draft.draftData as Record<string, unknown>;
 
     let publishedId: string;
+    let promotedMilestoneId: string | undefined;
 
     // Publish based on content type
     switch (draft.contentType) {
@@ -293,6 +306,23 @@ export async function approveDraft(req: Request, res: Response) {
         break;
       case 'news_event':
         publishedId = await publishNewsEvent(draftData);
+
+        // If promoting to milestone, also create a milestone
+        if (promoteToMilestone) {
+          try {
+            promotedMilestoneId = await promoteNewsEventToMilestone(
+              draftData as Parameters<typeof promoteNewsEventToMilestone>[0],
+              milestoneOverrides || {}
+            );
+            console.log(
+              `[Review] Promoted news event ${publishedId} to milestone ${promotedMilestoneId}`
+            );
+          } catch (promoError) {
+            console.error('[Review] Failed to promote to milestone:', promoError);
+            // Don't fail the whole operation - the news event was published successfully
+            // Log the error and continue
+          }
+        }
         break;
       case 'glossary_term':
         // Publish glossary term to database, passing source article ID
@@ -310,6 +340,11 @@ export async function approveDraft(req: Request, res: Response) {
       suggestedSubjects
     );
 
+    // If milestone was promoted, also link subjects to it
+    if (promotedMilestoneId) {
+      await publishContentSubjects('milestone', promotedMilestoneId, suggestedSubjects);
+    }
+
     // Update draft status
     const updated = await prisma.contentDraft.update({
       where: { id },
@@ -321,12 +356,15 @@ export async function approveDraft(req: Request, res: Response) {
     });
 
     return res.json({
-      message: 'Draft published successfully',
+      message: promotedMilestoneId
+        ? 'Draft published and promoted to milestone'
+        : 'Draft published successfully',
       draft: {
         ...updated,
         draftData,
       },
       publishedId,
+      promotedMilestoneId,
       subjectsCreated,
     });
   } catch (error) {

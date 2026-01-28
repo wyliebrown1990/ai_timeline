@@ -1088,12 +1088,32 @@ export const reviewApi = {
 
   /**
    * Approve and publish a draft
+   *
+   * For news_event drafts, optionally promote to milestone by passing options:
+   * - promoteToMilestone: boolean
+   * - milestoneOverrides: { category?, significance?, tags?, title?, description? }
    */
-  async approve(id: string): Promise<ApproveResult> {
-    return fetchJson<ApproveResult>(`${API_BASE}/admin/review/${id}/approve`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-    });
+  async approve(
+    id: string,
+    options?: {
+      promoteToMilestone?: boolean;
+      milestoneOverrides?: {
+        category?: 'research' | 'model_release' | 'breakthrough' | 'product' | 'regulation' | 'industry';
+        significance?: 1 | 2 | 3 | 4;
+        tags?: string[];
+        title?: string;
+        description?: string;
+      };
+    }
+  ): Promise<ApproveResult & { promotedMilestoneId?: string }> {
+    return fetchJson<ApproveResult & { promotedMilestoneId?: string }>(
+      `${API_BASE}/admin/review/${id}/approve`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(options || {}),
+      }
+    );
   },
 
   /**

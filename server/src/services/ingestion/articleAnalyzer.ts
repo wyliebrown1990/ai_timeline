@@ -147,8 +147,8 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         relevanceScore: screening.relevanceScore,
         isMilestoneWorthy: screening.isMilestoneWorthy,
         milestoneRationale: screening.milestoneRationale,
-        analysisStatus: screening.isMilestoneWorthy ? 'generating' : 'complete',
-        analyzedAt: screening.isMilestoneWorthy ? undefined : new Date(),
+        // ALL articles continue to 'generating' status - no longer stop non-milestone articles
+        analysisStatus: 'generating',
       },
     });
   }
@@ -197,8 +197,8 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
   let contentGeneration: ContentGenerationResult | undefined;
 
   // Stage 2: Content Generation (Sonnet - only if milestone-worthy)
-  // For already-screened articles, screening.suggestedCategory may be null,
-  // so we allow content generation to determine the category
+  // For milestone-worthy articles, generate full milestone + news event content
+  // Non-milestone articles skip to Stage 2b for news event only
   if (screening.isMilestoneWorthy) {
     console.log(`[Analyzer] Stage 2: Generating content for milestone-worthy article`);
 
@@ -291,10 +291,11 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     }
   }
 
-  // Stage 2b: News Event Generation for NON-milestone but relevant articles
-  // This ensures all relevant AI content becomes a Current Event, not just milestone-worthy content
-  if (!screening.isMilestoneWorthy && screening.relevanceScore >= 0.6) {
-    console.log(`[Analyzer] Stage 2b: Generating news event for relevant non-milestone article`);
+  // Stage 2b: News Event Generation for NON-milestone articles
+  // ALL articles get processed as news events, regardless of relevance score
+  // This ensures every submission creates content for the review queue
+  if (!screening.isMilestoneWorthy) {
+    console.log(`[Analyzer] Stage 2b: Generating news event for non-milestone article`);
 
     try {
       // Get recent milestones for context (reuse if already fetched, otherwise fetch)
@@ -363,10 +364,10 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
     }
   }
 
-  // Stage 3: Glossary Terms - Always run for relevant articles (Sprint 43 refactor)
-  // Removed hasNewGlossaryTerms gate - now runs for milestone-worthy or high-relevance articles
+  // Stage 3: Glossary Terms - Run for ALL articles
+  // Every article gets glossary extraction to capture new AI terminology
   let glossaryTerms: GlossaryTermDraft[] = [];
-  if (screening.isMilestoneWorthy || screening.relevanceScore >= 0.6) {
+  {
     console.log(`[Analyzer] Stage 3: Extracting glossary terms`);
 
     // Get existing glossary terms for deduplication
@@ -412,9 +413,9 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
   }
 
   // Stage 4: Key Figure Extraction (Sprint 46)
-  // Extract notable people mentioned in milestone-worthy or high-relevance articles
+  // Extract notable people mentioned in ALL articles
   let keyFigureResult: KeyFigureProcessingResult | undefined;
-  if (screening.isMilestoneWorthy || screening.relevanceScore >= 0.6) {
+  {
     console.log(`[Analyzer] Stage 4: Extracting key figures`);
 
     try {
@@ -480,11 +481,11 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
   }
 
   // Stage 5: Entity Extraction (Sprint KPC-4)
-  // Extract persons and organizations for the new KPC system
+  // Extract persons and organizations for ALL articles
   let entityExtractionResult: EntityExtractionResult | undefined;
   let personDraftsCreated = 0;
 
-  if (screening.isMilestoneWorthy || screening.relevanceScore >= 0.6) {
+  {
     console.log(`[Analyzer] Stage 5: Extracting entities (KPC-4)`);
 
     try {
@@ -644,9 +645,9 @@ export async function screenOnly(articleId: string): Promise<{
   );
 
   // Determine final status
-  // If milestone-worthy, set to 'screened' so batch processing picks it up for generation
-  // If not milestone-worthy, mark complete
-  const finalStatus = screening.isMilestoneWorthy ? 'screened' : 'complete';
+  // ALL articles go to 'screened' for batch processing to generate news events
+  // Screening still captures relevance score for admin visibility
+  const finalStatus = 'screened';
 
   await prisma.ingestedArticle.update({
     where: { id: articleId },
@@ -655,7 +656,6 @@ export async function screenOnly(articleId: string): Promise<{
       isMilestoneWorthy: screening.isMilestoneWorthy,
       milestoneRationale: screening.milestoneRationale,
       analysisStatus: finalStatus,
-      analyzedAt: screening.isMilestoneWorthy ? undefined : new Date(),
     },
   });
 

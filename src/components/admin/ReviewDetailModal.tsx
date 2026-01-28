@@ -12,6 +12,9 @@ import {
   BookOpen,
   AlertTriangle,
   Tag,
+  ArrowUpCircle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { reviewApi, type DraftWithArticle } from '../../services/api';
@@ -44,6 +47,19 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
+  // Promote to Milestone state (for news_event only)
+  const [promoteToMilestone, setPromoteToMilestone] = useState(false);
+  const [promoteExpanded, setPromoteExpanded] = useState(false);
+  const [milestoneOverrides, setMilestoneOverrides] = useState<{
+    category: 'research' | 'model_release' | 'breakthrough' | 'product' | 'regulation' | 'industry';
+    significance: 1 | 2 | 3 | 4;
+    tags: string;
+  }>({
+    category: 'industry',
+    significance: 2,
+    tags: '',
+  });
+
   const handleFieldChange = (field: string, value: unknown) => {
     setDraftData((prev) => ({
       ...prev,
@@ -75,8 +91,29 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
     try {
       // Save first if there are changes
       await reviewApi.updateDraft(draft.id, draftData);
-      const result = await reviewApi.approve(draft.id);
-      toast.success(`Published successfully! ID: ${result.publishedId}`);
+
+      // Build approval options
+      const options = promoteToMilestone
+        ? {
+            promoteToMilestone: true,
+            milestoneOverrides: {
+              category: milestoneOverrides.category,
+              significance: milestoneOverrides.significance,
+              tags: milestoneOverrides.tags
+                .split(',')
+                .map((t) => t.trim())
+                .filter(Boolean),
+            },
+          }
+        : undefined;
+
+      const result = await reviewApi.approve(draft.id, options);
+
+      if (result.promotedMilestoneId) {
+        toast.success(`Published and promoted to milestone ${result.promotedMilestoneId}!`);
+      } else {
+        toast.success(`Published successfully! ID: ${result.publishedId}`);
+      }
       onSave();
     } catch (error) {
       console.error('Failed to approve draft:', error);
@@ -377,6 +414,118 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
             </div>
           </div>
 
+          {/* Promote to Milestone Section (news_event only) */}
+          {draft.contentType === 'news_event' && (
+            <div className="px-6 py-4 bg-purple-50 border-t border-purple-100">
+              <button
+                onClick={() => {
+                  if (!promoteToMilestone) {
+                    setPromoteToMilestone(true);
+                    setPromoteExpanded(true);
+                  } else {
+                    setPromoteExpanded(!promoteExpanded);
+                  }
+                }}
+                className="flex items-center justify-between w-full"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={promoteToMilestone}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setPromoteToMilestone(e.target.checked);
+                      if (e.target.checked) setPromoteExpanded(true);
+                    }}
+                    className="h-4 w-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <ArrowUpCircle className="h-5 w-5 text-purple-500" />
+                  <span className="text-sm font-medium text-purple-700">
+                    Promote to Milestone
+                  </span>
+                </div>
+                {promoteToMilestone && (
+                  promoteExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-purple-500" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-purple-500" />
+                  )
+                )}
+              </button>
+
+              {promoteToMilestone && promoteExpanded && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-xs text-purple-600">
+                    When approved, this news event will also create a timeline milestone.
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-purple-700 mb-1">
+                        Category
+                      </label>
+                      <select
+                        value={milestoneOverrides.category}
+                        onChange={(e) =>
+                          setMilestoneOverrides((prev) => ({
+                            ...prev,
+                            category: e.target.value as typeof prev.category,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm text-gray-900 bg-white"
+                      >
+                        <option value="research">Research</option>
+                        <option value="model_release">Model Release</option>
+                        <option value="breakthrough">Breakthrough</option>
+                        <option value="product">Product</option>
+                        <option value="regulation">Regulation</option>
+                        <option value="industry">Industry</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-purple-700 mb-1">
+                        Significance
+                      </label>
+                      <select
+                        value={String(milestoneOverrides.significance)}
+                        onChange={(e) =>
+                          setMilestoneOverrides((prev) => ({
+                            ...prev,
+                            significance: parseInt(e.target.value) as typeof prev.significance,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm text-gray-900 bg-white"
+                      >
+                        <option value="1">1 - Minor</option>
+                        <option value="2">2 - Moderate</option>
+                        <option value="3">3 - Major</option>
+                        <option value="4">4 - Groundbreaking</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-purple-700 mb-1">
+                      Tags (comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      value={milestoneOverrides.tags}
+                      onChange={(e) =>
+                        setMilestoneOverrides((prev) => ({
+                          ...prev,
+                          tags: e.target.value,
+                        }))
+                      }
+                      placeholder="llm, transformer, openai"
+                      className="w-full px-3 py-2 border border-purple-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm text-gray-900 bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Suggested Subjects (Sprint Subj-2) */}
           {(draftData.suggestedSubjects as SuggestedSubject[] | undefined)?.length ? (
             <div className="px-6 py-4 bg-purple-50 border-t border-purple-100">
@@ -489,15 +638,19 @@ export function ReviewDetailModal({ draft, onClose, onSave }: ReviewDetailModalP
               className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                 isApproving
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 text-white hover:bg-green-700'
+                  : promoteToMilestone
+                    ? 'bg-purple-600 text-white hover:bg-purple-700'
+                    : 'bg-green-600 text-white hover:bg-green-700'
               }`}
             >
               {isApproving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
+              ) : promoteToMilestone ? (
+                <ArrowUpCircle className="h-4 w-4" />
               ) : (
                 <CheckCircle className="h-4 w-4" />
               )}
-              Approve & Publish
+              {promoteToMilestone ? 'Approve & Promote' : 'Approve & Publish'}
             </button>
           </div>
         </div>

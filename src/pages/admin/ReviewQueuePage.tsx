@@ -14,6 +14,7 @@ import {
   CheckSquare,
   Square,
   Trash2,
+  ArrowUpCircle,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import {
@@ -41,6 +42,8 @@ export function ReviewQueuePage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isBulkApproving, setIsBulkApproving] = useState(false);
   const [isBulkRejecting, setIsBulkRejecting] = useState(false);
+  // Promote to milestone state (for news_event drafts)
+  const [promoteIds, setPromoteIds] = useState<Set<string>>(new Set());
 
   const loadCounts = useCallback(async () => {
     try {
@@ -81,8 +84,22 @@ export function ReviewQueuePage() {
   const handleQuickApprove = async (draft: DraftWithArticle) => {
     setApprovingId(draft.id);
     try {
-      const result = await reviewApi.approve(draft.id);
-      toast.success(`Published successfully! ID: ${result.publishedId}`);
+      const promoteToMilestone = promoteIds.has(draft.id);
+      const result = await reviewApi.approve(draft.id, promoteToMilestone ? { promoteToMilestone } : undefined);
+
+      if (result.promotedMilestoneId) {
+        toast.success(`Published and promoted to milestone ${result.promotedMilestoneId}!`);
+      } else {
+        toast.success(`Published successfully! ID: ${result.publishedId}`);
+      }
+
+      // Clear promote state for this draft
+      setPromoteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(draft.id);
+        return next;
+      });
+
       loadDrafts();
       loadCounts();
     } catch (error) {
@@ -91,6 +108,19 @@ export function ReviewQueuePage() {
     } finally {
       setApprovingId(null);
     }
+  };
+
+  // Toggle promote to milestone for a news_event draft
+  const togglePromote = (id: string) => {
+    setPromoteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const handleQuickReject = async (draft: DraftWithArticle) => {
@@ -533,6 +563,20 @@ export function ReviewQueuePage() {
                         Published ID: {draft.publishedId}
                       </p>
                     )}
+                    {/* Promote to Milestone checkbox for news_event drafts */}
+                    {!isPublished && draft.contentType === 'news_event' && (
+                      <button
+                        onClick={() => togglePromote(draft.id)}
+                        className={`mt-2 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          promoteIds.has(draft.id)
+                            ? 'bg-purple-100 text-purple-700 ring-1 ring-purple-300'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <ArrowUpCircle className={`h-4 w-4 ${promoteIds.has(draft.id) ? 'text-purple-600' : ''}`} />
+                        {promoteIds.has(draft.id) ? 'Will Promote to Milestone' : 'Promote to Milestone'}
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-col gap-2">
                     {!isPublished && (
@@ -550,15 +594,19 @@ export function ReviewQueuePage() {
                           className={`inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                             approvingId === draft.id
                               ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                              : 'bg-green-600 text-white hover:bg-green-700'
+                              : promoteIds.has(draft.id)
+                                ? 'bg-purple-600 text-white hover:bg-purple-700'
+                                : 'bg-green-600 text-white hover:bg-green-700'
                           }`}
                         >
                           {approvingId === draft.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : promoteIds.has(draft.id) ? (
+                            <ArrowUpCircle className="h-4 w-4" />
                           ) : (
                             <CheckCircle className="h-4 w-4" />
                           )}
-                          Approve
+                          {promoteIds.has(draft.id) ? 'Approve & Promote' : 'Approve'}
                         </button>
                         <button
                           onClick={() => handleQuickReject(draft)}
