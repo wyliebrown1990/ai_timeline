@@ -16,7 +16,7 @@ Resources:
       Handler: index.handler
       Runtime: nodejs20.x
       MemorySize: 128
-      Timeout: 5  # Lambda@Edge origin-request max is 30s, but we want fast responses
+      Timeout: 5  # Lambda@Edge viewer-request max is 5s
       Role: !GetAtt EdgeLambdaRole.Arn
       AutoPublishAlias: live
 

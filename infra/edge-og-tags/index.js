@@ -47,15 +47,16 @@ function extractEventId(uri) {
 }
 
 /**
- * Fetch event data from API
+ * Fetch event data from API with timeout
  */
 async function fetchEvent(eventId) {
   const https = require('https');
+  const TIMEOUT_MS = 4000; // 4 second timeout (viewer-request max is 5s)
 
   return new Promise((resolve, reject) => {
     const url = `${API_BASE}/news/${eventId}`;
 
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -69,7 +70,13 @@ async function fetchEvent(eventId) {
           reject(new Error(`API returned ${res.statusCode}`));
         }
       });
-    }).on('error', reject);
+    });
+
+    req.on('error', reject);
+    req.setTimeout(TIMEOUT_MS, () => {
+      req.destroy();
+      reject(new Error('Request timeout'));
+    });
   });
 }
 
@@ -129,9 +136,6 @@ function generateOgHtml(event) {
 
   <!-- Canonical -->
   <link rel="canonical" href="${url}">
-
-  <!-- Redirect non-crawlers to the SPA -->
-  <meta http-equiv="refresh" content="0;url=${url}">
 
   <style>
     body {
