@@ -29,9 +29,14 @@ function createPrismaClient(): PrismaClient {
   }
 
   // Create PostgreSQL Pool with SSL support for RDS connections
+  // Limit connections for Lambda: t3.micro has ~20 max connections
+  // With multiple Lambda instances, each should use minimal connections
   const pool = new Pool({
     connectionString,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+    max: process.env.NODE_ENV === 'production' ? 2 : 10, // Limit connections in Lambda
+    idleTimeoutMillis: 30000, // Close idle connections after 30s
+    connectionTimeoutMillis: 5000, // Fail fast if can't connect
   });
   const adapter = new PrismaPg(pool);
 
