@@ -1,12 +1,14 @@
 'use strict';
 
 /**
- * Lambda@Edge Origin Request function for OG meta tags
+ * Lambda@Edge Viewer Request function for OG meta tags and 404 handling
  *
- * Intercepts requests from social media crawlers to /news/:id URLs
+ * Intercepts requests from social media crawlers to dynamic URLs
  * and returns HTML with proper OG meta tags for link previews.
+ * Also returns proper 404 status for non-existent resources.
  *
  * Sprint Feed-5: Social sharing OG tags support
+ * Sprint SEO: Proper 404 handling for soft 404 fix
  */
 
 // Social media crawler User-Agent patterns
@@ -39,33 +41,37 @@ function isCrawler(userAgent) {
 }
 
 /**
- * Extract event ID from /news/:id path
+ * Extract ID from path patterns
  */
-function extractEventId(uri) {
+function extractNewsId(uri) {
   const match = uri.match(/^\/news\/([^\/]+)\/?$/);
   return match ? match[1] : null;
 }
 
+function extractGlossarySlug(uri) {
+  const match = uri.match(/^\/glossary\/([^\/]+)\/?$/);
+  return match ? match[1] : null;
+}
+
 /**
- * Fetch event data from API with timeout
+ * Generic fetch with timeout
  */
-async function fetchEvent(eventId) {
+async function fetchWithTimeout(url, timeoutMs = 4000) {
   const https = require('https');
-  const TIMEOUT_MS = 4000; // 4 second timeout (viewer-request max is 5s)
 
   return new Promise((resolve, reject) => {
-    const url = `${API_BASE}/news/${eventId}`;
-
     const req = https.get(url, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
         if (res.statusCode === 200) {
           try {
-            resolve(JSON.parse(data));
+            resolve({ status: 200, data: JSON.parse(data) });
           } catch (e) {
             reject(new Error('Invalid JSON response'));
           }
+        } else if (res.statusCode === 404) {
+          resolve({ status: 404, data: null });
         } else {
           reject(new Error(`API returned ${res.statusCode}`));
         }
@@ -73,7 +79,7 @@ async function fetchEvent(eventId) {
     });
 
     req.on('error', reject);
-    req.setTimeout(TIMEOUT_MS, () => {
+    req.setTimeout(timeoutMs, () => {
       req.destroy();
       reject(new Error('Request timeout'));
     });
@@ -94,16 +100,66 @@ function escapeHtml(text) {
 }
 
 /**
- * Generate HTML with OG meta tags
+ * Generate 404 HTML response
  */
-function generateOgHtml(event) {
+function generate404Html(type, identifier) {
+  const typeLabel = type === 'news' ? 'News Article' : 'Glossary Term';
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>${typeLabel} Not Found | Let AI Explain AI</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 600px;
+      margin: 100px auto;
+      padding: 20px;
+      text-align: center;
+      background: #f5f5f5;
+    }
+    h1 { color: #333; font-size: 28px; margin-bottom: 16px; }
+    p { color: #666; line-height: 1.6; margin-bottom: 24px; }
+    a { color: #f97316; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #f97316;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      margin: 8px;
+    }
+    .btn:hover { background: #ea580c; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h1>${typeLabel} Not Found</h1>
+  <p>The ${typeLabel.toLowerCase()} "${escapeHtml(identifier)}" does not exist or has been removed.</p>
+  <div>
+    <a href="${SITE_URL}/${type === 'news' ? 'feed' : 'glossary'}" class="btn">
+      Browse ${type === 'news' ? 'AI News' : 'AI Glossary'}
+    </a>
+    <a href="${SITE_URL}/" class="btn">
+      Go to Timeline
+    </a>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Generate HTML with OG meta tags for news
+ */
+function generateNewsOgHtml(event) {
   const title = escapeHtml(event.headline);
   const description = escapeHtml(event.summary);
   const image = event.thumbnailUrl || DEFAULT_IMAGE;
   const url = `${SITE_URL}/news/${event.id}`;
   const siteName = 'Let AI Explain AI';
-
-  // Format date for display
   const publishedDate = new Date(event.publishedDate).toISOString();
 
   return `<!DOCTYPE html>
@@ -169,6 +225,83 @@ function generateOgHtml(event) {
 }
 
 /**
+ * Generate HTML with OG meta tags for glossary terms
+ */
+function generateGlossaryOgHtml(term) {
+  const title = escapeHtml(term.term);
+  const description = escapeHtml(term.shortDefinition || term.quickAnswer);
+  const url = `${SITE_URL}/glossary/${term.slug}`;
+  const siteName = 'Let AI Explain AI';
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary Meta Tags -->
+  <title>${title} - AI Glossary | ${siteName}</title>
+  <meta name="title" content="${title} - AI Glossary | ${siteName}">
+  <meta name="description" content="${description}">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="${url}">
+  <meta property="og:title" content="${title} - AI Glossary">
+  <meta property="og:description" content="${description}">
+  <meta property="og:image" content="${DEFAULT_IMAGE}">
+  <meta property="og:site_name" content="${siteName}">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="${url}">
+  <meta name="twitter:title" content="${title} - AI Glossary">
+  <meta name="twitter:description" content="${description}">
+  <meta name="twitter:image" content="${DEFAULT_IMAGE}">
+
+  <!-- Canonical -->
+  <link rel="canonical" href="${url}">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 { color: #333; font-size: 24px; margin-bottom: 16px; }
+    p { color: #666; line-height: 1.6; }
+    .definition {
+      background: #eff6ff;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+      margin: 16px 0;
+    }
+    a { color: #f97316; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>${title}</h1>
+    <div class="definition">
+      <p>${description}</p>
+    </div>
+    <p><a href="${url}">Read full definition on Let AI Explain AI</a></p>
+  </div>
+</body>
+</html>`;
+}
+
+/**
  * Lambda@Edge handler
  */
 exports.handler = async (event) => {
@@ -179,18 +312,30 @@ exports.handler = async (event) => {
   // Get User-Agent
   const userAgent = headers['user-agent'] ? headers['user-agent'][0].value : '';
 
-  // Check if this is a /news/:id request from a crawler
-  const eventId = extractEventId(uri);
+  // Only process crawler requests
+  if (!isCrawler(userAgent)) {
+    return request;
+  }
 
-  if (eventId && isCrawler(userAgent)) {
-    console.log(`Crawler detected: ${userAgent.substring(0, 50)}... for event: ${eventId}`);
+  // Handle /news/:id requests
+  const newsId = extractNewsId(uri);
+  if (newsId) {
+    console.log(`Crawler detected for news: ${newsId}`);
 
     try {
-      // Fetch event data
-      const eventData = await fetchEvent(eventId);
+      const result = await fetchWithTimeout(`${API_BASE}/news/${newsId}`);
 
-      // Return HTML with OG tags
-      const html = generateOgHtml(eventData);
+      if (result.status === 404) {
+        return {
+          status: '404',
+          statusDescription: 'Not Found',
+          headers: {
+            'content-type': [{ key: 'Content-Type', value: 'text/html; charset=utf-8' }],
+            'cache-control': [{ key: 'Cache-Control', value: 'public, max-age=300' }],
+          },
+          body: generate404Html('news', newsId),
+        };
+      }
 
       return {
         status: '200',
@@ -199,15 +344,49 @@ exports.handler = async (event) => {
           'content-type': [{ key: 'Content-Type', value: 'text/html; charset=utf-8' }],
           'cache-control': [{ key: 'Cache-Control', value: 'public, max-age=300' }],
         },
-        body: html,
+        body: generateNewsOgHtml(result.data),
       };
     } catch (error) {
-      console.error('Error fetching event:', error.message);
-      // On error, let the request pass through to the origin
+      console.error('Error fetching news:', error.message);
       return request;
     }
   }
 
-  // For non-crawler requests or non-news paths, pass through to origin
+  // Handle /glossary/:slug requests
+  const glossarySlug = extractGlossarySlug(uri);
+  if (glossarySlug) {
+    console.log(`Crawler detected for glossary: ${glossarySlug}`);
+
+    try {
+      const result = await fetchWithTimeout(`${API_BASE}/glossary/slug/${glossarySlug}`);
+
+      if (result.status === 404) {
+        return {
+          status: '404',
+          statusDescription: 'Not Found',
+          headers: {
+            'content-type': [{ key: 'Content-Type', value: 'text/html; charset=utf-8' }],
+            'cache-control': [{ key: 'Cache-Control', value: 'public, max-age=300' }],
+          },
+          body: generate404Html('glossary', glossarySlug),
+        };
+      }
+
+      return {
+        status: '200',
+        statusDescription: 'OK',
+        headers: {
+          'content-type': [{ key: 'Content-Type', value: 'text/html; charset=utf-8' }],
+          'cache-control': [{ key: 'Cache-Control', value: 'public, max-age=300' }],
+        },
+        body: generateGlossaryOgHtml(result.data),
+      };
+    } catch (error) {
+      console.error('Error fetching glossary term:', error.message);
+      return request;
+    }
+  }
+
+  // For other paths, pass through to origin
   return request;
 };
