@@ -30,12 +30,13 @@ function createPrismaClient(): PrismaClient {
 
   // Create PostgreSQL Pool with SSL support for RDS connections
   // Limit connections for Lambda: t3.micro has ~20 max connections
-  // With multiple Lambda instances, each should use minimal connections
+  // With many concurrent Lambda instances, each must use minimal connections
+  // Using max: 1 to prevent connection exhaustion during traffic spikes
   const pool = new Pool({
     connectionString,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
-    max: process.env.NODE_ENV === 'production' ? 2 : 10, // Limit connections in Lambda
-    idleTimeoutMillis: 30000, // Close idle connections after 30s
+    max: process.env.NODE_ENV === 'production' ? 1 : 10, // Single connection per Lambda
+    idleTimeoutMillis: 10000, // Close idle connections faster (10s)
     connectionTimeoutMillis: 5000, // Fail fast if can't connect
   });
   const adapter = new PrismaPg(pool);
@@ -47,9 +48,10 @@ function createPrismaClient(): PrismaClient {
 }
 
 // Export singleton Prisma client instance
-// Reuses existing instance in development to prevent connection pool exhaustion
+// Reuses existing instance to prevent connection pool exhaustion
+// Important: Always cache globally to prevent multiple pools per Lambda instance
 export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma;
-}
+// Always cache the instance globally (not just in development)
+// This ensures we don't create multiple pools even in production
+globalForPrisma.prisma = prisma;
