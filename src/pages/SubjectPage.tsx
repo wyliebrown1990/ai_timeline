@@ -18,6 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { subjectsApi, type Subject, type SubjectStats, type SubjectContent } from '../services/api';
 import { DEFAULT_DOMAIN_COLORS } from '../types/subject';
+import { SEO } from '../components/SEO';
 
 /**
  * Get color for a subject
@@ -135,21 +136,26 @@ function ContentList({
           className="block p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
         >
           <h4 className="font-medium text-gray-900 dark:text-white">
-            {'title' in item ? item.title : 'term' in item ? item.term : 'name' in item ? item.name : item.id}
+            {'title' in item ? item.title : 'headline' in item ? item.headline : 'term' in item ? item.term : 'name' in item ? item.name : item.id}
           </h4>
           {'shortDefinition' in item && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
               {item.shortDefinition}
             </p>
           )}
-          {'description' in item && (
+          {'summary' in item && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+              {item.summary}
+            </p>
+          )}
+          {'description' in item && !('summary' in item) && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
               {item.description}
             </p>
           )}
-          {'date' in item && (
+          {('date' in item || 'publishedDate' in item) && (
             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2" style={{ color }}>
-              {new Date(item.date).toLocaleDateString()}
+              {new Date(('publishedDate' in item ? item.publishedDate : item.date) as string | number).toLocaleDateString()}
             </p>
           )}
         </Link>
@@ -268,8 +274,19 @@ export default function SubjectPage() {
 
   const color = getSubjectColor(subject);
 
+  // Generate SEO description
+  const seoDescription = subject.description
+    ? subject.description.slice(0, 155) + (subject.description.length > 155 ? '...' : '')
+    : `Explore ${subject.name} in AI - including timeline events, concepts, news, people, and organizations related to this topic.`;
+
   return (
     <div className="container-main py-8">
+      <SEO
+        title={subject.name}
+        description={seoDescription}
+        canonical={`https://letaiexplainai.com/subjects/${subject.slug}`}
+      />
+
       {/* Breadcrumbs */}
       <SubjectBreadcrumbs ancestors={ancestors} current={subject} />
 
