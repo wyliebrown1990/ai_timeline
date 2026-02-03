@@ -223,10 +223,10 @@ export async function getContentBySubject(
           id: true,
           headline: true,
           summary: true,
-          publishedAt: true,
+          publishedDate: true,
           sourceUrl: true,
         },
-        orderBy: { publishedAt: 'desc' },
+        orderBy: { publishedDate: 'desc' },
         take: options.limit,
         skip: options.offset,
       });
