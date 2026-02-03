@@ -118,7 +118,18 @@ interface BulkUpdateLayeredContentEvent {
   }>;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent;
+/**
+ * Custom event payload for weekly quiz generation
+ * Triggered by EventBridge rule on Sunday evening EST (Monday 1:00 AM UTC)
+ */
+interface GenerateQuizEvent {
+  action: 'generateQuiz';
+  questionCount?: number;
+  daysBack?: number;
+  forceRegenerate?: boolean;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -158,6 +169,10 @@ function isBackfillLayeredContentEvent(event: LambdaEvent): event is BackfillLay
 
 function isBulkUpdateLayeredContentEvent(event: LambdaEvent): event is BulkUpdateLayeredContentEvent {
   return (event as BulkUpdateLayeredContentEvent).action === 'bulkUpdateLayeredContent';
+}
+
+function isGenerateQuizEvent(event: LambdaEvent): event is GenerateQuizEvent {
+  return (event as GenerateQuizEvent).action === 'generateQuiz';
 }
 
 /**
@@ -1067,6 +1082,49 @@ Return ONLY the JSON object, no other text.`;
         statusCode: 500,
         body: JSON.stringify({
           message: 'Bulk update layered content failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  // Check for quiz generation mode (triggered by EventBridge weekly schedule)
+  if (isGenerateQuizEvent(event)) {
+    console.log('[IngestionLambda] Running weekly quiz generation');
+    console.log(`  Question count: ${event.questionCount || 5}`);
+    console.log(`  Days back: ${event.daysBack || 7}`);
+    console.log(`  Force regenerate: ${event.forceRegenerate ?? false}`);
+
+    try {
+      const { generateWeeklyQuiz } = await import('./services/newsQuizGenerator');
+
+      const result = await generateWeeklyQuiz(prisma, {
+        questionCount: event.questionCount || 5,
+        daysBack: event.daysBack || 7,
+        forceRegenerate: event.forceRegenerate ?? false,
+      });
+
+      console.log(`[IngestionLambda] Quiz generation complete`);
+      console.log(`  Week of: ${result.weekOf.toISOString()}`);
+      console.log(`  Questions generated: ${result.questions.length}`);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Weekly quiz generation completed',
+          weekOf: result.weekOf.toISOString(),
+          questionsGenerated: result.questions.length,
+          questionTypes: result.questions.map(q => q.questionType),
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Quiz generation error:', errorMessage);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Weekly quiz generation failed',
           error: errorMessage,
         }),
       };

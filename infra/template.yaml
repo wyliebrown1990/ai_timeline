@@ -288,6 +288,31 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt IngestionScheduleRule.Arn
 
+  # ============================================
+  # Weekly Quiz Generation Schedule
+  # ============================================
+  QuizGenerationScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ai-timeline-quiz-schedule-${Environment}
+      Description: Triggers weekly quiz generation on Sunday evening EST (Monday 1:00 AM UTC)
+      # Sunday 8 PM EST = Monday 1:00 AM UTC (or 12:00 AM UTC during daylight saving)
+      ScheduleExpression: "cron(0 1 ? * MON *)"
+      State: ENABLED
+      Targets:
+        - Id: QuizGenerationLambdaTarget
+          Arn: !GetAtt IngestionFunction.Arn
+          Input: '{"action": "generateQuiz", "questionCount": 5, "daysBack": 7}'
+
+  # Permission for EventBridge to invoke the Lambda for quiz generation
+  QuizGenerationSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt QuizGenerationScheduleRule.Arn
+
   # NOTE: WAF can be added later after initial deployment
   # For now, API Gateway throttling provides rate limiting
 
@@ -321,3 +346,9 @@ Outputs:
     Value: !GetAtt IngestionScheduleRule.Arn
     Export:
       Name: !Sub ai-timeline-ingestion-schedule-arn-${Environment}
+
+  QuizGenerationScheduleRuleArn:
+    Description: Weekly quiz generation EventBridge rule ARN
+    Value: !GetAtt QuizGenerationScheduleRule.Arn
+    Export:
+      Name: !Sub ai-timeline-quiz-schedule-arn-${Environment}

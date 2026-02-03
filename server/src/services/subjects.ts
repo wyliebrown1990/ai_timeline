@@ -571,16 +571,27 @@ export async function removeContentSubject(
 
 /**
  * Get content stats for a subject
+ * @param includeChildren - If true, includes counts from descendant subjects
  */
-export async function getSubjectStats(slug: string): Promise<SubjectStats | null> {
+export async function getSubjectStats(
+  slug: string,
+  options?: { includeChildren?: boolean }
+): Promise<SubjectStats | null> {
   if (!prisma) throw new Error('Database not available');
 
   const subject = await prisma.subject.findUnique({ where: { slug } });
   if (!subject) return null;
 
+  // Get subject IDs to query (optionally including descendants)
+  let subjectIds = [subject.id];
+  if (options?.includeChildren) {
+    const descendants = await getDescendants(subject.id);
+    subjectIds = [...subjectIds, ...descendants.map(d => d.id)];
+  }
+
   const counts = await prisma.contentSubject.groupBy({
     by: ['contentType'],
-    where: { subjectId: subject.id },
+    where: { subjectId: { in: subjectIds } },
     _count: true,
   });
 

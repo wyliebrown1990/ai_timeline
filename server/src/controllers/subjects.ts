@@ -63,11 +63,15 @@ export async function getAncestors(req: Request, res: Response, next: NextFuncti
 /**
  * GET /api/subjects/:slug/stats
  * Get content statistics for a subject
+ * Query params:
+ *   - includeChildren: if 'true', includes counts from descendant subjects
  */
 export async function getStats(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params;
-    const stats = await subjectService.getSubjectStats(slug);
+    const includeChildren = req.query.includeChildren === 'true';
+
+    const stats = await subjectService.getSubjectStats(slug, { includeChildren });
 
     if (!stats) {
       return res.status(404).json({ error: 'Subject not found' });

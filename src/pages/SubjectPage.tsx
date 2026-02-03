@@ -219,7 +219,7 @@ export default function SubjectPage() {
         const [subjectData, ancestorsData, statsData, contentData] = await Promise.all([
           subjectsApi.getBySlug(slug),
           subjectsApi.getAncestors(slug),
-          subjectsApi.getStats(slug),
+          subjectsApi.getStats(slug, { includeChildren: true }),
           subjectsApi.getContent(slug, { hydrated: true, includeChildren: true }),
         ]);
 

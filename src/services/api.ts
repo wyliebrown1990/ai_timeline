@@ -4413,8 +4413,11 @@ export const subjectsApi = {
   /**
    * Get content statistics for a subject
    */
-  async getStats(slug: string): Promise<SubjectStats> {
-    return fetchJson<SubjectStats>(`${API_BASE}/subjects/${slug}/stats`);
+  async getStats(slug: string, params?: { includeChildren?: boolean }): Promise<SubjectStats> {
+    const searchParams = new URLSearchParams();
+    if (params?.includeChildren) searchParams.set('includeChildren', 'true');
+    const query = searchParams.toString();
+    return fetchJson<SubjectStats>(`${API_BASE}/subjects/${slug}/stats${query ? `?${query}` : ''}`);
   },
 
   /**
