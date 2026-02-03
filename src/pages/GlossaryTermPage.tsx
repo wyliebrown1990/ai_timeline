@@ -126,10 +126,8 @@ export default function GlossaryTermPage() {
     glossaryApi.getBySlug(slug)
       .then((data) => {
         setTerm(data);
-        // Mark term as seen when viewed
+        // Fetch key figures for this term
         if (data?.id) {
-          markConceptSeen(data.id);
-          // Fetch key figures for this term
           glossaryApi.getKeyFigures(data.id)
             .then(setKeyFigures)
             .catch((err) => console.error('Failed to fetch key figures:', err));
@@ -146,7 +144,15 @@ export default function GlossaryTermPage() {
       .finally(() => {
         setIsLoading(false);
       });
-  }, [slug, markConceptSeen]);
+  }, [slug]);
+
+  // Mark term as seen (separate effect to avoid infinite loop)
+  useEffect(() => {
+    if (term?.id) {
+      markConceptSeen(term.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term?.id]); // Only run when term.id changes, not when markConceptSeen changes
 
   // Get related terms - combine manually linked + same category, limit to 8
   const relatedTerms = useMemo(() => {
