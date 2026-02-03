@@ -109,3 +109,6 @@ adminRouter.get('/backfill/status', requireAdmin, subjectsController.getBackfill
 
 // GET /api/admin/subjects/coverage - Get classification coverage stats
 adminRouter.get('/coverage', requireAdmin, subjectsController.getCoverageStats);
+
+// POST /api/admin/subjects/migrate-content-type - Fix news_event to current_event
+adminRouter.post('/migrate-content-type', requireAdmin, subjectsController.migrateContentType);

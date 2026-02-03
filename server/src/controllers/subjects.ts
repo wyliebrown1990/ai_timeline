@@ -6,6 +6,7 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
+import { prisma } from '../db';
 import * as subjectService from '../services/subjects';
 import * as subjectContentService from '../services/subjectContentService';
 
@@ -618,6 +619,73 @@ export async function getCoverageStats(req: Request, res: Response, next: NextFu
   try {
     const stats = await subjectService.getCoverageStats();
     res.json(stats);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * POST /api/admin/subjects/migrate-content-type
+ * Fix contentType mismatch: migrate 'news_event' to 'current_event' in ContentSubject
+ * This fixes a bug where drafts used 'news_event' but queries expected 'current_event'
+ */
+export async function migrateContentType(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { dryRun = true } = req.body;
+
+    // Count existing mismatched records
+    const wrongRecords = await prisma.contentSubject.findMany({
+      where: { contentType: 'news_event' },
+      select: { id: true, contentId: true, subjectId: true },
+    });
+
+    // Find which ones already have a current_event version (would cause conflict)
+    const existingCorrect = await prisma.contentSubject.findMany({
+      where: { contentType: 'current_event' },
+      select: { contentId: true, subjectId: true },
+    });
+    const existingSet = new Set(existingCorrect.map(r => `${r.contentId}:${r.subjectId}`));
+
+    const duplicates = wrongRecords.filter(r => existingSet.has(`${r.contentId}:${r.subjectId}`));
+    const canMigrate = wrongRecords.filter(r => !existingSet.has(`${r.contentId}:${r.subjectId}`));
+
+    if (dryRun) {
+      return res.json({
+        dryRun: true,
+        message: `Found ${wrongRecords.length} records with 'news_event': ${canMigrate.length} can be migrated, ${duplicates.length} are duplicates that will be deleted`,
+        total: wrongRecords.length,
+        canMigrate: canMigrate.length,
+        duplicates: duplicates.length,
+        sampleMigrate: canMigrate.slice(0, 3),
+        sampleDuplicates: duplicates.slice(0, 3),
+      });
+    }
+
+    // Delete duplicates (keep the current_event version)
+    let deleted = 0;
+    if (duplicates.length > 0) {
+      const deleteResult = await prisma.contentSubject.deleteMany({
+        where: { id: { in: duplicates.map(d => d.id) } },
+      });
+      deleted = deleteResult.count;
+    }
+
+    // Migrate the rest
+    let migrated = 0;
+    if (canMigrate.length > 0) {
+      const migrateResult = await prisma.contentSubject.updateMany({
+        where: { id: { in: canMigrate.map(m => m.id) } },
+        data: { contentType: 'current_event' },
+      });
+      migrated = migrateResult.count;
+    }
+
+    res.json({
+      dryRun: false,
+      message: `Migration complete: ${migrated} records migrated, ${deleted} duplicates removed`,
+      migrated,
+      deleted,
+    });
   } catch (error) {
     next(error);
   }

@@ -25,6 +25,17 @@ interface SuggestedSubject {
 }
 
 /**
+ * Normalize draft contentType to ContentSubject contentType
+ * Draft uses 'news_event' but ContentSubject system uses 'current_event'
+ */
+function normalizeContentTypeForSubject(draftContentType: string): string {
+  if (draftContentType === 'news_event') {
+    return 'current_event';
+  }
+  return draftContentType;
+}
+
+/**
  * Publish ContentSubject records for approved content
  * Sprint Subj-2: Creates ContentSubject records linking published content to subjects
  */
@@ -333,9 +344,10 @@ export async function approveDraft(req: Request, res: Response) {
     }
 
     // Publish ContentSubject records (Sprint Subj-2)
+    // Note: Normalize contentType because drafts use 'news_event' but ContentSubject uses 'current_event'
     const suggestedSubjects = draftData.suggestedSubjects as SuggestedSubject[] | undefined;
     const subjectsCreated = await publishContentSubjects(
-      draft.contentType,
+      normalizeContentTypeForSubject(draft.contentType),
       publishedId,
       suggestedSubjects
     );
@@ -474,8 +486,9 @@ export async function bulkApprove(req: Request, res: Response) {
         }
 
         // Publish ContentSubject records (Sprint Subj-2)
+        // Note: Normalize contentType because drafts use 'news_event' but ContentSubject uses 'current_event'
         const suggestedSubjects = draftData.suggestedSubjects as SuggestedSubject[] | undefined;
-        await publishContentSubjects(draft.contentType, publishedId, suggestedSubjects);
+        await publishContentSubjects(normalizeContentTypeForSubject(draft.contentType), publishedId, suggestedSubjects);
 
         await prisma.contentDraft.update({
           where: { id: draft.id },
