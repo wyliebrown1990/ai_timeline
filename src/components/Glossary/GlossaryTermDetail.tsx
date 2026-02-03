@@ -79,12 +79,13 @@ export function GlossaryTermDetail({
     return [...manuallyLinked, ...sameCategoryTerms].slice(0, MAX_RELATED);
   }, [term, allTerms]);
 
-  // Mark term as seen when viewed
+  // Mark term as seen when viewed (exclude markConceptSeen from deps to avoid infinite loop)
   useEffect(() => {
     if (term.id) {
       markConceptSeen(term.id);
     }
-  }, [term.id, markConceptSeen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [term.id]);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
