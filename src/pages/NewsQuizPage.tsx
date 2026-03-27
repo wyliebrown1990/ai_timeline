@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Sparkles,
 } from 'lucide-react';
+import { QuizShareCard } from '../components/Quiz/QuizShareCard';
 import { useSession } from '../contexts/SessionContext';
 import {
   newsQuizApi,
@@ -605,7 +606,15 @@ export function NewsQuizPage() {
         <div className="container-main py-8">
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Actions */}
-            <div className="flex flex-wrap gap-3 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center items-center">
+              <QuizShareCard
+                quiz={quiz}
+                results={results}
+                score={score}
+                weekStart={weekStart}
+                weekEnd={weekEnd}
+                answers={answers}
+              />
               <button
                 onClick={handleRetakeQuiz}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
