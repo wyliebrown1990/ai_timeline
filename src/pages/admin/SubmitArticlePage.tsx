@@ -104,7 +104,11 @@ export function SubmitArticlePage() {
       }
     } catch (error) {
       console.error('Scrape error:', error);
-      toast.error('Failed to fetch content from URL');
+      if (error instanceof ApiError) {
+        toast.error(error.message || 'Failed to fetch content from URL');
+      } else {
+        toast.error('Failed to fetch content from URL');
+      }
     } finally {
       setIsScraping(false);
     }
@@ -142,8 +146,10 @@ export function SubmitArticlePage() {
       }
     } catch (error) {
       console.error('Scrape error:', error);
-      if (error instanceof Error && error.message.includes('already exists')) {
+      if (error instanceof ApiError && error.statusCode === 409) {
         toast.error('An article with this URL already exists');
+      } else if (error instanceof ApiError) {
+        toast.error(error.message || 'Failed to fetch and analyze content');
       } else {
         toast.error('Failed to fetch and analyze content');
       }
@@ -193,8 +199,8 @@ export function SubmitArticlePage() {
           setDuplicateArticleId(existingId);
         }
         toast.error('An article with this URL already exists');
-      } else if (error instanceof Error && error.message.includes('already exists')) {
-        toast.error('An article with this URL already exists');
+      } else if (error instanceof ApiError) {
+        toast.error(error.message || 'Failed to submit article');
       } else {
         toast.error('Failed to submit article');
       }
@@ -244,6 +250,8 @@ export function SubmitArticlePage() {
           setDuplicateArticleId(existingId);
         }
         toast.error('This YouTube video has already been submitted');
+      } else if (error instanceof ApiError) {
+        toast.error(error.message || 'Failed to submit YouTube video');
       } else {
         toast.error('Failed to submit YouTube video');
       }
