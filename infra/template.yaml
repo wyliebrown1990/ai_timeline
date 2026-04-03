@@ -79,6 +79,7 @@ Resources:
       Description: AI Timeline Express API
       CodeUri: ../server/src/
       Handler: lambda.handler
+      ReservedConcurrentExecutions: 50
 
       # VPC configuration for RDS access
       VpcConfig:
@@ -203,6 +204,7 @@ Resources:
       CodeUri: ../server/src/
       Handler: ingestionLambda.handler
       Timeout: 900  # 15 minutes - max Lambda timeout for bibliography ingestion
+      ReservedConcurrentExecutions: 5
       MemorySize: 1024  # Increased for bibliography ingestion
 
       # VPC configuration for RDS access
@@ -295,9 +297,9 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: !Sub ai-timeline-quiz-schedule-${Environment}
-      Description: Triggers weekly quiz generation on Sunday evening EST (Monday 1:00 AM UTC)
-      # Sunday 8 PM EST = Monday 1:00 AM UTC (or 12:00 AM UTC during daylight saving)
-      ScheduleExpression: "cron(0 1 ? * MON *)"
+      Description: Triggers weekly quiz generation on Friday at noon Eastern (4:00 PM UTC)
+      # Friday 12 PM EDT = 4:00 PM UTC (5:00 PM UTC during EST/winter)
+      ScheduleExpression: "cron(0 16 ? * FRI *)"
       State: ENABLED
       Targets:
         - Id: QuizGenerationLambdaTarget
