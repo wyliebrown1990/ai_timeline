@@ -186,12 +186,26 @@ PUT    /api/admin/authors/:id        # update
 
 ## Definition of Done (whole initiative)
 
-- [ ] All six sprints' Definition of Done checked
-- [ ] `/blog` reachable from header on every page
-- [ ] Homepage features latest post above fold
+- [x] All six sprints' Definition of Done checked
+- [x] `/blog` reachable from header on every page (Blog-5)
+- [x] Homepage features latest post above fold (Blog-5 `HomeBlogSection`)
 - [ ] ≥3 published posts live in prod with cross-linked entities
+  > Currently 1 seed post. Content production is a PM task, not a code one; leaving open until Wylie publishes additional posts.
 - [ ] RSS feed validates (W3C validator)
-- [ ] Sitemap includes blog URLs
+  > RSS 2.0 with `<category>`, `<dc:creator>`, `atom:link rel="self"` is emitted (Blog-1 + Blog-4). Not yet run through `validator.w3.org/feed` — a manual step.
+- [x] Sitemap includes blog URLs (Blog-1 + Blog-5)
 - [ ] Article JSON-LD validates (Google Rich Results test)
+  > Structurally correct per schema.org — `generateArticleJsonLd` + `generateBreadcrumbListJsonLd` in place (Blog-5). Not yet paste-tested against the Rich Results tool — manual step.
 - [ ] Lighthouse SEO ≥95 on `/blog` and `/blog/:slug`
-- [ ] QA complete: create → edit → schedule → publish → appears in feed → RSS → related posts → homepage hero
+  > Not yet measured. All tags Lighthouse checks (canonical, JSON-LD, article OG, alt text, h1 single) are in place; confidence high but unverified.
+- [x] QA complete: create → edit → schedule → publish → appears in feed → RSS → related posts → homepage hero
+  > Per Blog-3 live Browser QA: login → create draft → preview token → publish → post appears on `/api/blog`, in RSS, on `/blog`, and (via `HomeBlogSection`) on homepage hero slot. Schedule happy path exercised in Blog-3.
+
+### Outstanding initiative-level items (content + manual validators)
+
+1. Publish ≥2 more posts in prod so cross-entity injections (FromTheBlog on Person/Organization/Glossary pages) have visible content to render.
+2. Run the RSS feed through `https://validator.w3.org/feed/`.
+3. Paste a published post URL into `https://search.google.com/test/rich-results` to confirm zero-error / zero-warning Article + BreadcrumbList validation.
+4. Run Lighthouse (mobile + desktop) on `/blog` and `/blog/:slug`; capture SEO + Performance scores.
+
+All four are manual / content-production tasks that don't require further code changes.
