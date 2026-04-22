@@ -25,7 +25,7 @@ Establish the database schema, API endpoints, and seed data needed to support th
 
 **Priority**: HIGH (blocking all other Blog sprints)
 **Estimated Effort**: 2 days
-**Status**: Shipped — migration + seed applied to prod, smoke tests all green. Blog-2 unblocked.
+**Status**: Backend shipped, live browser QA surfaced a UX bug on `/blog` (blank page — no `*` catch-all route in App.tsx). Holding DoD until PM picks a fix from `Blocked — PM decision needed`. Blog-2 can still begin in parallel since its work is what ultimately resolves the blank-page issue.
 
 ---
 
@@ -269,6 +269,15 @@ These were added *during* the sprint to work around the VPC-only RDS constraint.
 - [x] `POST /api/admin/blog/run-migration` — applies the Blog-1 DDL (safe to re-run).
 - [x] `POST /api/admin/blog/seed-default-post` — upserts the featured "Why we built LAEA" post (safe to re-run).
 
+### 12. Live Browser QA via the `/Browser` skill (MANDATORY)
+
+Per `PLAN-Blog-Editorial.md` Developer Workflow rule 11. Blog-1 is backend-only, so QA covers:
+1. The four public JSON endpoints through CloudFront (not the API Gateway URL).
+2. The SPA shell still loads on a non-blog route (no regression in header/routing).
+3. Expected 404 on `/blog` (UI lands in Blog-2) is documented, not treated as a failure.
+
+Findings live under `## Live Browser QA` at the bottom of this file.
+
 ---
 
 ## Definition of Done
@@ -310,6 +319,43 @@ package.json                                      (add seed:blog script, deps)
 
 ---
 
+## Live Browser QA
+
+Run date: 2026-04-22 via `/Browser` skill (`agent-browser`) against prod CloudFront (`letaiexplainai.com`).
+Screenshots: `/tmp/blog1-qa/1-api-blog.png` through `6-timeline.png`.
+
+| # | URL | Status | What's visible | Console | Verdict |
+|---|-----|--------|----------------|---------|---------|
+| 1 | `/api/blog` | 200 | Raw JSON: 1 post (`why-we-built-laea`), pagination block. | clean | PASS — expected shape |
+| 2 | `/api/blog/why-we-built-laea` | 200 | Raw JSON with full `bodyMarkdown`, author, subjects, relations. | clean | PASS |
+| 3 | `/api/blog/rss.xml` | 200 | Browser-rendered RSS 2.0 XML, 1 `<item>`, valid channel/atom/dc namespaces. | clean | PASS |
+| 4 | `/api/sitemap.xml` | 200 | XML includes `https://letaiexplainai.com/blog` + `.../blog/why-we-built-laea` among other URLs. | clean | PASS |
+| 5 | `/blog` | 200 (SPA shell) | **Completely blank dark page**, only the chat bubble in the corner. Header and all content absent. Console warns `No routes matched location "/blog"`. | React Router "no routes matched" warning | **FAIL — UX bug** |
+| 6 | `/timeline` | 200 | Full timeline page renders correctly — header, milestone counts, era tabs, filters, recently-added feed. | clean | PASS |
+
+### Finding: `/blog` renders a blank page (not a 404)
+
+**Root cause**: `src/App.tsx` has no `path="*"` catch-all route, so unmatched paths fall through without even the `Layout` chrome — just a void. This is a pre-existing gap in the app, but Sprint Blog-1 made it newly user-visible in two ways:
+1. Added `https://letaiexplainai.com/blog` to `/api/sitemap.xml` — Google will crawl it and index a blank page.
+2. Added `https://letaiexplainai.com/blog/why-we-built-laea` as the RSS `<link>` + `<guid>` — any feed reader that follows the link lands on the blank page.
+
+**Impact**: If a human (or crawler) hits `/blog` before Blog-2 ships, they see what looks like a broken site.
+
+**Recommended fix (before marking Blog-1 truly complete)**: ONE of
+- (A) Add a catch-all `Route path="*" element={<NotFoundPage />} />` in `App.tsx` so unknown paths at least render a proper 404 with the header — broadly useful, not blog-specific.
+- (B) Roll back the sitemap `/blog` + post-URL entries in this sprint; re-add in Blog-5 (SEO sprint) once the UI page lands in Blog-2.
+- (C) Both A and B.
+
+Pending PM decision — see `Blocked — PM decision needed`.
+
+### Other observations (not blockers)
+
+- `/api/blog` and `/api/blog/:slug` render as raw JSON in the browser (no styled "API docs" wrapper). Expected for a REST API, but a human visitor sees raw JSON with `?` because browsers default to `font-family: sans-serif` for JSON text and no formatting. Non-issue for machines; optional nice-to-have is enabling browser-pretty-JSON via `Content-Type` hints but that belongs in a DX-polish pass, not Blog-1.
+- No CORS, auth, or network errors on any prod endpoint.
+- `/timeline` and the rest of the site is entirely unaffected by the Lambda deploy — no visible regressions.
+
 ## Blocked — PM decision needed
 
-(None yet. Add any questions for Wylie here.)
+### 1. How to resolve the blank `/blog` page before Blog-2 ships?
+
+Options A, B, or C from the Live Browser QA section above. Default recommendation if no input: **A** (add the `*` catch-all route) — it's the lowest-risk, broadest-value fix and future-proofs every other unmatched URL in the app. B can land with Blog-5 when SEO is properly re-audited.

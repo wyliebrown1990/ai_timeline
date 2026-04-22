@@ -47,6 +47,10 @@ This workflow is enforced on every sprint. Ignoring it = broken ship.
 8. **No backwards compatibility unless explicitly requested.** Change the schema, rename the field, delete the old code. Don't leave dead branches or `_deprecated` aliases behind.
 9. **Stop conditions.** Only stop when (a) the sprint's Definition of Done is fully met, or (b) you hit a decision that requires Wylie's input as PM. In case (b), write the question clearly in the sprint file under a `## Blocked — PM decision needed` heading and ping Wylie.
 10. **AWS CLI is available.** Deploy, check logs, invalidate CloudFront, run migrations — all via `aws`/`sam`/`prisma` as documented in `.claude/CLAUDE.md` and `.claude/rules/backend.md`.
+11. **Live browser QA via the `/Browser` skill is MANDATORY before every sprint DoD is checked.** Non-negotiable. The Browser skill uses `agent-browser` to drive Chrome against `https://letaiexplainai.com` — not the raw API Gateway URL, not localhost. CloudFront, cache headers, and the SPA shell all sit between Lambda and the user; curl against API Gateway proves the backend is wired, not that users can see the feature.
+    - **Required artifacts per sprint before DoD:** navigate to every URL the sprint touched, capture console + network, take at least one screenshot per URL. Attach URLs + any non-2xx / errored calls to the sprint file under a new `## Live Browser QA` section. If the sprint added zero UI (backend-only, e.g. Blog-1), QA the JSON endpoints through CloudFront AND verify the SPA shell still loads clean on an untouched route.
+    - **"It returned 200 in curl" is not enough.** If the user-visible URL renders as raw JSON, a blank page, a 404, or throws a console error, the sprint is NOT done. File a fix-up task and keep the sprint open.
+    - **Document any deliberate gaps** (e.g. "`/blog` returns 404 — expected, Blog-2 adds the UI page") in the sprint file so the next sprint's QA knows what to ignore vs chase.
 
 ---
 
