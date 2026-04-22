@@ -52,6 +52,8 @@ import explainedRouter from './routes/explained'; // Sprint SEO-4 - Explained Pa
 import eventsRouter from './routes/events'; // Sprint SEO-4 - Event Pages
 import whoInventedRouter from './routes/whoInvented'; // Sprint SEO-4 - Who Invented Pages
 import seoContentRouter from './routes/seoContent'; // Sprint SEO-4 - SEO Content Generation
+import blogRouter, { authorsRouter } from './routes/blog'; // Sprint Blog-1 - Public blog
+import blogAdminRouter, { authorsAdminRouter } from './routes/blogAdmin'; // Sprint Blog-1 - Admin blog
 
 /**
  * Create and configure the Express application
@@ -137,6 +139,8 @@ export function createApp() {
   app.use('/api/explained', explainedRouter); // Explained pages API (Sprint SEO-4)
   app.use('/api/events', eventsRouter); // Event pages API (Sprint SEO-4)
   app.use('/api/who-invented', whoInventedRouter); // Who Invented pages API (Sprint SEO-4)
+  app.use('/api/blog', blogRouter); // Public blog API (Sprint Blog-1)
+  app.use('/api/authors', authorsRouter); // Public author profiles (Sprint Blog-1)
   app.use('/api/admin', sourcesRoutes);
   app.use('/api/admin/articles', articlesRoutes);
   app.use('/api/admin/review', reviewRoutes);
@@ -164,6 +168,8 @@ export function createApp() {
   app.use('/api/admin/bibliography', bibliographyRouter); // Admin bibliography ingestion API (Sprint Bib-1)
   app.use('/api/admin/feed', adminFeedRouter); // Admin feed API (Sprint Feed-1)
   app.use('/api/admin/seo-content', seoContentRouter); // Admin SEO content generation API (Sprint SEO-4)
+  app.use('/api/admin/blog', blogAdminRouter); // Admin blog API (Sprint Blog-1)
+  app.use('/api/admin/authors', authorsAdminRouter); // Admin author management (Sprint Blog-1)
 
   // Error handling
   app.use(notFoundHandler);

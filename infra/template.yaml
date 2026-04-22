@@ -174,6 +174,14 @@ Resources:
               Action:
                 - lambda:InvokeFunction
               Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:ai-timeline-ingestion-${Environment}'
+            # S3 permissions for Blog uploads (cover + inline images) and OG image generation
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+                - s3:GetObject
+              Resource:
+                - 'arn:aws:s3:::ai-timeline-frontend-1765916222/blog-uploads/*'
+                - 'arn:aws:s3:::ai-timeline-frontend-1765916222/blog-og/*'
 
     Metadata:
       BuildMethod: esbuild

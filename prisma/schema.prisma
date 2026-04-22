@@ -1261,6 +1261,7 @@ model Subject {
   // Relations
   contentSubjects ContentSubject[]
   synonyms        SubjectSynonym[]
+  posts           BlogPostSubject[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1364,4 +1365,82 @@ model BlockedDomain {
 
   @@index([domain])
   @@index([createdAt])
+}
+
+// =============================================================================
+// Blog & Editorial (Sprint Blog-1)
+// =============================================================================
+
+/// Author of blog posts. Designed to support N authors; v1 ships with just Wylie.
+model Author {
+  id         String     @id @default(cuid())
+  slug       String     @unique
+  name       String
+  role       String?
+  bio        String?
+  avatarUrl  String?
+  links      String     @default("{}") // JSON: { twitter, linkedin, website }
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  posts      BlogPost[]
+}
+
+/// Longform editorial post. bodyMarkdown is source of truth.
+model BlogPost {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  subtitle       String?
+  excerpt        String    // cards + OG description
+  bodyMarkdown   String
+  coverImageUrl  String?
+  authorId       String
+  author         Author    @relation(fields: [authorId], references: [id])
+  status         String    @default("draft") // draft | scheduled | published | archived
+  publishedAt    DateTime?
+  scheduledFor   DateTime?
+  readingMinutes Int       @default(1)
+  seoTitle       String?
+  seoDescription String?
+  canonicalUrl   String?
+  tags           String    @default("[]") // JSON string[]
+  featured       Boolean   @default(false) // homepage hero eligibility
+  viewCount      Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  subjects  BlogPostSubject[]
+  relations BlogPostRelation[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([featured, publishedAt(sort: Desc)])
+  @@index([authorId, publishedAt(sort: Desc)])
+}
+
+/// Many-to-many between BlogPost and existing Subject taxonomy.
+model BlogPostSubject {
+  id        String   @id @default(cuid())
+  postId    String
+  post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  isPrimary Boolean  @default(false)
+
+  @@unique([postId, subjectId])
+  @@index([subjectId])
+}
+
+/// Polymorphic link from a post to any first-class entity (milestone/person/org/glossary_term).
+model BlogPostRelation {
+  id            String   @id @default(cuid())
+  postId        String
+  post          BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  entityType    String   // milestone | person | organization | glossary_term
+  entityId      String
+  relationLabel String?  // e.g. "Explains", "Profile of"
+  createdAt     DateTime @default(now())
+
+  @@unique([postId, entityType, entityId])
+  @@index([entityType, entityId])
 }

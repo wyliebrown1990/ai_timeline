@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-04-21 by Claude (AITechLeadReview — added S3 SDK install, IAM policy task, Subject relation line refs)
+> Last updated: 2026-04-22 by Claude — implementation in progress, pre-deploy checkpoint
 
 ---
 
@@ -25,15 +25,15 @@ Establish the database schema, API endpoints, and seed data needed to support th
 
 **Priority**: HIGH (blocking all other Blog sprints)
 **Estimated Effort**: 2 days
-**Status**: Not started
+**Status**: In progress — code complete, awaiting deploy + QA
 
 ---
 
 ## Prerequisites
 
-- [ ] Confirm RDS PostgreSQL accessible: `DATABASE_URL=$(aws ssm get-parameter --name "/ai-timeline/prod/database-url" --with-decryption --query "Parameter.Value" --output text) npx prisma db pull`
-- [ ] Confirm local dev server runs: `npm run dev` + `npm run dev:server`
-- [ ] Review existing Prisma models `Subject`, `ContentSubject`, `Milestone`, `Person`, `Organization`, `GlossaryTerm`
+- [x] Confirm RDS PostgreSQL accessible: `DATABASE_URL=$(aws ssm get-parameter --name "/ai-timeline/prod/database-url" --with-decryption --query "Parameter.Value" --output text) npx prisma db pull`
+- [x] Confirm local dev server runs: `npm run dev` + `npm run dev:server`
+- [x] Review existing Prisma models `Subject`, `ContentSubject`, `Milestone`, `Person`, `Organization`, `GlossaryTerm`
 
 ---
 
@@ -42,7 +42,7 @@ Establish the database schema, API endpoints, and seed data needed to support th
 ### 1. Prisma Schema
 
 #### 1.1 Add `Author` model
-- [ ] Add to `prisma/schema.prisma`:
+- [x] Add to `prisma/schema.prisma`:
   ```prisma
   model Author {
     id         String     @id @default(cuid())
@@ -59,7 +59,7 @@ Establish the database schema, API endpoints, and seed data needed to support th
   ```
 
 #### 1.2 Add `BlogPost` model
-- [ ] Add to `prisma/schema.prisma`:
+- [x] Add to `prisma/schema.prisma`:
   ```prisma
   model BlogPost {
     id              String    @id @default(cuid())
@@ -94,7 +94,7 @@ Establish the database schema, API endpoints, and seed data needed to support th
   ```
 
 #### 1.3 Add `BlogPostSubject` join model
-- [ ] Add to `prisma/schema.prisma`:
+- [x] Add to `prisma/schema.prisma`:
   ```prisma
   model BlogPostSubject {
     id         String   @id @default(cuid())
@@ -108,10 +108,10 @@ Establish the database schema, API endpoints, and seed data needed to support th
     @@index([subjectId])
   }
   ```
-- [ ] Add inverse relation `posts BlogPostSubject[]` to the existing `Subject` model at `prisma/schema.prisma:1237-1271` (in the existing relations block alongside `contentSubjects` and `synonyms`).
+- [x] Add inverse relation `posts BlogPostSubject[]` to the existing `Subject` model at `prisma/schema.prisma:1237-1271` (in the existing relations block alongside `contentSubjects` and `synonyms`).
 
 #### 1.4 Add `BlogPostRelation` polymorphic link
-- [ ] Add to `prisma/schema.prisma`:
+- [x] Add to `prisma/schema.prisma`:
   ```prisma
   model BlogPostRelation {
     id            String   @id @default(cuid())
@@ -128,31 +128,33 @@ Establish the database schema, API endpoints, and seed data needed to support th
   ```
 
 #### 1.5 Migrate
-- [ ] Run local migration: `npx prisma migrate dev --name add_blog_posts`
-- [ ] Verify schema changes with `npx prisma studio` (inspect models)
-- [ ] Commit `prisma/schema.prisma` + new migration folder
+- [x] Run local migration: `npx prisma migrate dev --name add_blog_posts`
+  > Applied via manually-authored SQL in `prisma/migrations/20260422000000_add_blog_posts/migration.sql` because the local DB had pre-existing drift from raw-SQL admin-endpoint migrations (GlossaryTermPerson/Organization etc.), which made `prisma migrate dev` refuse. The migration file is standard `prisma migrate deploy`-compatible and will apply cleanly in prod.
+- [x] Verify schema changes with `npx prisma studio` (inspect models)
+  > Verified via `psql \dt` — Author, BlogPost, BlogPostSubject, BlogPostRelation all present.
+- [x] Commit `prisma/schema.prisma` + new migration folder
 
 ### 2. Types (Zod)
 
-- [ ] Create `src/types/blog.ts` with Zod schemas: `BlogPostSchema`, `BlogPostListItemSchema`, `AuthorSchema`, `BlogPostStatusEnum`.
-- [ ] Export inferred TS types.
-- [ ] Add a short comment at the top explaining this file is the contract for `/api/blog` responses.
+- [x] Create `src/types/blog.ts` with Zod schemas: `BlogPostSchema`, `BlogPostListItemSchema`, `AuthorSchema`, `BlogPostStatusEnum`.
+- [x] Export inferred TS types.
+- [x] Add a short comment at the top explaining this file is the contract for `/api/blog` responses.
 
 ### 3. Backend Services
 
 #### 3.0 Install S3 SDK (required for 3.3 and Blog-3 image upload)
-- [ ] `npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner` — currently only `@aws-sdk/client-ssm`, `@aws-sdk/client-ses`, `@aws-sdk/client-lambda`, `@aws-sdk/client-cloudwatch-logs` are installed (verified against `package.json:40-43`).
+- [x] `npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner` — currently only `@aws-sdk/client-ssm`, `@aws-sdk/client-ses`, `@aws-sdk/client-lambda`, `@aws-sdk/client-cloudwatch-logs` are installed (verified against `package.json:40-43`).
 
 
 #### 3.1 Public service
-- [ ] Create `server/src/services/blog.ts` with:
+- [x] Create `server/src/services/blog.ts` with:
   - `listPublishedPosts({ page, pageSize, tag?, subjectSlug?, authorSlug? })`
   - `getPublishedPostBySlug(slug)` — includes author, subjects, relations
   - `getRelatedPosts(postId, limit = 3)` — ranks by shared-subject count, then shared-entity count, then recency
   - `computeReadingMinutes(markdown: string): number` — words / 200 rounded up, min 1
 
 #### 3.2 Admin service
-- [ ] Create `server/src/services/blogAdmin.ts` with:
+- [x] Create `server/src/services/blogAdmin.ts` with:
   - `listAllPosts({ status?, authorId?, q? })`
   - `createDraft(input, authorId)` — auto-generates slug from title, ensures uniqueness (append `-2`, `-3`, ...)
   - `updatePost(id, patch)` — recomputes `readingMinutes` when body changes
@@ -163,12 +165,12 @@ Establish the database schema, API endpoints, and seed data needed to support th
   - `setRelations(postId, relations[])`
 
 #### 3.3 S3 upload
-- [ ] Add `getPresignedUploadUrl(filename, contentType)` to `server/src/services/blogAdmin.ts` that returns a presigned PUT URL for `s3://ai-timeline-frontend-1765916222/blog-uploads/{yyyy}/{mm}/{uuid}.{ext}`.
-- [ ] Use `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (installed in Task 3.0).
+- [x] Add `getPresignedUploadUrl(filename, contentType)` to `server/src/services/blogAdmin.ts` that returns a presigned PUT URL for `s3://ai-timeline-frontend-1765916222/blog-uploads/{yyyy}/{mm}/{uuid}.{ext}`.
+- [x] Use `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (installed in Task 3.0).
 
 #### 3.4 SAM IAM policy — S3 permissions (CRITICAL — blocks prod upload)
 > **Found by AITechLeadReview**: `infra/template.yaml:136-176` currently grants CloudWatch/SSM/EC2/SES/Lambda but **zero S3 permissions**. Without this update, the presigned upload URL will be generated but PUT requests will 403.
-- [ ] Edit `infra/template.yaml` — in the `ai-timeline-api-prod` function's `Policies` block, add a statement:
+- [x] Edit `infra/template.yaml` — in the `ai-timeline-api-prod` function's `Policies` block, add a statement:
   ```yaml
   - Statement:
       - Effect: Allow
@@ -177,55 +179,64 @@ Establish the database schema, API endpoints, and seed data needed to support th
           - s3:GetObject
         Resource: arn:aws:s3:::ai-timeline-frontend-1765916222/blog-uploads/*
   ```
-- [ ] If Blog-5 OG image generation also writes to S3, also allow `s3:PutObject` on `arn:aws:s3:::ai-timeline-frontend-1765916222/blog-og/*` (or add in Blog-5 — whichever ships first).
+- [x] If Blog-5 OG image generation also writes to S3, also allow `s3:PutObject` on `arn:aws:s3:::ai-timeline-frontend-1765916222/blog-og/*` (or add in Blog-5 — whichever ships first).
+  > Added both `blog-uploads/*` and `blog-og/*` in the same policy statement so Blog-5 inherits S3 write access for free.
 - [ ] Verify after deploy: `aws iam get-role-policy --role-name <lambda-role> --policy-name <name>` shows the new Resource ARN.
 
 ### 4. Controllers + Routes
 
 #### 4.1 Public controller
-- [ ] Create `server/src/controllers/blog.ts` handling:
+- [x] Create `server/src/controllers/blog.ts` handling:
   - `GET /api/blog` (list with filters, pagination)
   - `GET /api/blog/:slug`
   - `GET /api/blog/related?slug=`
   - `GET /api/authors/:slug`
 
 #### 4.2 Admin controller
-- [ ] Create `server/src/controllers/blogAdmin.ts` handling the full admin surface listed in `PLAN-Blog-Editorial.md` (`POST/PUT/GET/DELETE` on `/api/admin/blog`, `/publish`, `/schedule`, `/archive`, `/upload-url`, authors CRUD).
-- [ ] All admin endpoints MUST be behind the existing JWT middleware.
+- [x] Create `server/src/controllers/blogAdmin.ts` handling the full admin surface listed in `PLAN-Blog-Editorial.md` (`POST/PUT/GET/DELETE` on `/api/admin/blog`, `/publish`, `/schedule`, `/archive`, `/upload-url`, authors CRUD).
+- [x] All admin endpoints MUST be behind the existing JWT middleware.
 
 #### 4.3 Routes
-- [ ] Create `server/src/routes/blog.ts` (public).
-- [ ] Create `server/src/routes/blogAdmin.ts` (admin).
-- [ ] Wire both in `server/src/index.ts` alongside existing route mounts. Keep order: public before admin.
+- [x] Create `server/src/routes/blog.ts` (public).
+- [x] Create `server/src/routes/blogAdmin.ts` (admin).
+- [x] Wire both in `server/src/index.ts` alongside existing route mounts. Keep order: public before admin.
 
 ### 5. Sitemap + RSS stubs
 
-- [ ] Extend `server/src/routes/sitemap.ts`: include `/blog` index and every published post URL with `lastmod = publishedAt`.
-- [ ] Add `GET /api/blog/rss.xml` route returning RSS 2.0 for the 20 most-recent published posts. Minimal implementation now; richer formatting in Sprint Blog-4.
+- [x] Extend `server/src/routes/sitemap.ts`: include `/blog` index and every published post URL with `lastmod = publishedAt`.
+- [x] Add `GET /api/blog/rss.xml` route returning RSS 2.0 for the 20 most-recent published posts. Minimal implementation now; richer formatting in Sprint Blog-4.
+  > Implemented on the public blog router (`routes/blog.ts`) so it's mounted automatically via `/api/blog/rss.xml`.
 
 ### 6. Seed data
 
-- [ ] Create `prisma/seeds/blog.ts` that inserts:
+- [x] Create `prisma/seeds/blog.ts` that inserts:
   - 1 `Author` record for Wylie (`slug: "wylie-brown"`).
   - 1 sample `BlogPost` in status `published` titled *"Why we built LAEA"* with 500+ words of markdown body and `featured: true`.
   - Link it to 1 existing `Subject` and 1 existing `Milestone` via `BlogPostRelation`.
-- [ ] Add `"seed:blog": "ts-node prisma/seeds/blog.ts"` to `package.json` scripts.
-- [ ] Run locally: `npm run seed:blog`. Verify with `npx prisma studio`.
+- [x] Add `"seed:blog": "ts-node prisma/seeds/blog.ts"` to `package.json` scripts.
+  > Used `tsx` instead of `ts-node` to match the repo's other seed scripts.
+- [x] Run locally: `npm run seed:blog`. Verify with `npx prisma studio`.
+  > Seed is idempotent (upsert by slug). Ran twice locally — second run no-ops cleanly. Milestone link is optional (skipped locally; will link in prod where milestones exist).
 
 ### 7. Tests
 
-- [ ] Create `server/src/services/__tests__/blog.test.ts`:
+- [x] Create `server/src/services/__tests__/blog.test.ts`:
   - `computeReadingMinutes` edge cases (empty, short, long).
   - `getRelatedPosts` ranking with mocked Prisma.
   - Slug uniqueness logic.
+  > Test placed at `tests/unit/server/blog.test.ts` to match the repo's existing Jest config (`testMatch: tests/unit/**/*.test.ts`). `computeReadingMinutes` tested exhaustively (6 cases, all passing). `getRelatedPosts` ranking and `generateUniqueSlug` are DB-dependent — Prisma-mocking infra doesn't exist in the repo yet, so those paths are covered by the live-DB smoke tests in §10 rather than mocked unit tests. Follow-up: stand up a Prisma-mock helper in Blog-3 when the admin editor needs heavier test coverage.
 - [ ] Create `server/src/controllers/__tests__/blog.test.ts` hitting the public routes with supertest: list, get-by-slug, 404, filter by tag.
+  > **Deferred**: supertest-based controller tests require an in-memory or fixtured DB setup the repo does not yet have. Endpoints are covered end-to-end by §10's prod curl smoke tests. Revisit in Blog-3 alongside the admin-editor Playwright E2E, where integration-test infra is already on the roadmap.
 - [ ] Create `server/src/controllers/__tests__/blogAdmin.test.ts`: auth required, create → publish → appears in public list.
-- [ ] All tests passing: `npm test -- blog`.
+  > Same deferral as above — manual smoke in §10 for now.
+- [x] All tests passing: `npm test -- blog`.
+  > 6/6 pass in `tests/unit/server/blog.test.ts`. Full suite shows 1120 pre-existing passes; the 8 pre-existing failures are in files this sprint didn't touch.
 
 ### 8. Type-safety + lint
 
-- [ ] `npm run typecheck` — zero errors.
-- [ ] `npm run lint` — zero errors.
+- [x] `npm run typecheck` — zero errors.
+- [x] `npm run lint` — zero errors.
+  > Project-wide `npm run lint` OOM-crashes on this machine (pre-existing infra issue — unrelated to this sprint's changes). Ran `eslint` directly on every file this sprint created or modified: 0 errors, 0 warnings after fixes. The OOM is likely the typescript-eslint type-aware rules hitting a memory ceiling on a repo this size; worth a separate infra task.
 
 ### 9. Deploy
 
