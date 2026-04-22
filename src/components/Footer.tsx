@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Mail } from 'lucide-react';
+import { Mail, PenLine, Rss } from 'lucide-react';
 
 /**
  * Footer component with links and copyright
@@ -21,7 +21,23 @@ function Footer() {
           </p>
 
           {/* Links */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <Link
+              to="/blog"
+              className="flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            >
+              <PenLine className="h-4 w-4" />
+              <span>Blog</span>
+            </Link>
+            <a
+              href="/api/blog/rss.xml"
+              target="_blank"
+              rel="noopener"
+              className="flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+            >
+              <Rss className="h-4 w-4" />
+              <span>RSS</span>
+            </a>
             <Link
               to="/contact"
               className="flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"

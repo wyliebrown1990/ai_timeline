@@ -21,7 +21,10 @@
     <!-- Default SEO Meta Tags (react-helmet-async overrides per page) -->
     <title>Let AI Explain AI</title>
     <meta name="description" content="Explore the history of artificial intelligence from the 1940s to today. Interactive timeline, learning paths, and AI news with historical context." />
-    <meta name="robots" content="index, follow" />
+    <!-- Intentionally no <meta name="robots"> here. Default behaviour when the tag
+         is absent is "index, follow" (Google's documented fallback), which matches
+         what we want for non-SEO-managed pages. Pages that render the <SEO>
+         component can set noindex safely without competing with a static tag. -->
     <meta name="author" content="Let AI Explain AI" />
     <!-- Note: canonical URL is set per-page by react-helmet-async -->
 

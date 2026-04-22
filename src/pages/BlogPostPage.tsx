@@ -10,10 +10,17 @@
  */
 
 import { Suspense, lazy, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { SEO } from '../components/SEO';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
+import {
+  SEO,
+  generateArticleJsonLd,
+  generateBreadcrumbListJsonLd,
+} from '../components/SEO';
 import { blogApi } from '../services/api';
 import type { BlogPost, BlogPostListItem } from '../types/blog';
+
+const SITE_URL = 'https://letaiexplainai.com';
 import { BlogBreadcrumbs } from '../components/Blog/BlogBreadcrumbs';
 import { BlogMeta } from '../components/Blog/BlogMeta';
 import { BlogTOC } from '../components/Blog/BlogTOC';
@@ -34,6 +41,8 @@ type FetchState =
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
+  const isPreview = Boolean(searchParams.get('preview'));
   const [state, setState] = useState<FetchState>({ status: 'idle' });
 
   useEffect(() => {
@@ -114,13 +123,69 @@ export default function BlogPostPage() {
 
   const { post, related } = state;
   const relationLinks = resolveRelationLinks(post);
+  const canonical = post.canonicalUrl ?? `${SITE_URL}/blog/${post.slug}`;
+  const authorUrl = `${SITE_URL}/blog/author/${post.author.slug}`;
+  const primarySubject = post.subjects.find((s) => s.isPrimary) ?? post.subjects[0];
+
+  // Word count used for Article wordCount schema field. Done once per render
+  // off the canonical markdown body — cheap enough that memoisation is overkill.
+  const wordCount = post.bodyMarkdown.trim().split(/\s+/).filter(Boolean).length;
+
+  const articleJsonLd = generateArticleJsonLd({
+    url: canonical,
+    title: post.title,
+    description: post.seoDescription ?? post.excerpt,
+    image: post.coverImageUrl ?? undefined,
+    datePublished: post.publishedAt ?? post.createdAt,
+    dateModified: post.updatedAt,
+    author: { name: post.author.name, url: authorUrl },
+    tags: post.tags,
+    wordCount,
+    readingMinutes: post.readingMinutes,
+  });
+
+  const breadcrumbJsonLd = generateBreadcrumbListJsonLd([
+    { name: 'Home', url: SITE_URL },
+    { name: 'Blog', url: `${SITE_URL}/blog` },
+    { name: post.title, url: canonical },
+  ]);
 
   return (
     <>
       <SEO
         title={post.seoTitle ?? post.title}
-        description={post.seoDescription ?? post.excerpt}
+        description={(post.seoDescription ?? post.excerpt).slice(0, 160)}
+        canonical={canonical}
+        type="article"
+        image={post.coverImageUrl ?? undefined}
+        jsonLd={[articleJsonLd, breadcrumbJsonLd]}
+        noIndex={isPreview}
       />
+      {/*
+       * article:* OG tags aren't in the base SEO component — emit them in a
+       * sibling Helmet so react-helmet-async merges them into <head>. They
+       * power rich LinkedIn/Facebook cards and help crawlers understand the
+       * publish/modified timeline without re-parsing JSON-LD.
+       */}
+      <Helmet>
+        {post.publishedAt && (
+          <meta
+            property="article:published_time"
+            content={new Date(post.publishedAt).toISOString()}
+          />
+        )}
+        <meta
+          property="article:modified_time"
+          content={new Date(post.updatedAt).toISOString()}
+        />
+        <meta property="article:author" content={authorUrl} />
+        {primarySubject && (
+          <meta property="article:section" content={primarySubject.name} />
+        )}
+        {post.tags.map((tag) => (
+          <meta key={tag} property="article:tag" content={tag} />
+        ))}
+      </Helmet>
       <article className="container-main mx-auto max-w-7xl px-4 py-10">
         <BlogBreadcrumbs
           items={[

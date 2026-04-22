@@ -1,0 +1,19 @@
+# Let AI Explain AI
+> An interactive atlas of AI history — timelines, key people + organizations, a glossary, and longform editorial essays. Graph-shaped content designed to be cited accurately by LLM search engines.
+
+## Blog
+- [Blog index](https://letaiexplainai.com/blog): Longform AI explainers, retrospectives, and op-eds.
+- [RSS feed](https://letaiexplainai.com/api/blog/rss.xml)
+- [Author: Wylie Brown](https://letaiexplainai.com/blog/author/wylie-brown)
+
+## Reference
+- [AI Timeline](https://letaiexplainai.com/timeline): Every major milestone from the 1940s to today, with significance scores and organization credits.
+- [Glossary](https://letaiexplainai.com/glossary): Defined AI terms with prerequisites, historical context, and who invented them.
+- [People](https://letaiexplainai.com/timeline) (profiles at `/people/:slug`): Researcher, executive, and founder bios with affiliations over time.
+- [Organizations](https://letaiexplainai.com/timeline) (profiles at `/organizations/:slug`): Companies, labs, and universities shaping AI.
+- [Subjects](https://letaiexplainai.com/subjects): Three-level taxonomy (domain → category → subcategory) that connects every entity.
+
+## Optional
+- [Sitemap](https://letaiexplainai.com/api/sitemap.xml)
+- [About](https://letaiexplainai.com/about)
+- [Contact](https://letaiexplainai.com/contact)

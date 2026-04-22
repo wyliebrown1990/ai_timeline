@@ -438,4 +438,91 @@ export function generateTimelineItemListJsonLd(
   };
 }
 
+// =============================================================================
+// Sprint Blog-5 — Article + BreadcrumbList schemas
+// =============================================================================
+
+/**
+ * Article JSON-LD for blog posts.
+ *
+ * Uses schema.org `Article`. Google's rich-results guidelines require
+ * headline ≤110 chars, dateModified (even if ~= datePublished) so freshness
+ * can be signalled, and a publisher with a logo. `timeRequired` takes ISO
+ * 8601 duration format (PT{minutes}M).
+ */
+export function generateArticleJsonLd(input: {
+  url: string;
+  title: string;
+  description: string;
+  image?: string;
+  datePublished?: string | Date | null;
+  dateModified?: string | Date | null;
+  author: { name: string; url?: string };
+  tags?: string[];
+  wordCount?: number;
+  readingMinutes?: number;
+}): Record<string, unknown> {
+  const toIso = (d: string | Date | null | undefined): string | undefined => {
+    if (!d) return undefined;
+    const date = d instanceof Date ? d : new Date(d);
+    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  };
+
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: input.title.slice(0, 110),
+    description: input.description,
+    mainEntityOfPage: input.url,
+    author: {
+      '@type': 'Person',
+      name: input.author.name,
+      ...(input.author.url ? { url: input.author.url } : {}),
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/logo.png`,
+      },
+    },
+  };
+
+  const published = toIso(input.datePublished);
+  const modified = toIso(input.dateModified);
+  if (published) schema.datePublished = published;
+  if (modified) schema.dateModified = modified;
+  if (input.image) schema.image = input.image;
+  if (input.tags && input.tags.length > 0) schema.keywords = input.tags.join(', ');
+  if (typeof input.wordCount === 'number' && input.wordCount > 0) schema.wordCount = input.wordCount;
+  if (typeof input.readingMinutes === 'number' && input.readingMinutes > 0) {
+    schema.timeRequired = `PT${input.readingMinutes}M`;
+  }
+
+  return schema;
+}
+
+/**
+ * BreadcrumbList JSON-LD. Crumbs render in the order provided; each gets
+ * a 1-indexed position per schema.org requirements.
+ *
+ * The visible breadcrumb component (BlogBreadcrumbs) MUST emit the same
+ * labels and URL order — Google penalises schema/visible-content mismatch.
+ */
+export function generateBreadcrumbListJsonLd(
+  crumbs: Array<{ name: string; url: string }>
+): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map((crumb, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: crumb.name,
+      item: crumb.url,
+    })),
+  };
+}
+
 export default SEO;

@@ -218,6 +218,49 @@ router.get('/', async (_req, res) => {
       }
     }
 
+    // Dynamic: Subject pages (Sprint SEO - indexing fix)
+    const subjects = await prisma.subject.findMany({
+      select: { slug: true, updatedAt: true },
+      orderBy: { name: 'asc' },
+    });
+
+    for (const subject of subjects) {
+      urls.push({
+        loc: `${BASE_URL}/subjects/${subject.slug}`,
+        changefreq: 'weekly',
+        priority: 0.6,
+        lastmod: subject.updatedAt.toISOString().split('T')[0],
+      });
+    }
+
+    // Dynamic: News detail pages (Sprint SEO - indexing fix)
+    const newsEvents = await prisma.currentEvent.findMany({
+      where: { isPublished: true },
+      select: { id: true, updatedAt: true },
+      orderBy: { publishedDate: 'desc' },
+      take: 500, // Limit to most recent 500 news items
+    });
+
+    for (const news of newsEvents) {
+      urls.push({
+        loc: `${BASE_URL}/news/${news.id}`,
+        changefreq: 'monthly',
+        priority: 0.5,
+        lastmod: news.updatedAt.toISOString().split('T')[0],
+      });
+    }
+
+    // Static: Year report pages (Sprint SEO - indexing fix)
+    const reportYears = [2025, 2024, 2023, 2022, 2021, 2020, 2019];
+    for (const year of reportYears) {
+      urls.push({
+        loc: `${BASE_URL}/reports/${year}`,
+        changefreq: 'yearly',
+        priority: 0.5,
+        lastmod: now,
+      });
+    }
+
     // Blog index + published posts (Sprint Blog-1)
     urls.push({
       loc: `${BASE_URL}/blog`,
@@ -231,7 +274,7 @@ router.get('/', async (_req, res) => {
         status: 'published',
         publishedAt: { lte: new Date() },
       },
-      select: { slug: true, publishedAt: true, updatedAt: true },
+      select: { slug: true, publishedAt: true, updatedAt: true, tags: true, authorId: true },
       orderBy: { publishedAt: 'desc' },
     });
 
@@ -245,6 +288,53 @@ router.get('/', async (_req, res) => {
       });
     }
 
+    // Tag archives — only tags with ≥3 posts. Blog-5 SEO rule: thinner tag
+    // archives stay out of the sitemap (and carry noIndex on the page itself).
+    const tagCounts = new Map<string, number>();
+    for (const post of blogPosts) {
+      try {
+        const parsed = JSON.parse(post.tags ?? '[]') as unknown;
+        if (!Array.isArray(parsed)) continue;
+        for (const t of parsed) {
+          if (typeof t !== 'string') continue;
+          tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
+        }
+      } catch {
+        // Malformed tag JSON — skip this post's tags silently, not a sitemap error.
+      }
+    }
+    for (const [tag, count] of tagCounts) {
+      if (count < 3) continue;
+      urls.push({
+        loc: `${BASE_URL}/blog/tag/${encodeURIComponent(tag)}`,
+        changefreq: 'monthly',
+        priority: 0.5,
+        lastmod: now,
+      });
+    }
+
+    // Author archives — only authors with ≥1 post. Empty-archive pages are
+    // also noIndex'd by the page itself, but keeping them out of the sitemap
+    // avoids wasting Googlebot's crawl budget.
+    const authorPostCounts = new Map<string, number>();
+    for (const post of blogPosts) {
+      authorPostCounts.set(post.authorId, (authorPostCounts.get(post.authorId) ?? 0) + 1);
+    }
+    if (authorPostCounts.size > 0) {
+      const authors = await prisma.author.findMany({
+        where: { id: { in: [...authorPostCounts.keys()] } },
+        select: { slug: true, updatedAt: true },
+      });
+      for (const a of authors) {
+        urls.push({
+          loc: `${BASE_URL}/blog/author/${a.slug}`,
+          changefreq: 'monthly',
+          priority: 0.5,
+          lastmod: a.updatedAt.toISOString().split('T')[0],
+        });
+      }
+    }
+
     // Generate XML
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -253,7 +343,7 @@ ${urls.map(urlToXml).join('\n')}
 `;
 
     res.set('Content-Type', 'application/xml');
-    res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.set('Cache-Control', 'public, max-age=1800'); // Cache for 30 minutes
     res.send(xml);
   } catch (error) {
     console.error('[Sitemap] Error generating sitemap:', error);

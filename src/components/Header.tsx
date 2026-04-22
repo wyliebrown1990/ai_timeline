@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers, ChevronDown, Sparkles } from 'lucide-react';
+import { Home, BookOpen, FileText, Newspaper, Settings, Menu, X, Clock, GraduationCap, Search, Layers, ChevronDown, Sparkles, PenLine } from 'lucide-react';
 import { ThemeToggleSimple } from './ThemeToggle';
 import { ProfileIndicator } from './Onboarding';
 import { useFlashcardContext } from '../contexts/FlashcardContext';
@@ -15,6 +15,7 @@ import { DEFAULT_DOMAIN_COLORS } from '../types/subject';
 const navLinks = [
   { to: '/', label: 'Home', icon: Home, exact: true },
   { to: '/timeline', label: 'Timeline', icon: Clock, exact: true },
+  { to: '/blog', label: 'Blog', icon: PenLine, exact: false },
   { to: '/news', label: 'News', icon: Newspaper, exact: true },
   { to: '/feed', label: 'Feed', icon: Sparkles, exact: true, isNew: true },
   { to: '/subjects', label: 'Subjects', icon: Layers, exact: false, hasDropdown: true },

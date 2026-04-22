@@ -5,6 +5,7 @@ import { InTheNewsSection } from '../components/CurrentEvents';
 import { AnimatedLogo } from '../components/AnimatedLogo';
 import { AnimatedTitle } from '../components/AnimatedTitle';
 import { SEO } from '../components/SEO';
+import { HomeBlogSection } from '../components/Blog/HomeBlogSection';
 
 /**
  * Feature card data for the home page
@@ -84,6 +85,9 @@ function HomePage() {
 
       {/* In The News Section - Current events with historical context */}
       <InTheNewsSection maxEvents={3} />
+
+      {/* From the blog — featured + latest editorial posts (Sprint Blog-5) */}
+      <HomeBlogSection />
 
       {/* Features Section */}
       <section className="py-16 bg-white dark:bg-gray-900 sm:py-24">
