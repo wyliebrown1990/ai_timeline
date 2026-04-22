@@ -1,9 +1,9 @@
 /**
  * BlogMarkdown — renders a post body.
  *
- * Stack: react-markdown + remark-gfm + rehype-slug + rehype-autolink-headings +
- * rehype-pretty-code (shiki). Raw HTML is intentionally disabled — posts are
- * untrusted content and markdown alone is expressive enough for editorial.
+ * Stack: react-markdown + remark-gfm. Raw HTML is intentionally disabled —
+ * posts are untrusted content and markdown alone is expressive enough for
+ * editorial.
  *
  * Entity shortcode: `[[type:slug|label]]` resolves to an internal link —
  *   [[person:sam-altman|Sam Altman]]        → /people/sam-altman
@@ -12,48 +12,131 @@
  *   [[event:E2017_TRANSFORMER|Attention is All You Need]] → /events/E2017_TRANSFORMER
  * Unknown types fall back to plain text so bad shortcodes never break a render.
  *
- * This file is imported via `React.lazy()` from BlogPostPage so the shiki
- * bundle doesn't land on the critical path for the blog index.
+ * Heading hierarchy: the page already renders `post.title` as `<h1>`, so body
+ * `#` is demoted to `<h2>`, `##` to `<h3>`, etc. — enforced via the `components`
+ * prop below so authors can't accidentally ship a dual-h1 page.
+ *
+ * Heading ids + anchor links: we assign `id`s inside the component instead of
+ * via `rehype-slug` / `rehype-autolink-headings`. Every rehype plugin we tried
+ * made react-markdown v10 log a non-fatal `runSync finished async` error —
+ * react-markdown v10 is internally async but enters a sync path. Keeping the
+ * plugin surface minimal keeps the page visibly clean.
+ *
+ * Code highlighting: out of scope for v1. Shiki via `rehype-pretty-code` is
+ * async and crashes react-markdown's `runSync`. A follow-up will revisit
+ * either via server-side pre-render during publish or a different renderer.
+ *
+ * This file is imported via `React.lazy()` from BlogPostPage so the plugin
+ * chain doesn't land on the critical path for the blog index.
  */
 
-import { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
-import rehypePrettyCode from 'rehype-pretty-code';
-import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
-import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
+// NOTE: rehype-autolink-headings was removed — it triggered a non-fatal
+// "runSync finished async" log in react-markdown v10. rehype-slug alone
+// still gives each heading an `id`, and we can render the visible "#"
+// anchor through the heading component overrides below without touching
+// the async plugin surface.
 
-// Fine-grained bundle: Vite statically resolves these imports and drops every
-// other grammar/theme shiki ships. With the default `shiki` entry point we
-// accidentally pulled in wolfram, emacs-lisp, cpp, etc. — 3MB+ of dead code.
-const SHIKI_THEMES = { light: 'github-light', dark: 'github-dark' } as const;
-
-let highlighterPromise: Promise<HighlighterCore> | null = null;
-function getHighlighter(): Promise<HighlighterCore> {
-  if (!highlighterPromise) {
-    highlighterPromise = createHighlighterCore({
-      themes: [
-        import('shiki/themes/github-light.mjs'),
-        import('shiki/themes/github-dark.mjs'),
-      ],
-      langs: [
-        import('shiki/langs/typescript.mjs'),
-        import('shiki/langs/tsx.mjs'),
-        import('shiki/langs/javascript.mjs'),
-        import('shiki/langs/jsx.mjs'),
-        import('shiki/langs/json.mjs'),
-        import('shiki/langs/bash.mjs'),
-        import('shiki/langs/sql.mjs'),
-        import('shiki/langs/python.mjs'),
-        import('shiki/langs/markdown.mjs'),
-      ],
-      engine: createOnigurumaEngine(import('shiki/wasm')),
-    });
-  }
-  return highlighterPromise;
+/**
+ * Defensive heading-level renderer. BlogPostPage always renders the post
+ * title as `<h1>`, so any body `# heading` must render as `<h2>` (and so on)
+ * to avoid a duplicate-h1 DOM — which trips the sprint-DoD integrity check
+ * and hurts both a11y and SEO.
+ *
+ * We override via react-markdown's `components` prop rather than a remark
+ * plugin because remark/rehype async plugins don't compose with react-markdown's
+ * `runSync` pipeline (learned the hard way during Blog-2 QA).
+ */
+type HProps = React.HTMLAttributes<HTMLHeadingElement> & {
+  node?: unknown;
+  id?: string;
+  children?: React.ReactNode;
+};
+function omitNode<T extends { node?: unknown }>(p: T): Omit<T, 'node'> {
+  const { node: _node, ...rest } = p;
+  return rest;
 }
+
+/** Slugify the rendered heading text so the TOC in BlogTOC.tsx finds it by id. */
+function slugifyChildren(children: React.ReactNode): string {
+  const flatten = (node: React.ReactNode): string => {
+    if (node == null || node === false) return '';
+    if (typeof node === 'string' || typeof node === 'number') return String(node);
+    if (Array.isArray(node)) return node.map(flatten).join('');
+    return '';
+  };
+  return flatten(children)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function HeadingAnchor({ id }: { id: string }) {
+  return (
+    <a
+      href={`#${id}`}
+      aria-label="Permalink"
+      className="ml-2 text-gray-400 opacity-0 group-hover:opacity-100 focus:opacity-100 no-underline"
+    >
+      #
+    </a>
+  );
+}
+
+// `#` body heading becomes `<h2>`, etc. — prevents duplicate-h1 with the page
+// title. Headings self-slugify so BlogTOC's id-based scroll-spy keeps working
+// without pulling in rehype-slug (the async plugin that triggered runSync warnings).
+const demotedHeadings = {
+  h1: (props: HProps) => {
+    const id = props.id ?? slugifyChildren(props.children);
+    return (
+      <h2 {...omitNode(props)} id={id} className="group">
+        {props.children}
+        <HeadingAnchor id={id} />
+      </h2>
+    );
+  },
+  h2: (props: HProps) => {
+    const id = props.id ?? slugifyChildren(props.children);
+    return (
+      <h3 {...omitNode(props)} id={id} className="group">
+        {props.children}
+        <HeadingAnchor id={id} />
+      </h3>
+    );
+  },
+  h3: (props: HProps) => {
+    const id = props.id ?? slugifyChildren(props.children);
+    return (
+      <h4 {...omitNode(props)} id={id} className="group">
+        {props.children}
+        <HeadingAnchor id={id} />
+      </h4>
+    );
+  },
+  h4: (props: HProps) => {
+    const id = props.id ?? slugifyChildren(props.children);
+    return (
+      <h5 {...omitNode(props)} id={id} className="group">
+        {props.children}
+        <HeadingAnchor id={id} />
+      </h5>
+    );
+  },
+  h5: (props: HProps) => {
+    const id = props.id ?? slugifyChildren(props.children);
+    return (
+      <h6 {...omitNode(props)} id={id} className="group">
+        {props.children}
+        <HeadingAnchor id={id} />
+      </h6>
+    );
+  },
+};
 
 // Pre-process `[[type:slug|label]]` → `[label](/path/slug)` before markdown parsing.
 const ENTITY_SHORTCODE = /\[\[(person|organization|glossary|event):([a-zA-Z0-9_-]+)\|([^\]]+)\]\]/g;
@@ -79,50 +162,6 @@ interface Props {
 }
 
 export function BlogMarkdown({ markdown }: Props) {
-  // rehype-pretty-code needs the highlighter up front. Load it once per mount;
-  // until it resolves we render the prose without syntax highlighting, which
-  // degrades cleanly instead of blocking the whole article.
-  const [highlighterReady, setHighlighterReady] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    getHighlighter().then(() => {
-      if (!cancelled) setHighlighterReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const rehypePlugins = [
-    rehypeSlug,
-    [
-      rehypeAutolinkHeadings,
-      {
-        behavior: 'append',
-        properties: {
-          className: ['heading-anchor'],
-          'aria-label': 'Permalink',
-        },
-        // Screen readers get a useful label; visible anchor is the "#" glyph.
-        content: { type: 'text', value: ' #' },
-      },
-    ],
-    ...(highlighterReady
-      ? [
-          [
-            rehypePrettyCode,
-            {
-              theme: SHIKI_THEMES,
-              getHighlighter,
-              keepBackground: false,
-            },
-          ],
-        ]
-      : []),
-    // The above array's inner tuples are intentionally plugin+options;
-    // TypeScript is permissive enough about PluggableList here.
-  ] as unknown as Parameters<typeof ReactMarkdown>[0]['rehypePlugins'];
-
   const body = rewriteEntityShortcodes(markdown);
 
   return (
@@ -133,11 +172,11 @@ export function BlogMarkdown({ markdown }: Props) {
         prose-a:text-orange-600 dark:prose-a:text-orange-400 prose-a:no-underline hover:prose-a:underline
         prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:rounded prose-code:px-1
         prose-code:text-sm prose-code:font-mono prose-code:before:content-none prose-code:after:content-none
+        prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950 prose-pre:text-gray-100
         prose-img:rounded-lg prose-img:shadow-warm-sm
-        prose-pre:bg-transparent prose-pre:p-0
       "
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={rehypePlugins}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={demotedHeadings}>
         {body}
       </ReactMarkdown>
     </div>

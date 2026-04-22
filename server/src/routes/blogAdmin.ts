@@ -147,9 +147,10 @@ router.post('/seed-default-post', requireAdmin, async (_req, res, next) => {
   try {
     const AUTHOR_SLUG = 'wylie-brown';
     const POST_SLUG = 'why-we-built-laea';
-    const POST_BODY = `# Why we built LAEA
-
-Most "AI history" resources online are either a marketing reel from a single lab or a
+    // No leading `# Title` — the page header already renders post.title as h1.
+    // Starting the body with h2 keeps the heading hierarchy linear (h1 → h2 → h3)
+    // and prevents the dual-h1 a11y/SEO issue caught in Blog-2 live QA.
+    const POST_BODY = `Most "AI history" resources online are either a marketing reel from a single lab or a
 timeline flattened into a dozen bullet points. Neither captures the *actual* shape of the
 field: a braided river of ideas whose tributaries came from statistics, neuroscience,
 linguistics, philosophy, and — more recently — massive amounts of capital.
