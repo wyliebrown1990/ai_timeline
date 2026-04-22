@@ -135,7 +135,7 @@ function ResourcesPage() {
                   icon={<FileText className="h-6 w-6 text-orange-600" />}
                   title="Downloadable PDF Timeline"
                   description="Print-ready PDF of the complete AI timeline. Perfect for classroom handouts, lectures, and study materials."
-                  comingSoon
+                  linkTo="/timeline/download"
                   tags={['PDF', 'Printable', 'Free']}
                 />
                 <ResourceCard
@@ -190,7 +190,7 @@ function ResourcesPage() {
                   icon={<FileText className="h-6 w-6 text-purple-600" />}
                   title="Infographics"
                   description="Social-ready graphics summarizing AI milestones. Share on Twitter, LinkedIn, or embed in your content."
-                  comingSoon
+                  linkTo="/timeline/infographics"
                   tags={['Images', 'Social', 'Free']}
                 />
               </div>

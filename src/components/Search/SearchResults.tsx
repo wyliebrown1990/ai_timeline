@@ -1,7 +1,10 @@
 /**
  * SearchResults component for displaying search results with highlighting
+ * Sprint TD-5: Enhanced empty state with suggestions
  */
 
+import { Link } from 'react-router-dom';
+import { Search, TrendingUp, Tag } from 'lucide-react';
 import type { SearchResult } from '../../types/filters';
 import { MilestoneCategory } from '../../types/milestone';
 
@@ -12,6 +15,8 @@ interface SearchResultsProps {
   total: number;
   onResultClick: (id: string) => void;
   onClose: () => void;
+  /** Called when user clicks a suggested search term */
+  onSuggestionClick?: (term: string) => void;
 }
 
 /**
@@ -75,6 +80,7 @@ export function SearchResults({
   total,
   onResultClick,
   onClose,
+  onSuggestionClick,
 }: SearchResultsProps) {
   // Don't show if no query
   if (!query.trim()) {
@@ -93,13 +99,61 @@ export function SearchResults({
           <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">Searching...</span>
         </div>
       ) : results.length === 0 ? (
-        <div className="p-4 text-center" data-testid="no-results">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            No results found for &ldquo;{query}&rdquo;
-          </p>
-          <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-            Try adjusting your search terms
-          </p>
+        <div className="p-4" data-testid="no-results">
+          {/* No results message */}
+          <div className="text-center mb-4">
+            <Search className="h-8 w-8 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              No results found for &ldquo;{query}&rdquo;
+            </p>
+            <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+              Try a different search term or browse by category
+            </p>
+          </div>
+
+          {/* Popular searches */}
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <TrendingUp className="h-3 w-3" />
+              <span>Popular searches</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {['GPT-4', 'ChatGPT', 'Claude', 'Transformer', 'AlphaGo', 'DALL-E'].map((term) => (
+                <button
+                  key={term}
+                  onClick={() => onSuggestionClick?.(term)}
+                  className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-orange-100 dark:hover:bg-orange-900/30 hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
+                >
+                  {term}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Browse by category */}
+          <div className="border-t border-gray-100 dark:border-gray-700 pt-3 mt-3">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
+              <Tag className="h-3 w-3" />
+              <span>Browse by category</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Model Releases', category: 'MODEL_RELEASE' },
+                { label: 'Research', category: 'RESEARCH' },
+                { label: 'Products', category: 'PRODUCT' },
+                { label: 'Breakthroughs', category: 'BREAKTHROUGH' },
+              ].map(({ label, category }) => (
+                <Link
+                  key={category}
+                  to={`/timeline?categories=${category}`}
+                  onClick={onClose}
+                  className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-400 transition-colors"
+                >
+                  {label}
+                </Link>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <>

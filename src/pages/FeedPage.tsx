@@ -24,8 +24,8 @@ export function FeedPage() {
   return (
     <>
       <SEO
-        title="AI News Shorts"
-        description="Watch bite-sized AI news updates in a TikTok-style feed. Stay current on the latest developments in artificial intelligence."
+        title="AI News Feed - Swipeable AI Updates & Breakthroughs"
+        description="Swipe through the latest AI news in a TikTok-style feed. Bite-sized updates on artificial intelligence breakthroughs, model releases, and industry developments. Updated daily."
         canonical="https://letaiexplainai.com/feed"
       />
       <FeedContainer

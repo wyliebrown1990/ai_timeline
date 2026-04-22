@@ -67,10 +67,21 @@ export function getWeekStart(date: Date = new Date()): Date {
  */
 async function getRecentNewsWithContext(
   prisma: PrismaClient,
-  daysBack: number = 7
+  daysBack: number = 7,
+  requiredEventIds?: string[]
 ): Promise<NewsEventWithContext[]> {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+
+  const eventInclude = {
+    conceptLinks: {
+      include: {
+        concept: {
+          select: { id: true, term: true },
+        },
+      },
+    },
+  };
 
   const events = await prisma.currentEvent.findMany({
     where: {
@@ -78,19 +89,24 @@ async function getRecentNewsWithContext(
       publishedDate: { gte: cutoffDate },
     },
     orderBy: { publishedDate: 'desc' },
-    take: 20, // Max 20 events to consider
-    include: {
-      conceptLinks: {
-        include: {
-          concept: {
-            select: { id: true, term: true },
-          },
-        },
-      },
-    },
+    take: 20,
+    include: eventInclude,
   });
 
-  return events.map((event) => ({
+  // If there are required events not already in the list, fetch and prepend them
+  if (requiredEventIds?.length) {
+    const existingIds = new Set(events.map((e) => e.id));
+    const missingIds = requiredEventIds.filter((id) => !existingIds.has(id));
+    if (missingIds.length > 0) {
+      const requiredEvents = await prisma.currentEvent.findMany({
+        where: { id: { in: missingIds } },
+        include: eventInclude,
+      });
+      events.unshift(...requiredEvents);
+    }
+  }
+
+  const mapEvent = (event: (typeof events)[0]) => ({
     id: event.id,
     headline: event.headline,
     summary: event.summary,
@@ -102,9 +118,11 @@ async function getRecentNewsWithContext(
       isKeyTopic: link.isKeyTopic,
     })),
     relatedMilestones: JSON.parse(event.relatedMilestoneIds || '[]').map(
-      (id: string) => ({ id, title: '' }) // We don't need titles for quiz generation
+      (id: string) => ({ id, title: '' })
     ),
-  }));
+  });
+
+  return events.map(mapEvent);
 }
 
 /**
@@ -112,7 +130,8 @@ async function getRecentNewsWithContext(
  */
 async function generateQuizQuestions(
   events: NewsEventWithContext[],
-  targetCount: number = 5
+  targetCount: number = 5,
+  requiredEventIds?: string[]
 ): Promise<NewsQuizQuestion[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -136,12 +155,23 @@ async function generateQuizQuestions(
     whyItMatters: e.whyItMatters || 'Not available',
   }));
 
+  // Build required events instruction if any
+  const requiredIndices = requiredEventIds
+    ? eventSummaries
+        .filter((e) => requiredEventIds.includes(e.id))
+        .map((e) => e.index)
+    : [];
+  const requiredInstruction =
+    requiredIndices.length > 0
+      ? `\n\nIMPORTANT: You MUST include at least one question about each of the following event indices: ${requiredIndices.join(', ')}. These are required events that must appear in the quiz.\n`
+      : '';
+
   const prompt = `You are generating a quiz about recent AI news to help users understand current developments in AI.
 
 Here are the recent news events to create questions from:
 
 ${JSON.stringify(eventSummaries, null, 2)}
-
+${requiredInstruction}
 Generate exactly ${targetCount} multiple-choice quiz questions. Each question should:
 1. Test understanding of the news event, not just recall
 2. Have exactly 4 options (A, B, C, D)
@@ -242,9 +272,10 @@ export async function generateWeeklyQuiz(
     questionCount?: number;
     daysBack?: number;
     forceRegenerate?: boolean;
+    requiredEventIds?: string[];
   } = {}
 ): Promise<GeneratedQuiz> {
-  const { questionCount = 5, daysBack = 7, forceRegenerate = false } = options;
+  const { questionCount = 5, daysBack = 7, forceRegenerate = false, requiredEventIds } = options;
 
   const weekOf = getWeekStart();
 
@@ -262,16 +293,19 @@ export async function generateWeeklyQuiz(
   }
 
   console.log(`[QuizGenerator] Generating quiz for week of ${weekOf.toISOString()}`);
+  if (requiredEventIds?.length) {
+    console.log(`[QuizGenerator] Required events: ${requiredEventIds.join(', ')}`);
+  }
 
   // Get recent news events
-  const events = await getRecentNewsWithContext(prisma, daysBack);
+  const events = await getRecentNewsWithContext(prisma, daysBack, requiredEventIds);
 
   if (events.length < 3) {
     throw new Error(`Not enough news events (${events.length}) to generate quiz. Need at least 3.`);
   }
 
   // Generate questions
-  const questions = await generateQuizQuestions(events, questionCount);
+  const questions = await generateQuizQuestions(events, questionCount, requiredEventIds);
 
   if (questions.length === 0) {
     throw new Error('Failed to generate any quiz questions');

@@ -1,16 +1,18 @@
 /**
  * KeyFiguresList Component
  * Sprint 47 - Key Figures Frontend
+ * Updated: Now uses Person model instead of legacy KeyFigure model
  *
  * Displays all key figures with role filtering, search, and alphabetical grouping
  */
 
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Filter, X, Users } from 'lucide-react';
-import { keyFiguresApi } from '../../services/api';
+import { personsApi } from '../../services/api';
 import { KeyFigureCard } from './KeyFigureCard';
 import type { KeyFigure, KeyFigureRole } from '../../types/keyFigure';
 import { ROLE_LABELS } from '../../types/keyFigure';
+import type { Person } from '../../types/person';
 
 // Role filter options
 const ROLE_OPTIONS: Array<{ value: KeyFigureRole | 'all'; label: string }> = [
@@ -58,28 +60,45 @@ export function KeyFiguresList({ onSelectFigure }: KeyFiguresListProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState<KeyFigureRole | 'all'>('all');
 
-  // Fetch key figures
+  /**
+   * Map Person to KeyFigure for backwards compatibility with Card/Modal components
+   */
+  function personToKeyFigure(person: Person): KeyFigure {
+    return {
+      id: person.id,
+      canonicalName: person.canonicalName,
+      aliases: person.aliases,
+      shortBio: person.shortBio,
+      fullBio: person.fullBio ?? person.background ?? undefined,
+      primaryOrg: person.primaryOrg ?? person.currentOrg?.name ?? undefined,
+      previousOrgs: person.previousOrgs ?? [],
+      role: person.role as KeyFigureRole,
+      // Use contributions field if notableFor is not set
+      notableFor: person.notableFor ?? person.contributions ?? person.shortBio,
+      imageUrl: person.imageUrl ?? undefined,
+      wikipediaUrl: person.wikipediaUrl ?? undefined,
+      linkedInUrl: person.linkedInUrl ?? undefined,
+      twitterHandle: person.twitterHandle ?? undefined,
+      status: person.status as 'draft' | 'pending_review' | 'published',
+      sourceArticleId: person.sourceArticleId ?? undefined,
+      createdAt: person.createdAt,
+      updatedAt: person.updatedAt,
+    };
+  }
+
+  // Fetch persons (formerly key figures)
   useEffect(() => {
     async function fetchFigures() {
       try {
         setIsLoading(true);
         setError(null);
-        // Fetch all published figures (public endpoint returns only published)
-        const response = await keyFiguresApi.getAll({
+        // Fetch all published persons
+        const response = await personsApi.getAll({
           status: 'published',
           limit: 500, // Get all for client-side filtering
         });
-        // Map API response to KeyFigure type (convert null to undefined)
-        const mappedFigures: KeyFigure[] = response.data.map((f) => ({
-          ...f,
-          fullBio: f.fullBio ?? undefined,
-          primaryOrg: f.primaryOrg ?? undefined,
-          imageUrl: f.imageUrl ?? undefined,
-          wikipediaUrl: f.wikipediaUrl ?? undefined,
-          linkedInUrl: f.linkedInUrl ?? undefined,
-          twitterHandle: f.twitterHandle ?? undefined,
-          sourceArticleId: f.sourceArticleId ?? undefined,
-        }));
+        // Map Person to KeyFigure for backwards compatibility
+        const mappedFigures: KeyFigure[] = response.data.map(personToKeyFigure);
         setFigures(mappedFigures);
       } catch (err) {
         console.error('[KeyFiguresList] Failed to fetch figures:', err);

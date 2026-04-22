@@ -123,8 +123,8 @@ export function NewsPage() {
   return (
     <>
       <SEO
-        title="AI News Hub"
-        description="Stay current with the latest AI news and developments. Each story includes historical context showing how today's breakthroughs connect to AI's rich history."
+        title="AI News - Latest Artificial Intelligence Headlines & Updates"
+        description="Stay current with the latest AI news and developments. Every story includes historical context connecting today's breakthroughs to AI's rich history. Updated daily."
         canonical="https://letaiexplainai.com/news"
       />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

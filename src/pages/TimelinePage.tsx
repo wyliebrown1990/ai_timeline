@@ -1,4 +1,4 @@
-import { AlertCircle, Clock, LayoutGrid, Workflow, Sparkles } from 'lucide-react';
+import { AlertCircle, Clock, LayoutGrid, Workflow, Sparkles, Star } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SEO, generateTimelineItemListJsonLd } from '../components/SEO';
@@ -8,13 +8,14 @@ import {
   CompanyQuickFilters,
   DecadeNavigator,
   KeyboardShortcutsHelp,
-  MilestoneCard,
   MilestoneDetail,
+  RecentAdditions,
   Timeline,
   TimelineMinimap,
   TimelineNavigation,
   TimelineSkeleton,
   TimelineStats,
+  VirtualizedMilestoneList,
   ZoomControls,
   zoomConfig,
 } from '../components/Timeline';
@@ -465,6 +466,9 @@ function TimelinePage() {
                     onClose={() => {
                       setShowSearchResults(false);
                     }}
+                    onSuggestionClick={(term) => {
+                      setSearchQuery(term);
+                    }}
                   />
                 )}
               </div>
@@ -487,6 +491,37 @@ function TimelinePage() {
                   onToggle={() => setIsFilterOpen(!isFilterOpen)}
                 />
               </div>
+
+              {/* Major only toggle - Sprint TD-5 density control */}
+              <button
+                onClick={() => {
+                  const isMajorOnly = filters.significanceLevels.length === 2 &&
+                    filters.significanceLevels.includes(3) &&
+                    filters.significanceLevels.includes(4);
+                  if (isMajorOnly) {
+                    setSignificanceLevels([]); // Show all
+                  } else {
+                    setSignificanceLevels([3, 4]); // Major only
+                  }
+                }}
+                className={`group inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                  filters.significanceLevels.length === 2 &&
+                  filters.significanceLevels.includes(3) &&
+                  filters.significanceLevels.includes(4)
+                    ? 'border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
+                    : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                }`}
+                title="Show only major milestones (significance 3-4)"
+              >
+                <Star className={`h-4 w-4 ${
+                  filters.significanceLevels.length === 2 &&
+                  filters.significanceLevels.includes(3) &&
+                  filters.significanceLevels.includes(4)
+                    ? 'fill-amber-400 text-amber-500'
+                    : ''
+                }`} />
+                <span className="hidden sm:inline">Major Only</span>
+              </button>
 
               {/* Personalize button */}
               <button
@@ -547,6 +582,21 @@ function TimelinePage() {
         </div>
       </section>
 
+      {/* Recent Additions - Sprint TD-5 */}
+      {!isLoading && !hasActiveFilters && milestones && milestones.length > 0 && (
+        <section className="py-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+          <div className="container-main">
+            <RecentAdditions
+              milestones={milestones}
+              limit={5}
+              onSelect={select}
+              collapsible={true}
+              defaultCollapsed={false}
+            />
+          </div>
+        </section>
+      )}
+
       {/* Timeline Content */}
       <section className="py-8 bg-gray-50 dark:bg-gray-900">
         <div
@@ -583,18 +633,16 @@ function TimelinePage() {
             />
           )}
 
-          {/* List view */}
+          {/* List view - Sprint TD-5: Virtualized for performance */}
           {!isLoading && !error && milestones && milestones.length > 0 && viewMode === 'list' && (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {milestones.map((milestone) => (
-                <MilestoneCard
-                  key={milestone.id}
-                  milestone={milestone}
-                  isExpanded={milestone.id === selectedId}
-                  onSelect={select}
-                />
-              ))}
-            </div>
+            <VirtualizedMilestoneList
+              milestones={milestones}
+              selectedId={selectedId}
+              onSelect={select}
+              columns={3}
+              height={Math.min(800, window.innerHeight - 200)}
+              virtualizationThreshold={50}
+            />
           )}
         </div>
       </section>

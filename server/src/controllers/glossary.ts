@@ -35,6 +35,7 @@ const CreateGlossaryTermSchema = z.object({
  */
 const UpdateGlossaryTermSchema = z.object({
   term: z.string().min(1).max(100).optional(),
+  slug: z.string().min(1).max(100).optional(), // SEO-friendly URL slug
   shortDefinition: z.string().min(1).max(200).optional(),
   fullDefinition: z.string().min(1).max(2000).optional(),
   businessContext: z.string().max(1000).nullable().optional(),

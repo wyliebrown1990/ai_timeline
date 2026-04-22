@@ -58,50 +58,91 @@ export class ApiError extends Error {
 }
 
 /**
- * Generic fetch wrapper with error handling
+ * Generic fetch wrapper with error handling and 503 retry logic
  */
+const MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 1000;
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-  console.log('[API] Fetching:', url);
+  let lastError: unknown;
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-    });
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      // Exponential backoff: 1s, 2s, 4s
+      const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+      console.log(`[API] Retry ${attempt}/${MAX_RETRIES} for ${url} after ${delay}ms`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
 
-    console.log('[API] Response status:', response.status, 'for', url);
+    console.log('[API] Fetching:', url);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[API] Error response:', errorText);
-      let errorData: Record<string, unknown> = {};
-      try {
-        errorData = JSON.parse(errorText);
-      } catch {
-        // Not JSON
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...options?.headers,
+        },
+      });
+
+      console.log('[API] Response status:', response.status, 'for', url);
+
+      // Retry on 503 Service Unavailable (DB overload)
+      if (response.status === 503 && attempt < MAX_RETRIES) {
+        const retryAfter = response.headers.get('Retry-After');
+        if (retryAfter) {
+          const retryMs = parseInt(retryAfter, 10) * 1000;
+          if (!isNaN(retryMs) && retryMs > 0) {
+            console.log(`[API] Server requested Retry-After: ${retryAfter}s`);
+            await new Promise((resolve) => setTimeout(resolve, retryMs));
+          }
+        }
+        lastError = new ApiError(503, 'Service temporarily unavailable');
+        continue;
       }
-      // Extract message from either nested or flat error structure
-      const message =
-        (errorData.error as { message?: string })?.message ||
-        (typeof errorData.error === 'string' ? errorData.error : null) ||
-        `HTTP error ${response.status}`;
-      // Store full error data in details for access to fields like existingId
-      throw new ApiError(response.status, message, errorData);
-    }
 
-    // Handle 204 No Content
-    if (response.status === 204) {
-      return undefined as T;
-    }
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[API] Error response:', errorText);
+        let errorData: Record<string, unknown> = {};
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          // Not JSON
+        }
+        // Extract message from either nested or flat error structure
+        const message =
+          (errorData.error as { message?: string })?.message ||
+          (typeof errorData.error === 'string' ? errorData.error : null) ||
+          `HTTP error ${response.status}`;
+        // Store full error data in details for access to fields like existingId
+        throw new ApiError(response.status, message, errorData);
+      }
 
-    return response.json();
-  } catch (err) {
-    console.error('[API] Fetch error for', url, ':', err);
-    throw err;
+      // Handle 204 No Content
+      if (response.status === 204) {
+        return undefined as T;
+      }
+
+      return response.json();
+    } catch (err) {
+      lastError = err;
+      // Only retry on network errors (not ApiErrors other than 503)
+      if (err instanceof ApiError) {
+        throw err;
+      }
+      // Network failure — retry if attempts remain
+      if (attempt < MAX_RETRIES) {
+        console.warn(`[API] Network error for ${url}, will retry:`, err);
+        continue;
+      }
+      console.error('[API] Fetch error for', url, ':', err);
+      throw err;
+    }
   }
+
+  // All retries exhausted (only reachable for 503s)
+  throw lastError;
 }
 
 /**

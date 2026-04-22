@@ -18,7 +18,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { keyFiguresApi } from '../../services/api';
+import { personsApi } from '../../services/api';
 import type { KeyFigure, KeyFigureRole, ContributionType } from '../../types/keyFigure';
 import { ROLE_LABELS, ROLE_COLORS, CONTRIBUTION_LABELS } from '../../types/keyFigure';
 
@@ -82,19 +82,20 @@ export function KeyFigureModal({ figure, onClose }: KeyFigureModalProps) {
   const initials = getInitials(figure.canonicalName);
   const avatarBg = ROLE_AVATAR_COLORS[figure.role];
 
-  // Fetch related milestones
+  // Fetch related milestones from Person API
   useEffect(() => {
     async function fetchMilestones() {
       try {
         setIsLoadingMilestones(true);
-        const response = await keyFiguresApi.getMilestones(figure.id);
-        // Map to RelatedMilestone type - API returns { milestone, contributionType }
-        const mapped: RelatedMilestone[] = response.data.map((m) => ({
-          id: m.milestone.id,
-          title: m.milestone.title,
-          date: m.milestone.date,
-          category: m.milestone.category,
-          contributionType: m.contributionType ?? undefined,
+        // Use personsApi which returns milestones in the response
+        const personData = await personsApi.getBySlug(figure.id);
+        // Map to RelatedMilestone type
+        const mapped: RelatedMilestone[] = (personData.milestones ?? []).map((m) => ({
+          id: m.id,
+          title: m.title,
+          date: m.date,
+          category: m.category,
+          contributionType: (m.contributionType as ContributionType) ?? undefined,
         }));
         setMilestones(mapped);
       } catch (err) {

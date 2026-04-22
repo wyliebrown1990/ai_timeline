@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
 
 /**
  * Custom API error class for consistent error responses
@@ -25,6 +26,36 @@ export class ApiError extends Error {
   static internal(message: string = 'Internal server error') {
     return new ApiError(500, message);
   }
+
+  static serviceUnavailable(message: string = 'Service temporarily unavailable') {
+    return new ApiError(503, message);
+  }
+}
+
+/**
+ * Check if an error is a database connection/overload error
+ */
+function isDbOverloadError(err: Error): boolean {
+  // Prisma known error P2037 = too many connections
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2037') {
+    return true;
+  }
+  // Prisma connection initialization errors (pool exhausted, timeout)
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    return true;
+  }
+  // pg pool connection timeout or "too many clients" errors
+  const msg = err.message.toLowerCase();
+  if (
+    msg.includes('too many clients') ||
+    msg.includes('connection terminated') ||
+    msg.includes('remaining connection slots are reserved') ||
+    msg.includes('sorry, too many clients already') ||
+    msg.includes('connection timed out')
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -81,6 +112,20 @@ export function errorHandler(
       },
     };
     res.status(err.statusCode).json(response);
+    return;
+  }
+
+  // Handle database connection/overload errors → 503
+  if (isDbOverloadError(err)) {
+    console.error('[DB_OVERLOAD] Database connection exhausted:', err.message);
+    res.setHeader('Retry-After', '2');
+    const response: ErrorResponse = {
+      error: {
+        message: 'Service temporarily unavailable, please retry',
+        code: 503,
+      },
+    };
+    res.status(503).json(response);
     return;
   }
 

@@ -247,6 +247,39 @@ adminRouter.post('/run-slug-migration', requireAdmin, async (req, res, next) => 
   }
 });
 
+// POST /api/admin/glossary/run-seo-columns-migration - Add all SEO-related columns (Sprint SEO-4)
+adminRouter.post('/run-seo-columns-migration', requireAdmin, async (req, res, next) => {
+  try {
+    const { prisma } = await import('../db');
+    if (!prisma) throw new Error('Database not available');
+
+    const columnsToAdd = [
+      { name: 'historySection', sql: 'ADD COLUMN IF NOT EXISTS "historySection" TEXT' },
+      { name: 'howItWorksSection', sql: 'ADD COLUMN IF NOT EXISTS "howItWorksSection" TEXT' },
+      { name: 'faqItems', sql: 'ADD COLUMN IF NOT EXISTS "faqItems" TEXT NOT NULL DEFAULT \'[]\'' },
+      { name: 'whoInventedQuickAnswer', sql: 'ADD COLUMN IF NOT EXISTS "whoInventedQuickAnswer" TEXT' },
+      { name: 'seoContentGeneratedAt', sql: 'ADD COLUMN IF NOT EXISTS "seoContentGeneratedAt" TIMESTAMP(3)' },
+      { name: 'seoContentStatus', sql: 'ADD COLUMN IF NOT EXISTS "seoContentStatus" TEXT NOT NULL DEFAULT \'pending\'' },
+    ];
+
+    const results: string[] = [];
+
+    for (const col of columnsToAdd) {
+      try {
+        await prisma.$executeRawUnsafe(`ALTER TABLE "GlossaryTerm" ${col.sql}`);
+        results.push(`${col.name}: added`);
+      } catch (error) {
+        // Column might already exist
+        results.push(`${col.name}: already exists or error`);
+      }
+    }
+
+    res.json({ message: 'SEO columns migration complete', results });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // POST /api/admin/glossary/backfill-slugs - Generate slugs for all terms without one (Sprint SEO-3)
 adminRouter.post('/backfill-slugs', requireAdmin, async (req, res, next) => {
   try {

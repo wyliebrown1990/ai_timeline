@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, RotateCcw, X, Sparkles } from 'lucide-react';
+import { SEO } from '../components/SEO';
 import { useOnboarding } from '../components/Onboarding';
 import {
   useLearningPath,
@@ -298,9 +299,50 @@ function LearningPathsPage() {
     console.log('[Render Debug] milestoneError:', milestoneError);
   }, [viewState, currentPath, currentMilestoneId, currentMilestone, milestoneLoading, milestoneError]);
 
+  // SEO metadata based on view state
+  const seoProps = useMemo(() => {
+    const baseUrl = 'https://letaiexplainai.com';
+
+    if (viewState.type === 'selection') {
+      return {
+        title: 'Learning Paths',
+        description: 'Explore curated learning paths through AI history. From foundational concepts to cutting-edge breakthroughs, build your understanding of artificial intelligence progressively.',
+        canonical: `${baseUrl}/learn`,
+      };
+    }
+
+    if ((viewState.type === 'path' || viewState.type === 'checkpoint') && currentPath) {
+      return {
+        title: currentPath.title,
+        description: currentPath.description || `Learn about ${currentPath.title} through this guided learning path covering key AI milestones and concepts.`,
+        canonical: `${baseUrl}/learn/${currentPath.slug}`,
+      };
+    }
+
+    if (viewState.type === 'completion' && currentPath) {
+      return {
+        title: `${currentPath.title} - Complete`,
+        description: `You've completed the ${currentPath.title} learning path. Review your progress and explore other paths.`,
+        canonical: `${baseUrl}/learn/${currentPath.slug}/complete`,
+      };
+    }
+
+    // Fallback
+    return {
+      title: 'Learning Paths',
+      description: 'Explore curated learning paths through AI history.',
+      canonical: `${baseUrl}/learn`,
+    };
+  }, [viewState, currentPath]);
+
   // Render based on view state
   return (
     <div className="animate-fade-in min-h-screen">
+      <SEO
+        title={seoProps.title}
+        description={seoProps.description}
+        canonical={seoProps.canonical}
+      />
       {/* Debug: Show error state when path view but no content */}
       {viewState.type === 'path' && !currentPath && (
         <div className="flex flex-col items-center justify-center min-h-screen p-8">

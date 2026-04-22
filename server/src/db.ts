@@ -39,6 +39,12 @@ function createPrismaClient(): PrismaClient {
     idleTimeoutMillis: 10000, // Close idle connections faster (10s)
     connectionTimeoutMillis: 5000, // Fail fast if can't connect
   });
+
+  // Catch idle client errors to prevent unhandled exceptions crashing the Lambda
+  pool.on('error', (err) => {
+    console.error('[DB_POOL] Unexpected pool error:', err.message);
+  });
+
   const adapter = new PrismaPg(pool);
 
   return new PrismaClient({

@@ -26,6 +26,8 @@ const ResourcesPage = lazy(() => import('./pages/ResourcesPage')); // Sprint TD-
 const EmbedTimelinePage = lazy(() => import('./pages/EmbedTimelinePage')); // Sprint TD-4 - Embed widget
 const EmbedConfigPage = lazy(() => import('./pages/EmbedConfigPage')); // Sprint TD-4 - Embed config
 const ReportsPage = lazy(() => import('./pages/ReportsPage')); // Sprint TD-4 - Annual reports
+const PDFDownloadPage = lazy(() => import('./pages/PDFDownloadPage')); // Sprint TD-4 - PDF download
+const InfographicsPage = lazy(() => import('./pages/InfographicsPage')); // Sprint TD-4 - Infographics
 const YearReportPage = lazy(() => import('./pages/YearReportPage')); // Sprint TD-4 - Year report
 const ComparePage = lazy(() => import('./pages/ComparePage')); // Sprint SEO-4 - Comparison pages
 const ExplainedPage = lazy(() => import('./pages/ExplainedPage')); // Sprint SEO-4 - Explained pages
@@ -192,6 +194,8 @@ function App() {
                     <Route index element={<HomePage />} />
                     <Route path="timeline" element={<TimelinePage />} />
                     <Route path="timeline/data" element={<DataExportPage />} /> {/* Sprint TD-4 - Data export */}
+                    <Route path="timeline/download" element={<PDFDownloadPage />} /> {/* Sprint TD-4 - PDF download */}
+                    <Route path="timeline/infographics" element={<InfographicsPage />} /> {/* Sprint TD-4 - Infographics */}
                     <Route path="timeline/embed" element={<EmbedConfigPage />} /> {/* Sprint TD-4 - Embed config */}
                     <Route path="timeline/:slug" element={<TimelineSlugPage />} /> {/* Sprint TD-2 - Era + Filter pages */}
 

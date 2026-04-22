@@ -36,7 +36,7 @@ function EmbedConfigPage() {
   const [height, setHeight] = useState('400');
   const [copied, setCopied] = useState(false);
 
-  // Build embed URL
+  // Build embed URL with UTM tracking
   const embedUrl = useMemo(() => {
     const params = new URLSearchParams();
     if (theme !== 'light') params.set('theme', theme);
@@ -45,6 +45,10 @@ function EmbedConfigPage() {
     if (org) params.set('org', org);
     if (startYear) params.set('startYear', startYear);
     if (endYear) params.set('endYear', endYear);
+    // UTM tracking for embed attribution
+    params.set('utm_source', 'embed');
+    params.set('utm_medium', 'widget');
+    params.set('utm_campaign', 'timeline_embed');
 
     const queryString = params.toString();
     return `https://letaiexplainai.com/embed/timeline${queryString ? `?${queryString}` : ''}`;

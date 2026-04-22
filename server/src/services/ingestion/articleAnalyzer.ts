@@ -33,6 +33,7 @@ import {
 } from './subjectClassifier';
 import { matchPerson } from '../entityMatcher';
 import { withRetry, resolveArticleErrors } from '../errorTracker';
+import { publishNewsEvent } from '../publishing/newsPublisher';
 
 // Import schemas for validation
 import {
@@ -69,6 +70,94 @@ function extractYouTubeVideoId(url: string): string | null {
  */
 function getYouTubeThumbnailUrl(videoId: string): string {
   return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+}
+
+// Sources whose news_event drafts are auto-approved (case-insensitive match)
+const AUTO_APPROVE_NEWS_EVENT_SOURCES = ['the neuron'];
+
+/**
+ * Check if an article source should have its news events auto-approved
+ */
+function shouldAutoApproveNewsEvent(sourceName: string | undefined): boolean {
+  if (!sourceName) return false;
+  return AUTO_APPROVE_NEWS_EVENT_SOURCES.some(
+    (s) => sourceName.toLowerCase().includes(s)
+  );
+}
+
+/**
+ * Auto-approve and publish a news_event content draft
+ * Used for trusted sources like The Neuron where manual review isn't needed
+ */
+async function autoApproveNewsEventDraft(draftId: string): Promise<void> {
+  const draft = await prisma.contentDraft.findUnique({
+    where: { id: draftId },
+  });
+
+  if (!draft || draft.status !== 'pending' || draft.contentType !== 'news_event') {
+    return;
+  }
+
+  const draftData = draft.draftData as Record<string, unknown>;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const publishedId = await publishNewsEvent(draftData as any);
+
+    // Publish ContentSubject records if available
+    const suggestedSubjects = draftData.suggestedSubjects as Array<{
+      subjectId: string;
+      subjectSlug: string;
+      confidence: number;
+      isPrimary: boolean;
+    }> | undefined;
+
+    if (suggestedSubjects && suggestedSubjects.length > 0) {
+      for (const subject of suggestedSubjects) {
+        const subjectExists = await prisma.subject.findUnique({
+          where: { id: subject.subjectId },
+          select: { id: true },
+        });
+        if (subjectExists) {
+          await prisma.contentSubject.upsert({
+            where: {
+              contentType_contentId_subjectId: {
+                contentType: 'current_event',
+                contentId: publishedId,
+                subjectId: subject.subjectId,
+              },
+            },
+            create: {
+              contentType: 'current_event',
+              contentId: publishedId,
+              subjectId: subject.subjectId,
+              isPrimary: subject.isPrimary,
+              confidence: subject.confidence,
+              source: 'auto',
+            },
+            update: {
+              isPrimary: subject.isPrimary,
+              confidence: subject.confidence,
+            },
+          });
+        }
+      }
+    }
+
+    await prisma.contentDraft.update({
+      where: { id: draftId },
+      data: {
+        status: 'published',
+        publishedAt: new Date(),
+        publishedId,
+      },
+    });
+
+    console.log(`[Analyzer] Auto-approved news event draft ${draftId} → published as ${publishedId}`);
+  } catch (error) {
+    console.error(`[Analyzer] Auto-approve failed for draft ${draftId}:`, error);
+    // Leave draft as pending so it can still be manually reviewed
+  }
 }
 
 export interface AnalysisResult {
@@ -274,7 +363,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         ...enrichedNewsEvent,
         suggestedSubjects: subjectClassification,
       };
-      await prisma.contentDraft.create({
+      const newsEventDraft = await prisma.contentDraft.create({
         data: {
           articleId,
           contentType: 'news_event',
@@ -288,6 +377,11 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
       });
       draftsCreated++;
       console.log(`[Analyzer] Created news event draft (valid=${eventValidation.success}, hasVideo=${!!videoId})`);
+
+      // Auto-approve news events from trusted sources (e.g., The Neuron)
+      if (shouldAutoApproveNewsEvent(article.source?.name)) {
+        await autoApproveNewsEventDraft(newsEventDraft.id);
+      }
     }
   }
 
@@ -345,7 +439,7 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
         suggestedSubjects: subjectClassification,
       };
 
-      await prisma.contentDraft.create({
+      const nonMilestoneNewsEventDraft = await prisma.contentDraft.create({
         data: {
           articleId,
           contentType: 'news_event',
@@ -358,6 +452,11 @@ async function analyzeArticleInternal(articleId: string, apiKey: string): Promis
       });
       draftsCreated++;
       console.log(`[Analyzer] Created news event draft for non-milestone article (valid=${eventValidation.success}, hasVideo=${!!videoId})`);
+
+      // Auto-approve news events from trusted sources (e.g., The Neuron)
+      if (eventValidation.success && shouldAutoApproveNewsEvent(article.source?.name)) {
+        await autoApproveNewsEventDraft(nonMilestoneNewsEventDraft.id);
+      }
     } catch (newsEventError) {
       // Log error but don't fail pipeline - news event generation is non-critical
       console.error(`[Analyzer] News event generation error for non-milestone article (non-fatal):`, newsEventError);

@@ -241,6 +241,7 @@ export async function generateQuiz(
       questionCount: z.number().int().min(3).max(15).optional().default(5),
       daysBack: z.number().int().min(1).max(30).optional().default(7),
       forceRegenerate: z.boolean().optional().default(false),
+      requiredEventIds: z.array(z.string()).optional(),
     });
 
     const options = schema.parse(req.body);

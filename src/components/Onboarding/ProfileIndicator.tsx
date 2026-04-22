@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { User, ChevronDown, Settings, RefreshCw } from 'lucide-react';
 import { useUserProfileContext } from '../../contexts/UserProfileContext';
+import { useOnboarding } from './OnboardingWrapper';
 import { USER_ROLE_LABELS } from '../../types/userProfile';
 
 /**
@@ -16,6 +17,7 @@ import { USER_ROLE_LABELS } from '../../types/userProfile';
  */
 export function ProfileIndicator() {
   const { profile, onboardingSkipped, resetUserData } = useUserProfileContext();
+  const { openOnboarding } = useOnboarding();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -42,7 +44,7 @@ export function ProfileIndicator() {
   if (onboardingSkipped && !profile) {
     return (
       <button
-        onClick={() => resetUserData()}
+        onClick={openOnboarding}
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
         title="Set up your profile"
       >

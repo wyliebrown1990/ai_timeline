@@ -1119,15 +1119,11 @@ Return ONLY the JSON object, no other text.`;
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[IngestionLambda] Quiz generation error:', errorMessage);
+      console.error('[IngestionLambda] Quiz generation FAILED:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
 
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          message: 'Weekly quiz generation failed',
-          error: errorMessage,
-        }),
-      };
+      // Re-throw so Lambda reports as failed — triggers CloudWatch alarm + EventBridge retry
+      throw error;
     }
   }
 

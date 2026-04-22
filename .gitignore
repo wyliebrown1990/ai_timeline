@@ -58,3 +58,9 @@ dev.db-journal
 
 # Lambda build output
 dist-lambda/
+
+# Credentials — never commit
+.ai-timeline-admin-token
+.env
+.env.local
+.env.production

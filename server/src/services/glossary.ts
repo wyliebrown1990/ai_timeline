@@ -41,6 +41,7 @@ export interface CreateGlossaryTermDto {
  */
 export interface UpdateGlossaryTermDto {
   term?: string;
+  slug?: string; // SEO-friendly URL slug
   shortDefinition?: string;
   fullDefinition?: string;
   businessContext?: string | null;
@@ -309,6 +310,7 @@ export async function update(id: string, data: UpdateGlossaryTermDto): Promise<G
   const updateData: Record<string, unknown> = {};
 
   if (data.term !== undefined) updateData.term = data.term;
+  if (data.slug !== undefined) updateData.slug = data.slug;
   if (data.shortDefinition !== undefined) updateData.shortDefinition = data.shortDefinition;
   if (data.fullDefinition !== undefined) updateData.fullDefinition = data.fullDefinition;
   if (data.businessContext !== undefined) updateData.businessContext = data.businessContext;
