@@ -38,6 +38,10 @@ const ExplainedHubPage = lazy(() => import('./pages/ExplainedHubPage'));
 const EventsHubPage = lazy(() => import('./pages/EventsHubPage'));
 const WhoInventedHubPage = lazy(() => import('./pages/WhoInventedHubPage'));
 
+// Site-wide 404 fallback (Blog-1 QA finding: /blog and every other unmatched URL
+// used to render a blank page because there was no catch-all route)
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
+
 // Lazy-loaded secondary pages
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage'));
@@ -226,6 +230,11 @@ function App() {
                     <Route path="study/session" element={<StudySessionPage />} />
                     <Route path="study/session/:packId" element={<StudySessionPage />} />
                     <Route path="study/packs/:packId" element={<PackDetailPage />} />
+
+                    {/* Catch-all 404 inside Layout — renders with header/footer chrome.
+                        Caught during Sprint Blog-1 live QA: /blog was rendering a
+                        completely blank page because no route matched. */}
+                    <Route path="*" element={<NotFoundPage />} />
                   </Route>
 
                   {/* User auth routes - outside Layout for full-page design */}
