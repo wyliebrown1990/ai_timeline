@@ -25,6 +25,9 @@ import { BlogBreadcrumbs } from '../components/Blog/BlogBreadcrumbs';
 import { BlogMeta } from '../components/Blog/BlogMeta';
 import { BlogTOC } from '../components/Blog/BlogTOC';
 import { BlogPostCard } from '../components/Blog/BlogPostCard';
+import { ShareBar } from '../components/Blog/ShareBar';
+import { NewsletterCta } from '../components/Blog/NewsletterCta';
+import { CommentThread } from '../components/Comments';
 import { ErrorState } from '../components/ui';
 import { LoadingSkeleton } from '../components/ui/LoadingSkeleton';
 
@@ -236,6 +239,18 @@ export default function BlogPostPage() {
           </div>
         </div>
 
+        {/* Inline share row (desktop — hidden on mobile in favour of the
+            sticky bottom bar below the article) — Sprint Blog-6 §2. */}
+        <ShareBar
+          url={canonical}
+          title={post.title}
+          description={post.excerpt}
+          className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-6"
+        />
+
+        {/* Newsletter CTA at the end of the read — catches engaged readers. */}
+        <NewsletterCta source={`post-footer:${post.slug}`} className="mt-10" />
+
         {relationLinks.length > 0 && (
           <section className="mt-16 border-t border-gray-200 dark:border-gray-700 pt-10">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
@@ -271,6 +286,12 @@ export default function BlogPostPage() {
             </div>
           </section>
         )}
+
+        {/* Reddit-style threaded comments — inherits existing spam protection,
+            trust tiers, moderation dashboard. No custom UI needed. */}
+        <section className="mt-16 border-t border-gray-200 dark:border-gray-700 pt-10">
+          <CommentThread targetType="blog_post" targetId={post.id} />
+        </section>
       </article>
     </>
   );

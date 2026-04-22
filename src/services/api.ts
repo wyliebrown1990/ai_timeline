@@ -12,7 +12,7 @@ import type { SearchResponse, FilterQueryParams } from '../types/filters';
  *
  * Sprint 39: Removed static JSON fallback - all content now served from database API
  */
-const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
+export const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 
 /**
  * Auth token storage key

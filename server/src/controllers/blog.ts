@@ -68,6 +68,17 @@ function verifyPreviewToken(token: string): PreviewClaims | null {
   }
 }
 
+// Treat any UA with these substrings as a bot for view-count purposes. Not
+// exhaustive — just enough to stop the biggest inflators (Googlebot, GPTBot,
+// curl, Lighthouse) from padding the numbers.
+const BOT_UA_PATTERNS = /bot|crawl|spider|facebook|slurp|curl|wget|headless|lighthouse|pagespeed/i;
+
+function isBotRequest(req: Request): boolean {
+  const ua = req.headers['user-agent'];
+  if (!ua) return true;
+  return BOT_UA_PATTERNS.test(ua);
+}
+
 export async function getPostBySlug(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params;
@@ -87,6 +98,15 @@ export async function getPostBySlug(req: Request, res: Response, next: NextFunct
 
     const post = await blogService.getPublishedPostBySlug(slug);
     if (!post) throw ApiError.notFound('Blog post not found');
+
+    // Fire-and-forget view count bump. Must not block the response; if it
+    // errors (connection blip, race), we swallow — view counts aren't load-bearing.
+    if (!isBotRequest(req)) {
+      blogService.incrementViewCount(post.id).catch((err: unknown) => {
+        console.warn('[blog] viewCount bump failed:', err);
+      });
+    }
+
     res.json({ post: serializePost(post) });
   } catch (error) {
     next(error);
@@ -115,6 +135,25 @@ const VALID_ENTITY_TYPES = new Set([
   'glossary_term',
   'subject',
 ]);
+
+// Accepts a reasonable subset of email shapes. Not RFC-complete — just enough
+// to keep obvious junk out before we hit the DB.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function subscribeNewsletter(req: Request, res: Response, next: NextFunction) {
+  try {
+    const emailRaw = typeof req.body?.email === 'string' ? req.body.email : '';
+    const source = typeof req.body?.source === 'string' ? req.body.source : undefined;
+    const email = emailRaw.trim();
+    if (!email || !EMAIL_RE.test(email)) {
+      throw ApiError.badRequest('A valid email is required.');
+    }
+    const result = await blogService.subscribeNewsletter(email, source);
+    res.json({ ok: true, alreadySubscribed: result.alreadySubscribed });
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function getPostsForEntity(req: Request, res: Response, next: NextFunction) {
   try {

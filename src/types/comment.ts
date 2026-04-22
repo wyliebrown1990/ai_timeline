@@ -12,6 +12,7 @@ export const CommentTargetTypeSchema = z.enum([
   'glossary_term',
   'person',
   'organization',
+  'blog_post',
 ]);
 
 export type CommentTargetType = z.infer<typeof CommentTargetTypeSchema>;

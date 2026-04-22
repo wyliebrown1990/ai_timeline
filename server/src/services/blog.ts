@@ -508,6 +508,55 @@ function toListItem(row: ListRowShape): PublicBlogPostListItem {
 // Author fetch
 // =============================================================================
 
+/**
+ * Atomically bump a post's view count. Rounds to the nearest integer via
+ * Prisma's `increment` operator so two concurrent requests don't clobber
+ * each other.
+ */
+export async function incrementViewCount(postId: string): Promise<void> {
+  await prisma.blogPost.update({
+    where: { id: postId },
+    data: { viewCount: { increment: 1 } },
+    select: { id: true },
+  });
+}
+
+// =============================================================================
+// Newsletter — Sprint Blog-6
+// =============================================================================
+
+export interface SubscribeResult {
+  alreadySubscribed: boolean;
+}
+
+/**
+ * Upsert a newsletter subscriber by email. Re-subscribing a previously
+ * unsubscribed email clears the unsubscribedAt. Emails are normalised to
+ * lowercase trimmed form so "Foo@Bar.com " and "foo@bar.com" collapse to
+ * the same record.
+ */
+export async function subscribeNewsletter(
+  rawEmail: string,
+  source?: string
+): Promise<SubscribeResult> {
+  const email = rawEmail.trim().toLowerCase();
+  const existing = await prisma.subscriber.findUnique({ where: { email } });
+  if (existing) {
+    if (existing.unsubscribedAt) {
+      await prisma.subscriber.update({
+        where: { email },
+        data: { unsubscribedAt: null, source: source ?? existing.source },
+      });
+      return { alreadySubscribed: false };
+    }
+    return { alreadySubscribed: true };
+  }
+  await prisma.subscriber.create({
+    data: { email, source: source ?? null },
+  });
+  return { alreadySubscribed: false };
+}
+
 export async function getAuthorBySlug(slug: string): Promise<PublicAuthor | null> {
   const row = await prisma.author.findUnique({ where: { slug } });
   if (!row) return null;

@@ -12,6 +12,7 @@ const router = Router();
 router.get('/rss.xml', blogController.rssFeed);
 router.get('/related', blogController.getRelated);
 router.get('/for-entity', blogController.getPostsForEntity);
+router.post('/subscribe', blogController.subscribeNewsletter);
 router.get('/', blogController.listPosts);
 router.get('/:slug', blogController.getPostBySlug);
 

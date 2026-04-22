@@ -296,6 +296,47 @@ router.post('/:id/schedule', requireAdmin, adminController.schedulePost);
 router.post('/:id/archive', requireAdmin, adminController.archivePost);
 router.post('/:id/preview-token', requireAdmin, adminController.getPreviewToken);
 
+/**
+ * POST /api/admin/blog/run-blog-6-migration — one-shot Blog-6 schema bootstrap.
+ * Adds `blog_post` to the CommentTargetType enum and creates the Subscriber
+ * table. Idempotent: re-runs safely because every DDL uses IF NOT EXISTS and
+ * the enum ADD is also guarded.
+ */
+router.post('/run-blog-6-migration', requireAdmin, async (_req, res, next) => {
+  try {
+    const results: string[] = [];
+    await prisma.$executeRawUnsafe(`ALTER TYPE "CommentTargetType" ADD VALUE IF NOT EXISTS 'blog_post'`);
+    results.push('CommentTargetType.blog_post: ensured');
+
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "Subscriber" (
+        "id" TEXT NOT NULL,
+        "email" TEXT NOT NULL,
+        "source" TEXT,
+        "subscribedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "unsubscribedAt" TIMESTAMP(3),
+        CONSTRAINT "Subscriber_pkey" PRIMARY KEY ("id")
+      )
+    `);
+    results.push('Subscriber table: ensured');
+
+    await prisma.$executeRawUnsafe(
+      `CREATE UNIQUE INDEX IF NOT EXISTS "Subscriber_email_key" ON "Subscriber"("email")`
+    );
+    await prisma.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "Subscriber_subscribedAt_idx" ON "Subscriber"("subscribedAt")`
+    );
+    await prisma.$executeRawUnsafe(
+      `CREATE INDEX IF NOT EXISTS "Subscriber_unsubscribedAt_idx" ON "Subscriber"("unsubscribedAt")`
+    );
+    results.push('Subscriber indexes: ensured');
+
+    res.json({ message: 'Blog-6 migration applied', results });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;
 
 /**

@@ -30,7 +30,7 @@ import { checkAndFlagComment, createFlag } from '../services/autoFlagService';
 const router = Router();
 
 // Validation schemas
-const targetTypeSchema = z.enum(['milestone', 'news_event', 'glossary_term', 'person', 'organization']);
+const targetTypeSchema = z.enum(['milestone', 'news_event', 'glossary_term', 'person', 'organization', 'blog_post']);
 const sortModeSchema = z.enum(['best', 'new', 'controversial']);
 
 const createCommentSchema = z.object({

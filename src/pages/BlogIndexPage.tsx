@@ -15,6 +15,7 @@ import type { BlogListResponse, BlogPostListItem } from '../types/blog';
 import { BlogPostCard } from '../components/Blog/BlogPostCard';
 import { BlogPostCardSkeleton } from '../components/Blog/BlogPostCardSkeleton';
 import { BlogBreadcrumbs } from '../components/Blog/BlogBreadcrumbs';
+import { NewsletterCta } from '../components/Blog/NewsletterCta';
 import { EmptyState, ErrorState } from '../components/ui';
 
 const PAGE_SIZE = 12;
@@ -58,11 +59,22 @@ export default function BlogIndexPage() {
     return data.posts.find((p) => p.featured) ?? data.posts[0] ?? null;
   }, [data]);
 
+  // Editor's picks row (Sprint Blog-6 §5): all featured posts beyond the hero,
+  // cap at 3. Hide the whole row if none left over after the hero absorbed one.
+  const editorsPicks = useMemo<BlogPostListItem[]>(() => {
+    if (!data || data.posts.length === 0) return [];
+    return data.posts
+      .filter((p) => p.featured && p.id !== featured?.id)
+      .slice(0, 3);
+  }, [data, featured]);
+
   const rest = useMemo<BlogPostListItem[]>(() => {
     if (!data || data.posts.length === 0) return [];
-    const feat = featured;
-    return feat ? data.posts.filter((p) => p.id !== feat.id) : data.posts;
-  }, [data, featured]);
+    const excludedIds = new Set<string>();
+    if (featured) excludedIds.add(featured.id);
+    editorsPicks.forEach((p) => excludedIds.add(p.id));
+    return data.posts.filter((p) => !excludedIds.has(p.id));
+  }, [data, featured, editorsPicks]);
 
   const clearFilters = () => {
     const next = new URLSearchParams(searchParams);
@@ -140,6 +152,19 @@ export default function BlogIndexPage() {
               </div>
             )}
 
+            {editorsPicks.length > 0 && (
+              <section className="mb-10">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-orange-600 dark:text-orange-400 mb-3">
+                  Editor's picks
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {editorsPicks.map((p) => (
+                    <BlogPostCard key={p.id} post={p} variant="default" />
+                  ))}
+                </div>
+              </section>
+            )}
+
             {rest.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {rest.map((p) => (
@@ -155,6 +180,8 @@ export default function BlogIndexPage() {
                 onChange={goToPage}
               />
             )}
+
+            <NewsletterCta source="blog-index" className="mt-12" />
           </>
         )}
       </div>
