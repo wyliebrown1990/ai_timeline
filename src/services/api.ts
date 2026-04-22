@@ -5573,3 +5573,189 @@ export const authorsApi = {
     );
   },
 };
+
+// =============================================================================
+// Admin Blog API (Sprint Blog-3)
+// =============================================================================
+
+import type {
+  CreateBlogPostRequest,
+  UpdateBlogPostRequest,
+  BlogPostStatus,
+} from '../types/blog';
+
+export interface AdminBlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  excerpt: string;
+  bodyMarkdown: string;
+  coverImageUrl: string | null;
+  authorId: string;
+  status: BlogPostStatus;
+  publishedAt: string | null;
+  scheduledFor: string | null;
+  readingMinutes: number;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  canonicalUrl: string | null;
+  tags: string; // JSON string — client parses
+  featured: boolean;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+  author: AuthorType;
+  subjects: Array<{
+    postId: string;
+    subjectId: string;
+    isPrimary: boolean;
+    subject: { id: string; slug: string; name: string };
+  }>;
+  relations: Array<{
+    id: string;
+    postId: string;
+    entityType: string;
+    entityId: string;
+    relationLabel: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface AdminBlogListResult {
+  posts: AdminBlogPost[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface UploadUrlResult {
+  uploadUrl: string;
+  publicUrl: string;
+  key: string;
+}
+
+export interface PreviewTokenResult {
+  token: string;
+  previewUrl: string;
+  expiresInSeconds: number;
+}
+
+export const blogAdminApi = {
+  async list(params?: {
+    status?: string;
+    authorId?: string;
+    q?: string;
+    page?: number;
+    pageSize?: number;
+  }): Promise<AdminBlogListResult> {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.authorId) qs.set('authorId', params.authorId);
+    if (params?.q) qs.set('q', params.q);
+    if (params?.page) qs.set('page', String(params.page));
+    if (params?.pageSize) qs.set('pageSize', String(params.pageSize));
+    const url = `${API_BASE}/admin/blog${qs.toString() ? `?${qs.toString()}` : ''}`;
+    return fetchJson<AdminBlogListResult>(url, { headers: getAuthHeaders() });
+  },
+
+  async get(id: string): Promise<{ post: AdminBlogPost }> {
+    return fetchJson<{ post: AdminBlogPost }>(`${API_BASE}/admin/blog/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async create(input: CreateBlogPostRequest): Promise<{ post: AdminBlogPost }> {
+    return fetchJson<{ post: AdminBlogPost }>(`${API_BASE}/admin/blog`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+  },
+
+  async update(id: string, patch: UpdateBlogPostRequest): Promise<{ post: AdminBlogPost }> {
+    return fetchJson<{ post: AdminBlogPost }>(`${API_BASE}/admin/blog/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  },
+
+  async publish(id: string): Promise<{ post: AdminBlogPost }> {
+    return fetchJson<{ post: AdminBlogPost }>(`${API_BASE}/admin/blog/${id}/publish`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async schedule(id: string, scheduledFor: Date): Promise<{ post: AdminBlogPost }> {
+    return fetchJson<{ post: AdminBlogPost }>(`${API_BASE}/admin/blog/${id}/schedule`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scheduledFor: scheduledFor.toISOString() }),
+    });
+  },
+
+  async archive(id: string): Promise<{ post: AdminBlogPost }> {
+    return fetchJson<{ post: AdminBlogPost }>(`${API_BASE}/admin/blog/${id}/archive`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async remove(id: string): Promise<void> {
+    await fetchJson<unknown>(`${API_BASE}/admin/blog/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async getUploadUrl(input: { filename: string; contentType: string }): Promise<UploadUrlResult> {
+    return fetchJson<UploadUrlResult>(`${API_BASE}/admin/blog/upload-url`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+  },
+
+  async getPreviewToken(id: string): Promise<PreviewTokenResult> {
+    return fetchJson<PreviewTokenResult>(`${API_BASE}/admin/blog/${id}/preview-token`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+};
+
+export const authorsAdminApi = {
+  async list(): Promise<{ authors: AuthorType[] }> {
+    return fetchJson<{ authors: AuthorType[] }>(`${API_BASE}/admin/authors`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async create(input: {
+    name: string;
+    slug?: string;
+    role?: string;
+    bio?: string;
+    avatarUrl?: string;
+  }): Promise<{ author: AuthorType }> {
+    return fetchJson<{ author: AuthorType }>(`${API_BASE}/admin/authors`, {
+      method: 'POST',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+  },
+
+  async update(
+    id: string,
+    patch: { name?: string; role?: string; bio?: string; avatarUrl?: string }
+  ): Promise<{ author: AuthorType }> {
+    return fetchJson<{ author: AuthorType }>(`${API_BASE}/admin/authors/${id}`, {
+      method: 'PUT',
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  },
+};

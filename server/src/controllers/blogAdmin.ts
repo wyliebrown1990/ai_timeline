@@ -6,6 +6,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { ApiError } from '../middleware/error';
 import * as blogAdminService from '../services/blogAdmin';
@@ -135,6 +136,35 @@ export async function deletePost(req: Request, res: Response, next: NextFunction
   try {
     await blogAdminService.deletePost(req.params.id);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Mint a 30-minute signed token the editor can embed in a preview URL
+ * (`/blog/:slug?preview=TOKEN`). Validated server-side by the public
+ * getPostBySlug controller. Scoped to a single post so a leaked token
+ * can't be used to read other drafts.
+ */
+export async function getPreviewToken(req: Request, res: Response, next: NextFunction) {
+  try {
+    const post = await blogAdminService.getPostById(req.params.id);
+    if (!post) throw ApiError.notFound('Blog post not found');
+
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw ApiError.internal('JWT secret not configured');
+
+    const token = jwt.sign(
+      { postId: post.id, kind: 'blog-preview' },
+      secret,
+      { expiresIn: '30m' }
+    );
+    res.json({
+      token,
+      previewUrl: `/blog/${post.slug}?preview=${token}`,
+      expiresInSeconds: 30 * 60,
+    });
   } catch (error) {
     next(error);
   }

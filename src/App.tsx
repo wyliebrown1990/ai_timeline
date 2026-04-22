@@ -46,6 +46,11 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const BlogIndexPage = lazy(() => import('./pages/BlogIndexPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 
+// Sprint Blog-3: Admin CMS
+const BlogAdminListPage = lazy(() => import('./pages/admin/BlogAdminListPage'));
+const BlogEditorPage = lazy(() => import('./pages/admin/BlogEditorPage'));
+const AuthorsAdminPage = lazy(() => import('./pages/admin/AuthorsAdminPage'));
+
 // Lazy-loaded secondary pages
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage'));
@@ -299,6 +304,11 @@ function App() {
                     <Route path="users" element={<UserManagementPage />} />
                     <Route path="subjects" element={<SubjectsAdminPage />} />
                     <Route path="seo-content" element={<SeoContentGeneratorPage />} />
+                    {/* Sprint Blog-3: Admin CMS */}
+                    <Route path="blog" element={<BlogAdminListPage />} />
+                    <Route path="blog/new" element={<BlogEditorPage mode="new" />} />
+                    <Route path="blog/:id/edit" element={<BlogEditorPage mode="edit" />} />
+                    <Route path="authors" element={<AuthorsAdminPage />} />
                   </Route>
 
                   {/* Admin login route - outside protected wrapper */}

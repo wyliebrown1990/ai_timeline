@@ -208,12 +208,28 @@ export async function listPublishedPosts(
 }
 
 export async function getPublishedPostBySlug(slug: string): Promise<PublicBlogPost | null> {
+  return fetchPostBySlug(slug, { requirePublished: true });
+}
+
+/**
+ * Admin-preview variant: returns the post regardless of publish status, so
+ * reviewers can see drafts and scheduled posts via a short-lived preview token.
+ */
+export async function getPostBySlugForPreview(slug: string): Promise<PublicBlogPost | null> {
+  return fetchPostBySlug(slug, { requirePublished: false });
+}
+
+async function fetchPostBySlug(
+  slug: string,
+  opts: { requirePublished: boolean }
+): Promise<PublicBlogPost | null> {
+  const where: Record<string, unknown> = { slug };
+  if (opts.requirePublished) {
+    where.status = 'published';
+    where.publishedAt = { lte: new Date() };
+  }
   const row = await prisma.blogPost.findFirst({
-    where: {
-      slug,
-      status: 'published',
-      publishedAt: { lte: new Date() },
-    },
+    where,
     include: {
       author: true,
       subjects: { include: { subject: { select: { id: true, slug: true, name: true } } } },

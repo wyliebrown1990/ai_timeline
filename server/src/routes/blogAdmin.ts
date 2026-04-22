@@ -294,6 +294,7 @@ router.delete('/:id', requireAdmin, adminController.deletePost);
 router.post('/:id/publish', requireAdmin, adminController.publishPost);
 router.post('/:id/schedule', requireAdmin, adminController.schedulePost);
 router.post('/:id/archive', requireAdmin, adminController.archivePost);
+router.post('/:id/preview-token', requireAdmin, adminController.getPreviewToken);
 
 export default router;
 

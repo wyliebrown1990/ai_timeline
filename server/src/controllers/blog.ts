@@ -6,6 +6,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { ApiError } from '../middleware/error';
 import * as blogService from '../services/blog';
 import { BlogListParamsSchema } from '../../../src/types/blog';
@@ -47,9 +48,43 @@ export async function listPosts(req: Request, res: Response, next: NextFunction)
   }
 }
 
+interface PreviewClaims {
+  postId: string;
+  kind: 'blog-preview';
+  iat: number;
+  exp: number;
+}
+
+/** Verify the opaque preview token was signed by our JWT secret and not expired. */
+function verifyPreviewToken(token: string): PreviewClaims | null {
+  try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) return null;
+    const payload = jwt.verify(token, secret) as unknown as PreviewClaims;
+    if (payload.kind !== 'blog-preview') return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 export async function getPostBySlug(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params;
+    const previewToken = typeof req.query.preview === 'string' ? req.query.preview : null;
+
+    if (previewToken) {
+      const claims = verifyPreviewToken(previewToken);
+      if (!claims) throw ApiError.notFound('Blog post not found');
+      const post = await blogService.getPostBySlugForPreview(slug);
+      if (!post || post.id !== claims.postId) {
+        throw ApiError.notFound('Blog post not found');
+      }
+      res.set('X-Robots-Tag', 'noindex, nofollow');
+      res.json({ post: serializePost(post), preview: true });
+      return;
+    }
+
     const post = await blogService.getPublishedPostBySlug(slug);
     if (!post) throw ApiError.notFound('Blog post not found');
     res.json({ post: serializePost(post) });
