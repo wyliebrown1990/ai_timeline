@@ -20,9 +20,14 @@ npm run typecheck    # TypeScript check
 | Database | RDS PostgreSQL (`ai-timeline-db`) in VPC |
 
 ## Deployment
+Always deploy via `scripts/deploy-frontend.sh` — it strips sourcemaps and applies correct cache headers. See `.claude/rules/build-and-deploy-security.md` for rationale.
+
 ```bash
-# Frontend
-npm run build && aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --delete
+# Frontend (preferred)
+./scripts/deploy-frontend.sh
+
+# Frontend (ad-hoc — MUST keep --exclude "*.map" on every sync)
+npm run build && aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --exclude "*.map" --delete
 aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"
 
 # Backend
@@ -77,3 +82,6 @@ server/
 - `subject-taxonomy.md` - 3-level subject hierarchy, ContentSubject linking
 - `news-ingestion.md` - Multi-source ingestion pipeline
 - `backend.md` - AWS Lambda, API design
+- `build-and-deploy-security.md` - **No sourcemaps, no secrets in frontend bundle, no env leaks. Read before touching build or deploy.**
+- `spam-protection.md` - Rate limiting, trust system, moderation
+- `frontend.md` - React + Vite patterns
