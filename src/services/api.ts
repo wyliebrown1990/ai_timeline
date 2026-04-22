@@ -5521,3 +5521,55 @@ export const seoContentApi = {
     });
   },
 };
+
+// =============================================================================
+// Blog API (Sprint Blog-2)
+// =============================================================================
+
+import type {
+  BlogPost as BlogPostType,
+  BlogPostListItem,
+  Author as AuthorType,
+  BlogListResponse,
+} from '../types/blog';
+
+export interface BlogListOptions {
+  page?: number;
+  pageSize?: number;
+  tag?: string;
+  subjectSlug?: string;
+  authorSlug?: string;
+}
+
+export const blogApi = {
+  async list(options: BlogListOptions = {}): Promise<BlogListResponse> {
+    const qs = new URLSearchParams();
+    if (options.page) qs.set('page', String(options.page));
+    if (options.pageSize) qs.set('pageSize', String(options.pageSize));
+    if (options.tag) qs.set('tag', options.tag);
+    if (options.subjectSlug) qs.set('subjectSlug', options.subjectSlug);
+    if (options.authorSlug) qs.set('authorSlug', options.authorSlug);
+    const url = `${API_BASE}/blog${qs.toString() ? `?${qs.toString()}` : ''}`;
+    return fetchJson<BlogListResponse>(url);
+  },
+
+  async getBySlug(slug: string): Promise<{ post: BlogPostType }> {
+    return fetchJson<{ post: BlogPostType }>(`${API_BASE}/blog/${slug}`);
+  },
+
+  async related(slug: string): Promise<{ posts: BlogPostListItem[] }> {
+    return fetchJson<{ posts: BlogPostListItem[] }>(
+      `${API_BASE}/blog/related?slug=${encodeURIComponent(slug)}`
+    );
+  },
+};
+
+export const authorsApi = {
+  async getBySlug(
+    slug: string
+  ): Promise<{ author: AuthorType; posts: BlogPostListItem[] }> {
+    return fetchJson<{ author: AuthorType; posts: BlogPostListItem[] }>(
+      `${API_BASE}/authors/${slug}`
+    );
+  },
+};

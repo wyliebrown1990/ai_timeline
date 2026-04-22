@@ -47,40 +47,58 @@ export function ErrorState({
 }
 
 /**
- * EmptyState - Displays when no content is available
+ * EmptyState — the project's canonical "nothing here yet" surface.
+ * Sprint Blog-2 established this as a shared primitive; reuse rather than
+ * hand-rolling parallel empty patterns per feature.
  */
+import { Link } from 'react-router-dom';
+
+interface EmptyStateCta {
+  label: string;
+  to?: string;
+  onClick?: () => void;
+}
+
 interface EmptyStateProps {
-  title?: string;
-  message?: string;
   icon?: React.ReactNode;
-  action?: React.ReactNode;
+  title: string;
+  description?: string;
+  cta?: EmptyStateCta;
   className?: string;
 }
 
-export function EmptyState({
-  title = 'No results found',
-  message = 'Try adjusting your search or filters to find what you\'re looking for.',
-  icon,
-  action,
-  className = '',
-}: EmptyStateProps) {
+export function EmptyState({ icon, title, description, cta, className = '' }: EmptyStateProps) {
   return (
     <div
-      className={`flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-8 text-center dark:border-gray-700 dark:bg-gray-800 ${className}`}
+      className={`flex flex-col items-center justify-center rounded-xl bg-warm-50 dark:bg-gray-800/40 p-8 md:p-12 text-center ${className}`}
       data-testid="empty-state"
     >
       {icon && (
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-700">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 mb-4">
           {icon}
         </div>
       )}
-      <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-        {title}
-      </h3>
-      <p className="mt-2 max-w-md text-sm text-gray-600 dark:text-gray-300">
-        {message}
-      </p>
-      {action && <div className="mt-4">{action}</div>}
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">{title}</h3>
+      {description && (
+        <p className="max-w-md text-sm text-gray-600 dark:text-gray-400">{description}</p>
+      )}
+      {cta &&
+        (cta.to ? (
+          <Link
+            to={cta.to}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 text-sm font-medium transition-colors"
+          >
+            {cta.label}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={cta.onClick}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 text-sm font-medium transition-colors"
+          >
+            {cta.label}
+          </button>
+        ))}
     </div>
   );
 }

@@ -42,6 +42,10 @@ const WhoInventedHubPage = lazy(() => import('./pages/WhoInventedHubPage'));
 // used to render a blank page because there was no catch-all route)
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
+// Sprint Blog-2: Public reader pages
+const BlogIndexPage = lazy(() => import('./pages/BlogIndexPage'));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
+
 // Lazy-loaded secondary pages
 const LearningPathsPage = lazy(() => import('./pages/LearningPathsPage'));
 const GlossaryPage = lazy(() => import('./pages/GlossaryPage'));
@@ -230,6 +234,10 @@ function App() {
                     <Route path="study/session" element={<StudySessionPage />} />
                     <Route path="study/session/:packId" element={<StudySessionPage />} />
                     <Route path="study/packs/:packId" element={<PackDetailPage />} />
+
+                    {/* Sprint Blog-2: Public reader */}
+                    <Route path="blog" element={<BlogIndexPage />} />
+                    <Route path="blog/:slug" element={<BlogPostPage />} />
 
                     {/* Catch-all 404 inside Layout — renders with header/footer chrome.
                         Caught during Sprint Blog-1 live QA: /blog was rendering a
