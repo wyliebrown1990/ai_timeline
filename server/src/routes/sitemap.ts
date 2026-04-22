@@ -105,6 +105,14 @@ router.get('/', async (_req, res) => {
       });
     }
 
+    // People hub
+    urls.push({
+      loc: `${BASE_URL}/people`,
+      changefreq: 'weekly',
+      priority: 0.8,
+      lastmod: now,
+    });
+
     // Dynamic: Persons (key AI figures)
     const persons = await prisma.person.findMany({
       select: { slug: true, updatedAt: true },

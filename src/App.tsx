@@ -50,6 +50,9 @@ const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 const BlogTagPage = lazy(() => import('./pages/BlogTagPage'));
 const AuthorPage = lazy(() => import('./pages/AuthorPage'));
 
+// People hub — listed in the Header "More" dropdown
+const PeoplePage = lazy(() => import('./pages/PeoplePage'));
+
 // Sprint Blog-3: Admin CMS
 const BlogAdminListPage = lazy(() => import('./pages/admin/BlogAdminListPage'));
 const BlogEditorPage = lazy(() => import('./pages/admin/BlogEditorPage'));
@@ -209,6 +212,8 @@ function App() {
                     <Route path="settings" element={<SettingsPage />} />
 
                     {/* Sprint KPC-2: Profile pages */}
+                    {/* People hub (literal path first so it doesn't collide with :slug) */}
+                    <Route path="people" element={<PeoplePage />} />
                     <Route path="people/:slug" element={<PersonProfilePage />} />
                     <Route path="organizations/:slug" element={<OrganizationProfilePage />} />
 
