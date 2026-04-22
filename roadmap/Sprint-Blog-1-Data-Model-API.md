@@ -25,7 +25,7 @@ Establish the database schema, API endpoints, and seed data needed to support th
 
 **Priority**: HIGH (blocking all other Blog sprints)
 **Estimated Effort**: 2 days
-**Status**: Backend shipped, live browser QA surfaced a UX bug on `/blog` (blank page — no `*` catch-all route in App.tsx). Holding DoD until PM picks a fix from `Blocked — PM decision needed`. Blog-2 can still begin in parallel since its work is what ultimately resolves the blank-page issue.
+**Status**: Shipped. Backend is live in prod; live Browser QA surfaced a blank-page bug on `/blog` (missing site-wide catch-all), fix-up commit `a7208d2` added `NotFoundPage` + `<Route path="*" />` inside `Layout`, re-QA confirms `/blog` and every unmatched URL now render a proper 404 with full header + footer. Blog-2 unblocked.
 
 ---
 
@@ -330,23 +330,21 @@ Screenshots: `/tmp/blog1-qa/1-api-blog.png` through `6-timeline.png`.
 | 2 | `/api/blog/why-we-built-laea` | 200 | Raw JSON with full `bodyMarkdown`, author, subjects, relations. | clean | PASS |
 | 3 | `/api/blog/rss.xml` | 200 | Browser-rendered RSS 2.0 XML, 1 `<item>`, valid channel/atom/dc namespaces. | clean | PASS |
 | 4 | `/api/sitemap.xml` | 200 | XML includes `https://letaiexplainai.com/blog` + `.../blog/why-we-built-laea` among other URLs. | clean | PASS |
-| 5 | `/blog` | 200 (SPA shell) | **Completely blank dark page**, only the chat bubble in the corner. Header and all content absent. Console warns `No routes matched location "/blog"`. | React Router "no routes matched" warning | **FAIL — UX bug** |
+| 5 | `/blog` | 200 (SPA shell) | **Initial**: completely blank dark page, only the chat bubble. **After fix (commit `a7208d2`)**: proper 404 page with full header/nav, compass icon, "Page not found" heading, `/blog` shown in inline code, three action buttons (Timeline/Learn/Glossary), footer. | React Router's routine "no routes matched" log stays because catch-all `*` matches any unknown path — not a bug. | **PASS after fix** — re-QA screenshot `/tmp/blog1-qa/8-blog-404-working.png`. Also verified on `/does-not-exist-abc123` (`/tmp/blog1-qa/9-random-404.png`). |
 | 6 | `/timeline` | 200 | Full timeline page renders correctly — header, milestone counts, era tabs, filters, recently-added feed. | clean | PASS |
 
-### Finding: `/blog` renders a blank page (not a 404)
+### Finding: `/blog` renders a blank page (not a 404) — RESOLVED
 
-**Root cause**: `src/App.tsx` has no `path="*"` catch-all route, so unmatched paths fall through without even the `Layout` chrome — just a void. This is a pre-existing gap in the app, but Sprint Blog-1 made it newly user-visible in two ways:
-1. Added `https://letaiexplainai.com/blog` to `/api/sitemap.xml` — Google will crawl it and index a blank page.
-2. Added `https://letaiexplainai.com/blog/why-we-built-laea` as the RSS `<link>` + `<guid>` — any feed reader that follows the link lands on the blank page.
+**Root cause**: `src/App.tsx` had no `path="*"` catch-all route, so unmatched paths fell through without even the `Layout` chrome — just a void. Pre-existing gap in the app; Sprint Blog-1 made it newly user-visible by adding `/blog` to `/api/sitemap.xml` and as the RSS `<link>`/`<guid>` before the UI page lands in Blog-2.
 
-**Impact**: If a human (or crawler) hits `/blog` before Blog-2 ships, they see what looks like a broken site.
+**Fix (shipped as `a7208d2`, option A from the original PM-decision menu):**
+- Added `src/pages/NotFoundPage.tsx` — compass icon, "Page not found" heading, the offending `location.pathname` in a code tag, three action buttons (Timeline / Learn / Glossary) plus "Back to home." Emits `noIndex` via the SEO helper so Google never ranks a 404.
+- Nested `<Route path="*" element={<NotFoundPage />} />` inside `<Route path="/" element={<Layout />}>` so the 404 inherits the site header and footer instead of rendering on a blank canvas.
+- Rebuilt, synced to S3, invalidated CloudFront distribution `E23Z9QNRPDI3HW` to completion.
 
-**Recommended fix (before marking Blog-1 truly complete)**: ONE of
-- (A) Add a catch-all `Route path="*" element={<NotFoundPage />} />` in `App.tsx` so unknown paths at least render a proper 404 with the header — broadly useful, not blog-specific.
-- (B) Roll back the sitemap `/blog` + post-URL entries in this sprint; re-add in Blog-5 (SEO sprint) once the UI page lands in Blog-2.
-- (C) Both A and B.
+**Re-QA confirmed**: `/blog` and `/does-not-exist-abc123` both render the new 404 with full chrome. Screenshots `8-blog-404-working.png` + `9-random-404.png`.
 
-Pending PM decision — see `Blocked — PM decision needed`.
+Options B (roll back sitemap blog URLs) and C (both) were not taken — will revisit during Blog-5 SEO sweep if needed, but with the 404 page in place there is no longer a "blank page gets indexed" risk.
 
 ### Other observations (not blockers)
 
@@ -356,6 +354,4 @@ Pending PM decision — see `Blocked — PM decision needed`.
 
 ## Blocked — PM decision needed
 
-### 1. How to resolve the blank `/blog` page before Blog-2 ships?
-
-Options A, B, or C from the Live Browser QA section above. Default recommendation if no input: **A** (add the `*` catch-all route) — it's the lowest-risk, broadest-value fix and future-proofs every other unmatched URL in the app. B can land with Blog-5 when SEO is properly re-audited.
+(None. The blank-`/blog` finding from live QA was fixed with option A — `a7208d2` — and re-verified. See the Live Browser QA section above.)
