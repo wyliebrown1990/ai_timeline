@@ -5562,6 +5562,16 @@ export const blogApi = {
       `${API_BASE}/blog/related?slug=${encodeURIComponent(slug)}`
     );
   },
+
+  async forEntity(
+    type: 'milestone' | 'person' | 'organization' | 'glossary_term' | 'subject',
+    id: string,
+    limit = 3
+  ): Promise<{ posts: BlogPostListItem[] }> {
+    return fetchJson<{ posts: BlogPostListItem[] }>(
+      `${API_BASE}/blog/for-entity?type=${type}&id=${encodeURIComponent(id)}&limit=${limit}`
+    );
+  },
 };
 
 export const authorsApi = {

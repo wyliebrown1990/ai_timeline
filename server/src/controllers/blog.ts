@@ -108,6 +108,36 @@ export async function getRelated(req: Request, res: Response, next: NextFunction
   }
 }
 
+const VALID_ENTITY_TYPES = new Set([
+  'milestone',
+  'person',
+  'organization',
+  'glossary_term',
+  'subject',
+]);
+
+export async function getPostsForEntity(req: Request, res: Response, next: NextFunction) {
+  try {
+    const type = typeof req.query.type === 'string' ? req.query.type : '';
+    const id = typeof req.query.id === 'string' ? req.query.id : '';
+    const rawLimit = typeof req.query.limit === 'string' ? Number(req.query.limit) : 3;
+    const limit = Math.min(10, Math.max(1, Number.isFinite(rawLimit) ? rawLimit : 3));
+
+    if (!VALID_ENTITY_TYPES.has(type) || !id) {
+      throw ApiError.badRequest('type and id are required; type must be one of milestone|person|organization|glossary_term|subject');
+    }
+
+    const posts = await blogService.getPostsForEntity(
+      type as Parameters<typeof blogService.getPostsForEntity>[0],
+      id,
+      limit
+    );
+    res.json({ posts: posts.map(serializeListItem) });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getAuthor(req: Request, res: Response, next: NextFunction) {
   try {
     const { slug } = req.params;
@@ -150,6 +180,12 @@ export async function rssFeed(_req: Request, res: Response, next: NextFunction) 
       .map((p) => {
         const link = `${SITE_URL}/blog/${p.slug}`;
         const pubDate = p.publishedAt ? new Date(p.publishedAt).toUTCString() : now;
+        // Tag chips + subject names both surface as <category> — feed readers
+        // surface these as topic chips / filters.
+        const categories = [
+          ...p.tags.map((t) => t),
+          ...p.subjects.map((s) => s.name),
+        ].map((c) => `      <category>${escapeXml(c)}</category>`);
         return [
           '    <item>',
           `      <title>${escapeXml(p.title)}</title>`,
@@ -158,6 +194,7 @@ export async function rssFeed(_req: Request, res: Response, next: NextFunction) 
           `      <pubDate>${pubDate}</pubDate>`,
           `      <description>${escapeXml(p.excerpt)}</description>`,
           `      <dc:creator>${escapeXml(p.author.name)}</dc:creator>`,
+          ...categories,
           '    </item>',
         ].join('\n');
       })

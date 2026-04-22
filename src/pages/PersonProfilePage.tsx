@@ -34,6 +34,7 @@ import {
 import { personsApi, type PersonWithRelations, type PersonKeyConcept } from '../services/api';
 import type { Affiliation, Organization } from '../types';
 import { CommentThread } from '../components/Comments';
+import { FromTheBlog } from '../components/Blog/FromTheBlog';
 
 /**
  * Role badge colors
@@ -626,6 +627,13 @@ export default function PersonProfilePage() {
           </Link>
         </p>
       </div>
+
+      {/* Blog posts that explicitly reference this person, or share subjects (Sprint Blog-4) */}
+      <FromTheBlog
+        entityType="person"
+        entityId={person.id}
+        className="mt-12"
+      />
 
       {/* Comment Thread (Sprint LEarn-4) */}
       <div className="mt-12">

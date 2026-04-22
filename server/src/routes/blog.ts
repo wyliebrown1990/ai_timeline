@@ -11,6 +11,7 @@ const router = Router();
 // RSS first so /api/blog/rss.xml isn't caught by /:slug
 router.get('/rss.xml', blogController.rssFeed);
 router.get('/related', blogController.getRelated);
+router.get('/for-entity', blogController.getPostsForEntity);
 router.get('/', blogController.listPosts);
 router.get('/:slug', blogController.getPostBySlug);
 

@@ -336,17 +336,30 @@ export async function getRelatedPosts(
     },
   });
 
+  const anchorTags = new Set(safeJsonArray(anchor.tags ?? '[]').map((t) => t.toLowerCase()));
+  const now = Date.now();
+  // 30 days — longer half-life than it sounds because the total score is
+  // dominated by subject/entity overlap; recency is only a tie-breaker.
+  const RECENCY_HALF_LIFE_MS = 30 * 24 * 60 * 60 * 1000;
+
   const scored = candidates
     .map((c) => {
       const sharedSubjects = c.subjects.filter((s) => anchorSubjectIds.has(s.subjectId)).length;
       const sharedRelations = c.relations.filter((r) =>
         anchorRelationKeys.has(`${r.entityType}:${r.entityId}`)
       ).length;
-      return { row: c, sharedSubjects, sharedRelations };
+      const candidateTags = safeJsonArray(c.tags ?? '[]').map((t) => t.toLowerCase());
+      const sharedTags = candidateTags.filter((t) => anchorTags.has(t)).length;
+
+      const publishedMs = c.publishedAt?.getTime() ?? 0;
+      const ageDays = publishedMs ? (now - publishedMs) / RECENCY_HALF_LIFE_MS : 6;
+      const recencyScore = 0.5 * Math.exp(-Math.max(0, ageDays));
+
+      const score = 3 * sharedSubjects + 2 * sharedRelations + 1 * sharedTags + recencyScore;
+      return { row: c, score, sharedSubjects, sharedRelations, sharedTags };
     })
     .sort((a, b) => {
-      if (b.sharedSubjects !== a.sharedSubjects) return b.sharedSubjects - a.sharedSubjects;
-      if (b.sharedRelations !== a.sharedRelations) return b.sharedRelations - a.sharedRelations;
+      if (b.score !== a.score) return b.score - a.score;
       const ad = a.row.publishedAt?.getTime() ?? 0;
       const bd = b.row.publishedAt?.getTime() ?? 0;
       return bd - ad;
@@ -373,6 +386,122 @@ export async function getRelatedPosts(
       isPrimary: s.isPrimary,
     })),
   }));
+}
+
+/**
+ * Posts for a specific entity (Milestone / Person / Organization / GlossaryTerm
+ * / Subject). Used by the "From the blog" cross-page injection. Strategy:
+ *   1. Direct BlogPostRelation match — highest signal, author explicitly linked
+ *      this post to the entity.
+ *   2. Fallback: subject overlap, via the entity's subject(s).
+ */
+export async function getPostsForEntity(
+  entityType: 'milestone' | 'person' | 'organization' | 'glossary_term' | 'subject',
+  entityId: string,
+  limit = 3
+): Promise<PublicBlogPostListItem[]> {
+  const now = new Date();
+
+  // Subjects aren't a BlogPostRelation target — subject posts come from the
+  // BlogPostSubject join directly via subject slug OR id.
+  if (entityType === 'subject') {
+    // entityId can be either the UUID or the slug. Accept either.
+    let subjectId = entityId;
+    const bySlug = await prisma.subject.findUnique({ where: { slug: entityId }, select: { id: true } });
+    if (bySlug) subjectId = bySlug.id;
+    const rows = await prisma.blogPost.findMany({
+      where: {
+        status: 'published',
+        publishedAt: { lte: now },
+        subjects: { some: { subjectId } },
+      },
+      orderBy: { publishedAt: 'desc' },
+      take: limit,
+      include: {
+        author: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+        subjects: { include: { subject: { select: { id: true, slug: true, name: true } } } },
+      },
+    });
+    return rows.map(toListItem);
+  }
+
+  // Step 1: direct relation match.
+  const direct = await prisma.blogPost.findMany({
+    where: {
+      status: 'published',
+      publishedAt: { lte: now },
+      relations: { some: { entityType, entityId } },
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: limit,
+    include: {
+      author: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+      subjects: { include: { subject: { select: { id: true, slug: true, name: true } } } },
+    },
+  });
+  if (direct.length >= limit) return direct.map(toListItem);
+
+  // Step 2: subject fallback. Pull the entity's subjects via ContentSubject
+  // (the polymorphic table that Subject uses for milestone/person/org/glossary
+  // classifications) and find posts sharing any of them. Cap at limit - direct.length.
+  // contentType uses "glossary_term" in Blog-1 relations but ContentSubject
+  // elsewhere uses "glossary_term" too, so they match.
+  const contentSubjectRows = await prisma.contentSubject.findMany({
+    where: { contentType: entityType, contentId: entityId },
+    select: { subjectId: true },
+  });
+  const subjectIds = [...new Set(contentSubjectRows.map((r) => r.subjectId))];
+  if (subjectIds.length === 0) return direct.map(toListItem);
+
+  const usedIds = new Set(direct.map((d) => d.id));
+  const fallback = await prisma.blogPost.findMany({
+    where: {
+      id: { notIn: [...usedIds] },
+      status: 'published',
+      publishedAt: { lte: now },
+      subjects: { some: { subjectId: { in: subjectIds } } },
+    },
+    orderBy: { publishedAt: 'desc' },
+    take: limit - direct.length,
+    include: {
+      author: { select: { id: true, slug: true, name: true, avatarUrl: true } },
+      subjects: { include: { subject: { select: { id: true, slug: true, name: true } } } },
+    },
+  });
+
+  return [...direct.map(toListItem), ...fallback.map(toListItem)];
+}
+
+type ListRowShape = Awaited<
+  ReturnType<typeof prisma.blogPost.findMany<{
+    include: {
+      author: { select: { id: true; slug: true; name: true; avatarUrl: true } };
+      subjects: { include: { subject: { select: { id: true; slug: true; name: true } } } };
+    };
+  }>>
+>[number];
+
+function toListItem(row: ListRowShape): PublicBlogPostListItem {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    subtitle: row.subtitle,
+    excerpt: row.excerpt,
+    coverImageUrl: row.coverImageUrl,
+    status: row.status,
+    publishedAt: row.publishedAt,
+    readingMinutes: row.readingMinutes,
+    tags: safeJsonArray(row.tags),
+    featured: row.featured,
+    author: row.author,
+    subjects: row.subjects.map((s) => ({
+      subjectId: s.subjectId,
+      slug: s.subject.slug,
+      name: s.subject.name,
+      isPrimary: s.isPrimary,
+    })),
+  };
 }
 
 // =============================================================================

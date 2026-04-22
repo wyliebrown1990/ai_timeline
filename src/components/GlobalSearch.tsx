@@ -9,10 +9,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Search, X, Clock, FileText, User, Loader2, Layers } from 'lucide-react';
+import { Search, X, Clock, FileText, User, Loader2, Layers, PenLine } from 'lucide-react';
 import {
   globalSearchApi,
   subjectsApi,
+  blogApi,
   type GlobalSearchResult,
   type MilestoneSearchResult,
   type GlossarySearchResult,
@@ -22,9 +23,9 @@ import {
 import { DEFAULT_DOMAIN_COLORS } from '../types/subject';
 
 /**
- * Combined search result type (includes subjects)
+ * Combined search result type (includes subjects + blog posts)
  */
-type CombinedSearchResult = GlobalSearchResult | SubjectSearchResultItem;
+type CombinedSearchResult = GlobalSearchResult | SubjectSearchResultItem | BlogSearchResultItem;
 
 /**
  * Subject search result item
@@ -39,6 +40,19 @@ interface SubjectSearchResultItem {
   domainSlug: string;
   color: string | null;
   icon: string | null;
+}
+
+/**
+ * Blog post search result item (Sprint Blog-4)
+ */
+interface BlogSearchResultItem {
+  type: 'blogPost';
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  authorName: string;
+  tags: string[];
 }
 
 interface GlobalSearchProps {
@@ -91,6 +105,13 @@ function isKeyFigure(result: CombinedSearchResult): result is KeyFigureSearchRes
  */
 function isSubject(result: CombinedSearchResult): result is SubjectSearchResultItem {
   return result.type === 'subject';
+}
+
+/**
+ * Type guard for blog post result
+ */
+function isBlogPost(result: CombinedSearchResult): result is BlogSearchResultItem {
+  return result.type === 'blogPost';
 }
 
 /**
@@ -178,15 +199,18 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
 
       setIsLoading(true);
       try {
-        // Search both content and subjects in parallel
-        const [contentResponse, subjectResults] = await Promise.all([
+        // Search content + subjects + blog posts in parallel.
+        // Blog search is client-side: /api/blog has no search endpoint yet and
+        // the post count is small enough that pulling page 1 and filtering
+        // locally is cheaper than a dedicated endpoint (revisit at ~50+ posts).
+        const [contentResponse, subjectResults, blogResponse] = await Promise.all([
           globalSearchApi.search(debouncedQuery, { limit: 5 }),
           subjectsApi.search(debouncedQuery).catch(() => [] as Subject[]),
+          blogApi.list({ pageSize: 30 }).catch(() => null),
         ]);
 
-        // Convert subjects to search result format
         const subjectSearchResults: SubjectSearchResultItem[] = subjectResults
-          .slice(0, 3) // Limit to 3 subject results
+          .slice(0, 3)
           .map((s) => ({
             type: 'subject' as const,
             id: s.id,
@@ -199,9 +223,26 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
             icon: s.icon,
           }));
 
-        // Combine results: subjects first, then content
+        const q = debouncedQuery.toLowerCase();
+        const blogSearchResults: BlogSearchResultItem[] = (blogResponse?.posts ?? [])
+          .filter((p) => {
+            const hay = `${p.title} ${p.excerpt} ${p.author.name} ${p.tags.join(' ')}`.toLowerCase();
+            return hay.includes(q);
+          })
+          .slice(0, 3)
+          .map((p) => ({
+            type: 'blogPost' as const,
+            id: p.id,
+            slug: p.slug,
+            title: p.title,
+            excerpt: p.excerpt,
+            authorName: p.author.name,
+            tags: p.tags,
+          }));
+
         const combined: CombinedSearchResult[] = [
           ...subjectSearchResults,
+          ...blogSearchResults,
           ...contentResponse.results,
         ];
 
@@ -256,6 +297,8 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
       onClose();
       if (isSubject(result)) {
         navigate(`/subjects/${result.slug}`);
+      } else if (isBlogPost(result)) {
+        navigate(`/blog/${result.slug}`);
       } else if (isMilestone(result)) {
         navigate(`/timeline?milestone=${result.id}`);
       } else if (isGlossary(result)) {
@@ -348,6 +391,10 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                     >
                       <Layers className="h-4 w-4" />
                     </div>
+                  ) : isBlogPost(result) ? (
+                    <div className="flex-shrink-0 mt-0.5 p-1.5 rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                      <PenLine className="h-4 w-4" />
+                    </div>
                   ) : (
                     <div
                       className={`flex-shrink-0 mt-0.5 p-1.5 rounded-lg ${
@@ -385,6 +432,25 @@ export function GlobalSearch({ isOpen, onClose }: GlobalSearchProps) {
                         </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                           {result.path}
+                        </p>
+                      </>
+                    )}
+
+                    {isBlogPost(result) && (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900 dark:text-white truncate">
+                            {result.title}
+                          </span>
+                          <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400">
+                            Blog
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5">
+                          {result.excerpt}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          {result.authorName}
                         </p>
                       </>
                     )}

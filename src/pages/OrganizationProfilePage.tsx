@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { organizationsApi, type OrganizationWithRelations, type OrganizationKeyConcept } from '../services/api';
 import { CommentThread } from '../components/Comments';
+import { FromTheBlog } from '../components/Blog/FromTheBlog';
 
 /**
  * Organization type badge colors
@@ -576,6 +577,13 @@ export default function OrganizationProfilePage() {
           </Link>
         </p>
       </div>
+
+      {/* Blog posts that reference this org, or share subjects (Sprint Blog-4) */}
+      <FromTheBlog
+        entityType="organization"
+        entityId={org.id}
+        className="mt-12"
+      />
 
       {/* Comment Thread (Sprint LEarn-4) */}
       <div className="mt-12">

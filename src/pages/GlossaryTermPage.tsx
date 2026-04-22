@@ -27,6 +27,7 @@ import { glossaryApi, type GlossaryTerm, type GlossaryKeyFigure, type GlossaryLi
 import { GLOSSARY_CATEGORY_LABELS } from '../types/glossary';
 import { PrerequisitesSection, DifficultyBadge } from '../components/Learning';
 import { CommentThread } from '../components/Comments';
+import { FromTheBlog } from '../components/Blog/FromTheBlog';
 import { RelatedBySubject } from '../components/RelatedBySubject';
 import { useGlossary, useConceptProgress } from '../hooks';
 
@@ -507,6 +508,13 @@ export default function GlossaryTermPage() {
             </Link>
           </p>
         </div>
+
+        {/* Blog posts referencing this term (Sprint Blog-4) */}
+        <FromTheBlog
+          entityType="glossary_term"
+          entityId={term.id}
+          className="mt-12"
+        />
 
         {/* Comment Thread */}
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">

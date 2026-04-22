@@ -37,6 +37,7 @@ import {
   type EventGlossaryTerm,
 } from '../services/api';
 import { RelatedBySubject } from '../components/RelatedBySubject';
+import { FromTheBlog } from '../components/Blog/FromTheBlog';
 
 /**
  * Loading skeleton
@@ -690,6 +691,13 @@ export default function EventPage() {
               contentId={data.id}
               limit={5}
               excludeTypes={['milestone']}
+            />
+
+            {/* Blog posts referencing this milestone (Sprint Blog-4) */}
+            <FromTheBlog
+              entityType="milestone"
+              entityId={data.id}
+              className="mt-2"
             />
 
             {/* View on Timeline link */}

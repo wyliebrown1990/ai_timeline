@@ -19,6 +19,7 @@ import {
 import { subjectsApi, type Subject, type SubjectStats, type SubjectContent } from '../services/api';
 import { DEFAULT_DOMAIN_COLORS } from '../types/subject';
 import { SEO } from '../components/SEO';
+import { FromTheBlog } from '../components/Blog/FromTheBlog';
 
 /**
  * Get color for a subject
@@ -334,6 +335,14 @@ export default function SubjectPage() {
       {subject.children && subject.children.length > 0 && (
         <ChildSubjects children={subject.children} color={color} />
       )}
+
+      {/* Blog posts in this subject (Sprint Blog-4) */}
+      <FromTheBlog
+        entityType="subject"
+        entityId={subject.slug}
+        seeAllHref={`/blog?subject=${subject.slug}`}
+        className="mb-10"
+      />
 
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700 mb-6">

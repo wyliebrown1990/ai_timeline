@@ -46,6 +46,10 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const BlogIndexPage = lazy(() => import('./pages/BlogIndexPage'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage'));
 
+// Sprint Blog-4: Archive pages
+const BlogTagPage = lazy(() => import('./pages/BlogTagPage'));
+const AuthorPage = lazy(() => import('./pages/AuthorPage'));
+
 // Sprint Blog-3: Admin CMS
 const BlogAdminListPage = lazy(() => import('./pages/admin/BlogAdminListPage'));
 const BlogEditorPage = lazy(() => import('./pages/admin/BlogEditorPage'));
@@ -242,6 +246,9 @@ function App() {
 
                     {/* Sprint Blog-2: Public reader */}
                     <Route path="blog" element={<BlogIndexPage />} />
+                    {/* Sprint Blog-4: Archive pages (before :slug so literals win) */}
+                    <Route path="blog/tag/:tag" element={<BlogTagPage />} />
+                    <Route path="blog/author/:slug" element={<AuthorPage />} />
                     <Route path="blog/:slug" element={<BlogPostPage />} />
 
                     {/* Catch-all 404 inside Layout — renders with header/footer chrome.
