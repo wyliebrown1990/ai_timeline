@@ -52,6 +52,40 @@ First AIBlogDraft-authored post. Wylie provided the full body verbatim and the l
 - **When keyword is absent from first 100 words** because the original prose doesn't front-load it: accept the SEO trade-off rather than rewrite the opening. The keyword in seoTitle + first H2 still does most of the ranking work.
 - **First-mention linking discipline held up**. Every entity gets exactly one link, on first appearance. Subsequent mentions are plain. Check: the post mentions "Nvidia" many times but only the first occurrence is wrapped.
 
+## 2026-04-23 — `ai-compute-bottleneck-2026`
+
+Second AIBlogDraft post, and the first run of **research mode**: Wylie asked for themes we hadn't covered over the last 7 days, the skill scanned `/api/admin/articles`, proposed 3 angles (big-moment / trend / theme), Wylie picked the theme angle, the skill drafted and shipped. Approved without copy edits.
+
+### Diction
+- **"The atlas's read:"** as a closing framing device survived without edit — fits the graph-flavored voice (atlas-as-speaker, not author-as-speaker). Use it when the post is making a call the author stands behind.
+- **"meant to be contested"** as the closing line also survived. This is the Wylie-voice signature and should carry forward as a standard close.
+- **"braid"** used as a verb ("The seven items braid into one thesis") landed — graph-flavored, under-stated. Consistent with the 2026-04-22 voice note.
+- **Under-statement on big numbers** held: "$25 billion" stated plainly, never dressed up as "a staggering $25 billion." Follow this rule for any dollar figure.
+
+### Structure
+- **5 H2s worked cleanly**: (1) "One week, one story" — framing, (2) "The three layers of the AI compute bottleneck" — mechanism + exact keyword, (3) "Export controls turned efficiency research into policy" — geopolitical implication, (4) "The neocloud era is just capital markets pricing the constraint" — financial implication, (5) "Models are downstream" — thesis restatement. Each makes a distinct argument — matches the "4 H2s, each a distinct argument" rule from 2026-04-22, plus one.
+- **Dated news-bullet opener** (April 16–17, April 17, April 20, April 21, April 22) worked. Gave the post temporal specificity and separated the recap layer from the analysis layer. Consider this a pattern for **research-mode** posts specifically.
+- **Numbered three-layer enumeration** ("Memory", "Logic", "Delivery") mirrored the Nvidia post's "five-layer cake" metaphor. Enumerate concrete layers when making a mechanism argument.
+- **Closing paragraph merged with "where to read more"** (no separate `## Where to read more` H2) kept the post at 5 H2s. Prefer this pattern over a standalone closer.
+
+### Do
+- **In research mode, bake the AEO long-tail into the H2 body, not the H2 itself**. Used "Is compute the bottleneck for AI? Yes — not in the abstract..." as the opening of the keyword-match H2 ("The three layers of the AI compute bottleneck"). The H2 carries the exact-match keyword for on-page SEO; the question-form sits one line below as a featured-snippet target. Don't split into two H2s.
+- **Add entities to the graph BEFORE drafting** (already a 2026-04-22 rule — reaffirmed here). This run added 5 orgs (Anthropic, CoreWeave, Cerebras, Huawei, TSMC), 1 person (Dario Amodei), and 4 glossary terms (HBM, Neocloud, Export controls, FP4) before the draft. All 10 were critical to the thesis. Budget the time.
+- **Date the items in a news-recap section**. Gives provenance, helps the reader track which week the post belongs to, and pins the post to the source material. Matches `[01:07:11]`-style citation discipline from 2026-04-22.
+- **Use the Phase 1a angle's mode signal in the structure**: theme-mode posts want a cross-cutting thesis paragraph early; big-moment posts would likely want the news bullet up top. This post was theme-mode and opened with "almost no one named it" — a thesis-first, evidence-second pattern.
+
+### Don't
+- **Don't trust `/api/admin/blog` POST to persist `tags`, `subjects`, and `relations`**. In this run, the POST silently dropped all three despite being in the CreateBlogPostRequestSchema. Had to `PUT /api/admin/blog/:id` after creation to persist them. **Always PUT-after-POST** on the blog admin endpoint until the create path is fixed, and verify by re-fetching the public `/api/blog/:slug` before declaring done.
+- **Don't rely on the auto-generated slug from `/api/admin/blog` POST**. The slug is derived from title with naive apostrophe handling — "AI's compute bottleneck" became `ais-compute-bottleneck-...`. Always follow up with a PUT to set a clean, keyword-bearing slug (here: `ai-compute-bottleneck-2026`). The CreateBlogPostRequestSchema doesn't accept a slug field; only the UpdateBlogPostRequestSchema does.
+- **Don't forget glossary slugs need a PUT after creation**. POST `/api/admin/glossary` doesn't auto-generate slugs (service layer writes term/definitions but not slug). Must PUT `/api/admin/glossary/:id` with `{slug: "..."}` after creating, or the shortcode `[[glossary:<slug>|...]]` won't resolve.
+- **Don't exceed the glossary `shortDefinition` 200-char limit**. Zod rejects but the controller returns an opaque 500 rather than a clean 400. Count your chars; if you hit a 500 on glossary create, trim shortDefinition first.
+
+### Other
+- **Research-mode flow is heavy on setup, light on drafting**: Phase 1a (article scan + angle proposal) + Phase 2 entity gap remediation (creating 10 entities) together took more agent turns than the actual draft. That's the right trade — the graph density is where LAEA's SEO moat lives — but it means the skill's typical "approve → publish" flow spans more state than a topic-mode post. Plan for this.
+- **Ingestion pipeline was failing on a retired Claude Haiku model** (`claude-3-haiku-20240307`) when we scanned articles — most 2026-04-17+ articles had `relevanceScore: null` as a result. Worth a separate fix; didn't block this post but will bias future research-mode angle selection toward high-relevance legacy items until fixed.
+- **Subject IDs are cuids, not slugs**. The `/api/subjects/tree` endpoint returns both; the blog admin payload requires cuids (e.g. `b4fba468-24d2-49a6-b843-117190503bc3` for `business-technology-semiconductors`). Note in SKILL.md for future drafts so we don't waste a round trip.
+- **SERP recommendation held up**: picked `AI compute bottleneck` over `AI compute shortage` and `HBM4 shortage AI` because the bottleneck SERP was fragmented (each top result picked ONE bottleneck — CPU, memory, energy, networking) and LAEA could synthesize. The Goldman Sachs "compute not models" piece already ranking on the target keyword was the green-light signal.
+
 <!--
 Template for appending:
 
