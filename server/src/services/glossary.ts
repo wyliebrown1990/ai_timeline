@@ -24,6 +24,7 @@ interface PaginationOptions {
  */
 export interface CreateGlossaryTermDto {
   term: string;
+  slug?: string; // optional override; auto-generated from term if not provided
   shortDefinition: string;
   fullDefinition: string;
   businessContext?: string;
@@ -34,6 +35,40 @@ export interface CreateGlossaryTermDto {
   relatedMilestoneIds?: string[];
   sourceArticleId?: string;
   quickAnswer?: string; // SEO: 50-70 word direct answer for featured snippets
+}
+
+/**
+ * Derive a kebab-case slug from a term name. Strips possessives, collapses
+ * punctuation to spaces, then kebab-cases. Mirrors blog slugify rules.
+ */
+function slugifyTerm(raw: string): string {
+  return (
+    raw
+      .toLowerCase()
+      .trim()
+      .replace(/[‘’']s\b/g, '')
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 100) || 'term'
+  );
+}
+
+/**
+ * Ensure a glossary slug is unique, appending -2, -3, … as needed.
+ */
+async function ensureGlossarySlugAvailable(slug: string): Promise<string> {
+  if (!prisma) throw new Error('Database not available');
+  let candidate = slug;
+  let suffix = 2;
+  for (let i = 0; i < 100; i++) {
+    const existing = await prisma.glossaryTerm.findUnique({ where: { slug: candidate } });
+    if (!existing) return candidate;
+    candidate = `${slug}-${suffix}`;
+    suffix += 1;
+  }
+  throw new Error(`Could not find a unique glossary slug after 100 attempts for "${slug}"`);
 }
 
 /**
@@ -283,9 +318,13 @@ export async function getLinkedMilestones(termId: string): Promise<GlossaryLinke
 export async function create(data: CreateGlossaryTermDto): Promise<GlossaryTerm> {
   if (!prisma) throw new Error('Database not available');
 
+  const slugBase = data.slug ?? slugifyTerm(data.term);
+  const slug = await ensureGlossarySlugAvailable(slugBase);
+
   return prisma.glossaryTerm.create({
     data: {
       term: data.term,
+      slug,
       shortDefinition: data.shortDefinition,
       fullDefinition: data.fullDefinition,
       businessContext: data.businessContext ?? null,

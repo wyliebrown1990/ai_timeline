@@ -69,6 +69,7 @@ export async function createPost(req: Request, res: Response, next: NextFunction
     const post = await blogAdminService.createDraft(
       {
         title: input.title,
+        slug: input.slug,
         subtitle: input.subtitle,
         excerpt: input.excerpt,
         bodyMarkdown: input.bodyMarkdown,

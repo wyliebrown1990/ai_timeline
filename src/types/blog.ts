@@ -118,6 +118,11 @@ export type BlogPost = z.infer<typeof BlogPostSchema>;
 
 export const CreateBlogPostRequestSchema = z.object({
   title: z.string().min(1).max(200),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be kebab-case')
+    .max(80)
+    .optional(),
   subtitle: z.string().max(300).optional(),
   excerpt: z.string().min(1).max(500),
   bodyMarkdown: z.string().min(1),

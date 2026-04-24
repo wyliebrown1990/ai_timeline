@@ -19,6 +19,11 @@ const GlossaryCategoryEnum = z.enum([
  */
 const CreateGlossaryTermSchema = z.object({
   term: z.string().min(1).max(100),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be kebab-case')
+    .max(100)
+    .optional(),
   shortDefinition: z.string().min(1).max(200),
   fullDefinition: z.string().min(1).max(2000),
   businessContext: z.string().max(1000).optional(),

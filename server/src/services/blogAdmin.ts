@@ -97,11 +97,28 @@ function slugify(raw: string): string {
   return raw
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/[‘’']s\b/g, '') // strip possessive 's so "AI's" becomes "AI" (not "AIs")
+    .replace(/[^a-z0-9\s-]/g, ' ')      // other non-alphanumerics become separators, not silent strips
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 80) || 'post';
+}
+
+/**
+ * Ensures an author-supplied slug is unique, appending -2, -3, … as needed.
+ * Takes an already-kebab-cased slug (Zod-validated at the controller layer).
+ */
+export async function ensureSlugAvailable(slug: string): Promise<string> {
+  let candidate = slug;
+  let suffix = 2;
+  for (let i = 0; i < 100; i++) {
+    const existing = await prisma.blogPost.findUnique({ where: { slug: candidate } });
+    if (!existing) return candidate;
+    candidate = `${slug}-${suffix}`;
+    suffix += 1;
+  }
+  throw new Error(`Could not find a unique slug after 100 attempts for "${slug}"`);
 }
 
 /**
@@ -128,6 +145,7 @@ export async function generateUniqueSlug(title: string): Promise<string> {
 
 export interface CreateDraftInput {
   title: string;
+  slug?: string;
   subtitle?: string;
   excerpt: string;
   bodyMarkdown: string;
@@ -143,7 +161,9 @@ export interface CreateDraftInput {
 }
 
 export async function createDraft(input: CreateDraftInput, authorId: string) {
-  const slug = await generateUniqueSlug(input.title);
+  const slug = input.slug
+    ? await ensureSlugAvailable(input.slug)
+    : await generateUniqueSlug(input.title);
   const readingMinutes = computeReadingMinutes(input.bodyMarkdown);
 
   const post = await prisma.blogPost.create({
