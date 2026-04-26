@@ -9,6 +9,11 @@ Interactive web app exploring AI history from 1940s to today.
 npm run dev          # Vite dev server (localhost:5173)
 npm run build        # Production build
 npm run typecheck    # TypeScript check
+
+# Chrome extension (admin "Submit this article" toolbar button)
+cd extension && bun install && bun run build   # → extension/dist/
+# Sideload: chrome://extensions → Developer mode → Load unpacked → extension/dist/
+# Stable extension ID: lfakkoeldmhibejkjolcmenpmlokbled
 ```
 
 ## AWS Resources

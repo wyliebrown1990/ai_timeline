@@ -9,7 +9,7 @@ import tseslint from 'typescript-eslint';
  * Uses flat config format (ESLint 9+)
  */
 export default tseslint.config(
-  { ignores: ['dist', 'node_modules', 'coverage', 'playwright-report', '**/*.d.ts'] },
+  { ignores: ['dist', 'node_modules', 'coverage', 'playwright-report', '**/*.d.ts', 'extension'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

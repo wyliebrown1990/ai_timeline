@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  width: 380px;
+  min-height: 200px;
+  max-height: 600px;
+}
+
+body {
+  margin: 0;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+}
+
+/* Skeleton shimmer matches the LoadingSkeleton style on the web app */
+.skeleton {
+  @apply animate-pulse rounded bg-gray-200 dark:bg-gray-800;
+}
+
+/* Reduce motion: kill skeleton animation */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
