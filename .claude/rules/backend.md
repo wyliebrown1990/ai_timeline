@@ -84,7 +84,31 @@ npx prisma migrate deploy                      # Production (set DATABASE_URL fi
 /ai-timeline/prod/admin-username
 /ai-timeline/prod/admin-password
 /ai-timeline/prod/anthropic-api-key
+/ai-timeline/prod/cors-origin
 ```
+
+## Chrome extension CORS
+
+The admin API accepts `chrome-extension://<id>` as a CORS origin so the AI Timeline Submit
+extension can call `/api/auth/login`, `/api/admin/articles/scrape`, and `/api/admin/articles/submit`
+directly from the popup. Allowlist is exact-match string equality (no globs) — every distinct
+extension ID needs its own SSM entry in `/ai-timeline/prod/cors-origin` (comma-separated).
+
+After updating SSM, the Lambda needs to re-resolve the parameter. SAM template hash doesn't change
+when only the SSM value moves, so `sam deploy` may report "no changes." Force a refresh with:
+
+```bash
+# 1. Update SSM
+aws ssm put-parameter --name /ai-timeline/prod/cors-origin --type String --overwrite \
+  --value "https://letaiexplainai.com,https://www.letaiexplainai.com,chrome-extension://<id>"
+
+# 2. Push the same value directly to the Lambda env to trigger reconfiguration
+ENV=$(aws lambda get-function-configuration --function-name ai-timeline-api-prod --query 'Environment.Variables' --output json \
+  | jq '.CORS_ORIGIN = "<new-value>"')
+aws lambda update-function-configuration --function-name ai-timeline-api-prod --environment "{\"Variables\":$ENV}"
+```
+
+Rationale and full sprint context: `roadmap/Sprint-Ext-1-Backend-Prep.md`.
 
 ## Monitoring
 - CloudWatch Dashboard: `AI-Timeline-Production`

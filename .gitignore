@@ -64,3 +64,11 @@ dist-lambda/
 .env
 .env.local
 .env.production
+
+# Chrome extension — build outputs and signing key
+extension/dist/
+extension/node_modules/
+extension/key.pem
+extension/EXTENSION_ID.txt
+extension/.env.development
+extension/.env.production
