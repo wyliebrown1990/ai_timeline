@@ -304,6 +304,11 @@ class YouTubeApiService {
         if (url.pathname.startsWith('/shorts/')) {
           return url.pathname.split('/')[2];
         }
+
+        // Live stream URL: youtube.com/live/VIDEO_ID
+        if (url.pathname.startsWith('/live/')) {
+          return url.pathname.split('/')[2];
+        }
       }
     } catch {
       // Not a valid URL
