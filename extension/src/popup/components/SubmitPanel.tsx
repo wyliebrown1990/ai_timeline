@@ -5,6 +5,7 @@ import { scrape, submitArticle } from '../../lib/api';
 import { extractFromTab, getActiveTab } from '../lib/chromeBridge';
 import { getForceReadabilityForDomain, setForceReadabilityForDomain } from '../../lib/storage';
 import { StatusPanel } from './StatusPanel';
+import { RecentSubmissions } from './RecentSubmissions';
 
 function hostnameOf(url: string): string {
   try {
@@ -141,7 +142,9 @@ export function SubmitPanel({ onUnauthorized }: Props) {
         </span>
       </label>
 
-      <StatusPanel state={state} onRetry={startSubmit} />
+      <StatusPanel state={state} onRetry={startSubmit} pageUrl={tabUrl} />
+
+      <RecentSubmissions onUnauthorized={onUnauthorized} />
     </div>
   );
 }

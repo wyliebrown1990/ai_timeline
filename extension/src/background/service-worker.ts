@@ -2,6 +2,8 @@
 // badge reflects current activity. The popup messages this worker on
 // submit-start / submit-end so the badge stays in sync across popups.
 
+export {};
+
 type Msg =
   | { type: 'SUBMIT_START' }
   | { type: 'SUBMIT_END'; ok: boolean };

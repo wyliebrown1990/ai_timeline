@@ -1,4 +1,6 @@
-import { AlertCircle, CheckCircle2, ExternalLink, Inbox } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { AlertCircle, CheckCircle2, ClipboardCopy, ExternalLink, Inbox } from 'lucide-react';
 import type { SubmitState } from '../lib/submit';
 
 const ADMIN_BASE = 'https://letaiexplainai.com/admin';
@@ -6,9 +8,10 @@ const ADMIN_BASE = 'https://letaiexplainai.com/admin';
 interface Props {
   state: SubmitState;
   onRetry: () => void;
+  pageUrl: string | null;
 }
 
-export function StatusPanel({ state, onRetry }: Props) {
+export function StatusPanel({ state, onRetry, pageUrl }: Props) {
   if (state.kind === 'idle') return null;
 
   if (state.kind === 'starting' || state.kind === 'scraping') {
@@ -81,6 +84,20 @@ export function StatusPanel({ state, onRetry }: Props) {
   }
 
   // error
+  return <ErrorBlock state={state} onRetry={onRetry} pageUrl={pageUrl} />;
+}
+
+function ErrorBlock({
+  state,
+  onRetry,
+  pageUrl,
+}: {
+  state: Extract<SubmitState, { kind: 'error' }>;
+  onRetry: () => void;
+  pageUrl: string | null;
+}) {
+  const showPasteHelper = state.stage === 'extract' && !state.retryable && pageUrl;
+
   return (
     <div
       role="alert"
@@ -91,18 +108,55 @@ export function StatusPanel({ state, onRetry }: Props) {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-red-800 dark:text-red-200">Submission failed</p>
           <p className="mt-0.5 text-xs text-red-700/90 dark:text-red-300/90">{state.message}</p>
-          {state.retryable && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="mt-2 inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50 dark:border-red-800 dark:bg-red-950/60 dark:text-red-200 dark:hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            >
-              Try again
-            </button>
-          )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {state.retryable && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50 dark:border-red-800 dark:bg-red-950/60 dark:text-red-200 dark:hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                Try again
+              </button>
+            )}
+            {showPasteHelper && pageUrl && <PasteHelperButtons pageUrl={pageUrl} />}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function PasteHelperButtons({ pageUrl }: { pageUrl: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(pageUrl);
+            setCopied(true);
+            toast.success('URL copied to clipboard');
+            setTimeout(() => setCopied(false), 2000);
+          } catch {
+            toast.error('Could not copy URL');
+          }
+        }}
+        className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50 dark:border-red-800 dark:bg-red-950/60 dark:text-red-200 dark:hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-orange-500"
+      >
+        <ClipboardCopy className="h-3 w-3" aria-hidden="true" />
+        {copied ? 'Copied' : 'Copy URL'}
+      </button>
+      <a
+        href={`${ADMIN_BASE}/submit-article`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 rounded-md border border-red-300 bg-white px-2 py-1 text-xs font-medium text-red-800 hover:bg-red-50 dark:border-red-800 dark:bg-red-950/60 dark:text-red-200 dark:hover:bg-red-900/40 focus:outline-none focus:ring-2 focus:ring-orange-500"
+      >
+        Open paste form
+        <ExternalLink className="h-3 w-3" aria-hidden="true" />
+      </a>
+    </>
   );
 }
 

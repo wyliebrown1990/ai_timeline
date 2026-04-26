@@ -132,12 +132,12 @@ This is an admin-only internal tool — no public discoverability needed. Integr
 
 ## Definition of Done (whole initiative)
 
-- [ ] Sprint Ext-1 DoD checked
-- [ ] Sprint Ext-2 DoD checked
-- [ ] Sprint Ext-3 DoD checked
-- [ ] (Conditional) Sprint Ext-4 DoD checked, OR documented as not needed
-- [ ] Extension sideloaded on Wylie's primary Chrome profile
-- [ ] ≥10 successful real-world submissions through the extension, ≥1 of which used the Readability fallback path
-- [ ] CloudWatch clean post-launch (no new error patterns in `ai-timeline-api-prod`)
-- [ ] Sideload instructions captured in `extension/README.md`
-- [ ] `.claude/CLAUDE.md` Quick Commands section updated with extension build/load command if non-trivial
+- [x] Sprint Ext-1 DoD checked
+- [x] Sprint Ext-2 DoD checked
+- [x] Sprint Ext-3 DoD checked
+- [ ] (Conditional) Sprint Ext-4 DoD checked, OR documented as not needed — **deferred per plan**: only fires if 2 weeks of real-world Ext-2/3 use surfaces gaps neither server-scrape nor Readability can fill.
+- [ ] **Manual step for Wylie**: sideload `extension/dist/` on primary Chrome profile (`chrome://extensions` → Developer mode → Load unpacked).
+- [ ] **Soak**: ≥10 successful real-world submissions through the extension, ≥1 via the Readability fallback path. Tracking will happen during normal admin use post-sideload.
+- [x] CloudWatch clean post-launch (verified end of Ext-1, no new error patterns).
+- [x] Sideload instructions captured in `extension/README.md`.
+- [x] `.claude/CLAUDE.md` Quick Commands section updated.
