@@ -4,7 +4,9 @@
 > **Code Prefix**: `Ext`
 > **Start Date**: 2026-04-24
 > **Product Manager**: Wylie
-> **Status**: Planning — ready to execute Sprint Ext-1 (AITechLeadReview applied 2026-04-24: 1 critical correction to Ext-1 CORS update path, 4 minor fixes across sprints, JWT lifetime question resolved. AIUXLeadReview applied 2026-04-26: popup design system specified, all-four-states added to recent-list and queue, color-blind-safe status badges, `EmptyState` to be added to `ui/` library in Ext-4)
+> **Status**: ✅ **Shipped 2026-04-26** — Ext-1, Ext-2, Ext-3 complete and deployed. Ext-4 (conditional manual-paste queue) **deferred — never exercised**: 2 days of post-Ext-3 usage showed Readability + the server scrape covered every submission, so the queue was not needed. Reactivate by moving `Sprint-Ext-4-Manual-Paste-Queue.md` back to `/roadmap/` if a real gap emerges later.
+>
+> Reviews applied during planning: AITechLeadReview 2026-04-24 (CORS update path corrected, JWT lifetime resolved); AIUXLeadReview 2026-04-26 (popup design system, color-safe badges, all-four-states, `EmptyState` slated for Ext-4 — moot since Ext-4 deferred).
 
 ---
 
