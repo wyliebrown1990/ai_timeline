@@ -14,6 +14,10 @@ npm run typecheck    # TypeScript check
 cd extension && bun install && bun run build   # → extension/dist/
 # Sideload: chrome://extensions → Developer mode → Load unpacked → extension/dist/
 # Stable extension ID: lfakkoeldmhibejkjolcmenpmlokbled
+
+# Package the extension for download from /admin/extension
+./scripts/build-extension-zip.sh   # → public/ai-timeline-extension.zip + .json metadata
+# deploy-frontend.sh runs this automatically before npm run build
 ```
 
 ## AWS Resources

@@ -72,3 +72,7 @@ extension/key.pem
 extension/EXTENSION_ID.txt
 extension/.env.development
 extension/.env.production
+
+# Generated extension package served from /admin/extension
+public/ai-timeline-extension.zip
+public/ai-timeline-extension.json

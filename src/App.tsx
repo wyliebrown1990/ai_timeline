@@ -127,6 +127,7 @@ const SpamFiltersPage = lazy(() => import('./pages/admin/SpamFiltersPage'));
 const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage'));
 const SubjectsAdminPage = lazy(() => import('./pages/admin/SubjectsAdminPage'));
 const SeoContentGeneratorPage = lazy(() => import('./pages/admin/SeoContentGeneratorPage')); // Sprint SEO-4 Task 8
+const ExtensionDownloadPage = lazy(() => import('./pages/admin/ExtensionDownloadPage'));
 
 /**
  * Scrolls to top of page on route change
@@ -320,6 +321,8 @@ function App() {
                     <Route path="users" element={<UserManagementPage />} />
                     <Route path="subjects" element={<SubjectsAdminPage />} />
                     <Route path="seo-content" element={<SeoContentGeneratorPage />} />
+                    <Route path="extensions" element={<ExtensionDownloadPage />} />
+                    <Route path="extension" element={<ExtensionDownloadPage />} />
                     {/* Sprint Blog-3: Admin CMS */}
                     <Route path="blog" element={<BlogAdminListPage />} />
                     <Route path="blog/new" element={<BlogEditorPage mode="new" />} />

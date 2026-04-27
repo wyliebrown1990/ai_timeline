@@ -14,6 +14,7 @@ import {
   Newspaper,
   PenSquare,
   Plus,
+  Puzzle,
   Rss,
   Shield,
   UserPlus,
@@ -125,6 +126,11 @@ const navItems: NavItem[] = [
     label: 'API Monitoring',
     href: '/admin/api-monitoring',
     icon: <Activity className="h-5 w-5" />,
+  },
+  {
+    label: 'Chrome Extension',
+    href: '/admin/extensions',
+    icon: <Puzzle className="h-5 w-5" />,
   },
 ];
 

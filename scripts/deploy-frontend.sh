@@ -7,6 +7,10 @@ set -e
 BUCKET="ai-timeline-frontend-1765916222"
 DISTRIBUTION_ID="E23Z9QNRPDI3HW"
 
+echo "Building Chrome extension package (public/ai-timeline-extension.zip)..."
+"$(dirname "$0")/build-extension-zip.sh"
+
+echo ""
 echo "Building production bundle..."
 npm run build
 
