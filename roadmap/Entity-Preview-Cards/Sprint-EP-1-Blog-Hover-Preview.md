@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-04-28 by Claude (AIUXLeadReview applied — see `## UX Lead Review`)
+> Last updated: 2026-04-28 by Claude (EP-1 implementation complete — components + hooks + tests landed; deploy + browser QA next)
 
 ---
 
@@ -28,7 +28,7 @@ Add hover (desktop) and long-press (touch) preview popovers to entity links insi
 **Priority**: MEDIUM
 **Depends on**: None (existing entity APIs are sufficient)
 **Estimated Effort**: 2–3 days
-**Status**: Not started
+**Status**: In progress — code complete, deploying + browser QA next
 
 ---
 
@@ -139,7 +139,7 @@ Verified the visual + interaction spec against the actual design system (Tailwin
 
 #### 1.1 Create `EntityPreviewLink` (the trigger anchor)
 
-- [ ] Create `src/components/Blog/EntityPreviewLink.tsx`. Props: `href: string`, `children: React.ReactNode`, plus pass-through `<a>` attrs. Responsibilities:
+- [x] Create `src/components/Blog/EntityPreviewLink.tsx`. Props: `href: string`, `children: React.ReactNode`, plus pass-through `<a>` attrs. Responsibilities:
   - Parse `href` → `{ type: 'person' | 'organization' | 'glossary' | 'milestone', slug: string }`. Return `null`-shaped behavior (render plain `<a>`) if the prefix doesn't match.
   - Wire `onMouseEnter` (150ms open delay), `onMouseLeave` (100ms close delay), `onFocus` (open immediately), `onBlur` (close after 100ms), `onTouchStart` (start **350ms** timer per UX-M4; if it fires, `preventDefault` the click and open), `onTouchEnd`/`onTouchMove` (cancel timer if user lifts/moves before 350ms).
   - Track popover anchor rect via `getBoundingClientRect()` so `EntityPreviewCard` can position itself.
@@ -157,7 +157,7 @@ Verified the visual + interaction spec against the actual design system (Tailwin
 
 #### 1.2 Create `EntityPreviewCard` (the popover)
 
-- [ ] Create `src/components/Blog/EntityPreviewCard.tsx`. Props: `type`, `slug`, `anchorRect: DOMRect`, `onClose: () => void`. Responsibilities:
+- [x] Create `src/components/Blog/EntityPreviewCard.tsx`. Props: `type`, `slug`, `anchorRect: DOMRect`, `onClose: () => void`. Responsibilities:
   - `createPortal(<div style={{ position: 'fixed', top, left }} />, document.body)` per `.claude/rules/frontend.md`.
   - **Desktop positioning** — lift the math from `src/components/Timeline/ContributorHoverCard.tsx:59-80`: `useEffect` reads `cardRef.current.getBoundingClientRect()` and clamps `left` to `[16, viewportWidth - rect.width - 16]`, flipping above if `rect.bottom > viewportHeight - 16`.
   - **Mobile positioning (UX-M5)** — when `usePointerCoarse() === true` OR viewport width `< 480px`, swap to bottom-sheet style: `position: fixed; bottom: 16px; left: 16px; right: 16px;` (no width calc needed). Ignores `anchorRect` on mobile.
@@ -172,20 +172,20 @@ Verified the visual + interaction spec against the actual design system (Tailwin
 
 #### 1.3 Create `useEntityPreview` hook (data + cache) and `EntityPreviewBody` (presentation)
 
-- [ ] Create `src/hooks/useEntityPreview.ts` — modelled on `src/hooks/useGlossaryApi.ts:14-160`. Module-level `entityPreviewCache: Map<string, unknown>` keyed on `'${type}:${slug}'`. Returns `{ data, isLoading, error }`.
-- [ ] On call: check the cache first; if hit, set `data` synchronously (no `isLoading` flicker on re-hover). If miss, `setIsLoading(true)` and `fetchJson` via the per-type API, then write to the cache and update state. Wrap in an `AbortController` so unmount during in-flight fetch doesn't `setState` after teardown.
-- [ ] API mapping:
+- [x] Create `src/hooks/useEntityPreview.ts` — modelled on `src/hooks/useGlossaryApi.ts:14-160`. Module-level `entityPreviewCache: Map<string, unknown>` keyed on `'${type}:${slug}'`. Returns `{ data, isLoading, error }`.
+- [x] On call: check the cache first; if hit, set `data` synchronously (no `isLoading` flicker on re-hover). If miss, `setIsLoading(true)` and `fetchJson` via the per-type API, then write to the cache and update state. Wrap in an `AbortController` so unmount during in-flight fetch doesn't `setState` after teardown.
+- [x] API mapping:
   - `person` → `personsApi.getBySlug(slug)` (`src/services/api.ts:3824`) — returns `PersonWithRelations`
   - `organization` → `organizationsApi.getBySlug(slug)` (`src/services/api.ts:3636`) — returns `OrganizationWithRelations`
   - `glossary` → `glossaryApi.getBySlug(slug)` (`src/services/api.ts:1378`) — returns `GlossaryTerm`
   - `milestone` → `eventsApi.getById(slug)` (`src/services/api.ts:5275`) — returns `EventPageData` ← **NOTE: `eventsApi`, not `milestonesApi`. The latter's `MilestoneResponse` has no `tldr` field; `EventPageData` does (api.ts:5216). The link prefix `/events/:id` matches `eventsApi`.**
-- [ ] Create `src/components/Blog/EntityPreviewBody.tsx`. Receives `{ type, slug, href }` and calls `useEntityPreview(type, slug)`.
-- [ ] While `isLoading`, render a **per-type skeleton** (UX-M2) using `LoadingSkeleton` from `src/components/ui/LoadingSkeleton.tsx`. Do NOT use a one-size skeleton — Concept and Milestone have no avatar in the final card, so their skeletons must omit the avatar block:
+- [x] Create `src/components/Blog/EntityPreviewBody.tsx`. Receives `{ type, slug, href }` and calls `useEntityPreview(type, slug)`.
+- [x] While `isLoading`, render a **per-type skeleton** (UX-M2) using `LoadingSkeleton` from `src/components/ui/LoadingSkeleton.tsx`. Do NOT use a one-size skeleton — Concept and Milestone have no avatar in the final card, so their skeletons must omit the avatar block:
   - `person` / `organization` → circular avatar (40×40 for org, 48×48 for person) + title line (`h-5 w-3/4`) + 2 body lines (`<LoadingSkeleton lines={3} />`).
   - `glossary` → title line (`h-5 w-1/2`) + 3 body lines (`<LoadingSkeleton lines={3} />`).
   - `milestone` → small date line (`h-3 w-1/3`) + title line (`h-5 w-3/4`) + 3 body lines.
-- [ ] On error, render a compact inline error message: a single line, e.g. `<p className="text-sm text-gray-500 dark:text-gray-400">Couldn't load preview.</p>`. Do NOT use `ErrorState` from `src/components/ui/ErrorState.tsx` — it's a heavy red-bordered card with a 12×12 icon, oversized for a 320px popover.
-- [ ] On success, render the per-type body. **All overflow-prone single-line fields must use `truncate` (UX-M9)**, all multi-line fields use `line-clamp-3`. Empty-state fallbacks per UX-Mi4:
+- [x] On error, render a compact inline error message: a single line, e.g. `<p className="text-sm text-gray-500 dark:text-gray-400">Couldn't load preview.</p>`. Do NOT use `ErrorState` from `src/components/ui/ErrorState.tsx` — it's a heavy red-bordered card with a 12×12 icon, oversized for a 320px popover.
+- [x] On success, render the per-type body. **All overflow-prone single-line fields must use `truncate` (UX-M9)**, all multi-line fields use `line-clamp-3`. Empty-state fallbacks per UX-Mi4:
 
   | Type | Fields shown | Source |
   |------|--------------|--------|
@@ -194,7 +194,7 @@ Verified the visual + interaction spec against the actual design system (Tailwin
   | Concept | `term`, `shortDefinition` (field is purpose-built for tooltips, max 200 chars per `src/types/glossary.ts:49`, exposed on `GlossaryTerm` at `src/services/api.ts:1245`) | `GlossaryTerm` |
   | Milestone | formatted `date` (`Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' })` matching `formatDate` in `PersonProfilePage.tsx:62-66`), `title` (`line-clamp-2`), `tldr` (`line-clamp-3`; if `tldr` is null, fall back to `description.slice(0, 200) + (description.length > 200 ? '…' : '')`) | `EventPageData` (api.ts:5203) |
 
-- [ ] **Footer (UX-M3, UX-M8)** — `<Link>` from `react-router-dom` to the full page using the anchor's existing href. **Type-specific copy**:
+- [x] **Footer (UX-M3, UX-M8)** — `<Link>` from `react-router-dom` to the full page using the anchor's existing href. **Type-specific copy**:
   - `person` → `View profile →`
   - `organization` → `View organization →`
   - `glossary` → `View glossary entry →`
@@ -204,46 +204,46 @@ Verified the visual + interaction spec against the actual design system (Tailwin
 
 #### 1.4 Wire the override into `BlogMarkdown`
 
-- [ ] In `src/components/Blog/BlogMarkdown.tsx:179`, extend the `components` prop passed to `<ReactMarkdown>`. Add an `a` override that renders `<EntityPreviewLink href={...} {...rest}>{children}</EntityPreviewLink>` for in-app entity hrefs, and falls through to a plain `<a>` for everything else. Reuse the existing `parseEntityHref` (export it from `EntityPreviewLink.tsx`).
-- [ ] Confirm the existing `prose-a:*` Tailwind classes still apply — the override keeps the `<a>` element as the rendered DOM root, so they should.
+- [x] In `src/components/Blog/BlogMarkdown.tsx:179`, extend the `components` prop passed to `<ReactMarkdown>`. Add an `a` override that renders `<EntityPreviewLink href={...} {...rest}>{children}</EntityPreviewLink>` for in-app entity hrefs, and falls through to a plain `<a>` for everything else. (Note: `parseEntityHref` lives in its own file `src/components/Blog/parseEntityHref.ts` so EntityPreviewLink stays a single-export component module per `react-refresh/only-export-components`.)
+- [x] Confirm the existing `prose-a:*` Tailwind classes still apply — the override keeps the `<a>` element as the rendered DOM root, so they should.
 
 ### 2. Touch + accessibility hardening
 
-- [ ] Create `src/hooks/usePointerCoarse.ts`. Implementation: read `window.matchMedia('(pointer: coarse)').matches` at mount, store in `useState`, and subscribe to `change` events on the `MediaQueryList` so dock-undock or external-display switches update. Returns a `boolean`. (No `useMatchMedia` stdlib hook exists — this is the project's tiny custom hook.)
-- [ ] On `pointer: coarse` devices, suppress the `mouseenter`/`mouseleave` handlers entirely — touch events drive the popover.
-- [ ] On long-press fire: `e.preventDefault()` and `e.stopPropagation()` so iOS does NOT show the OS link-context menu.
-- [ ] Add `style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}` to the entity anchor only (not body text — keep selection on regular prose).
-- [ ] **Singleton popover controller (UX-M7).** Add a tiny module-level store in `src/hooks/useEntityPreview.ts` (or sibling `src/components/Blog/entityPreviewController.ts`) that tracks the `activePreviewId: string | null` and a `setActivePreview(id, closeFn)` API. Any new open call closes the previous one immediately. Each `EntityPreviewLink` registers/unregisters on open/close. This prevents popover cascades when the user mouse-zips across multiple entity links.
-- [ ] **Focus return on Escape (UX-M6).** When `EntityPreviewCard` calls `onClose` from an Escape press, `EntityPreviewLink` calls `triggerRef.current?.focus()` after teardown so keyboard/screen-reader focus lands back on the link.
-- [ ] Verify with VoiceOver on iOS Simulator that the link still announces as a link, and that opening the popover does NOT switch reader context (the popover is referenced via `aria-describedby` only). Document the screen-reader reading in this sprint file.
-- [ ] `Tab` should not get trapped inside the popover — the only interactive element is the type-specific footer link. Pressing `Tab` while the popover is open should move focus to that link; pressing `Tab` again should close the popover and move to the next focusable element on the page.
+- [x] Create `src/hooks/usePointerCoarse.ts`. Implementation: read `window.matchMedia('(pointer: coarse)').matches` at mount, store in `useState`, and subscribe to `change` events on the `MediaQueryList` so dock-undock or external-display switches update. Returns a `boolean`. (No `useMatchMedia` stdlib hook exists — this is the project's tiny custom hook.)
+- [x] On `pointer: coarse` devices, suppress the `mouseenter`/`mouseleave` handlers entirely — touch events drive the popover.
+- [x] On long-press fire: implementation preventDefaults the click that *follows* (`longPressFiredRef` consumed in `onClick`), which is the actual sequence iOS dispatches when a long-press resolves to a tap-release. This avoids the OS link-context menu without breaking short-tap navigation.
+- [x] Add `style={{ WebkitTouchCallout: 'none', userSelect: 'none' }}` to the entity anchor only (not body text — keep selection on regular prose).
+- [x] **Singleton popover controller (UX-M7).** Implemented in `src/components/Blog/entityPreviewController.ts` (sibling module). Any new open call closes the previous one immediately. Prevents popover cascades when the user mouse-zips across multiple entity links.
+- [x] **Focus return on Escape (UX-M6).** `EntityPreviewLink.handleClose` calls `triggerRef.current?.focus()` inside `requestAnimationFrame` so the portal has fully unmounted before refocus.
+- [ ] Verify with VoiceOver on iOS Simulator that the link still announces as a link, and that opening the popover does NOT switch reader context (the popover is referenced via `aria-describedby` only). Document the screen-reader reading in this sprint file. _(deferred to real-device check)_
+- [ ] `Tab` should not get trapped inside the popover — the only interactive element is the type-specific footer link. Pressing `Tab` while the popover is open should move focus to that link; pressing `Tab` again should close the popover and move to the next focusable element on the page. _(verify in browser QA)_
 
 ### 3. Cache verification (no React Query — see Tech Lead Review C1)
 
-- [ ] Confirm `entityPreviewCache: Map<string, T>` in `useEntityPreview.ts` is module-scoped (declared at module top, NOT inside the hook body) so it persists across component instances and re-mounts during the same SPA session.
-- [ ] Confirm cache hits by hovering the same entity twice in DevTools Network panel — second hover should render content with no network request.
-- [ ] Confirm cache MISSES across hard reloads (the cache is in-memory only; this is intentional and matches `useGlossaryApi.ts` behavior).
+- [x] Confirm `entityPreviewCache: Map<string, T>` in `useEntityPreview.ts` is module-scoped (declared at module top, NOT inside the hook body) so it persists across component instances and re-mounts during the same SPA session. _(verified in unit test: `useEntityPreview.test.tsx` `first call fetches; second call returns cached value with no second fetch`)_
+- [ ] Confirm cache hits by hovering the same entity twice in DevTools Network panel — second hover should render content with no network request. _(verify in browser QA)_
+- [ ] Confirm cache MISSES across hard reloads (the cache is in-memory only; this is intentional and matches `useGlossaryApi.ts` behavior). _(verify in browser QA)_
 
 ### 4. Style + dark mode
 
-- [ ] Card background: `bg-white dark:bg-gray-800` (UX-C3 — NOT `dark:bg-gray-900` which has zero contrast on body bg) with `border border-gray-200 dark:border-gray-700` and `shadow-warm-md`.
-- [ ] Avatar fallback monograms use the orange accent: `bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300`. Mark the monogram element `aria-hidden="true"` (UX-Mi1).
-- [ ] Type label / `focusAreas` chips use the same `bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300` chip style as `BlogPostCard.tsx:182`.
-- [ ] Footer CTA classes per task 1.3 (matches ContributorHoverCard CTA visual language with the ≥44px touch target).
-- [ ] Confirm parity in dark mode and light mode via `agent-browser` screenshots in both themes for all four entity types.
+- [x] Card background: `bg-white dark:bg-gray-800` (UX-C3 — NOT `dark:bg-gray-900` which has zero contrast on body bg) with `border border-gray-200 dark:border-gray-700` and `shadow-warm-md`.
+- [x] Avatar fallback monograms use the orange accent: `bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300`. Mark the monogram element `aria-hidden="true"` (UX-Mi1).
+- [x] Type label / `focusAreas` chips use the same `bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300` chip style as `BlogPostCard.tsx:182`.
+- [x] Footer CTA classes per task 1.3 (matches ContributorHoverCard CTA visual language with the ≥44px touch target).
+- [ ] Confirm parity in dark mode and light mode via `agent-browser` screenshots in both themes for all four entity types. _(post-deploy QA)_
 
 ### 5. Tests
 
 > **All tests live under `tests/unit/`, NOT `src/**/__tests__/`.** Verified `jest.config.js` `testMatch: ['<rootDir>/tests/unit/**/*.test.ts(x)']`. Existing precedent: `tests/unit/components/Blog/BlogPostCard.test.tsx`. Match its style.
 
-- [ ] Unit tests for `parseEntityHref` covering all four valid prefixes + invalid hrefs (e.g. `https://`, `/login`, empty) — `tests/unit/components/Blog/EntityPreviewLink.test.tsx`
-- [ ] Render test for `EntityPreviewLink` in the same file: mouseenter → 150ms timer → popover appears; mouseleave → 100ms → popover closes; touchstart held 500ms → popover appears AND click is suppressed; touchstart released early → click navigates normally. Use `@testing-library/user-event` (already a dep) and Jest's fake timers for the delays.
-- [ ] Render test for `EntityPreviewBody` per type — `tests/unit/components/Blog/EntityPreviewBody.test.tsx`. Skeleton on pending, content on success, inline error on failure. Mock `personsApi` / `organizationsApi` / `glossaryApi` / `eventsApi` via `jest.mock('@/services/api', () => ...)`.
-- [ ] Unit test for the module-level cache in `useEntityPreview` — `tests/unit/hooks/useEntityPreview.test.tsx`. First call fetches; second call returns cached value synchronously (no fetch). Existing pattern reference: `tests/unit/glossary.test.ts`.
-- [ ] Integration test: render `<BlogMarkdown markdown="See [[person:sam-altman|Sam]]" />` (no provider needed — no React Query), hover the resulting anchor, assert the popover shows. Place at `tests/unit/components/Blog/EntityPreviewIntegration.test.tsx`.
-- [ ] `npm run typecheck` — zero errors
-- [ ] `npm run lint` — zero errors
-- [ ] `npm test -- EntityPreview` — all pass
+- [x] Unit tests for `parseEntityHref` covering all four valid prefixes + invalid hrefs (e.g. `https://`, `/login`, empty) — `tests/unit/components/Blog/EntityPreviewLink.test.tsx`
+- [x] Render test for `EntityPreviewLink` in the same file: mouseenter → 150ms timer → popover appears; mouseleave → 100ms → popover closes; touchstart held 350ms → popover appears AND click is suppressed; touchstart released early → click navigates normally. Uses Jest's fake timers for the delays.
+- [x] Render test for `EntityPreviewBody` per type — `tests/unit/components/Blog/EntityPreviewBody.test.tsx`. Skeleton on pending, content on success, inline error on failure. Mocks all four API clients.
+- [x] Unit test for the module-level cache in `useEntityPreview` — `tests/unit/hooks/useEntityPreview.test.tsx`. First call fetches; second call returns cached value synchronously (no fetch).
+- [x] Integration test: render `<BlogMarkdown markdown="See [[person:sam-altman|Sam]]" />`, hover the resulting anchor, assert the popover shows. Mocks `react-markdown` because ts-jest can't parse its ESM. Place at `tests/unit/components/Blog/EntityPreviewIntegration.test.tsx`.
+- [x] `npm run typecheck` — zero errors
+- [x] `npm run lint` — zero errors on new files (ran scoped because the global `eslint .` runs out of memory in this repo — pre-existing)
+- [x] `npm test -- --testPathPatterns="EntityPreview|useEntityPreview"` — 21 passed
 
 ### 6. Deploy
 

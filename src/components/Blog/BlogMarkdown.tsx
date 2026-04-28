@@ -32,6 +32,8 @@
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { EntityPreviewLink } from './EntityPreviewLink';
+import { parseEntityHref } from './parseEntityHref';
 // NOTE: rehype-autolink-headings was removed — it triggered a non-fatal
 // "runSync finished async" log in react-markdown v10. rehype-slug alone
 // still gives each heading an `id`, and we can render the visible "#"
@@ -87,10 +89,33 @@ function HeadingAnchor({ id }: { id: string }) {
   );
 }
 
+// Anchor renderer: route in-app entity hrefs through EntityPreviewLink so they
+// open a hover/long-press preview card. All other anchors (external links,
+// non-entity internal links) pass through as plain <a>.
+type AProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+  node?: unknown;
+  href?: string;
+};
+function MarkdownAnchor({ node: _node, href, children, ...rest }: AProps) {
+  if (href && parseEntityHref(href)) {
+    return (
+      <EntityPreviewLink href={href} {...rest}>
+        {children}
+      </EntityPreviewLink>
+    );
+  }
+  return (
+    <a href={href} {...rest}>
+      {children}
+    </a>
+  );
+}
+
 // `#` body heading becomes `<h2>`, etc. — prevents duplicate-h1 with the page
 // title. Headings self-slugify so BlogTOC's id-based scroll-spy keeps working
 // without pulling in rehype-slug (the async plugin that triggered runSync warnings).
-const demotedHeadings = {
+const markdownComponents = {
+  a: MarkdownAnchor,
   h1: (props: HProps) => {
     const id = props.id ?? slugifyChildren(props.children);
     return (
@@ -176,7 +201,7 @@ export function BlogMarkdown({ markdown }: Props) {
         prose-img:rounded-lg prose-img:shadow-warm-sm
       "
     >
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={demotedHeadings}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
         {body}
       </ReactMarkdown>
     </div>
