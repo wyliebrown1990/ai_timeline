@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { X } from 'lucide-react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { usePointerCoarse } from '../../hooks/usePointerCoarse';
 import type { EntityType } from '../../hooks/useEntityPreview';
@@ -135,7 +136,22 @@ export function EntityPreviewCard({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <EntityPreviewBody type={type} slug={slug} href={href} />
+      {useBottomSheet ? (
+        <button
+          type="button"
+          aria-label="Close preview"
+          onClick={onClose}
+          className="absolute top-2 right-2 z-10 w-11 h-11 flex items-center justify-center rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 transition-colors"
+        >
+          <X className="w-5 h-5" aria-hidden="true" />
+        </button>
+      ) : null}
+      <EntityPreviewBody
+        type={type}
+        slug={slug}
+        href={href}
+        reserveTopRightSpace={useBottomSheet}
+      />
     </div>
   );
 

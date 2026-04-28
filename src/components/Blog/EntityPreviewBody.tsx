@@ -6,6 +6,9 @@ interface Props {
   type: EntityType;
   slug: string;
   href: string;
+  // When true, leaves room in the top-right corner of the body for the
+  // overlay close button rendered by EntityPreviewCard on mobile bottom-sheet.
+  reserveTopRightSpace?: boolean;
 }
 
 const CTA_COPY: Record<EntityType, string> = {
@@ -34,13 +37,16 @@ function formatEventDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(d);
 }
 
-export function EntityPreviewBody({ type, slug, href }: Props) {
+export function EntityPreviewBody({ type, slug, href, reserveTopRightSpace = false }: Props) {
   const { data, isLoading, error } = useEntityPreview(type, slug, true);
+
+  // 44px close button + 8px gutter + a hair of breathing room
+  const bodyClass = reserveTopRightSpace ? 'p-4 pr-14' : 'p-4';
 
   if (isLoading) {
     return (
       <>
-        <div className="p-4">
+        <div className={bodyClass}>
           <PerTypeSkeleton type={type} />
         </div>
         <CtaFooter type={type} href={href} />
@@ -51,7 +57,7 @@ export function EntityPreviewBody({ type, slug, href }: Props) {
   if (error || !data) {
     return (
       <>
-        <div className="p-4">
+        <div className={bodyClass}>
           <p className="text-sm text-gray-500 dark:text-gray-400">Couldn't load preview.</p>
         </div>
         <CtaFooter type={type} href={href} />
@@ -61,7 +67,7 @@ export function EntityPreviewBody({ type, slug, href }: Props) {
 
   return (
     <>
-      <div className="p-4">
+      <div className={bodyClass}>
         <EntityBody payload={data} />
       </div>
       <CtaFooter type={type} href={href} />
