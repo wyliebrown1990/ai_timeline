@@ -13,6 +13,7 @@ const CTA_COPY: Record<EntityType, string> = {
   organization: 'View organization →',
   glossary: 'View glossary entry →',
   milestone: 'View event →',
+  subject: 'Explore subject →',
 };
 
 const CTA_CLASS =
@@ -95,6 +96,15 @@ function PerTypeSkeleton({ type }: { type: EntityType }) {
         <LoadingSkeleton className="mb-2 h-3 w-1/3" />
         <LoadingSkeleton className="mb-3 h-5 w-3/4" />
         <LoadingSkeleton lines={3} />
+      </div>
+    );
+  }
+  if (type === 'subject') {
+    return (
+      <div>
+        <LoadingSkeleton className="mb-2 h-3 w-2/3" />
+        <LoadingSkeleton className="mb-3 h-5 w-1/2" />
+        <LoadingSkeleton lines={2} />
       </div>
     );
   }
@@ -222,6 +232,30 @@ function EntityBody({ payload }: { payload: EntityPayload }) {
         {g.shortDefinition ? (
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
             {g.shortDefinition}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (payload.type === 'subject') {
+    const s = payload.data;
+    // path is `domain > Category > Subcategory`. Drop the leaf (= s.name) and
+    // capitalize the domain so the breadcrumb reads naturally.
+    const breadcrumb = s.path
+      .split(' > ')
+      .slice(0, -1)
+      .map((seg, i) => (i === 0 ? seg.charAt(0).toUpperCase() + seg.slice(1) : seg))
+      .join(' › ');
+    return (
+      <div>
+        {breadcrumb ? (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 truncate">{breadcrumb}</p>
+        ) : null}
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{s.name}</h4>
+        {s.description ? (
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+            {s.description}
           </p>
         ) : null}
       </div>

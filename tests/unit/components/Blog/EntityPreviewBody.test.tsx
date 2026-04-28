@@ -8,9 +8,16 @@ jest.mock('../../../../src/services/api', () => ({
   organizationsApi: { getBySlug: jest.fn() },
   glossaryApi: { getBySlug: jest.fn() },
   eventsApi: { getById: jest.fn() },
+  subjectsApi: { getBySlug: jest.fn() },
 }));
 
-import { personsApi, organizationsApi, glossaryApi, eventsApi } from '../../../../src/services/api';
+import {
+  personsApi,
+  organizationsApi,
+  glossaryApi,
+  eventsApi,
+  subjectsApi,
+} from '../../../../src/services/api';
 
 const PERSON = {
   id: 'sam-altman',
@@ -45,6 +52,21 @@ const EVENT = {
   description: 'Original transformer paper.',
   date: '2017-06-12',
   tldr: 'Transformer architecture introduced.',
+};
+
+const SUBJECT = {
+  id: 'sub-1',
+  slug: 'business-technology-semiconductors',
+  name: 'Semiconductors',
+  description: 'AI chips and hardware.',
+  level: 2,
+  parentId: null,
+  path: 'business > Technology > Semiconductors',
+  domainSlug: 'business',
+  defaultDifficulty: null,
+  learningObjectives: [],
+  color: null,
+  icon: null,
 };
 
 beforeEach(() => {
@@ -95,6 +117,20 @@ describe('EntityPreviewBody', () => {
     await waitFor(() => expect(screen.getByText('Attention Is All You Need')).toBeInTheDocument());
     expect(screen.getByText('Transformer architecture introduced.')).toBeInTheDocument();
     expect(screen.getByText('View event →')).toBeInTheDocument();
+  });
+
+  it('renders subject with breadcrumb, name, description', async () => {
+    (subjectsApi.getBySlug as jest.Mock).mockResolvedValueOnce(SUBJECT);
+    renderBody({
+      type: 'subject',
+      slug: 'business-technology-semiconductors',
+      href: '/subjects/business-technology-semiconductors',
+    });
+    await waitFor(() => expect(screen.getByText('Semiconductors')).toBeInTheDocument());
+    // Breadcrumb drops the leaf and capitalizes the domain.
+    expect(screen.getByText('Business › Technology')).toBeInTheDocument();
+    expect(screen.getByText('AI chips and hardware.')).toBeInTheDocument();
+    expect(screen.getByText('Explore subject →')).toBeInTheDocument();
   });
 
   it('falls back to a compact inline error message on fetch failure', async () => {

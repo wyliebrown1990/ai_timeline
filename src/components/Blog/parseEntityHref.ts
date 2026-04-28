@@ -23,5 +23,9 @@ export function parseEntityHref(
     const slug = href.slice('/events/'.length);
     return slug ? { type: 'milestone', slug } : null;
   }
+  if (href.startsWith('/subjects/')) {
+    const slug = href.slice('/subjects/'.length);
+    return slug ? { type: 'subject', slug } : null;
+  }
   return null;
 }

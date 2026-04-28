@@ -4,19 +4,22 @@ import {
   organizationsApi,
   glossaryApi,
   eventsApi,
+  subjectsApi,
   type PersonWithRelations,
   type OrganizationWithRelations,
   type GlossaryTerm,
   type EventPageData,
+  type Subject,
 } from '../services/api';
 
-export type EntityType = 'person' | 'organization' | 'glossary' | 'milestone';
+export type EntityType = 'person' | 'organization' | 'glossary' | 'milestone' | 'subject';
 
 export type EntityPayload =
   | { type: 'person'; data: PersonWithRelations }
   | { type: 'organization'; data: OrganizationWithRelations }
   | { type: 'glossary'; data: GlossaryTerm }
-  | { type: 'milestone'; data: EventPageData };
+  | { type: 'milestone'; data: EventPageData }
+  | { type: 'subject'; data: Subject };
 
 // Module-scoped cache: persists across mounts during an SPA session.
 // Sticky-by-design (matches useGlossaryApi pattern); entity records are
@@ -47,6 +50,10 @@ async function fetchEntity(type: EntityType, slug: string): Promise<EntityPayloa
   if (type === 'glossary') {
     const data = await glossaryApi.getBySlug(slug);
     return { type: 'glossary', data };
+  }
+  if (type === 'subject') {
+    const data = await subjectsApi.getBySlug(slug);
+    return { type: 'subject', data };
   }
   // milestone — uses /api/events/:id (eventsApi), the only endpoint that returns `tldr`.
   const data = await eventsApi.getById(slug);

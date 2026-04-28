@@ -58,6 +58,7 @@ jest.mock('../../../../src/services/api', () => ({
   organizationsApi: { getBySlug: jest.fn() },
   glossaryApi: { getBySlug: jest.fn() },
   eventsApi: { getById: jest.fn() },
+  subjectsApi: { getBySlug: jest.fn() },
 }));
 
 import { BlogMarkdown } from '../../../../src/components/Blog/BlogMarkdown';

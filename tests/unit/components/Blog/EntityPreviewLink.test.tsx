@@ -10,6 +10,7 @@ jest.mock('../../../../src/services/api', () => {
     organizationsApi: { getBySlug: jest.fn(empty) },
     glossaryApi: { getBySlug: jest.fn(empty) },
     eventsApi: { getById: jest.fn(empty) },
+    subjectsApi: { getBySlug: jest.fn(empty) },
   };
 });
 
@@ -33,6 +34,13 @@ describe('parseEntityHref', () => {
     });
   });
 
+  it('parses /subjects/:slug', () => {
+    expect(parseEntityHref('/subjects/business-technology-semiconductors')).toEqual({
+      type: 'subject',
+      slug: 'business-technology-semiconductors',
+    });
+  });
+
   it('returns null for unknown prefixes', () => {
     expect(parseEntityHref('/login')).toBeNull();
     expect(parseEntityHref('https://example.com')).toBeNull();
@@ -43,6 +51,7 @@ describe('parseEntityHref', () => {
   it('returns null for an empty slug', () => {
     expect(parseEntityHref('/people/')).toBeNull();
     expect(parseEntityHref('/glossary/')).toBeNull();
+    expect(parseEntityHref('/subjects/')).toBeNull();
   });
 });
 
