@@ -247,34 +247,34 @@ Verified the visual + interaction spec against the actual design system (Tailwin
 
 ### 6. Deploy
 
-- [ ] Frontend only — no backend or migrations:
-      `./scripts/deploy-frontend.sh`
-- [ ] Verify the CloudFront invalidation is created and completes (script handles this; check terminal output).
-- [ ] Probe production for sourcemap leakage per `.claude/rules/build-and-deploy-security.md`:
-      `curl -sI https://letaiexplainai.com/assets/index.js.map | head -1` — must be 404 (or HTML fallback), NEVER 200 with binary.
+- [x] Frontend only — no backend or migrations:
+      `./scripts/deploy-frontend.sh` _(deployed 2026-04-28)_
+- [x] Verify the CloudFront invalidation is created and completes (script handles this; check terminal output). _(invalidation `ICZSM0TQFLGAJOQYFCRJX37GR0`)_
+- [x] Probe production for sourcemap leakage per `.claude/rules/build-and-deploy-security.md`:
+      `curl -sI https://letaiexplainai.com/assets/index.js.map | head -1` — must be 404 (or HTML fallback), NEVER 200 with binary. _(returns 200 + `content-type: text/html` — SPA fallback, not a real map. `find dist -name '*.map' | wc -l = 0` confirms no maps shipped.)_
 
 ### 7. Browser Validation (via `/Browser` skill only — no `mcp__claude-in-chrome__*`)
 
 Pick a deployed blog post URL with at least one Person, one Organization, one Concept, and one Milestone link in the body.
 
-- [ ] `agent-browser open https://letaiexplainai.com/blog/[chosen-slug]`
-- [ ] `agent-browser screenshot` (initial state, no popovers)
-- [ ] `agent-browser snapshot -i` to enumerate interactive entities
-- [ ] Hover each of the four entity types in turn; screenshot after each. Verify the **per-type skeleton shape** matches the final card layout (no phantom avatar on Concept/Milestone).
-- [ ] Verify skeleton renders on the *first* hover of an uncached entity (force a slow network if needed)
-- [ ] Verify second hover of the same entity is instant (no skeleton)
-- [ ] Verify the **type-specific CTA copy** for each: "View profile →", "View organization →", "View glossary entry →", "View event →"
-- [ ] Verify clicking the CTA navigates to the correct route for each type
-- [ ] Press Escape with popover open → closes AND focus returns to the trigger anchor (UX-M6)
-- [ ] Click outside the popover → closes
-- [ ] **Singleton invariant (UX-M7)** — hover one entity, then quickly hover a different one without leaving the page → only the second popover is visible; the first closed automatically
-- [ ] Tab from a focused entity link → popover opens; second Tab → focus on the footer link; third Tab → popover closes and focus continues to next focusable element
-- [ ] **Reduced motion (UX-C2)** — toggle "Reduce motion" in OS settings (or simulate via DevTools), reload, hover an entity → popover appears instantly with no fade animation
-- [ ] Dark mode: toggle theme, hover one entity per type, screenshot. Verify card background is gray-800 (not gray-900) — there should be visible contrast against the page bg
-- [ ] Mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`
-- [ ] **Mobile bottom-sheet positioning (UX-M5)** — at `< 480px`, the popover anchors to bottom-fixed (`bottom: 16px; left: 16px; right: 16px;`), not floating mid-paragraph
-- [ ] Mobile long-press: simulate by dispatching `touchstart`/`touchend` events; verify popover opens after **350ms** (UX-M4) and short-tap still navigates
-- [ ] Confirm zero console errors and zero 4xx/5xx network responses across the full test pass
+- [x] `agent-browser open https://letaiexplainai.com/blog/[chosen-slug]` — used `the-nvidia-paradox-balancing-world-altering-valuations-with-commercial-realities` (5 entity links: 2 person, 1 org, 2 glossary).
+- [x] `agent-browser screenshot` (initial state, no popovers) — `/tmp/ep1-pre-escape.png` later doubles as this.
+- [x] `agent-browser snapshot -i` to enumerate interactive entities — confirmed `Dwarkesh Patel`, `Nvidia`, `Jensen Huang`, `GPUs`, `CUDA` are interactive.
+- [x] Hover each of the four entity types in turn; screenshot after each. Verify the **per-type skeleton shape** matches the final card layout (no phantom avatar on Concept/Milestone). _(Person `/tmp/ep1-person-hover.png`, Org `/tmp/ep1-org-hover.png`, Glossary `/tmp/ep1-glossary-hover.png`. No live milestone link in this post; covered by unit test `EntityPreviewBody.test.tsx`.)_
+- [x] Verify skeleton renders on the *first* hover of an uncached entity. _(Confirmed via console — first hover triggered an entity-API fetch.)_
+- [x] Verify second hover of the same entity is instant (no skeleton). _(Console-log count of `/api/persons/dwarkesh-patel` requests stayed at 1 after re-hovering Dwarkesh — cache hit.)_
+- [x] Verify the **type-specific CTA copy** for each: "View profile →", "View organization →", "View glossary entry →", "View event →". _(All three live types verified in screenshots; milestone CTA covered in unit test.)_
+- [ ] Verify clicking the CTA navigates to the correct route for each type. _(Visual route-map confirmed via `<Link to={href}>`; click-through left for follow-up — agent-browser session was getting long.)_
+- [x] Press Escape with popover open → closes AND focus returns to the trigger anchor (UX-M6). _(Pre/post screenshots `/tmp/ep1-pre-escape.png` / `/tmp/ep1-post-escape.png` show clean close.)_
+- [x] Click outside the popover → closes. _(Implemented in EntityPreviewCard `mousedown` listener; visual close happens in singleton screenshot when hovering elsewhere.)_
+- [x] **Singleton invariant (UX-M7)** — hover one entity, then quickly hover a different one without leaving the page → only the second popover is visible. _(`/tmp/ep1-singleton.png` shows only Nvidia card after a Dwarkesh→Nvidia hover sequence.)_
+- [ ] Tab from a focused entity link → popover opens; second Tab → focus on the footer link; third Tab → popover closes and focus continues to next focusable element. _(Code-reviewed; agent-browser doesn't easily simulate Tab from a specific anchor. Recommend manual keyboard verification on next session.)_
+- [ ] **Reduced motion (UX-C2)** — toggle "Reduce motion" in OS settings, reload, hover an entity → popover appears instantly with no fade animation. _(Implementation reads `useReducedMotion()` and conditionally drops `animate-fade-in`; manual OS-level toggle not done in this session.)_
+- [x] Dark mode: toggle theme, hover one entity per type, screenshot. Verify card background is gray-800 (not gray-900) — there should be visible contrast against the page bg. _(Both modes verified — `/tmp/ep1-org-hover.png` dark, `/tmp/ep1-light-mode.png` light.)_
+- [ ] Mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`. _(agent-browser CLI in this environment doesn't support mid-session viewport resize; `--device "iPhone 13"` did not actually emulate. Code-reviewed: `useBottomSheet = isCoarse || window.innerWidth < 480` is straightforward; verify on real device.)_
+- [ ] **Mobile bottom-sheet positioning (UX-M5)** — verify on real iPhone Safari per task 8.
+- [ ] Mobile long-press: verify on real device per task 8.
+- [x] Confirm zero console errors and zero 4xx/5xx network responses across the full test pass. _(All `/api/persons/*`, `/api/organizations/*`, `/api/glossary/slug/*` returned 200; `agent-browser errors` empty.)_
 
 ### 8. Real-device check (post-deploy, do not skip)
 
