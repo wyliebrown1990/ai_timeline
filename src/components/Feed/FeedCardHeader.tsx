@@ -7,6 +7,7 @@
 import { memo } from 'react';
 import { Clock, Share2, Sparkles, BookOpen } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { PaywallBadge } from '../ui/PaywallBadge';
 
 interface FeedCardHeaderProps {
   sourcePublisher: string | null;
@@ -15,6 +16,8 @@ interface FeedCardHeaderProps {
   featured: boolean;
   onShareClick: () => void;
   personalizationType?: 'for_you' | 'learning' | null;
+  isPaywalled?: boolean;
+  paywallReason?: string | null;
 }
 
 /**
@@ -31,6 +34,8 @@ function FeedCardHeaderComponent({
   featured,
   onShareClick,
   personalizationType,
+  isPaywalled,
+  paywallReason,
 }: FeedCardHeaderProps) {
   return (
     <header className="flex items-center justify-between px-4 py-3 z-10">
@@ -46,6 +51,10 @@ function FeedCardHeaderComponent({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Paywall badge — first in cluster so it's the first thing the eye catches */}
+        {isPaywalled && (
+          <PaywallBadge variant="feed" compact paywallReason={paywallReason} />
+        )}
         {/* Personalization badges */}
         {personalizationType === 'for_you' && (
           <span className="flex items-center gap-1 text-xs text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">

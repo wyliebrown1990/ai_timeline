@@ -20,6 +20,7 @@ import {
   type IngestedArticle,
   type ContentDraft,
 } from '../../services/api';
+import { PaywallBadge } from '../../components/ui/PaywallBadge';
 
 /**
  * Admin page for viewing article details and drafts
@@ -159,10 +160,16 @@ export function ArticleDetailPage() {
                 {article.analysisStatus}
               </span>
               {article.isMilestoneWorthy && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
-                  <Star className="h-3 w-3" />
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                  <Star className="h-3 w-3" aria-hidden="true" />
                   Milestone Candidate
                 </span>
+              )}
+              {article.isPaywalled && (
+                <PaywallBadge
+                  paywallReason={article.paywallReason}
+                  showReasonInTooltip
+                />
               )}
             </div>
             <h1 className="text-2xl font-bold text-gray-900">{article.title}</h1>

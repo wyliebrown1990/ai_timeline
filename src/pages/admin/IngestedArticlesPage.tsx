@@ -28,6 +28,7 @@ import {
   type NewsSource,
   type AnalysisStats,
 } from '../../services/api';
+import { PaywallBadge } from '../../components/ui/PaywallBadge';
 
 /**
  * Admin page for viewing and analyzing ingested articles
@@ -681,8 +682,8 @@ export function IngestedArticlesPage() {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       {/* Duplicate badge - shown first for visibility */}
                       {article.isDuplicate && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800">
-                          <Copy className="h-3 w-3" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                          <Copy className="h-3 w-3" aria-hidden="true" />
                           Duplicate
                         </span>
                       )}
@@ -695,10 +696,16 @@ export function IngestedArticlesPage() {
                         {article.analysisStatus}
                       </span>
                       {article.isMilestoneWorthy && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800">
-                          <Star className="h-3 w-3" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                          <Star className="h-3 w-3" aria-hidden="true" />
                           Milestone Candidate
                         </span>
+                      )}
+                      {article.isPaywalled && (
+                        <PaywallBadge
+                          paywallReason={article.paywallReason}
+                          showReasonInTooltip
+                        />
                       )}
                       {article.relevanceScore !== undefined && (
                         <span className="text-xs text-gray-500">

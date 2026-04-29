@@ -18,6 +18,7 @@ import type { CurrentEvent } from '../../types/currentEvent';
 import type { MilestoneResponse } from '../../types/milestone';
 import { milestonesApi } from '../../services/api';
 import { chatApi } from '../../services/chatApi';
+import { PaywallBadge } from '../ui/PaywallBadge';
 import { generateContextPath, saveContextPath } from '../../utils/contextPathUtils';
 import { apiKeyService } from '../../services/apiKeyService';
 import { YouTubeEmbed } from '../YouTubeEmbed';
@@ -254,7 +255,7 @@ Please give me a clear, accessible explanation that connects the history to this
           >
             {event.headline}
           </h2>
-          <div className="flex items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
             {event.sourcePublisher && (
               <span className="flex items-center gap-1">
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -265,6 +266,7 @@ Please give me a clear, accessible explanation that connects the history to this
               <Calendar className="w-3.5 h-3.5" />
               {formattedDate}
             </span>
+            {event.isPaywalled && <PaywallBadge paywallReason={event.paywallReason ?? null} />}
           </div>
         </div>
 
@@ -464,7 +466,15 @@ Please give me a clear, accessible explanation that connects the history to this
 
         {/* Source link */}
         {event.sourceUrl && (
-          <div className="px-6 pb-4 pt-0">
+          <div className="px-6 pb-4 pt-0 space-y-2">
+            {event.isPaywalled && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
+                <Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  This source may require a subscription to read in full.
+                </p>
+              </div>
+            )}
             <a
               href={event.sourceUrl}
               target="_blank"

@@ -23,6 +23,7 @@ import {
   type QueueCounts,
 } from '../../services/api';
 import { ReviewDetailModal } from '../../components/admin/ReviewDetailModal';
+import { PaywallBadge } from '../../components/ui/PaywallBadge';
 
 type TabType = 'all' | 'news_event' | 'milestone' | 'glossary_term' | 'published';
 
@@ -532,6 +533,12 @@ export function ReviewQueuePage() {
                           <CheckCircle className="h-3 w-3" />
                           Published
                         </span>
+                      )}
+                      {draft.article.isPaywalled && (
+                        <PaywallBadge
+                          paywallReason={draft.article.paywallReason}
+                          showReasonInTooltip
+                        />
                       )}
                     </div>
                     <h3 className="text-lg font-medium text-gray-900 truncate">

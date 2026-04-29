@@ -12,6 +12,7 @@ const defaultExtract = async (): Promise<ExtractResponse> => ({
   length: 500,
   excerpt: null,
   url: 'https://example.com/a',
+  paywall: { isPaywalled: false, reason: null },
 });
 
 function makeDeps(overrides: {

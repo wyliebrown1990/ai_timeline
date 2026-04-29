@@ -117,6 +117,8 @@ export async function submitArticle(payload: {
   sourceUrl: string;
   title: string;
   content: string;
+  isPaywalled?: boolean;
+  paywallReason?: string | null;
 }): Promise<SubmitResponse> {
   return apiRequest<SubmitResponse>('/api/admin/articles/submit', {
     method: 'POST',

@@ -139,6 +139,8 @@ function FeedCardComponent({
         featured={item.featured}
         onShareClick={handleShareClick}
         personalizationType={personalizationType}
+        isPaywalled={item.isPaywalled}
+        paywallReason={item.paywallReason}
       />
 
       {/* Media Section */}

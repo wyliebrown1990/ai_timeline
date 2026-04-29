@@ -22,7 +22,15 @@ export type SubmitState =
   | { kind: 'scraping' }
   | { kind: 'extracting' }
   | { kind: 'submitting_extracted' }
-  | { kind: 'success'; articleId: string; via: 'scrape' | 'submit'; title?: string }
+  | {
+      kind: 'success';
+      articleId: string;
+      via: 'scrape' | 'submit';
+      title?: string;
+      // PD-2: surface in the popup so Wylie sees "Paywalled" before
+      // the article hits review.
+      isPaywalled?: boolean;
+    }
   | { kind: 'duplicate'; existingId: string }
   | {
       kind: 'error';
@@ -142,6 +150,8 @@ export async function runSubmit(deps: SubmitDeps, input: SubmitInput): Promise<S
       sourceUrl: extracted.url,
       title: extracted.title,
       content: extracted.textContent,
+      isPaywalled: extracted.paywall.isPaywalled,
+      paywallReason: extracted.paywall.reason,
     });
     if (resp.articleId) {
       return emit(deps, {
@@ -149,6 +159,7 @@ export async function runSubmit(deps: SubmitDeps, input: SubmitInput): Promise<S
         articleId: resp.articleId,
         via: 'submit',
         title: extracted.title,
+        isPaywalled: extracted.paywall.isPaywalled,
       });
     }
     return emit(deps, {

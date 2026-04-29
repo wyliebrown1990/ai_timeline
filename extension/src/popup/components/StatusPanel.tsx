@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { AlertCircle, CheckCircle2, ClipboardCopy, ExternalLink, Inbox } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ClipboardCopy, ExternalLink, Inbox, Lock } from 'lucide-react';
 import type { SubmitState } from '../lib/submit';
 
 const ADMIN_BASE = 'https://letaiexplainai.com/admin';
@@ -42,6 +42,12 @@ export function StatusPanel({ state, onRetry, pageUrl }: Props) {
             <p className="mt-0.5 text-[11px] text-green-700/70 dark:text-green-300/70">
               via {state.via === 'scrape' ? 'server scrape' : 'Readability fallback'}
             </p>
+            {state.isPaywalled && (
+              <span className="mt-2 inline-flex items-center gap-1 rounded bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                <Lock className="h-3 w-3" aria-hidden="true" />
+                Paywalled
+              </span>
+            )}
             <a
               href={`${ADMIN_BASE}/articles/${state.articleId}`}
               target="_blank"

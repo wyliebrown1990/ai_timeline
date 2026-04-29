@@ -30,6 +30,7 @@ import {
 import { organizationsApi, type OrganizationWithRelations, type OrganizationKeyConcept } from '../services/api';
 import { CommentThread } from '../components/Comments';
 import { FromTheBlog } from '../components/Blog/FromTheBlog';
+import { PaywallBadge } from '../components/ui/PaywallBadge';
 
 /**
  * Organization type badge colors
@@ -542,10 +543,11 @@ export default function OrganizationProfilePage() {
                 className="block p-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <p className="font-medium text-gray-900 dark:text-white">{ne.title}</p>
-                <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-500">
                   <span>{formatDate(ne.date)}</span>
                   <span>•</span>
                   <span className="capitalize">{ne.mentionType}</span>
+                  {ne.isPaywalled && <PaywallBadge paywallReason={ne.paywallReason} />}
                 </div>
               </Link>
             ))}
