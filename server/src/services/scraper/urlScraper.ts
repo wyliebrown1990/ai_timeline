@@ -3,9 +3,16 @@
  * Uses Playwright (headless browser) with Jina Reader API as fallback
  * Sprint 41: URL Scraper Integration
  * Sprint 44: Playwright integration for manual scraping
+ * Sprint PD-1: Paywall detection — paywalled scrapes now return success:true
+ *              with isPaywalled metadata, instead of being rejected outright.
+ *              Paywall heuristics moved to ./paywallDetection.ts.
  */
 
 import { playwrightClient } from './playwrightClient';
+import {
+  evaluatePaywallSignals,
+  type PaywallReason,
+} from './paywallDetection';
 
 export interface ScrapedContent {
   success: boolean;
@@ -13,13 +20,22 @@ export interface ScrapedContent {
   content?: string;
   wordCount?: number;
   error?: string;
-  failureType?: 'captcha' | 'forbidden' | 'blocked' | 'paywall' | 'empty';
+  // 'paywall' is intentionally NOT in this union anymore — paywalled content
+  // is delivered via isPaywalled below as a successful scrape with a flag.
+  failureType?: 'captcha' | 'forbidden' | 'blocked' | 'empty';
   scrapedBy?: 'playwright' | 'jina';
+  // Paywall signals (Sprint PD-1) — set on successful scrapes when the
+  // heuristic fires. Callers should persist these alongside the article.
+  isPaywalled?: boolean;
+  paywallReason?: PaywallReason | null;
 }
 
 /**
  * Common failure patterns that indicate the scrape didn't get real content
- * These patterns appear when sites block scrapers or require authentication
+ * These patterns appear when sites block scrapers or require authentication.
+ *
+ * Paywall patterns intentionally NOT here — see paywallDetection.ts. Paywalled
+ * scrapes now persist with a flag instead of being rejected outright.
  */
 const FAILURE_PATTERNS = [
   // CAPTCHA/Cloudflare patterns
@@ -38,12 +54,6 @@ const FAILURE_PATTERNS = [
   { pattern: /access denied/i, type: 'blocked' as const },
   { pattern: /you don't have permission/i, type: 'blocked' as const },
   { pattern: /blocked/i, type: 'blocked' as const },
-
-  // Paywall patterns
-  { pattern: /subscribe to continue/i, type: 'paywall' as const },
-  { pattern: /subscription required/i, type: 'paywall' as const },
-  { pattern: /sign in to read/i, type: 'paywall' as const },
-  { pattern: /create.*account.*to continue/i, type: 'paywall' as const },
 ];
 
 /**
@@ -223,12 +233,21 @@ async function scrapeWithPlaywright(url: string): Promise<ScrapedContent | null>
       wordCount,
     });
 
+    const paywall = evaluatePaywallSignals({
+      url,
+      content: cleanedContent,
+      title: result.title,
+      wordCount,
+    });
+
     return {
       success: true,
       title: result.title,
       content: cleanedContent,
       wordCount,
       scrapedBy: 'playwright',
+      isPaywalled: paywall.isPaywalled,
+      paywallReason: paywall.reason,
     };
   } catch (error) {
     console.error('[Scraper] Playwright error:', error);
@@ -305,8 +324,6 @@ async function scrapeWithJina(url: string): Promise<ScrapedContent> {
         'The page is protected by CAPTCHA or Cloudflare. Please copy and paste the article content manually.',
       forbidden: 'Access to this page is forbidden (403). The site may be blocking automated requests.',
       blocked: 'Access to this page was blocked by the website.',
-      paywall:
-        'This article appears to be behind a paywall. Please copy and paste the accessible content manually.',
       empty:
         'The scraped content appears to be empty or too short. Please verify the URL or paste content manually.',
     };
@@ -330,12 +347,21 @@ async function scrapeWithJina(url: string): Promise<ScrapedContent> {
     wordCount,
   });
 
+  const paywall = evaluatePaywallSignals({
+    url,
+    content: cleanedContent,
+    title,
+    wordCount,
+  });
+
   return {
     success: true,
     title,
     content: cleanedContent,
     wordCount,
     scrapedBy: 'jina',
+    isPaywalled: paywall.isPaywalled,
+    paywallReason: paywall.reason,
   };
 }
 

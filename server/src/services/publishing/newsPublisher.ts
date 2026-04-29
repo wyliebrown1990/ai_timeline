@@ -40,6 +40,8 @@ function calculateExpiresAt(publishedDate: string): Date {
 interface PublishOptions {
   /** Skip AI learning processing (concept linking, context generation) for faster bulk operations */
   skipLearning?: boolean;
+  /** Source IngestedArticle ID — when provided, paywall flags are copied onto the new CurrentEvent. */
+  sourceArticleId?: string;
 }
 
 /**
@@ -50,6 +52,20 @@ export async function publishNewsEvent(
   draftData: NewsEventDraft,
   options: PublishOptions = {}
 ): Promise<string> {
+  // Sprint PD-1: copy paywall flags from source article when available.
+  let isPaywalled = false;
+  let paywallReason: string | null = null;
+  if (options.sourceArticleId) {
+    const source = await prisma.ingestedArticle.findUnique({
+      where: { id: options.sourceArticleId },
+      select: { isPaywalled: true, paywallReason: true },
+    });
+    if (source) {
+      isPaywalled = source.isPaywalled;
+      paywallReason = source.paywallReason;
+    }
+  }
+
   // Validate required fields
   if (!draftData.headline || !draftData.summary || !draftData.sourceUrl) {
     throw new Error('Missing required fields: headline, summary, or sourceUrl');
@@ -90,6 +106,9 @@ export async function publishNewsEvent(
       mediaType: draftData.mediaType || 'text',
       videoId: draftData.videoId || null,
       thumbnailUrl: draftData.thumbnailUrl || null,
+      // Paywall propagation (Sprint PD-1)
+      isPaywalled,
+      paywallReason,
     },
   });
 

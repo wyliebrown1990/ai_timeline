@@ -585,6 +585,10 @@ export interface IngestedArticle {
   // Subject classification fields (Sprint Subj-2)
   classifiedSubjects?: SubjectClassificationResult[];
   subjectClassifiedAt?: string;
+  // Paywall detection (Sprint PD-1)
+  isPaywalled?: boolean;
+  paywallReason?: string | null;
+  paywallDetectedAt?: string | null;
 }
 
 export interface SubjectClassificationResult {
@@ -3596,6 +3600,8 @@ export interface OrganizationWithRelations extends Organization {
     title: string;
     date: string;
     mentionType: string;
+    isPaywalled?: boolean;
+    paywallReason?: string | null;
   }>;
 }
 
@@ -3766,6 +3772,8 @@ export interface PersonWithRelations extends Person {
     title: string;
     date: string;
     mentionType: string;
+    isPaywalled?: boolean;
+    paywallReason?: string | null;
   }>;
 }
 

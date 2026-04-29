@@ -243,6 +243,8 @@ export async function getPersonBySlug(
         title: ne.title,
         date: ne.date.toISOString(),
         mentionType: ne.mentionType,
+        isPaywalled: ne.isPaywalled,
+        paywallReason: ne.paywallReason,
       })),
     });
   } catch (error) {

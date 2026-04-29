@@ -222,6 +222,8 @@ export async function getBySlugWithRelations(slug: string): Promise<{
     title: string;
     date: Date;
     mentionType: string;
+    isPaywalled: boolean;
+    paywallReason: string | null;
   }>;
 } | null> {
   if (!prisma) throw new Error('Database not available');
@@ -283,6 +285,8 @@ export async function getBySlugWithRelations(slug: string): Promise<{
           id: true,
           headline: true,
           publishedDate: true,
+          isPaywalled: true,
+          paywallReason: true,
         },
       },
     },
@@ -299,6 +303,8 @@ export async function getBySlugWithRelations(slug: string): Promise<{
     title: nem.event.headline, // Map headline to title for API consistency
     date: nem.event.publishedDate,
     mentionType: nem.mentionType,
+    isPaywalled: nem.event.isPaywalled,
+    paywallReason: nem.event.paywallReason,
   }));
 
   return {

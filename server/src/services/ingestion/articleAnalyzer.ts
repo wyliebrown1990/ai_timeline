@@ -102,7 +102,9 @@ async function autoApproveNewsEventDraft(draftId: string): Promise<void> {
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const publishedId = await publishNewsEvent(draftData as any);
+    const publishedId = await publishNewsEvent(draftData as any, {
+      sourceArticleId: draft.articleId,
+    });
 
     // Publish ContentSubject records if available
     const suggestedSubjects = draftData.suggestedSubjects as Array<{

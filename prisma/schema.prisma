@@ -111,6 +111,11 @@ model IngestedArticle {
   classifiedSubjects    Json?      // Array of {subjectId, confidence, isPrimary}
   subjectClassifiedAt   DateTime?
 
+  // Paywall detection (Sprint PD-1)
+  isPaywalled       Boolean   @default(false)
+  paywallReason     String?
+  paywallDetectedAt DateTime?
+
   // Relations
   drafts          ContentDraft[]
   keyFigureDrafts KeyFigureDraft[] // Sprint 44 (legacy)
@@ -122,6 +127,7 @@ model IngestedArticle {
   @@index([isMilestoneWorthy])
   @@index([isDuplicate])
   @@index([ingestedAt])
+  @@index([isPaywalled])
 }
 
 /// AI-generated content draft awaiting review
@@ -369,6 +375,10 @@ model CurrentEvent {
   completionCount          Int       @default(0)    // Users who engaged (not just swiped)
   hotScore                 Float     @default(0)    // Computed ranking score for feed
   tldr                     String?                   // Auto-generated "3 things to know"
+
+  // Paywall propagation (Sprint PD-1) — denormalized from source IngestedArticle at publish time
+  isPaywalled              Boolean   @default(false)
+  paywallReason            String?
 
   // Feed interactions relation
   interactions             NewsInteraction[]

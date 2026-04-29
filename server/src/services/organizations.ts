@@ -159,7 +159,7 @@ export async function getBySlug(slug: string): Promise<Organization | null> {
 }
 
 /**
- * Get organization with related data (people, milestones)
+ * Get organization with related data (people, milestones, news events)
  */
 export async function getBySlugWithRelations(slug: string): Promise<{
   organization: Organization;
@@ -176,6 +176,14 @@ export async function getBySlugWithRelations(slug: string): Promise<{
     title: string;
     date: Date;
     category: string;
+  }>;
+  newsEvents: Array<{
+    id: string;
+    title: string;
+    date: Date;
+    mentionType: string;
+    isPaywalled: boolean;
+    paywallReason: string | null;
   }>;
 } | null> {
   if (!prisma) throw new Error('Database not available');
@@ -213,7 +221,34 @@ export async function getBySlugWithRelations(slug: string): Promise<{
     take: 20,
   });
 
-  return { organization, people, milestones };
+  // Get news events mentioning this org (Sprint PD-1 — mirrors persons.ts)
+  const newsEventMentions = await prisma.newsEventOrgMention.findMany({
+    where: { organizationId: organization.id },
+    include: {
+      event: {
+        select: {
+          id: true,
+          headline: true,
+          publishedDate: true,
+          isPaywalled: true,
+          paywallReason: true,
+        },
+      },
+    },
+    orderBy: { event: { publishedDate: 'desc' } },
+    take: 20,
+  });
+
+  const newsEvents = newsEventMentions.map((nem) => ({
+    id: nem.event.id,
+    title: nem.event.headline,
+    date: nem.event.publishedDate,
+    mentionType: nem.mentionType,
+    isPaywalled: nem.event.isPaywalled,
+    paywallReason: nem.event.paywallReason,
+  }));
+
+  return { organization, people, milestones, newsEvents };
 }
 
 /**

@@ -25,6 +25,9 @@ export interface FeedItem {
   commentCount: number;
   whyItMatters: string | null;
   connectionExplanation: string;
+  // Paywall (Sprint PD-1)
+  isPaywalled?: boolean;
+  paywallReason?: string | null;
   // User-specific state (set by frontend based on session)
   userVote?: 'up' | 'down' | null;
   isSaved?: boolean;

@@ -168,6 +168,8 @@ export async function getFeedEvents(options: {
     whyItMatters: string | null;
     connectionExplanation: string;
     commentCount: number;
+    isPaywalled: boolean;
+    paywallReason: string | null;
   }>
 > {
   const { limit = 10, excludeIds = [] } = options;
@@ -205,6 +207,8 @@ export async function getFeedEvents(options: {
       hotScore: true,
       whyItMatters: true,
       connectionExplanation: true,
+      isPaywalled: true,
+      paywallReason: true,
     },
   });
 
@@ -268,6 +272,8 @@ export async function getTrendingEvents(
     hotScore: number;
     thumbnailUrl: string | null;
     commentCount: number;
+    isPaywalled: boolean;
+    paywallReason: string | null;
   }>
 > {
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -292,6 +298,8 @@ export async function getTrendingEvents(
       downvotes: true,
       hotScore: true,
       thumbnailUrl: true,
+      isPaywalled: true,
+      paywallReason: true,
     },
   });
 
@@ -335,6 +343,8 @@ export async function getFreshEvents(
     hotScore: number;
     thumbnailUrl: string | null;
     commentCount: number;
+    isPaywalled: boolean;
+    paywallReason: string | null;
   }>
 > {
   const events = await prisma.currentEvent.findMany({
@@ -356,6 +366,8 @@ export async function getFreshEvents(
       downvotes: true,
       hotScore: true,
       thumbnailUrl: true,
+      isPaywalled: true,
+      paywallReason: true,
     },
   });
 

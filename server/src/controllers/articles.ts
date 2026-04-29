@@ -9,6 +9,10 @@ import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { prisma } from '../db';
 import { screenOnly, analyzeAllPending, analyzeArticle } from '../services/ingestion/articleAnalyzer';
 import { scrapeUrl } from '../services/scraper/urlScraper';
+import {
+  evaluatePaywallSignals,
+  type PaywallReason,
+} from '../services/scraper/paywallDetection';
 import { youtubeApi } from '../services/youtube/youtubeApi';
 import { transcriptService } from '../services/youtube/transcriptService';
 import { reclassifyArticle } from '../services/ingestion/subjectClassifier';
@@ -285,7 +289,7 @@ export async function getArticleDrafts(req: Request, res: Response) {
  */
 export async function submitArticle(req: Request, res: Response) {
   try {
-    const { sourceUrl, title, content } = req.body;
+    const { sourceUrl, title, content, isPaywalled: clientPaywalled, paywallReason: clientReason } = req.body;
 
     // Validate required fields
     if (!sourceUrl || typeof sourceUrl !== 'string') {
@@ -335,6 +339,22 @@ export async function submitArticle(req: Request, res: Response) {
       console.log(`[Articles] Created one-time source: ${source.id}`);
     }
 
+    // Paywall: OR the extension-supplied flag with our own server-side heuristic.
+    // Extension flag (when present) tracks the live-DOM check the user just ran in
+    // their authenticated browser; server heuristic catches paywalled sources the
+    // extension didn't flag.
+    const wordCount = content.split(/\s+/).filter(Boolean).length;
+    const serverPaywall = evaluatePaywallSignals({
+      url: cleanUrl,
+      content,
+      title,
+      wordCount,
+      extensionFlag:
+        clientPaywalled && typeof clientReason === 'string'
+          ? (clientReason as PaywallReason)
+          : null,
+    });
+
     // Create the article linked to the source with 'screening' status
     const article = await prisma.ingestedArticle.create({
       data: {
@@ -344,10 +364,16 @@ export async function submitArticle(req: Request, res: Response) {
         content: content,
         publishedAt: new Date(),
         analysisStatus: 'screening',
+        isPaywalled: serverPaywall.isPaywalled,
+        paywallReason: serverPaywall.reason,
+        paywallDetectedAt: serverPaywall.isPaywalled ? new Date() : null,
       },
     });
 
-    console.log(`[Articles] Article submitted: ${article.id} (source: ${source.id})`);
+    console.log(
+      `[Articles] Article submitted: ${article.id} (source: ${source.id})` +
+        (serverPaywall.isPaywalled ? ` [paywalled: ${serverPaywall.reason}]` : '')
+    );
 
     // Automatically trigger analysis via Lambda
     try {
@@ -686,7 +712,8 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
         console.log(`[Scraper] Created one-time source: ${source.id}`);
       }
 
-      // Create article linked to the source
+      // Create article linked to the source — urlScraper has already run the
+      // paywall heuristic and stamped result.isPaywalled / result.paywallReason.
       const article = await prisma.ingestedArticle.create({
         data: {
           sourceId: source.id,
@@ -695,10 +722,16 @@ export async function scrapeArticleUrl(req: Request, res: Response) {
           content: result.content,
           publishedAt: new Date(),
           analysisStatus: 'screening',
+          isPaywalled: result.isPaywalled ?? false,
+          paywallReason: result.paywallReason ?? null,
+          paywallDetectedAt: result.isPaywalled ? new Date() : null,
         },
       });
 
-      console.log(`[Scraper] Article created: ${article.id} (source: ${source.id})`);
+      console.log(
+        `[Scraper] Article created: ${article.id} (source: ${source.id})` +
+          (result.isPaywalled ? ` [paywalled: ${result.paywallReason}]` : '')
+      );
 
       // Automatically trigger analysis via Lambda
       try {

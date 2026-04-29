@@ -51,6 +51,10 @@ export const CurrentEventSchema = z.object({
 
   // Thumbnail URL for video content
   thumbnailUrl: z.string().optional(),
+
+  // Paywall (Sprint PD-1) — denormalized from source IngestedArticle at publish time
+  isPaywalled: z.boolean().optional(),
+  paywallReason: z.string().nullable().optional(),
 });
 
 export type CurrentEvent = z.infer<typeof CurrentEventSchema>;

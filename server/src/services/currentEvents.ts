@@ -19,6 +19,9 @@ export interface CurrentEventDto {
   mediaType: string;
   videoId: string | null;
   thumbnailUrl: string | null;
+  // Paywall (Sprint PD-1)
+  isPaywalled: boolean;
+  paywallReason: string | null;
 }
 
 function formatEvent(event: CurrentEvent): CurrentEventDto {
@@ -40,6 +43,9 @@ function formatEvent(event: CurrentEvent): CurrentEventDto {
     mediaType: event.mediaType,
     videoId: event.videoId,
     thumbnailUrl: event.thumbnailUrl,
+    // Paywall (Sprint PD-1)
+    isPaywalled: event.isPaywalled,
+    paywallReason: event.paywallReason,
   };
 }
 

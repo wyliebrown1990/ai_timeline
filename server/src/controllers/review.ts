@@ -316,7 +316,9 @@ export async function approveDraft(req: Request, res: Response) {
         publishedId = await publishMilestone(draftData);
         break;
       case 'news_event':
-        publishedId = await publishNewsEvent(draftData);
+        publishedId = await publishNewsEvent(draftData, {
+          sourceArticleId: draft.articleId,
+        });
 
         // If promoting to milestone, also create a milestone
         if (promoteToMilestone) {
@@ -475,7 +477,10 @@ export async function bulkApprove(req: Request, res: Response) {
           case 'news_event':
             // Skip AI learning processing during bulk approval to avoid timeout
             // Learning can be processed later via the process-learning endpoint
-            publishedId = await publishNewsEvent(draftData, { skipLearning: true });
+            publishedId = await publishNewsEvent(draftData, {
+              skipLearning: true,
+              sourceArticleId: draft.articleId,
+            });
             break;
           case 'glossary_term':
             publishedId = await publishGlossaryTerm(draftData, draft.articleId);

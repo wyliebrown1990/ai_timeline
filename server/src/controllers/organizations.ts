@@ -174,6 +174,10 @@ export async function getOrganizationBySlug(
         ...m,
         date: m.date.toISOString(),
       })),
+      newsEvents: result.newsEvents.map((ne) => ({
+        ...ne,
+        date: ne.date.toISOString(),
+      })),
     });
   } catch (error) {
     next(error);
