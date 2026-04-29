@@ -628,6 +628,42 @@ BEGIN
 END $$;
 `;
 
+const MIGRATION_0015_PAYWALL_FIELDS = `
+-- Sprint PD-1: paywall detection
+-- Adds isPaywalled / paywallReason / paywallDetectedAt to IngestedArticle.
+-- Adds isPaywalled / paywallReason to CurrentEvent (denormalized at publish time).
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'IngestedArticle' AND column_name = 'isPaywalled'
+    ) THEN
+        ALTER TABLE "IngestedArticle" ADD COLUMN "isPaywalled" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "IngestedArticle" ADD COLUMN "paywallReason" TEXT;
+        ALTER TABLE "IngestedArticle" ADD COLUMN "paywallDetectedAt" TIMESTAMP(3);
+        CREATE INDEX "IngestedArticle_isPaywalled_idx" ON "IngestedArticle"("isPaywalled");
+        RAISE NOTICE 'Added paywall fields to IngestedArticle table';
+    ELSE
+        RAISE NOTICE 'Paywall fields already exist on IngestedArticle, skipping';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'CurrentEvent' AND column_name = 'isPaywalled'
+    ) THEN
+        ALTER TABLE "CurrentEvent" ADD COLUMN "isPaywalled" BOOLEAN NOT NULL DEFAULT false;
+        ALTER TABLE "CurrentEvent" ADD COLUMN "paywallReason" TEXT;
+        RAISE NOTICE 'Added paywall fields to CurrentEvent table';
+    ELSE
+        RAISE NOTICE 'Paywall fields already exist on CurrentEvent, skipping';
+    END IF;
+END $$;
+`;
+
 const MIGRATION_0014_FEED_ENGAGEMENT = `
 -- Add engagement fields to CurrentEvent table
 DO $$
@@ -1146,7 +1182,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -1282,6 +1318,17 @@ export async function runMigrations(
           'CurrentEvent table now has engagement columns (upvotes, downvotes, viewCount, completionCount, hotScore, tldr)',
           'NewsInteraction table created for tracking user feed interactions',
           'SavedCollection table created for bookmarking feed items',
+        ],
+      });
+    } else if (migration === '0015_paywall_fields') {
+      await prisma.$executeRawUnsafe(MIGRATION_0015_PAYWALL_FIELDS);
+      console.log('[Migrations] Migration 0015_paywall_fields completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0015_paywall_fields completed successfully - Paywall detection enabled',
+        changes: [
+          'IngestedArticle table now has isPaywalled, paywallReason, paywallDetectedAt columns + index',
+          'CurrentEvent table now has isPaywalled, paywallReason columns',
         ],
       });
     }
