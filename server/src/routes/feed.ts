@@ -511,6 +511,8 @@ interactionRouter.get('/:id', async (req: Request, res: Response) => {
         hotScore: true,
         whyItMatters: true,
         connectionExplanation: true,
+        isPaywalled: true,
+        paywallReason: true,
       },
     });
 
