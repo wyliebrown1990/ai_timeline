@@ -83,6 +83,18 @@ Verified every claim against the codebase. The plan's overall structure is corre
 ### Verified ✓ (no change needed)
 
 - `urlScraper.ts:43-46` paywall patterns match plan exactly. Single caller of `scrapeUrl` at `articles.ts:608` (verified via grep). Removing the four entries is contained — no other consumer breaks.
+
+---
+
+## UX Lead Review (2026-04-29)
+
+PD-1 is backend-only — no UI rendering. Review is brief.
+
+### Verified ✓
+
+- No new UI surfaces in this sprint. The admin endpoints PD-1 extends (`GET /api/admin/articles`, `/api/admin/review/queue`, `/api/persons/:slug`, `/api/organizations/:slug`, feed/news endpoints) only add fields to existing JSON shapes — no new pages, components, or interaction patterns. UX impact is zero until PD-3 reads the new fields.
+- The decision to denormalize `isPaywalled` onto `CurrentEvent` (rather than computing it on-the-fly via the source article) is a **UX win** — keeps the read path on every news-event endpoint cheap and avoids a join hop on every Feed page-load. Nothing to change.
+- PD-1's expanded Task 5.2 (wire `newsEvents` into `getBySlugWithRelations` for organizations — see Tech Lead Review C2) unblocks the org profile news block on the frontend, which today silently never renders. Real UX win as a side effect — orgs will start showing news mentions whether or not they're paywalled.
 - `ContentDraft.articleId` FK at `prisma/schema.prisma:130-131` ✓.
 - `IngestedArticle` (schema:81-125) and `CurrentEvent` (schema:337-383) do not yet have `isPaywalled` / `paywallReason` — migration is greenfield.
 - `NewsEventOrgMention` model exists at `schema:619` (this is what unblocks C2 above).

@@ -173,7 +173,7 @@ Before coding PD-1:
 
 Before coding PD-3:
 
-- [ ] `/AIUXLeadReview` on PD-3 — verify badge size, color, placement, dark-mode parity, accessibility (icon + text), and that it doesn't crowd the existing chip rows on `/admin/articles` (already busy with Duplicate, Status, Milestone Candidate badges).
+- [x] `/AIUXLeadReview` on PD-3 (2026-04-29) — see `## UX Lead Review` in each sprint file. Net effect: PD-3 grows by two tasks (FeedCard badge style switches to `rounded-full + opacity` to match the personalization-chip family there; mobile-icon-only variant), and the JSON-LD `isAccessibleForFree` recommendation from the Tech Lead Review is **revised** (Schema.org semantics actually argue against marking the LAEA page as paywalled).
 
 ---
 
@@ -200,3 +200,37 @@ Verified every claim against the codebase. Two cross-cutting issues that touch m
 - `urlScraper.ts:43-46` has exactly the four paywall `FAILURE_PATTERNS` the plan describes; only one caller (`articles.ts:608` in `scrapeArticleUrl`) — behavior change blast radius is contained.
 - `BlockedDomain` upsert at `articles.ts:615` triggers when `failureType` is set. Removing 'paywall' from `FAILURE_PATTERNS` means paywalled hostnames stop being marked as `blocked` — semantically correct (they're paywalled, not blocked) but worth calling out as a deliberate side-effect.
 - Six-surface scope is correctly bounded; sitemap, OG tags, blog cross-refs, search, email digests are explicitly out of scope per PLAN line 140-142.
+
+---
+
+## UX Lead Review (2026-04-29)
+
+Audited every UI surface PD-3 touches against the actual chip / badge conventions in the codebase. Two cross-cutting findings live here; per-sprint specifics live in each sprint's `## UX Lead Review` section.
+
+### Critical (cross-cutting)
+
+- **PLAN-UX-C1 — Two distinct chip families exist in the codebase; PaywallBadge must pick the right one per surface, not use one style everywhere.** Verified:
+  - **Admin family** (`/admin/articles` Duplicate / Milestone / Status chips at `IngestedArticlesPage.tsx:683-702`): `inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded` + flat color backgrounds (`bg-orange-100 text-orange-800`, `bg-purple-100 text-purple-800`). **No `dark:` variants today.** Lucide icons (`Copy`, `Star`, `Clock`, `CheckCircle`, etc. at `h-3 w-3`).
+  - **Feed/personalization family** (`FeedCardHeader.tsx:48-66`): `inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full` + opacity-tint backgrounds (`bg-purple-500/10 text-purple-400`, `bg-emerald-500/10`, `bg-amber-500/10`). **`rounded-full`, not `rounded`.** Different chip shape. Different color saturation.
+  
+  PD-3's current spec describes one badge style (admin family) used everywhere. That will look out of place on the FeedCard, which is the most visible public surface and uses the rounded-full family. **Required**: `<PaywallBadge />` must support both shapes via a `variant: 'admin' | 'feed'` prop (or default to admin and accept a `className` override on the FeedCard insertion). PD-3 review specifies exact classes per surface.
+
+### Moderate (cross-cutting)
+
+- **PLAN-UX-M1 — JSON-LD `isAccessibleForFree` recommendation from Tech Lead Review M1 is semantically wrong for this project.** Schema.org's `isAccessibleForFree` describes the page hosting the JSON-LD — i.e. is THIS NewsArticle (LAEA's `/news/:id` page) free to read? **It is.** The paywall lives on the *source* article, not on LAEA's summary page. Marking LAEA's pages as `isAccessibleForFree: false` would tell Google the LAEA URL is paywalled (it isn't), pushing it into the paywall-treatment search appearance — a misrepresentation that violates Google's structured-data guidelines.
+  
+  **Revised recommendation**: drop the JSON-LD task from PD-3. Instead, surface paywall awareness via:
+  1. The visible badge on the LAEA news event page (covered by PD-3 task 2.7) — enough for users.
+  2. (Optional follow-up) A small `<meta name="ai-source-paywalled" content="true">` custom meta tag for our own analytics, if useful.
+  
+  Tech Lead Review M1 should be marked superseded by this finding.
+
+### Minor
+
+- **PLAN-UX-Mi1 — Long-term opportunity:** the codebase has three different chip systems (admin flat, Feed rounded-full opacity, SubjectBadge inline-style). A shared `<Badge>` primitive in `src/components/ui/` would eliminate this inconsistency over time. **Out of scope for PD-3** — PaywallBadge ships as a one-off component. Flag as a follow-up sprint candidate after PD-3 lands.
+
+### Verified ✓
+
+- Six-surface scope is the right set; the agent-browser QA section in PD-3 covers all of them in both themes.
+- No animation in PaywallBadge spec; matches existing badge precedent (no chip in the repo animates). `prefers-reduced-motion` is therefore moot for this component.
+- Existing admin chips lack `dark:` variants but the rest of the admin pages render fine in dark mode (gray-800 cards behind orange-100 chips reads OK because the chip text-800 on bg-100 has enough contrast against either page bg). Adding `dark:` variants to PaywallBadge is a quality improvement without forcing a retrofit of the other admin chips.

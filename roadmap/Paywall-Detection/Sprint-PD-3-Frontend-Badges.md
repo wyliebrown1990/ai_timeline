@@ -71,6 +71,74 @@ Verified all six surfaces and the type-update plumbing. One critical gating find
 
 ---
 
+## UX Lead Review (2026-04-29)
+
+Audited every UI surface against the actual chip/badge conventions in the codebase. Several findings reshape Task 1.1 (component spec), Task 2.6 (Feed insertion), and Task 2.7 (modal placement); two recommendations override the Tech Lead Review.
+
+### Critical (resolved by tasks below)
+
+- **UX-C1 — Two distinct chip families exist; PaywallBadge spec must accommodate both.** Verified: admin chips (Duplicate, Milestone, Status) are `rounded` + flat colors; Feed personalization chips (For You, Learning, Featured) are `rounded-full` + opacity-tint backgrounds. PD-3 Task 1.1 specs **one** style (admin family) and uses it everywhere — that lands wrong on the FeedCard. **Required**: `<PaywallBadge />` accepts a `variant: 'admin' | 'feed'` prop. Class spec per variant:
+  - `variant="admin"` (default): `inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200`
+  - `variant="feed"`: `inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400`
+  
+  Match precedent: `IngestedArticlesPage.tsx:683-702` for admin, `FeedCardHeader.tsx:48-66` for feed. Tasks 2.1-2.5 + 2.7 use `admin`; Task 2.6 uses `feed`.
+
+- **UX-C2 — Use lucide `Lock`, not the 🔒 emoji.** Plan offers either. **Verified**: every existing chip in the codebase uses lucide icons (`Copy`, `Star`, `Clock`, `Loader2`, `CheckCircle`, `AlertCircle` — all from `lucide-react`). Mixing emoji breaks visual consistency. Drop the emoji option from Task 1.1; spec lucide `Lock` exclusively at `h-3 w-3` (matches admin chip-strip icon size).
+
+- **UX-C3 — JSON-LD `isAccessibleForFree` task should be DROPPED, not added.** Tech Lead Review M1 recommends emitting `isAccessibleForFree: false` on paywalled news events in `NewsDetailPage.tsx:25`. This is **semantically wrong**: Schema.org's `isAccessibleForFree` describes the page hosting the JSON-LD (LAEA's `/news/:id` page), which is **free to read**. The paywall lives on the upstream source article, not on LAEA. Marking LAEA pages as `isAccessibleForFree: false` would tell Google our pages are paywalled (they aren't) and could violate structured-data guidelines. **Override Tech Lead Review M1**: do NOT add this to PD-3. The visible badge on the LAEA page is the right user-facing signal; no JSON-LD change is appropriate.
+
+### Moderate (resolved by tasks below)
+
+- **UX-M1 — FeedCard insertion point is wrong.** Task 2.6 inserts the badge "near `sourcePublisher` (line ~ 136 / 283)". Verified: line 136 is in the **header** (`FeedCardHeader.tsx:36-77`) where the publisher row sits left, and the personalization-badge cluster (For You / Learning / Featured) sits **right**, next to the Share button. The publisher row is dim text-gray-400; chips there get lost. The right-side cluster is where users' eyes land first on a swipe-card. **Recommend**: render the PaywallBadge at the **front** of the right-side cluster (immediately before the personalization badges), not in the publisher row. Two reasons: (a) it's where chips already live; (b) it's where the eye lands first on mobile when the card swipes in.
+  
+  Update Task 2.6 to: "Render `<PaywallBadge variant='feed' />` as the first child of the right-side cluster in `FeedCardHeader.tsx:48-66`, before the personalization chips."
+
+- **UX-M2 — Mobile FeedCard width is tight; spec icon-only at small viewports.** The right-side cluster on iPhone 13 (390px) already holds 0–3 personalization badges + Share button (~180-200px). Adding a 4th chip ("Paywalled" full text ≈ 80px wide) risks overflow at 320px (iPhone SE). **Spec a `compact` mode**: `<PaywallBadge variant='feed' compact />` renders icon-only with `aria-label="Paywalled — source article requires subscription"` on the badge wrapper (so screen readers still announce it). Apply `compact` at the FeedCard surface only; full text everywhere else. CSS: hide the text via `hidden sm:inline` on the visible label inside the compact variant. Add to Task 1.1 props: `compact?: boolean` (default false).
+
+- **UX-M3 — Profile-page Recent News rows risk wrap at 320px.** Verified: `flex items-center gap-2 mt-1 text-sm text-gray-500` row already has date + `•` + mentionType. Adding a 4th token to a flex row at 320px is genuinely tight. **Spec**: ensure parent has `flex-wrap` so the badge wraps cleanly to a new line on narrow viewports rather than overflowing. Update Tasks 2.4 and 2.5 to add `flex-wrap` to the metadata row's className if not already present (verify in code).
+
+- **UX-M4 — NewsContextModal needs TWO badge placements, not one.** Task 2.7 says "near `event.sourcePublisher` (line ~ 258), and again near the source-link block (line ~ 466)" but underspecifies. Two placements serve different jobs:
+  - **Line ~258 (publisher row, top of modal)**: small inline `<PaywallBadge variant='admin' />` next to the publisher name. Job: tell the reader at modal-open that this source is paywalled.
+  - **Line ~466 (source-link block, bottom of modal)**: a more prominent **banner** above the anchor, like:
+    ```tsx
+    {event.isPaywalled && (
+      <div className="mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
+        <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+        <p className="text-sm text-amber-800 dark:text-amber-200">
+          This source may require a subscription to read in full.
+        </p>
+      </div>
+    )}
+    ```
+    Job: warn the user at the moment of click-out. The bottom of the modal is the click-out moment; a chip alone is too small for that decision. Spec the banner explicitly in Task 2.7.
+
+- **UX-M5 — Existing admin chips have no `dark:` variants; PaywallBadge will look better than its neighbors.** Verified: `bg-orange-100 text-orange-800` (Duplicate) and the other admin chips ship without dark-mode overrides — they render the same colors in dark mode, which is OK because text-800-on-bg-100 has enough contrast against either page background. PaywallBadge with explicit `dark:bg-amber-900/30 dark:text-amber-200` will look visibly different from its neighbors in dark mode. Two paths:
+  - **(Recommended)** Ship PaywallBadge with dark-mode variants AND add a tiny task: "While in `IngestedArticlesPage.tsx:683-702`, also add `dark:bg-orange-900/30 dark:text-orange-300` to the Duplicate chip and `dark:bg-purple-900/30 dark:text-purple-300` to the Milestone Candidate chip." ~6 lines, meaningful UX win for admin in dark mode. Add to PD-3 as **Task 2.8 (admin chip dark-mode retrofit)**.
+  - Alternative: drop dark-mode on PaywallBadge to match neighbors. Worse — existing admin chips are slightly broken in dark mode and we'd be entrenching the bug.
+
+- **UX-M6 — Tooltip spec is fine but should be admin-only via prop, not surface-by-surface flag.** Task 1.1 has `showReasonInTooltip?: boolean`. Better: rename to `adminTooltip?: boolean` (more obviously admin-only) and document that public surfaces (Person/Org/Feed/Modal) MUST omit it; admin surfaces (IngestedArticlesPage, ReviewQueue, ArticleDetail) MUST include it. **Verified**: no existing badge in the codebase uses tooltips today, so any tooltip is novel — `title` attribute is the lightest-weight choice and matches no-tooltip-precedent more closely than a portal-based one. ✓ Stick with `title=`.
+
+### Minor
+
+- **UX-Mi1 — Accessibility cleanup opportunity.** Verified: existing admin chips (Duplicate, Milestone, Status) have NO `aria-hidden` on their lucide icons today. PaywallBadge's spec correctly hides the icon and exposes the text label — that's a quality improvement over precedent. Optional follow-up: while writing PaywallBadge, audit `IngestedArticlesPage.tsx:683-702` for missing `aria-hidden="true"` on existing chip icons. ~3 lines. Out of scope; flag for follow-up.
+
+- **UX-Mi2 — Color choice: amber works but verify against Duplicate's orange in DevTools.** Spec uses `amber-100`. The neighboring Duplicate chip is `orange-100`. On Tailwind's palette, amber is yellower (more #FEF3C7) and orange is warmer (more #FFEDD5) — **side-by-side they ARE distinguishable**, but only by a few hue degrees. The lucide `Lock` icon (vs `Copy` icon on Duplicate) is what makes them instantly readable as different chips. Acceptable as spec'd; this finding is just a heads-up for the implementing dev to do a visual side-by-side check during agent-browser QA in Task 3.
+
+- **UX-Mi3 — `<PaywallBadge />` should live alongside `<SubjectBadge />` in `src/components/ui/`.** ✓ Already in plan. Confirms it's the right home and signals that future shared-badge patterns belong here too.
+
+- **UX-Mi4 — No animation in spec; matches existing badge precedent.** ✓ No motion-safe / reduced-motion handling needed. If a future hover state is added (e.g. `hover:bg-amber-200`), wrap the transition in `motion-safe:` per project convention.
+
+### Verified ✓
+
+- `<PaywallBadge />` returning `null` when not paywalled (caller controls visibility) is the right pattern.
+- Visible "Paywalled" text + `aria-hidden="true"` on the icon is correct accessibility per WCAG.
+- `tests/unit/components/ui/PaywallBadge.test.tsx` is the right test path (matches `tests/unit/components/Blog/BlogPostCard.test.tsx` precedent — `<rootDir>/tests/unit/**`, NOT `src/**/__tests__/`).
+- The agent-browser QA section covers light + dark mode + mobile viewport.
+- No `mcp__claude-in-chrome__*` references — consistent with project-global rule.
+- Sourcemap probe in Section 4 (Deploy) is required and correctly invoked.
+
+---
+
 ## Prerequisites
 
 - [ ] PD-1 deployed to prod; new fields visible on `/api/admin/articles`, `/api/persons/:slug`, `/api/organizations/:slug`, feed/news endpoints

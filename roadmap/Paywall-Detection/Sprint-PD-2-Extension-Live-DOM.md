@@ -49,6 +49,27 @@ Verified the extension surfaces. Plan is largely accurate — two clarifications
 ### Verified ✓ (no change needed)
 
 - `extension/src/content/content.ts:10-25` — `ExtractSuccess` and `ExtractFailure` types are exactly as plan describes. Adding the `paywall: { isPaywalled, reason }` field is a clean union extension.
+
+---
+
+## UX Lead Review (2026-04-29)
+
+The extension popup is a separate runtime from the main LAEA web app, so design-system parity rules are looser here. Two notes.
+
+### Minor
+
+- **PD-2-UX-Mi1 — Popup chip emoji vs. lucide.** Task 3 specs `🔒 Paywalled (extension_overlay)` using emoji + plain text. The popup is small (320px-ish width, popup-only context) and emoji is fine here — but the rest of the extension popup uses lucide icons (verified in `extension/src/popup/components/SubmitPanel.tsx`-area files via the project's existing import patterns). Recommend swapping the emoji for `<Lock className="w-3 h-3" />` from `lucide-react` (already a dep in the extension) so the popup feels coherent. Color: `bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200` to mirror the main-app PaywallBadge in PD-3 — keeps mental-model continuity for Wylie when he sees the chip in two places.
+
+- **PD-2-UX-Mi2 — Reason text leaks the heuristic name to the user.** `(extension_overlay)` is internal vocabulary; not useful for the human reading the popup. Either:
+  - Drop the parenthetical entirely — just `🔒 Paywalled` is enough confirmation that detection fired
+  - Or map heuristic codes to human-readable text: `extension_overlay` → "(paywall overlay detected)", `extension_phrase` → "(found subscribe prompt)", `extension_short_content` → "(article truncated)"
+  
+  Recommend: drop the parenthetical for v1; keep heuristic codes in DevTools console for debugging. Minor cleanup, makes the chip cleaner.
+
+### Verified ✓
+
+- No motion / animation in PD-2; chip is static. ✓
+- The extension popup runs in its own Chrome popup viewport (~360×600) — no responsive concerns at the LAEA site's mobile breakpoints.
 - The `'too_short'` failure path at `content.ts:44-45` short-circuits on `sanitized.length < 200` (chars) BEFORE reaching the success return. New `detectLiveDomPaywall` only ever sees ≥200-char Readability output — heuristic step 3 is the right place for "Readability got something but it's medium-short and the DOM is huge."
 - `extension/src/popup/lib/submit.ts` — Branch 2 (extract + `/submit`) at lines 110-160 is the right place to forward paywall fields. Branch 1 (server scrape, lines 55-108) doesn't pass them — server runs its own heuristic per PD-1.
 - `extension/src/lib/api.ts:116-125 submitArticle` signature is the right insertion point for `isPaywalled?` + `paywallReason?`.
