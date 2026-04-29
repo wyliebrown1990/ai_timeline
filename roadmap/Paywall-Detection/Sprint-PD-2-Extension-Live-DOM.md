@@ -30,7 +30,7 @@ This sprint adds three things: live-DOM paywall heuristic in the content script,
 **Depends on**: PD-1 (backend accepts new fields)
 **Blocks**: Real-device paywall verification — without this, only server-scraped paywalls get flagged
 **Estimated Effort**: ~½ day
-**Status**: Not started
+**Status**: Shipped to prod 2026-04-29
 
 ---
 

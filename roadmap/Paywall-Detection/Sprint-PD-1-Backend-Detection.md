@@ -29,7 +29,7 @@ Add paywall detection to the ingestion pipeline. Schema migration adds `isPaywal
 **Depends on**: None — schema + heuristic are self-contained
 **Blocks**: PD-2 (extension forwards new fields to `/api/admin/articles/submit`) and PD-3 (frontend reads new fields)
 **Estimated Effort**: ~1 day → **revised to ~1.25 days** after Tech Lead Review (one new task: wire `newsEvents` into `getBySlugWithRelations`)
-**Status**: Not started
+**Status**: Shipped to prod 2026-04-29
 
 ---
 

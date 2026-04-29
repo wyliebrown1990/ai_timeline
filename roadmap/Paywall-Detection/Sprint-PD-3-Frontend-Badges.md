@@ -29,7 +29,7 @@ Render a small `🔒 Paywalled` badge on every UI surface that references an art
 **Depends on**: PD-1 (API responses include the flag)
 **Blocks**: Whole initiative DoD
 **Estimated Effort**: ~1 day → **revised to ~1.25 days** after Tech Lead Review (one new task: JSON-LD `isAccessibleForFree` markup)
-**Status**: Not started
+**Status**: Shipped to prod 2026-04-29
 
 ---
 
