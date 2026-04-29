@@ -8,10 +8,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Calendar, Eye, ThumbsUp, ThumbsDown, Play } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Calendar, Eye, ThumbsUp, ThumbsDown, Play, Lock } from 'lucide-react';
 import { SEO } from '../components/SEO';
 import { feedApi } from '../services/feedApi';
 import { RelatedBySubject } from '../components/RelatedBySubject';
+import { PaywallBadge } from '../components/ui/PaywallBadge';
 import type { FeedItem } from '../types/feed';
 
 // News detail may not have commentCount from API
@@ -217,6 +218,7 @@ function NewsDetailPage() {
                 <Eye className="w-4 h-4" />
                 {event.viewCount.toLocaleString()} views
               </span>
+              {event.isPaywalled && <PaywallBadge paywallReason={event.paywallReason} />}
             </div>
 
             {/* Headline */}
@@ -275,6 +277,14 @@ function NewsDetailPage() {
                 </a>
               )}
             </div>
+            {event.isPaywalled && event.sourceUrl && (
+              <div className="mt-4 flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
+                <Lock className="w-4 h-4 mt-0.5 flex-shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  This source may require a subscription to read in full.
+                </p>
+              </div>
+            )}
           </div>
         </article>
 
