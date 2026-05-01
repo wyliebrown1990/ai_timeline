@@ -279,6 +279,10 @@ function buildRationale(cluster: ClusterOpportunityDetail, plan: SeoTopicPodPlan
   ].join(' ');
 }
 
+function isDiscoveryGapPlan(plan: SeoTopicPodPlan): boolean {
+  return plan.moveType === 'create_new';
+}
+
 function buildSourceRef(cluster: ClusterOpportunityDetail, plan: SeoTopicPodPlan): KeywordOpportunitySourceRef {
   return {
     clusterId: cluster.id,
@@ -355,8 +359,12 @@ async function loadClusterDetails(): Promise<ClusterOpportunityDetail[]> {
   return details.filter((detail): detail is ClusterOpportunityDetail => detail !== null);
 }
 
-async function buildCandidate(cluster: ClusterOpportunityDetail): Promise<KeywordOpportunityCandidate> {
+async function buildCandidate(cluster: ClusterOpportunityDetail): Promise<KeywordOpportunityCandidate | null> {
   const plan = await buildTopicPodFromCluster(cluster);
+  if (!isDiscoveryGapPlan(plan)) {
+    return null;
+  }
+
   const seedQuery = normalizeSeedQuery(plan.keyword || cluster.representativeQuery) || cluster.representativeQuery;
   const targetUrl = getAbsoluteUrl(plan.canonicalDestination.path);
   const pageTypeRecommendation = derivePageTypeRecommendation(plan);
@@ -386,7 +394,8 @@ function buildOverallScore(demandProxy: number, laeaFitScore: number, competitio
 
 export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuildResult> {
   const details = await loadClusterDetails();
-  const candidates = await Promise.all(details.map((detail) => buildCandidate(detail)));
+  const candidateResults = await Promise.all(details.map((detail) => buildCandidate(detail)));
+  const candidates = candidateResults.filter((candidate): candidate is KeywordOpportunityCandidate => candidate !== null);
   const deduped = new Map<string, KeywordOpportunityCandidate>();
 
   for (const candidate of candidates) {

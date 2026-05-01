@@ -130,43 +130,73 @@ describe('keywordDiscovery', () => {
       return buildClusterDetail({ id });
     });
 
-    mockBuildTopicPodFromCluster.mockImplementation(async (cluster: { representativeQuery: string; primaryPage: string }) => ({
-      keyword: cluster.representativeQuery,
-      sourceType: 'cluster_snapshot',
-      sourceId: 'cluster_plan',
-      sourceLabel: '90d topic theme',
-      primaryPage: cluster.primaryPage,
-      moveType: 'expand_existing',
-      hypothesis: 'Test hypothesis',
-      canonicalDestination: {
-        type: 'existing_page',
-        label: 'Existing page',
-        path: new URL(cluster.primaryPage).pathname,
-        exists: true,
-        reason: 'LAEA already has a strong destination.',
-      },
-      companionAssets: [],
-      internalLinkOpportunities: [
-        {
-          entityType: 'glossary_term',
-          label: 'Transformer',
-          path: '/glossary/transformer',
-          reason: 'Support link',
+    mockBuildTopicPodFromCluster.mockImplementation(async (cluster: { representativeQuery: string; primaryPage: string }) => {
+      if (cluster.representativeQuery === 'ai timeline') {
+        return {
+          keyword: cluster.representativeQuery,
+          sourceType: 'cluster_snapshot',
+          sourceId: 'cluster_plan',
+          sourceLabel: '28d content gap',
+          primaryPage: cluster.primaryPage,
+          moveType: 'create_new',
+          hypothesis: 'Create a focused page',
+          canonicalDestination: {
+            type: 'new_blog_post',
+            label: 'AI Timeline',
+            path: '/blog/ai-timeline',
+            exists: false,
+            reason: 'LAEA does not have a dedicated canonical page for this clustered theme yet.',
+          },
+          companionAssets: [],
+          internalLinkOpportunities: [
+            {
+              entityType: 'glossary_term',
+              label: 'Transformer',
+              path: '/glossary/transformer',
+              reason: 'Support link',
+            },
+          ],
+        };
+      }
+
+      return {
+        keyword: cluster.representativeQuery,
+        sourceType: 'cluster_snapshot',
+        sourceId: 'cluster_plan',
+        sourceLabel: '90d topic theme',
+        primaryPage: cluster.primaryPage,
+        moveType: 'expand_existing',
+        hypothesis: 'Test hypothesis',
+        canonicalDestination: {
+          type: 'existing_page',
+          label: 'Existing page',
+          path: new URL(cluster.primaryPage).pathname,
+          exists: true,
+          reason: 'LAEA already has a strong destination.',
         },
-      ],
-    }));
+        companionAssets: [],
+        internalLinkOpportunities: [
+          {
+            entityType: 'glossary_term',
+            label: 'Transformer',
+            path: '/glossary/transformer',
+            reason: 'Support link',
+          },
+        ],
+      };
+    });
   });
 
-  it('rebuilds scored opportunities from live cluster windows and archives stale rows', async () => {
-    mockKeywordFindMany.mockResolvedValueOnce([{ dedupeKey: 'gsc_cluster:mixture expert:explainer_page:/explained/mixture-of-experts-moe' }]);
-    mockKeywordCount.mockResolvedValueOnce(2);
+  it('rebuilds only true gap opportunities from live cluster windows and archives stale rows', async () => {
+    mockKeywordFindMany.mockResolvedValueOnce([]);
+    mockKeywordCount.mockResolvedValueOnce(1);
 
     const result = await rebuildKeywordPortfolio();
 
-    expect(mockKeywordUpsert).toHaveBeenCalledTimes(2);
+    expect(mockKeywordUpsert).toHaveBeenCalledTimes(1);
     expect(mockKeywordUpsert).toHaveBeenCalledWith(expect.objectContaining({
       where: {
-        dedupeKey: 'gsc_cluster:mixture expert:explainer_page:/explained/mixture-of-experts-moe',
+        dedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
       },
       create: expect.objectContaining({
         sourceType: 'gsc_cluster',
@@ -181,10 +211,10 @@ describe('keywordDiscovery', () => {
     }));
     expect(result).toEqual({
       created: 1,
-      updated: 1,
+      updated: 0,
       archived: 0,
-      totalActive: 2,
-      candidateCount: 2,
+      totalActive: 1,
+      candidateCount: 1,
       sourcesUsed: ['gsc_cluster'],
     });
   });

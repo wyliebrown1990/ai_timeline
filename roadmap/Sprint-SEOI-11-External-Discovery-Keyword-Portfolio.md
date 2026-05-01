@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (editorial-seed promotion flow live in prod)
+> Last updated: 2026-05-01 by Codex (content-graph gap filtering live in prod)
 
 ---
 
@@ -88,7 +88,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] GSC clusters that imply adjacent unmet demand
   - [ ] Google Trends or equivalent lightweight trend input
   - [ ] SERP sampling that inspects result mix and crude competition proxies
-  - [ ] content-graph gap checks so LAEA does not “discover” what it already owns
+  - [x] content-graph gap checks so LAEA does not “discover” what it already owns
 - [x] Keep competition scoring lightweight and explainable in v1
 
 ### 4. Editorial scoring
@@ -141,7 +141,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] Confirm at least 10 keyword portfolio rows exist in prod without paid-provider dependencies
 - [x] Confirm at least 3 opportunities can be promoted into experiment/proposal flows
 - [x] Verify source attribution and rationale are visible and understandable
-- [ ] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
+- [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
 
 ### 10. Browser Validation (agent-browser CLI)
 
