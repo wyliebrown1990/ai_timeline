@@ -4,7 +4,7 @@
 //    via chrome.tabs.sendMessage(tabId, { type: 'EXTRACT_ARTICLE' })
 //    then POST /api/admin/articles/submit with the extracted text.
 
-import { ApiError } from '../../lib/api';
+import { ApiError, UnauthorizedError } from '../../lib/api';
 import type { scrape, submitArticle } from '../../lib/api';
 import type { ExtractResponse } from '../../content/content';
 
@@ -80,6 +80,7 @@ export async function runSubmit(deps: SubmitDeps, input: SubmitInput): Promise<S
         stage: 'scrape',
       });
     } catch (err) {
+      if (err instanceof UnauthorizedError) throw err;
       if (err instanceof ApiError) {
         if (err.status === 409) {
           const existingId = (err.body as { existingId?: string } | null)?.existingId;
@@ -169,6 +170,7 @@ export async function runSubmit(deps: SubmitDeps, input: SubmitInput): Promise<S
       stage: 'submit',
     });
   } catch (err) {
+    if (err instanceof UnauthorizedError) throw err;
     if (err instanceof ApiError) {
       if (err.status === 409) {
         const existingId = (err.body as { existingId?: string } | null)?.existingId;

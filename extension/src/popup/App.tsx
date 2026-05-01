@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { LogOut, Sparkles } from 'lucide-react';
 import { LoginForm } from './components/LoginForm';
 import { SubmitPanel } from './components/SubmitPanel';
 import { ThemeToggle } from './components/ThemeToggle';
-import { getJwt, getTheme, type ThemePref } from '../lib/storage';
+import { clearJwt, getJwt, getTheme, type ThemePref } from '../lib/storage';
 import { applyTheme, cycleTheme, effectiveTheme } from '../lib/theme';
 
 type AuthState = 'loading' | 'logged_out' | 'logged_in';
@@ -28,6 +28,11 @@ export default function App() {
     setThemePref(next);
   }
 
+  async function onSignOut() {
+    await clearJwt();
+    setAuth('logged_out');
+  }
+
   return (
     <div className="flex min-h-[200px] flex-col p-4">
       <header className="mb-3 flex items-center justify-between">
@@ -37,7 +42,20 @@ export default function App() {
           </span>
           <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100">AI Timeline Submit</h1>
         </div>
-        <ThemeToggle pref={themePref} onCycle={onCycleTheme} />
+        <div className="flex items-center gap-1">
+          {auth === 'logged_in' && (
+            <button
+              type="button"
+              onClick={onSignOut}
+              aria-label="Sign out"
+              title="Sign out"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950"
+            >
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
+          <ThemeToggle pref={themePref} onCycle={onCycleTheme} />
+        </div>
       </header>
 
       {auth === 'loading' && (
