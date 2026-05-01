@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (Serper spend reporting live in admin + weekly automation)
+> Last updated: 2026-05-01 by Codex (Serper shortlist guardrails tightened + cache telemetry shipped)
 
 ---
 
@@ -131,7 +131,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] Serper `search` sampling that inspects result mix and crude competition proxies
   - [x] content-graph gap checks so LAEA does not “discover” what it already owns
 - [ ] Use Serper only after cheaper signals have already shortlisted a candidate:
-  - [ ] sample only `gsc_cluster`, `google_trends`, or `editorial_seed` rows that already clear a base score threshold
+  - [x] sample only `gsc_cluster`, `google_trends`, or `editorial_seed` rows that already clear a base score threshold
   - [ ] dedupe by normalized `(q, gl, hl, tbs, page)` key
   - [ ] cache automatic samples for `28` days; manual refresh can bypass only after `7` days
   - [ ] never sample more than one page of results in automatic flows

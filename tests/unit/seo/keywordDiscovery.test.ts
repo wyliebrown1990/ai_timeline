@@ -311,6 +311,16 @@ describe('keywordDiscovery', () => {
       },
     });
     expect(mockBuildSerperKeywordOpportunityCandidates).toHaveBeenCalledWith([]);
+    expect(mockKeywordFindMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        sourceType: {
+          in: ['gsc_cluster', 'google_trends', 'editorial_seed'],
+        },
+        overallScore: {
+          gte: 70,
+        },
+      }),
+    }));
   });
 
   it('penalizes discovery scores when proposal and experiment capacity is already busy', async () => {

@@ -20,6 +20,8 @@ import {
 
 const _PORTFOLIO_SOURCE_TYPES = ['gsc_cluster', 'google_trends', 'serp_sample', 'editorial_seed'] as const;
 const _PORTFOLIO_STATUS_VALUES = ['discovered', 'scored', 'promoted', 'archived'] as const;
+const SERPER_AUTO_SHORTLIST_SOURCE_TYPES = ['gsc_cluster', 'google_trends', 'editorial_seed'] as const;
+const SERPER_AUTO_SHORTLIST_MIN_OVERALL_SCORE = 70;
 const PORTFOLIO_BUCKET_PRIORITY: Array<{ horizon: ClusterHorizon; bucket: ClusterBucket; limit: number }> = [
   { horizon: '90d', bucket: 'cluster_topic_theme', limit: 12 },
   { horizon: '28d', bucket: 'cluster_content_gap', limit: 8 },
@@ -603,7 +605,10 @@ async function loadSerperShortlistRows(): Promise<SerperShortlistRow[]> {
         in: ['discovered', 'scored'],
       },
       sourceType: {
-        in: ['gsc_cluster', 'google_trends', 'editorial_seed', 'serp_sample'],
+        in: [...SERPER_AUTO_SHORTLIST_SOURCE_TYPES],
+      },
+      overallScore: {
+        gte: SERPER_AUTO_SHORTLIST_MIN_OVERALL_SCORE,
       },
     },
     orderBy: [
