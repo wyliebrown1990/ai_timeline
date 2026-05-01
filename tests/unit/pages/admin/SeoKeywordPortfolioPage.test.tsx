@@ -21,8 +21,10 @@ jest.mock('react-hot-toast', () => ({
 
 import { seoInsightsApi } from '../../../../src/services/api';
 import SeoKeywordPortfolioPage from '../../../../src/pages/admin/SeoKeywordPortfolioPage';
+import toast from 'react-hot-toast';
 
 const mockSeoInsightsApi = seoInsightsApi as jest.Mocked<typeof seoInsightsApi>;
+const mockToast = toast as jest.Mocked<typeof toast>;
 
 function renderPage() {
   return render(
@@ -163,6 +165,12 @@ describe('SeoKeywordPortfolioPage', () => {
       totalActive: 10,
       candidateCount: 10,
       sourcesUsed: ['gsc_cluster'],
+      serperSampling: {
+        shortlistCount: 3,
+        cacheHits: 2,
+        freshSamples: 1,
+        skippedSamples: 0,
+      },
     });
 
     const user = userEvent.setup();
@@ -177,6 +185,9 @@ describe('SeoKeywordPortfolioPage', () => {
     await waitFor(() => {
       expect(mockSeoInsightsApi.listKeywordPortfolio).toHaveBeenCalledTimes(2);
     });
+    expect(mockToast.success).toHaveBeenCalledWith(
+      'Portfolio rebuilt: 10 candidates, 10 active opportunities · Serper: 2 cache hits, 1 fresh sample'
+    );
   });
 
   it('shows the filtered empty state when a source has no opportunities', async () => {

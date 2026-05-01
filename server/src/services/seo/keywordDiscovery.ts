@@ -139,6 +139,12 @@ export interface KeywordPortfolioRebuildResult {
   totalActive: number;
   candidateCount: number;
   sourcesUsed: KeywordOpportunitySourceType[];
+  serperSampling: {
+    shortlistCount: number;
+    cacheHits: number;
+    freshSamples: number;
+    skippedSamples: number;
+  };
 }
 
 export interface CreateEditorialKeywordOpportunityInput {
@@ -840,6 +846,12 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
       ...uniqueCandidates.map((candidate) => candidate.sourceType),
       ...serperResult.candidates.map(() => 'serp_sample' as const),
     ])),
+    serperSampling: {
+      shortlistCount: serperShortlist.length,
+      cacheHits: serperResult.cacheHits,
+      freshSamples: serperResult.freshSamples,
+      skippedSamples: serperResult.skippedSamples,
+    },
   };
 }
 

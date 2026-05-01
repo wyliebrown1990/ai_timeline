@@ -6331,6 +6331,21 @@ export interface SeoKeywordOpportunityPromotionResult {
   proposal: SeoProposalRecord;
 }
 
+export interface SeoKeywordPortfolioRebuildResult {
+  created: number;
+  updated: number;
+  archived: number;
+  totalActive: number;
+  candidateCount: number;
+  sourcesUsed: SeoKeywordOpportunitySourceType[];
+  serperSampling: {
+    shortlistCount: number;
+    cacheHits: number;
+    freshSamples: number;
+    skippedSamples: number;
+  };
+}
+
 export interface CreateSeoEditorialSeedInput {
   seedQuery: string;
   pageTypeRecommendation: string;
@@ -6629,22 +6644,8 @@ export const seoInsightsApi = {
     });
   },
 
-  async rebuildKeywordPortfolio(): Promise<{
-    created: number;
-    updated: number;
-    archived: number;
-    totalActive: number;
-    candidateCount: number;
-    sourcesUsed: SeoKeywordOpportunitySourceType[];
-  }> {
-    return fetchJson<{
-      created: number;
-      updated: number;
-      archived: number;
-      totalActive: number;
-      candidateCount: number;
-      sourcesUsed: SeoKeywordOpportunitySourceType[];
-    }>(`${API_BASE}/admin/seo/portfolio/rebuild`, {
+  async rebuildKeywordPortfolio(): Promise<SeoKeywordPortfolioRebuildResult> {
+    return fetchJson<SeoKeywordPortfolioRebuildResult>(`${API_BASE}/admin/seo/portfolio/rebuild`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });

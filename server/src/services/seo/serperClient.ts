@@ -782,6 +782,9 @@ export async function buildSerperKeywordOpportunityCandidates(
 ): Promise<{
   candidates: SerperKeywordOpportunityCandidate[];
   supersededOpportunityIds: string[];
+  cacheHits: number;
+  freshSamples: number;
+  skippedSamples: number;
   usage: SerperUsageSummary;
 }> {
   const runtimeConfig = await getRuntimeConfig(now.getTime());
@@ -791,6 +794,9 @@ export async function buildSerperKeywordOpportunityCandidates(
     return {
       candidates: [],
       supersededOpportunityIds: [],
+      cacheHits: 0,
+      freshSamples: 0,
+      skippedSamples: 0,
       usage,
     };
   }
@@ -801,13 +807,12 @@ export async function buildSerperKeywordOpportunityCandidates(
 
   const candidates: SerperKeywordOpportunityCandidate[] = [];
   const supersededOpportunityIds = new Set<string>();
+  let cacheHits = 0;
+  let freshSamples = 0;
+  let skippedSamples = 0;
   let liveQueriesUsed = 0;
 
   for (const row of eligibleRows) {
-    if (liveQueriesUsed >= runtimeConfig.pricing.maxQueriesPerRun) {
-      break;
-    }
-
     const requestKey = buildRequestKey(
       row.seedQuery,
       runtimeConfig.pricing.country,
@@ -818,13 +823,22 @@ export async function buildSerperKeywordOpportunityCandidates(
 
     let summary = await loadCachedSample(requestKey, now);
     if (!summary) {
+      if (liveQueriesUsed >= runtimeConfig.pricing.maxQueriesPerRun) {
+        skippedSamples += 1;
+        continue;
+      }
+
       if (!canSpendOneCredit(usage, runtimeConfig.pricing)) {
-        break;
+        skippedSamples += 1;
+        continue;
       }
 
       summary = await fetchFreshSample(row, runtimeConfig.apiKey, runtimeConfig.pricing, requestKey, now);
       liveQueriesUsed += 1;
+      freshSamples += 1;
       usage = await getSerperUsageSummary(now);
+    } else {
+      cacheHits += 1;
     }
 
     candidates.push({
@@ -852,6 +866,9 @@ export async function buildSerperKeywordOpportunityCandidates(
   return {
     candidates,
     supersededOpportunityIds: Array.from(supersededOpportunityIds),
+    cacheHits,
+    freshSamples,
+    skippedSamples,
     usage,
   };
 }

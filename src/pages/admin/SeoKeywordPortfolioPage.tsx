@@ -9,6 +9,7 @@ import {
   seoInsightsApi,
   type SeoKeywordOpportunityListResult,
   type SeoKeywordOpportunityRecord,
+  type SeoKeywordPortfolioRebuildResult,
   type SeoKeywordOpportunitySourceFilter,
   type SeoKeywordOpportunityStatus,
   type SeoKeywordOpportunityStatusFilter,
@@ -185,6 +186,28 @@ function getSerperWarningClasses(level: SeoSerperUsageSummary['warningLevel']): 
   }
 }
 
+function buildRebuildToastMessage(rebuild: SeoKeywordPortfolioRebuildResult): string {
+  const serperSummaryBits: string[] = [];
+
+  if (rebuild.serperSampling.cacheHits > 0) {
+    serperSummaryBits.push(`${rebuild.serperSampling.cacheHits} cache hit${rebuild.serperSampling.cacheHits === 1 ? '' : 's'}`);
+  }
+
+  if (rebuild.serperSampling.freshSamples > 0) {
+    serperSummaryBits.push(`${rebuild.serperSampling.freshSamples} fresh sample${rebuild.serperSampling.freshSamples === 1 ? '' : 's'}`);
+  }
+
+  if (rebuild.serperSampling.skippedSamples > 0) {
+    serperSummaryBits.push(`${rebuild.serperSampling.skippedSamples} skipped`);
+  }
+
+  const serperSuffix = serperSummaryBits.length > 0
+    ? ` · Serper: ${serperSummaryBits.join(', ')}`
+    : '';
+
+  return `Portfolio rebuilt: ${rebuild.candidateCount} candidates, ${rebuild.totalActive} active opportunities${serperSuffix}`;
+}
+
 function canPromoteOpportunity(opportunity: SeoKeywordOpportunityRecord): boolean {
   return (
     opportunity.status === 'scored'
@@ -270,9 +293,7 @@ export default function SeoKeywordPortfolioPage() {
     setRebuildPending(true);
     try {
       const rebuild = await seoInsightsApi.rebuildKeywordPortfolio();
-      toast.success(
-        `Portfolio rebuilt: ${rebuild.candidateCount} candidates, ${rebuild.totalActive} active opportunities`
-      );
+      toast.success(buildRebuildToastMessage(rebuild));
       await loadPortfolio();
     } catch (nextError) {
       toast.error(nextError instanceof Error ? nextError.message : 'Failed to rebuild keyword portfolio');

@@ -116,6 +116,9 @@ describe('keywordDiscovery', () => {
     mockBuildSerperKeywordOpportunityCandidates.mockResolvedValue({
       candidates: [],
       supersededOpportunityIds: [],
+      cacheHits: 0,
+      freshSamples: 0,
+      skippedSamples: 0,
       usage: {
         configured: false,
         enabled: false,
@@ -300,6 +303,12 @@ describe('keywordDiscovery', () => {
       totalActive: 1,
       candidateCount: 1,
       sourcesUsed: ['gsc_cluster'],
+      serperSampling: {
+        shortlistCount: 0,
+        cacheHits: 0,
+        freshSamples: 0,
+        skippedSamples: 0,
+      },
     });
     expect(mockBuildSerperKeywordOpportunityCandidates).toHaveBeenCalledWith([]);
   });
@@ -380,6 +389,12 @@ describe('keywordDiscovery', () => {
       totalActive: 1,
       candidateCount: 1,
       sourcesUsed: ['google_trends'],
+      serperSampling: {
+        shortlistCount: 0,
+        cacheHits: 0,
+        freshSamples: 0,
+        skippedSamples: 0,
+      },
     });
   });
 
@@ -548,6 +563,9 @@ describe('keywordDiscovery', () => {
         },
       ],
       supersededOpportunityIds: ['kw_gap_1'],
+      cacheHits: 0,
+      freshSamples: 1,
+      skippedSamples: 0,
       usage: {
         configured: true,
         enabled: true,
@@ -600,6 +618,12 @@ describe('keywordDiscovery', () => {
       totalActive: 1,
       candidateCount: 2,
       sourcesUsed: ['gsc_cluster', 'serp_sample'],
+      serperSampling: {
+        shortlistCount: 1,
+        cacheHits: 0,
+        freshSamples: 1,
+        skippedSamples: 0,
+      },
     });
   });
 
