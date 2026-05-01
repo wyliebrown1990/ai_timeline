@@ -56,8 +56,10 @@ import {
   type SeoAgentRunStatusRecord,
 } from '../services/seo/agentRunStatus';
 import {
+  createEditorialKeywordOpportunity,
   getKeywordOpportunity,
   listKeywordOpportunities,
+  markKeywordOpportunityPromoted,
   rebuildKeywordPortfolio,
   type KeywordOpportunitySourceFilter,
   type KeywordOpportunityStatusFilter,
@@ -157,6 +159,15 @@ function parseKeywordOpportunitySource(value: unknown): KeywordOpportunitySource
   }
 
   return 'all';
+}
+
+function parseScoreInput(value: unknown): number | null {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0 || parsed > 100) {
+    return null;
+  }
+
+  return Math.round(parsed);
 }
 
 export async function ingest(_req: Request, res: Response, next: NextFunction) {
@@ -572,6 +583,100 @@ export async function rebuildPortfolio(_req: Request, res: Response, next: NextF
   try {
     const result = await rebuildKeywordPortfolio();
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createPortfolioEditorialSeed(req: Request, res: Response, next: NextFunction) {
+  try {
+    const {
+      seedQuery,
+      pageTypeRecommendation,
+      targetUrl,
+      demandProxy,
+      competitionProxy,
+      laeaFitScore,
+      rationale,
+    } = req.body as Record<string, unknown>;
+
+    if (typeof seedQuery !== 'string' || seedQuery.trim().length === 0) {
+      res.status(400).json({ error: 'seedQuery is required' });
+      return;
+    }
+
+    if (typeof pageTypeRecommendation !== 'string' || pageTypeRecommendation.trim().length === 0) {
+      res.status(400).json({ error: 'pageTypeRecommendation is required' });
+      return;
+    }
+
+    if (typeof rationale !== 'string' || rationale.trim().length === 0) {
+      res.status(400).json({ error: 'rationale is required' });
+      return;
+    }
+
+    const parsedDemand = parseScoreInput(demandProxy);
+    const parsedCompetition = parseScoreInput(competitionProxy);
+    const parsedFit = parseScoreInput(laeaFitScore);
+
+    if (parsedDemand === null || parsedCompetition === null || parsedFit === null) {
+      res.status(400).json({ error: 'demandProxy, competitionProxy, and laeaFitScore must be numbers between 0 and 100' });
+      return;
+    }
+
+    if (targetUrl !== undefined && targetUrl !== null && typeof targetUrl !== 'string') {
+      res.status(400).json({ error: 'targetUrl must be a string when provided' });
+      return;
+    }
+
+    const opportunity = await createEditorialKeywordOpportunity({
+      seedQuery,
+      pageTypeRecommendation,
+      targetUrl: typeof targetUrl === 'string' ? targetUrl : null,
+      demandProxy: parsedDemand,
+      competitionProxy: parsedCompetition,
+      laeaFitScore: parsedFit,
+      rationale,
+    });
+
+    res.status(201).json(opportunity);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function promotePortfolioOpportunity(req: Request, res: Response, next: NextFunction) {
+  try {
+    const opportunity = await getKeywordOpportunity(req.params.id);
+    if (!opportunity) {
+      res.status(404).json({ error: 'SEO keyword opportunity not found' });
+      return;
+    }
+
+    if (opportunity.status === 'promoted') {
+      res.status(409).json({ error: 'This keyword opportunity has already been promoted' });
+      return;
+    }
+
+    if (opportunity.status === 'archived') {
+      res.status(409).json({ error: 'Archived keyword opportunities cannot be promoted' });
+      return;
+    }
+
+    if (opportunity.pageTypeRecommendation !== 'blog_post' || !opportunity.clusterSnapshotId) {
+      res.status(409).json({
+        error: 'Only cluster-backed blog-post opportunities can enter the proposal lane in this first portfolio slice',
+      });
+      return;
+    }
+
+    const proposal = await generateProposalFromCluster(opportunity.clusterSnapshotId);
+    const updatedOpportunity = await markKeywordOpportunityPromoted(opportunity.id);
+
+    res.json({
+      opportunity: updatedOpportunity,
+      proposal,
+    });
   } catch (error) {
     next(error);
   }

@@ -4,7 +4,9 @@ import { MemoryRouter } from 'react-router-dom';
 
 jest.mock('../../../../src/services/api', () => ({
   seoInsightsApi: {
+    createEditorialSeed: jest.fn(),
     listKeywordPortfolio: jest.fn(),
+    promoteKeywordOpportunity: jest.fn(),
     rebuildKeywordPortfolio: jest.fn(),
   },
 }));
@@ -30,7 +32,7 @@ function renderPage() {
   );
 }
 
-function buildOpportunity() {
+function buildOpportunity(overrides: Record<string, unknown> = {}) {
   return {
     id: 'kw_1',
     sourceType: 'gsc_cluster' as const,
@@ -68,6 +70,7 @@ function buildOpportunity() {
     },
     createdAt: '2026-05-01T12:00:00.000Z',
     updatedAt: '2026-05-01T12:15:00.000Z',
+    ...overrides,
   };
 }
 
@@ -190,5 +193,189 @@ describe('SeoKeywordPortfolioPage', () => {
     await user.click(screen.getByRole('button', { name: /google trends/i }));
 
     expect(await screen.findByText(/no opportunities in this filter/i)).toBeInTheDocument();
+  });
+
+  it('queues a proposal for an eligible blog-post opportunity', async () => {
+    const eligibleOpportunity = buildOpportunity({
+      dedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+      seedQuery: 'ai timeline',
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+    });
+
+    mockSeoInsightsApi.listKeywordPortfolio
+      .mockResolvedValueOnce({
+        ...buildListResult(),
+        data: [eligibleOpportunity],
+      })
+      .mockResolvedValueOnce({
+        ...buildListResult(),
+        data: [
+          {
+            ...eligibleOpportunity,
+            status: 'promoted',
+          },
+        ],
+        meta: {
+          counts: {
+            all: 1,
+            discovered: 0,
+            scored: 0,
+            promoted: 1,
+            archived: 0,
+          },
+          sourceCounts: {
+            all: 1,
+            gsc_cluster: 1,
+            google_trends: 0,
+            serp_sample: 0,
+            editorial_seed: 0,
+          },
+        },
+      });
+    mockSeoInsightsApi.promoteKeywordOpportunity.mockResolvedValue({
+      opportunity: {
+        ...eligibleOpportunity,
+        status: 'promoted',
+      },
+      proposal: {
+        id: 'proposal_1',
+        sourceType: 'cluster_snapshot',
+        sourceId: 'cluster_1',
+        proposalType: 'blog_post',
+        sourceBucket: 'cluster_content_gap',
+        sourcePage: 'https://letaiexplainai.com/timeline',
+        sourceQuery: 'ai timeline',
+        sourceWindowStart: '2026-04-01',
+        sourceWindowEnd: '2026-04-28',
+        targetKeyword: 'ai timeline',
+        suggestedAngle: 'Build the canonical AI timeline explainer.',
+        rationale: 'Topic demand is landing on timeline and needs a dedicated blog page.',
+        linkInventory: [],
+        newsHooks: [],
+        confidence: 0.72,
+        status: 'pending',
+        draftPost: null,
+        actedAt: null,
+        rejectedReason: null,
+        hypothesis: 'A canonical timeline post should absorb this recurring demand.',
+        createdAt: '2026-05-01T12:00:00.000Z',
+        topicPod: null,
+        routingPlan: null,
+        packagingFixPlan: null,
+        handoff: {
+          mode: 'blog_draft',
+          command: '/AIBlogDraft topic: "Build the canonical AI timeline explainer."',
+          label: 'Send to /AIBlogDraft',
+          topic: 'Build the canonical AI timeline explainer.',
+          keyword: 'ai timeline',
+          newsUrl: null,
+          proposalPath: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+          guidance: 'Approving this proposal keeps a human in the loop and prepares a structured /AIBlogDraft handoff.',
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('ai timeline')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /queue proposal/i }));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.promoteKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    });
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.listKeywordPortfolio).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('adds an editorial seed and switches to the editorial filter', async () => {
+    mockSeoInsightsApi.listKeywordPortfolio
+      .mockResolvedValueOnce(buildListResult())
+      .mockResolvedValueOnce({
+        data: [
+          buildOpportunity({
+            id: 'kw_seed_1',
+            sourceType: 'editorial_seed',
+            dedupeKey: 'editorial_seed:ai-agent-memory:blog_post:no-target',
+            seedQuery: 'ai agent memory',
+            clusterKey: null,
+            clusterSnapshotId: null,
+            pageTypeRecommendation: 'blog_post',
+            targetUrl: null,
+            rationale: 'Manual seed from strategy review.',
+            demandProxy: 64,
+            competitionProxy: 38,
+            laeaFitScore: 82,
+            overallScore: 68.2,
+            sourceRef: null,
+          }),
+        ],
+        pagination: {
+          page: 1,
+          limit: 100,
+          total: 1,
+          totalPages: 1,
+        },
+        meta: {
+          counts: {
+            all: 1,
+            discovered: 0,
+            scored: 1,
+            promoted: 0,
+            archived: 0,
+          },
+          sourceCounts: {
+            all: 1,
+            gsc_cluster: 0,
+            google_trends: 0,
+            serp_sample: 0,
+            editorial_seed: 1,
+          },
+        },
+      });
+    mockSeoInsightsApi.createEditorialSeed.mockResolvedValue(
+      buildOpportunity({
+        id: 'kw_seed_1',
+        sourceType: 'editorial_seed',
+        dedupeKey: 'editorial_seed:ai-agent-memory:blog_post:no-target',
+        seedQuery: 'ai agent memory',
+        clusterKey: null,
+        clusterSnapshotId: null,
+        pageTypeRecommendation: 'blog_post',
+        targetUrl: null,
+        rationale: 'Manual seed from strategy review.',
+        demandProxy: 64,
+        competitionProxy: 38,
+        laeaFitScore: 82,
+        overallScore: 68.2,
+        sourceRef: null,
+      })
+    );
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('mixture of experts')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /add editorial seed/i }));
+    await user.type(screen.getByLabelText(/keyword/i), 'ai agent memory');
+    await user.type(screen.getByLabelText(/why this belongs in the backlog/i), 'Manual seed from strategy review.');
+    await user.click(screen.getByRole('button', { name: /add seed/i }));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.createEditorialSeed).toHaveBeenCalledWith(expect.objectContaining({
+        seedQuery: 'ai agent memory',
+        pageTypeRecommendation: 'blog_post',
+      }));
+    });
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.listKeywordPortfolio).toHaveBeenLastCalledWith({
+        page: 1,
+        limit: 100,
+        status: 'all',
+        sourceType: 'editorial_seed',
+      });
+    });
   });
 });

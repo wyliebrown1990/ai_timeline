@@ -1,6 +1,7 @@
-import { Compass, Layers3, RefreshCw, Search, TrendingUp } from 'lucide-react';
+import { Compass, Layers3, Plus, RefreshCw, Search, TrendingUp } from 'lucide-react';
 import { startTransition, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { SeoEditorialSeedDrawer } from '../../components/admin/SeoEditorialSeedDrawer';
 import { SeoKeywordOpportunityDrawer } from '../../components/admin/SeoKeywordOpportunityDrawer';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
 import { EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
@@ -113,6 +114,14 @@ function ScoreBar({ value, inverse = false }: { value: number; inverse?: boolean
   );
 }
 
+function canPromoteOpportunity(opportunity: SeoKeywordOpportunityRecord): boolean {
+  return (
+    opportunity.status === 'scored'
+    && opportunity.pageTypeRecommendation === 'blog_post'
+    && Boolean(opportunity.clusterSnapshotId)
+  );
+}
+
 export default function SeoKeywordPortfolioPage() {
   const [status, setStatus] = useState<SeoKeywordOpportunityStatusFilter>('all');
   const [sourceType, setSourceType] = useState<SeoKeywordOpportunitySourceFilter>('all');
@@ -121,6 +130,9 @@ export default function SeoKeywordPortfolioPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rebuildPending, setRebuildPending] = useState(false);
+  const [promotePendingId, setPromotePendingId] = useState<string | null>(null);
+  const [editorialSeedOpen, setEditorialSeedOpen] = useState(false);
+  const [editorialSeedPending, setEditorialSeedPending] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<SeoKeywordOpportunityRecord | null>(null);
 
   const loadPortfolio = useCallback(async () => {
@@ -197,6 +209,45 @@ export default function SeoKeywordPortfolioPage() {
     }
   }
 
+  async function handlePromote(opportunity: SeoKeywordOpportunityRecord) {
+    setPromotePendingId(opportunity.id);
+    try {
+      const response = await seoInsightsApi.promoteKeywordOpportunity(opportunity.id);
+      setSelectedOpportunity(response.opportunity);
+      toast.success(`Proposal queued for ${response.proposal.targetKeyword}`);
+      await loadPortfolio();
+    } catch (nextError) {
+      toast.error(nextError instanceof Error ? nextError.message : 'Failed to promote keyword opportunity');
+    } finally {
+      setPromotePendingId(null);
+    }
+  }
+
+  async function handleCreateEditorialSeed(input: {
+    seedQuery: string;
+    pageTypeRecommendation: string;
+    targetUrl?: string | null;
+    demandProxy: number;
+    competitionProxy: number;
+    laeaFitScore: number;
+    rationale: string;
+  }) {
+    setEditorialSeedPending(true);
+    try {
+      await seoInsightsApi.createEditorialSeed(input);
+      toast.success(`Added editorial seed for ${input.seedQuery}`);
+      setEditorialSeedOpen(false);
+      startTransition(() => {
+        setStatus('all');
+        setSourceType('editorial_seed');
+      });
+    } catch (nextError) {
+      toast.error(nextError instanceof Error ? nextError.message : 'Failed to add editorial seed');
+    } finally {
+      setEditorialSeedPending(false);
+    }
+  }
+
   return (
     <div className="space-y-6" data-testid="seo-keyword-portfolio-page">
       <header className="rounded-[28px] border border-slate-200 bg-gradient-to-br from-slate-900 via-sky-950 to-emerald-950 px-6 py-6 text-white shadow-xl">
@@ -240,6 +291,14 @@ export default function SeoKeywordPortfolioPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setEditorialSeedOpen(true)}
+                className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+              >
+                <Plus className="h-4 w-4" />
+                Add editorial seed
+              </button>
               <label className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-200">
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">Sort</span>
                 <select
@@ -358,7 +417,13 @@ export default function SeoKeywordPortfolioPage() {
                   const source = getSourceConfig(opportunity.sourceType);
                   const SourceIcon = source.icon;
                   return (
-                    <tr key={opportunity.id} className="align-top hover:bg-slate-50/70 dark:hover:bg-slate-950/60">
+                    <tr
+                      key={opportunity.id}
+                      className={[
+                        'align-top hover:bg-slate-50/70 dark:hover:bg-slate-950/60',
+                        opportunity.status === 'promoted' ? 'opacity-80' : '',
+                      ].join(' ')}
+                    >
                       <td className="px-4 py-4">
                         <p className="font-semibold text-slate-900 dark:text-white">{opportunity.seedQuery}</p>
                         <p className="mt-1 max-w-md text-sm text-slate-600 dark:text-slate-400">
@@ -386,6 +451,21 @@ export default function SeoKeywordPortfolioPage() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex justify-end gap-2">
+                          {canPromoteOpportunity(opportunity) && (
+                            <button
+                              type="button"
+                              onClick={() => void handlePromote(opportunity)}
+                              disabled={promotePendingId === opportunity.id}
+                              className="rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                            >
+                              {promotePendingId === opportunity.id ? 'Queueing…' : 'Queue proposal'}
+                            </button>
+                          )}
+                          {opportunity.status === 'promoted' && (
+                            <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                              Promoted
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => setSelectedOpportunity(opportunity)}
@@ -408,6 +488,15 @@ export default function SeoKeywordPortfolioPage() {
         opportunity={selectedOpportunity}
         open={selectedOpportunity !== null}
         onClose={() => setSelectedOpportunity(null)}
+        onPromote={handlePromote}
+        promotePendingId={promotePendingId}
+      />
+
+      <SeoEditorialSeedDrawer
+        open={editorialSeedOpen}
+        onClose={() => setEditorialSeedOpen(false)}
+        onSubmit={handleCreateEditorialSeed}
+        isSubmitting={editorialSeedPending}
       />
     </div>
   );

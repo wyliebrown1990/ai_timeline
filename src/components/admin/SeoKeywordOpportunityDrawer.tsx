@@ -6,6 +6,8 @@ interface SeoKeywordOpportunityDrawerProps {
   opportunity: SeoKeywordOpportunityRecord | null;
   open: boolean;
   onClose: () => void;
+  onPromote: (opportunity: SeoKeywordOpportunityRecord) => Promise<void>;
+  promotePendingId: string | null;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -55,6 +57,8 @@ export function SeoKeywordOpportunityDrawer({
   opportunity,
   open,
   onClose,
+  onPromote,
+  promotePendingId,
 }: SeoKeywordOpportunityDrawerProps) {
   if (!opportunity) {
     return null;
@@ -62,6 +66,11 @@ export function SeoKeywordOpportunityDrawer({
 
   const sourceBadge = getSourceBadge(opportunity.sourceType);
   const SourceIcon = sourceBadge.icon;
+  const canPromote = (
+    opportunity.status === 'scored'
+    && opportunity.pageTypeRecommendation === 'blog_post'
+    && Boolean(opportunity.clusterSnapshotId)
+  );
 
   return (
     <Drawer
@@ -86,15 +95,32 @@ export function SeoKeywordOpportunityDrawer({
           </div>
           <p className="mt-4 text-sm leading-6 text-slate-700 dark:text-slate-300">{opportunity.rationale}</p>
           {opportunity.targetUrl && (
-            <a
-              href={opportunity.targetUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-blue-300 dark:hover:bg-slate-900"
-            >
-              Open target
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {canPromote && (
+                <button
+                  type="button"
+                  onClick={() => void onPromote(opportunity)}
+                  disabled={promotePendingId === opportunity.id}
+                  className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+                >
+                  {promotePendingId === opportunity.id ? 'Queueing proposal…' : 'Queue proposal'}
+                </button>
+              )}
+              {opportunity.status === 'promoted' && (
+                <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1.5 text-sm font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                  Already promoted
+                </span>
+              )}
+              <a
+                href={opportunity.targetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-950 dark:text-blue-300 dark:hover:bg-slate-900"
+              >
+                Open target
+                <ArrowUpRight className="h-4 w-4" />
+              </a>
+            </div>
           )}
         </section>
 

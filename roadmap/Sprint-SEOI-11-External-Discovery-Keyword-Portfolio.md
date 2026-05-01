@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (GSC-cluster discovery + portfolio UI shipped)
+> Last updated: 2026-05-01 by Codex (portfolio promotion + editorial seed flows shipped)
 
 ---
 
@@ -51,16 +51,19 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 1. Discovery-source policy
 
-- [ ] Document the source hierarchy for v1:
+- [x] Document the source hierarchy for v1:
   - `gsc_cluster`
   - `google_trends`
   - `serp_sample`
   - `editorial_seed`
+- V1 is intentionally split into:
+  - live now: `gsc_cluster`, `editorial_seed`
+  - next up: `google_trends`, `serp_sample`
 - [ ] Before provisioning any new AWS resource or adding any paid provider:
   - [ ] Run the relevant `aws [service] list-*` checks first
   - [ ] Estimate costs
   - [ ] Get team approval for billable changes
-- [ ] Default v1 must work with zero new paid vendor dependencies
+- [x] Default v1 must work with zero new paid vendor dependencies
 
 ### 2. Data model
 
@@ -109,7 +112,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] recommended page type
   - [x] current status
   - [x] whether it has an approved experiment
-- [ ] Allow operators to promote a discovery into the existing experiment/proposal flow
+- [x] Allow operators to promote a discovery into the existing experiment/proposal flow
 
 ### 6. Weekly automation
 
@@ -146,9 +149,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] Take initial screenshot: `agent-browser screenshot`
 - [x] Get refs: `agent-browser snapshot -i`
 - [x] Verify sorting/filtering by source and score works
-- [ ] Promote one discovery into the existing workflow and confirm the UI reflects the new state
-- [ ] Take final screenshot: `agent-browser screenshot`
-- [ ] Mobile viewport check for the portfolio page
+- [x] Promote one discovery into the existing workflow and confirm the UI reflects the new state
+- [x] Take final screenshot: `agent-browser screenshot`
+- [x] Mobile viewport check for the portfolio page
 
 ---
 
@@ -156,12 +159,12 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 - [ ] All tasks above checked
 - [x] Keyword portfolio is live in prod
-- [ ] Discovery lane works without paid providers by default
+- [x] Discovery lane works without paid providers by default
 - [x] At least 10 portfolio opportunities exist with usable rationale
 - [ ] At least 3 opportunities can feed into the existing proposal/experiment flow
 - [ ] Tests, typecheck, and lint are clean
 - [ ] CloudWatch and browser validation are clean
-- [ ] Sprint file timestamp updated
+- [x] Sprint file timestamp updated
 
 ---
 
@@ -174,6 +177,8 @@ server/src/services/seo/keywordDiscovery.ts
 server/src/controllers/seoAdmin.ts
 server/src/routes/seoAdmin.ts
 src/pages/admin/SeoKeywordPortfolioPage.tsx
+src/components/admin/SeoEditorialSeedDrawer.tsx
+src/components/admin/SeoKeywordOpportunityDrawer.tsx
 src/services/api.ts
 tests/unit/seo/keywordDiscovery.test.ts
 tests/unit/seoAdmin.test.ts

@@ -6273,6 +6273,21 @@ export interface SeoKeywordOpportunityListResult extends PaginatedResponse<SeoKe
   };
 }
 
+export interface SeoKeywordOpportunityPromotionResult {
+  opportunity: SeoKeywordOpportunityRecord;
+  proposal: SeoProposalRecord;
+}
+
+export interface CreateSeoEditorialSeedInput {
+  seedQuery: string;
+  pageTypeRecommendation: string;
+  targetUrl?: string | null;
+  demandProxy: number;
+  competitionProxy: number;
+  laeaFitScore: number;
+  rationale: string;
+}
+
 export interface SeoInsightsHealth {
   lastRunAt: string | null;
   finalizedThroughDate: string | null;
@@ -6541,6 +6556,21 @@ export const seoInsightsApi = {
 
   async getKeywordOpportunity(id: string): Promise<SeoKeywordOpportunityRecord> {
     return fetchJson<SeoKeywordOpportunityRecord>(`${API_BASE}/admin/seo/portfolio/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async createEditorialSeed(input: CreateSeoEditorialSeedInput): Promise<SeoKeywordOpportunityRecord> {
+    return fetchJson<SeoKeywordOpportunityRecord>(`${API_BASE}/admin/seo/portfolio/editorial-seeds`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(input),
+    });
+  },
+
+  async promoteKeywordOpportunity(id: string): Promise<SeoKeywordOpportunityPromotionResult> {
+    return fetchJson<SeoKeywordOpportunityPromotionResult>(`${API_BASE}/admin/seo/portfolio/${id}/promote`, {
+      method: 'POST',
       headers: getAuthHeaders(),
     });
   },

@@ -90,6 +90,16 @@ export interface KeywordPortfolioRebuildResult {
   sourcesUsed: KeywordOpportunitySourceType[];
 }
 
+export interface CreateEditorialKeywordOpportunityInput {
+  seedQuery: string;
+  pageTypeRecommendation: string;
+  targetUrl?: string | null;
+  demandProxy: number;
+  competitionProxy: number;
+  laeaFitScore: number;
+  rationale: string;
+}
+
 interface KeywordOpportunityCandidate {
   sourceType: KeywordOpportunitySourceType;
   dedupeKey: string;
@@ -132,6 +142,15 @@ function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
+function trimToNull(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function normalizeSeedQuery(value: string): string {
   return value
     .replace(/["“”]/g, ' ')
@@ -150,6 +169,31 @@ function getAbsoluteUrl(path: string | null): string | null {
   }
 
   return `${SITE_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+function buildKeySegment(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 120) || 'na';
+}
+
+function normalizeTargetUrlInput(value: string | null | undefined): string | null {
+  const trimmed = trimToNull(value);
+  if (!trimmed) {
+    return null;
+  }
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('/')) {
+    return getAbsoluteUrl(trimmed);
+  }
+
+  return getAbsoluteUrl(`/${trimmed}`);
 }
 
 function deriveTargetIntent(query: string, targetPath: string | null): string {
@@ -567,4 +611,77 @@ export async function getKeywordOpportunity(opportunityId: string): Promise<Keyw
   });
 
   return row ? serializeRow(row as StoredKeywordOpportunityRow) : null;
+}
+
+export async function markKeywordOpportunityPromoted(opportunityId: string): Promise<KeywordOpportunityRecord> {
+  const row = await prisma.keywordOpportunity.update({
+    where: {
+      id: opportunityId,
+    },
+    data: {
+      status: 'promoted',
+    },
+  });
+
+  return serializeRow(row as StoredKeywordOpportunityRow);
+}
+
+export async function createEditorialKeywordOpportunity(
+  input: CreateEditorialKeywordOpportunityInput,
+): Promise<KeywordOpportunityRecord> {
+  const seedQuery = normalizeSeedQuery(input.seedQuery);
+  const rationale = trimToNull(input.rationale);
+
+  if (!seedQuery || !rationale) {
+    throw new Error('seedQuery and rationale are required');
+  }
+
+  const targetUrl = normalizeTargetUrlInput(input.targetUrl);
+  const demandProxy = clampScore(input.demandProxy);
+  const competitionProxy = clampScore(input.competitionProxy);
+  const laeaFitScore = clampScore(input.laeaFitScore);
+  const overallScore = buildOverallScore(demandProxy, laeaFitScore, competitionProxy);
+  const dedupeKey = [
+    'editorial_seed',
+    buildKeySegment(seedQuery),
+    buildKeySegment(input.pageTypeRecommendation),
+    buildKeySegment(targetUrl ?? 'no-target'),
+  ].join(':');
+
+  const row = await prisma.keywordOpportunity.upsert({
+    where: {
+      dedupeKey,
+    },
+    create: {
+      sourceType: 'editorial_seed',
+      dedupeKey,
+      seedQuery,
+      clusterKey: null,
+      clusterSnapshotId: null,
+      sourceRefJson: null,
+      targetIntent: deriveTargetIntent(seedQuery, targetUrl ? new URL(targetUrl).pathname : null),
+      demandProxy,
+      competitionProxy,
+      laeaFitScore,
+      overallScore,
+      pageTypeRecommendation: input.pageTypeRecommendation,
+      targetUrl,
+      rationale,
+      status: 'scored',
+    },
+    update: {
+      seedQuery,
+      targetIntent: deriveTargetIntent(seedQuery, targetUrl ? new URL(targetUrl).pathname : null),
+      demandProxy,
+      competitionProxy,
+      laeaFitScore,
+      overallScore,
+      pageTypeRecommendation: input.pageTypeRecommendation,
+      targetUrl,
+      rationale,
+      status: 'scored',
+    },
+  });
+
+  return serializeRow(row as StoredKeywordOpportunityRow);
 }

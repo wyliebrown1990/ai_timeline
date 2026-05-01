@@ -35,7 +35,9 @@ const mockReviewSeoExperiment = jest.fn();
 const mockListSeoPackagingAudits = jest.fn();
 const mockGetSeoPackagingAudit = jest.fn();
 const mockListKeywordOpportunities = jest.fn();
+const mockCreateEditorialKeywordOpportunity = jest.fn();
 const mockGetKeywordOpportunity = jest.fn();
+const mockMarkKeywordOpportunityPromoted = jest.fn();
 const mockRebuildKeywordPortfolio = jest.fn();
 
 jest.mock('../../server/src/services/gsc/gscIngest', () => ({
@@ -101,7 +103,9 @@ jest.mock('../../server/src/services/seo/serpPackagingAudit', () => ({
 
 jest.mock('../../server/src/services/seo/keywordDiscovery', () => ({
   listKeywordOpportunities: mockListKeywordOpportunities,
+  createEditorialKeywordOpportunity: mockCreateEditorialKeywordOpportunity,
   getKeywordOpportunity: mockGetKeywordOpportunity,
+  markKeywordOpportunityPromoted: mockMarkKeywordOpportunityPromoted,
   rebuildKeywordPortfolio: mockRebuildKeywordPortfolio,
 }));
 
@@ -115,6 +119,7 @@ import {
   actionClusterOpportunity,
   actions,
   clusterDetail,
+  createPortfolioEditorialSeed,
   detail,
   dismiss,
   dismissClusterOpportunity,
@@ -135,6 +140,7 @@ import {
   measureAction,
   pause,
   pendingFeedback,
+  promotePortfolioOpportunity,
   rebuildPortfolio,
   proposals,
   proposeInsightRewrite,
@@ -915,6 +921,80 @@ describe('seoAdmin controller', () => {
     expect(rebuildRes.json).toHaveBeenCalledWith(expect.objectContaining({
       created: 10,
       totalActive: 10,
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('promotes an eligible keyword opportunity into the proposal lane', async () => {
+    mockGetKeywordOpportunity.mockResolvedValue({
+      id: 'kw_1',
+      seedQuery: 'ai timeline',
+      status: 'scored',
+      pageTypeRecommendation: 'blog_post',
+      clusterSnapshotId: 'cluster_1',
+    });
+    mockGenerateProposalFromCluster.mockResolvedValue({
+      id: 'proposal_1',
+      targetKeyword: 'ai timeline',
+      status: 'pending',
+    });
+    mockMarkKeywordOpportunityPromoted.mockResolvedValue({
+      id: 'kw_1',
+      seedQuery: 'ai timeline',
+      status: 'promoted',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await promotePortfolioOpportunity(createRequest({ params: { id: 'kw_1' } }), res, next);
+
+    expect(mockGetKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    expect(mockGenerateProposalFromCluster).toHaveBeenCalledWith('cluster_1');
+    expect(mockMarkKeywordOpportunityPromoted).toHaveBeenCalledWith('kw_1');
+    expect(res.json).toHaveBeenCalledWith({
+      opportunity: expect.objectContaining({ id: 'kw_1', status: 'promoted' }),
+      proposal: expect.objectContaining({ id: 'proposal_1', targetKeyword: 'ai timeline' }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('creates an editorial seed keyword opportunity', async () => {
+    mockCreateEditorialKeywordOpportunity.mockResolvedValue({
+      id: 'kw_seed_1',
+      seedQuery: 'ai agent memory',
+      sourceType: 'editorial_seed',
+      status: 'scored',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await createPortfolioEditorialSeed(createRequest({
+      body: {
+        seedQuery: 'ai agent memory',
+        pageTypeRecommendation: 'blog_post',
+        targetUrl: '/blog/ai-agent-memory',
+        demandProxy: 65,
+        competitionProxy: 35,
+        laeaFitScore: 80,
+        rationale: 'Manual seed from strategy review.',
+      },
+    }), res, next);
+
+    expect(mockCreateEditorialKeywordOpportunity).toHaveBeenCalledWith({
+      seedQuery: 'ai agent memory',
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: '/blog/ai-agent-memory',
+      demandProxy: 65,
+      competitionProxy: 35,
+      laeaFitScore: 80,
+      rationale: 'Manual seed from strategy review.',
+    });
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'kw_seed_1',
+      sourceType: 'editorial_seed',
     }));
     expect(next).not.toHaveBeenCalled();
   });

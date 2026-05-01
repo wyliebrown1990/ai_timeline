@@ -5,6 +5,7 @@ const mockKeywordCount = jest.fn();
 const mockKeywordGroupBy = jest.fn();
 const mockKeywordFindUnique = jest.fn();
 const mockKeywordUpsert = jest.fn();
+const mockKeywordUpdate = jest.fn();
 const mockKeywordUpdateMany = jest.fn();
 const mockListClusters = jest.fn();
 const mockGetClusterDetail = jest.fn();
@@ -18,6 +19,7 @@ jest.mock('../../../server/src/db', () => ({
       groupBy: mockKeywordGroupBy,
       findUnique: mockKeywordFindUnique,
       upsert: mockKeywordUpsert,
+      update: mockKeywordUpdate,
       updateMany: mockKeywordUpdateMany,
     },
   },
@@ -33,8 +35,10 @@ jest.mock('../../../server/src/services/seo/topicPodPlanner', () => ({
 }));
 
 import {
+  createEditorialKeywordOpportunity,
   getKeywordOpportunity,
   listKeywordOpportunities,
+  markKeywordOpportunityPromoted,
   rebuildKeywordPortfolio,
 } from '../../../server/src/services/seo/keywordDiscovery';
 
@@ -82,6 +86,7 @@ describe('keywordDiscovery', () => {
     mockKeywordGroupBy.mockResolvedValue([]);
     mockKeywordFindUnique.mockResolvedValue(null);
     mockKeywordUpsert.mockResolvedValue({});
+    mockKeywordUpdate.mockResolvedValue({});
     mockKeywordUpdateMany.mockResolvedValue({ count: 0 });
 
     mockListClusters.mockImplementation(async ({ horizon, bucket }: { horizon: string; bucket: string }) => {
@@ -290,6 +295,88 @@ describe('keywordDiscovery', () => {
 
     expect(mockKeywordFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {},
+    }));
+  });
+
+  it('marks a keyword opportunity as promoted', async () => {
+    mockKeywordUpdate.mockResolvedValueOnce({
+      id: 'kw_1',
+      sourceType: 'gsc_cluster',
+      dedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+      seedQuery: 'ai timeline',
+      clusterKey: 'ai timeline',
+      clusterSnapshotId: 'cluster_gap_1',
+      sourceRefJson: null,
+      targetIntent: 'timeline',
+      demandProxy: 24,
+      competitionProxy: 18,
+      laeaFitScore: 72,
+      overallScore: 54.6,
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+      rationale: 'Rationale',
+      status: 'promoted',
+      linkedExperimentId: null,
+      createdAt: new Date('2026-05-01T12:00:00.000Z'),
+      updatedAt: new Date('2026-05-01T12:15:00.000Z'),
+    });
+
+    const result = await markKeywordOpportunityPromoted('kw_1');
+
+    expect(mockKeywordUpdate).toHaveBeenCalledWith({
+      where: { id: 'kw_1' },
+      data: { status: 'promoted' },
+    });
+    expect(result).toEqual(expect.objectContaining({
+      id: 'kw_1',
+      status: 'promoted',
+    }));
+  });
+
+  it('creates a scored editorial seed opportunity', async () => {
+    mockKeywordUpsert.mockResolvedValueOnce({
+      id: 'kw_seed_1',
+      sourceType: 'editorial_seed',
+      dedupeKey: 'editorial_seed:ai-agent-memory:blog-post:https-letaiexplainai-com-blog-ai-agent-memory',
+      seedQuery: 'ai agent memory',
+      clusterKey: null,
+      clusterSnapshotId: null,
+      sourceRefJson: null,
+      targetIntent: 'topic_theme',
+      demandProxy: 64,
+      competitionProxy: 38,
+      laeaFitScore: 82,
+      overallScore: 67.7,
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+      rationale: 'Manual seed from strategy review.',
+      status: 'scored',
+      linkedExperimentId: null,
+      createdAt: new Date('2026-05-01T12:00:00.000Z'),
+      updatedAt: new Date('2026-05-01T12:15:00.000Z'),
+    });
+
+    const result = await createEditorialKeywordOpportunity({
+      seedQuery: 'ai agent memory',
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: '/blog/ai-agent-memory',
+      demandProxy: 64,
+      competitionProxy: 38,
+      laeaFitScore: 82,
+      rationale: 'Manual seed from strategy review.',
+    });
+
+    expect(mockKeywordUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceType: 'editorial_seed',
+        status: 'scored',
+        targetUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+      }),
+    }));
+    expect(result).toEqual(expect.objectContaining({
+      id: 'kw_seed_1',
+      sourceType: 'editorial_seed',
+      seedQuery: 'ai agent memory',
     }));
   });
 });
