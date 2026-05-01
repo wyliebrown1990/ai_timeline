@@ -55,6 +55,13 @@ import {
   setLatestAgentRunStatus,
   type SeoAgentRunStatusRecord,
 } from '../services/seo/agentRunStatus';
+import {
+  getKeywordOpportunity,
+  listKeywordOpportunities,
+  rebuildKeywordPortfolio,
+  type KeywordOpportunitySourceFilter,
+  type KeywordOpportunityStatusFilter,
+} from '../services/seo/keywordDiscovery';
 
 function parseOptionalPositiveInt(value: unknown, fallback: number): number {
   const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -119,6 +126,32 @@ function parseExperimentStatus(value: unknown): SeoExperimentStatusFilter {
     || value === 'flat'
     || value === 'lost'
     || value === 'archived'
+  ) {
+    return value;
+  }
+
+  return 'all';
+}
+
+function parseKeywordOpportunityStatus(value: unknown): KeywordOpportunityStatusFilter {
+  if (
+    value === 'discovered'
+    || value === 'scored'
+    || value === 'promoted'
+    || value === 'archived'
+  ) {
+    return value;
+  }
+
+  return 'all';
+}
+
+function parseKeywordOpportunitySource(value: unknown): KeywordOpportunitySourceFilter {
+  if (
+    value === 'gsc_cluster'
+    || value === 'google_trends'
+    || value === 'serp_sample'
+    || value === 'editorial_seed'
   ) {
     return value;
   }
@@ -497,6 +530,48 @@ export async function reviewExperiment(req: Request, res: Response, next: NextFu
   try {
     const experiment = await reviewSeoExperiment(req.params.id);
     res.json(experiment);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function portfolio(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = parseOptionalPositiveInt(req.query.limit, 25);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const status = parseKeywordOpportunityStatus(req.query.status);
+    const sourceType = parseKeywordOpportunitySource(req.query.sourceType);
+    const result = await listKeywordOpportunities({
+      status,
+      sourceType,
+      page,
+      limit,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function portfolioDetail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const opportunity = await getKeywordOpportunity(req.params.id);
+    if (!opportunity) {
+      res.status(404).json({ error: 'SEO keyword opportunity not found' });
+      return;
+    }
+
+    res.json(opportunity);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function rebuildPortfolio(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await rebuildKeywordPortfolio();
+    res.json(result);
   } catch (error) {
     next(error);
   }

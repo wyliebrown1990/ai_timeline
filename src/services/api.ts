@@ -6220,6 +6220,59 @@ export interface SeoPackagingAuditListResult extends PaginatedResponse<SeoPackag
   };
 }
 
+export type SeoKeywordOpportunitySourceType = 'gsc_cluster' | 'google_trends' | 'serp_sample' | 'editorial_seed';
+export type SeoKeywordOpportunityStatus = 'discovered' | 'scored' | 'promoted' | 'archived';
+export type SeoKeywordOpportunityStatusFilter = 'all' | SeoKeywordOpportunityStatus;
+export type SeoKeywordOpportunitySourceFilter = 'all' | SeoKeywordOpportunitySourceType;
+
+export interface SeoKeywordOpportunitySourceRef {
+  clusterId: string;
+  bucket: SeoClusterBucket;
+  horizon: SeoClusterHorizon;
+  windowStart: string;
+  windowEnd: string;
+  representativeQuery: string;
+  primaryPage: string;
+  canonicalPath: string;
+  moveType: SeoTopicPodPlan['moveType'];
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  position: number;
+  memberQueryCount: number;
+  memberPageCount: number;
+  internalLinkCount: number;
+}
+
+export interface SeoKeywordOpportunityRecord {
+  id: string;
+  sourceType: SeoKeywordOpportunitySourceType;
+  dedupeKey: string;
+  seedQuery: string;
+  clusterKey: string | null;
+  clusterSnapshotId: string | null;
+  targetIntent: string;
+  demandProxy: number;
+  competitionProxy: number;
+  laeaFitScore: number;
+  overallScore: number;
+  pageTypeRecommendation: string;
+  targetUrl: string | null;
+  rationale: string;
+  status: SeoKeywordOpportunityStatus;
+  linkedExperimentId: string | null;
+  sourceRef: SeoKeywordOpportunitySourceRef | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeoKeywordOpportunityListResult extends PaginatedResponse<SeoKeywordOpportunityRecord> {
+  meta: {
+    counts: Record<'all' | SeoKeywordOpportunityStatus, number>;
+    sourceCounts: Record<'all' | SeoKeywordOpportunitySourceType, number>;
+  };
+}
+
 export interface SeoInsightsHealth {
   lastRunAt: string | null;
   finalizedThroughDate: string | null;
@@ -6463,6 +6516,51 @@ export const seoInsightsApi = {
 
   async proposePackagingFix(id: string): Promise<SeoProposalRecord> {
     return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/packaging/${id}/propose-fix`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async listKeywordPortfolio(params?: {
+    page?: number;
+    limit?: number;
+    status?: SeoKeywordOpportunityStatusFilter;
+    sourceType?: SeoKeywordOpportunitySourceFilter;
+  }): Promise<SeoKeywordOpportunityListResult> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.sourceType) searchParams.set('sourceType', params.sourceType);
+
+    const query = searchParams.toString();
+    return fetchJson<SeoKeywordOpportunityListResult>(`${API_BASE}/admin/seo/portfolio${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async getKeywordOpportunity(id: string): Promise<SeoKeywordOpportunityRecord> {
+    return fetchJson<SeoKeywordOpportunityRecord>(`${API_BASE}/admin/seo/portfolio/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async rebuildKeywordPortfolio(): Promise<{
+    created: number;
+    updated: number;
+    archived: number;
+    totalActive: number;
+    candidateCount: number;
+    sourcesUsed: SeoKeywordOpportunitySourceType[];
+  }> {
+    return fetchJson<{
+      created: number;
+      updated: number;
+      archived: number;
+      totalActive: number;
+      candidateCount: number;
+      sourcesUsed: SeoKeywordOpportunitySourceType[];
+    }>(`${API_BASE}/admin/seo/portfolio/rebuild`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });

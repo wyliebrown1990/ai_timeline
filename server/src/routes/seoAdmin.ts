@@ -33,6 +33,9 @@ router.put('/proposals/:id/link-draft', requireAdmin, seoAdminController.linkPro
 router.get('/experiments', requireAdmin, seoAdminController.experiments);
 router.get('/experiments/:id', requireAdmin, seoAdminController.experimentDetail);
 router.post('/experiments/:id/review', requireAdmin, seoAdminController.reviewExperiment);
+router.get('/portfolio', requireAdmin, seoAdminController.portfolio);
+router.get('/portfolio/:id', requireAdmin, seoAdminController.portfolioDetail);
+router.post('/portfolio/rebuild', requireAdmin, seoAdminController.rebuildPortfolio);
 router.put('/pause', requireAdmin, seoAdminController.pause);
 router.put('/run-status', requireAdmin, seoAdminController.updateRunStatus);
 

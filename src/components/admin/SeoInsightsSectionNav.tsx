@@ -1,4 +1,4 @@
-import { BarChart3, FileText, FlaskConical, History, Layers3, Wrench } from 'lucide-react';
+import { BarChart3, FileText, FlaskConical, History, Layers3, Wrench, Compass } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 const NAV_ITEMS = [
@@ -31,6 +31,11 @@ const NAV_ITEMS = [
     href: '/admin/seo-insights/packaging',
     label: 'Packaging',
     icon: Wrench,
+  },
+  {
+    href: '/admin/seo-insights/portfolio',
+    label: 'Portfolio',
+    icon: Compass,
   },
 ];
 

@@ -34,6 +34,9 @@ const mockGetSeoExperiment = jest.fn();
 const mockReviewSeoExperiment = jest.fn();
 const mockListSeoPackagingAudits = jest.fn();
 const mockGetSeoPackagingAudit = jest.fn();
+const mockListKeywordOpportunities = jest.fn();
+const mockGetKeywordOpportunity = jest.fn();
+const mockRebuildKeywordPortfolio = jest.fn();
 
 jest.mock('../../server/src/services/gsc/gscIngest', () => ({
   runWeeklyIngest: mockRunWeeklyIngest,
@@ -96,6 +99,12 @@ jest.mock('../../server/src/services/seo/serpPackagingAudit', () => ({
   getSeoPackagingAudit: mockGetSeoPackagingAudit,
 }));
 
+jest.mock('../../server/src/services/seo/keywordDiscovery', () => ({
+  listKeywordOpportunities: mockListKeywordOpportunities,
+  getKeywordOpportunity: mockGetKeywordOpportunity,
+  rebuildKeywordPortfolio: mockRebuildKeywordPortfolio,
+}));
+
 jest.mock('../../server/src/services/seo/agentRunStatus', () => ({
   getLatestAgentRunStatus: mockGetLatestAgentRunStatus,
   setLatestAgentRunStatus: mockSetLatestAgentRunStatus,
@@ -113,6 +122,8 @@ import {
   experimentDetail,
   packaging,
   packagingDetail,
+  portfolio,
+  portfolioDetail,
   proposePackagingEvergreen,
   proposePackagingFix,
   generateProposalFromClusterOpportunity,
@@ -124,6 +135,7 @@ import {
   measureAction,
   pause,
   pendingFeedback,
+  rebuildPortfolio,
   proposals,
   proposeInsightRewrite,
   approveProposal,
@@ -837,6 +849,73 @@ describe('seoAdmin controller', () => {
     expect(listRes.json).toHaveBeenCalled();
     expect(mockGetSeoPackagingAudit).toHaveBeenCalledWith('packaging_1');
     expect(detailRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'packaging_1' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists keyword opportunities, returns detail, and rebuilds the portfolio', async () => {
+    mockListKeywordOpportunities.mockResolvedValue({
+      data: [{ id: 'kw_1', seedQuery: 'mixture of experts' }],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      meta: {
+        counts: {
+          all: 1,
+          discovered: 0,
+          scored: 1,
+          promoted: 0,
+          archived: 0,
+        },
+        sourceCounts: {
+          all: 1,
+          gsc_cluster: 1,
+          google_trends: 0,
+          serp_sample: 0,
+          editorial_seed: 0,
+        },
+      },
+    });
+    mockGetKeywordOpportunity.mockResolvedValue({
+      id: 'kw_1',
+      seedQuery: 'mixture of experts',
+      status: 'scored',
+    });
+    mockRebuildKeywordPortfolio.mockResolvedValue({
+      created: 10,
+      updated: 0,
+      archived: 0,
+      totalActive: 10,
+      candidateCount: 10,
+      sourcesUsed: ['gsc_cluster'],
+    });
+
+    const listRes = createResponse();
+    const detailRes = createResponse();
+    const rebuildRes = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await portfolio(createRequest({
+      query: {
+        page: '1',
+        limit: '10',
+        status: 'scored',
+        sourceType: 'gsc_cluster',
+      },
+    }), listRes, next);
+    await portfolioDetail(createRequest({ params: { id: 'kw_1' } }), detailRes, next);
+    await rebuildPortfolio(createRequest(), rebuildRes, next);
+
+    expect(mockListKeywordOpportunities).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+      status: 'scored',
+      sourceType: 'gsc_cluster',
+    });
+    expect(listRes.json).toHaveBeenCalled();
+    expect(mockGetKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    expect(detailRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'kw_1' }));
+    expect(rebuildRes.json).toHaveBeenCalledWith(expect.objectContaining({
+      created: 10,
+      totalActive: 10,
+    }));
     expect(next).not.toHaveBeenCalled();
   });
 

@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (data model foundation shipped)
+> Last updated: 2026-05-01 by Codex (GSC-cluster discovery + portfolio UI shipped)
 
 ---
 
@@ -80,35 +80,35 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 3. Discovery services
 
-- [ ] Create `server/src/services/seo/keywordDiscovery.ts`
+- [x] Create `server/src/services/seo/keywordDiscovery.ts`
 - [ ] Implement a public-data discovery flow:
-  - GSC clusters that imply adjacent unmet demand
-  - Google Trends or equivalent lightweight trend input
-  - SERP sampling that inspects result mix and crude competition proxies
-  - content-graph gap checks so LAEA does not “discover” what it already owns
-- [ ] Keep competition scoring lightweight and explainable in v1
+  - [x] GSC clusters that imply adjacent unmet demand
+  - [ ] Google Trends or equivalent lightweight trend input
+  - [ ] SERP sampling that inspects result mix and crude competition proxies
+  - [ ] content-graph gap checks so LAEA does not “discover” what it already owns
+- [x] Keep competition scoring lightweight and explainable in v1
 
 ### 4. Editorial scoring
 
-- [ ] Add a scoring rubric that balances:
-  - demand proxy
-  - competition proxy
-  - fit with LAEA’s existing graph
-  - ability to support internal linking
-  - experiment capacity
+- [x] Add a scoring rubric that balances:
+  - [x] demand proxy
+  - [x] competition proxy
+  - [x] fit with LAEA’s existing graph
+  - [x] ability to support internal linking
+  - [ ] experiment capacity
 - [ ] Cap the weekly intake so discovery does not overwhelm the backlog
 
 ### 5. Admin portfolio UI
 
-- [ ] Add a keyword portfolio page at `/admin/seo-insights/portfolio`
-- [ ] Show:
-  - keyword / cluster
-  - source
-  - demand proxy
-  - competition proxy
-  - recommended page type
-  - current status
-  - whether it has an approved experiment
+- [x] Add a keyword portfolio page at `/admin/seo-insights/portfolio`
+- [x] Show:
+  - [x] keyword / cluster
+  - [x] source
+  - [x] demand proxy
+  - [x] competition proxy
+  - [x] recommended page type
+  - [x] current status
+  - [x] whether it has an approved experiment
 - [ ] Allow operators to promote a discovery into the existing experiment/proposal flow
 
 ### 6. Weekly automation
@@ -119,33 +119,33 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 7. Tests
 
-- [ ] Unit tests for `keywordDiscovery.ts`
-- [ ] Integration tests for keyword portfolio endpoints
-- [ ] Frontend tests for the portfolio UI
-- [ ] `npm run typecheck` — zero errors
+- [x] Unit tests for `keywordDiscovery.ts`
+- [x] Integration tests for keyword portfolio endpoints
+- [x] Frontend tests for the portfolio UI
+- [x] `npm run typecheck` — zero errors
 - [ ] `npm run lint` — zero errors
-- [ ] Focused tests pass
+- [x] Focused tests pass
 
 ### 8. Deploy
 
-- [ ] Backend: `cd infra && sam build && sam deploy --no-confirm-changeset`
-- [ ] Run Prisma migration(s) in prod before verification
-- [ ] Frontend: `./scripts/deploy-frontend.sh`
-- [ ] Rebuild the portfolio after deploy
+- [x] Backend: `cd infra && sam build && sam deploy --no-confirm-changeset`
+- [x] Run Prisma migration(s) in prod before verification
+- [x] Frontend: `./scripts/deploy-frontend.sh`
+- [x] Rebuild the portfolio after deploy
 
 ### 9. Backend Validation
 
-- [ ] Confirm at least 10 keyword portfolio rows exist in prod without paid-provider dependencies
+- [x] Confirm at least 10 keyword portfolio rows exist in prod without paid-provider dependencies
 - [ ] Confirm at least 3 opportunities can be promoted into experiment/proposal flows
-- [ ] Verify source attribution and rationale are visible and understandable
+- [x] Verify source attribution and rationale are visible and understandable
 - [ ] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
 
 ### 10. Browser Validation (agent-browser CLI)
 
-- [ ] Open the portfolio page: `agent-browser open https://letaiexplainai.com/admin/seo-insights/portfolio`
-- [ ] Take initial screenshot: `agent-browser screenshot`
-- [ ] Get refs: `agent-browser snapshot -i`
-- [ ] Verify sorting/filtering by source and score works
+- [x] Open the portfolio page: `agent-browser open https://letaiexplainai.com/admin/seo-insights/portfolio`
+- [x] Take initial screenshot: `agent-browser screenshot`
+- [x] Get refs: `agent-browser snapshot -i`
+- [x] Verify sorting/filtering by source and score works
 - [ ] Promote one discovery into the existing workflow and confirm the UI reflects the new state
 - [ ] Take final screenshot: `agent-browser screenshot`
 - [ ] Mobile viewport check for the portfolio page
@@ -155,9 +155,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 ## Definition of Done
 
 - [ ] All tasks above checked
-- [ ] Keyword portfolio is live in prod
+- [x] Keyword portfolio is live in prod
 - [ ] Discovery lane works without paid providers by default
-- [ ] At least 10 portfolio opportunities exist with usable rationale
+- [x] At least 10 portfolio opportunities exist with usable rationale
 - [ ] At least 3 opportunities can feed into the existing proposal/experiment flow
 - [ ] Tests, typecheck, and lint are clean
 - [ ] CloudWatch and browser validation are clean

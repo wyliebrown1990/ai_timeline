@@ -133,6 +133,7 @@ const SeoActionsPage = lazy(() => import('./pages/admin/SeoActionsPage'));
 const SeoProposalsPage = lazy(() => import('./pages/admin/SeoProposalsPage'));
 const SeoExperimentsPage = lazy(() => import('./pages/admin/SeoExperimentsPage'));
 const SeoPackagingPage = lazy(() => import('./pages/admin/SeoPackagingPage'));
+const SeoKeywordPortfolioPage = lazy(() => import('./pages/admin/SeoKeywordPortfolioPage'));
 const ExtensionDownloadPage = lazy(() => import('./pages/admin/ExtensionDownloadPage'));
 
 /**
@@ -332,6 +333,7 @@ function App() {
                     <Route path="seo-insights/proposals" element={<SeoProposalsPage />} />
                     <Route path="seo-insights/experiments" element={<SeoExperimentsPage />} />
                     <Route path="seo-insights/packaging" element={<SeoPackagingPage />} />
+                    <Route path="seo-insights/portfolio" element={<SeoKeywordPortfolioPage />} />
                     <Route path="seo-content" element={<SeoContentGeneratorPage />} />
                     <Route path="extensions" element={<ExtensionDownloadPage />} />
                     <Route path="extension" element={<ExtensionDownloadPage />} />
