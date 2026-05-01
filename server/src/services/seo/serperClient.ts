@@ -527,13 +527,42 @@ function deriveProjectedDepletionDate(remainingCredits: number | null, creditsUs
   return new Date(now.getTime() + (daysRemaining * DAY_MS)).toISOString();
 }
 
-function deriveWarningLevel(purchasedCredits: number | null, remainingCredits: number | null): SerperUsageWarningLevel {
+function getDaysUntilDate(isoValue: string | null, now: Date): number | null {
+  if (!isoValue) {
+    return null;
+  }
+
+  const depletionAt = new Date(isoValue);
+  if (Number.isNaN(depletionAt.getTime())) {
+    return null;
+  }
+
+  return (depletionAt.getTime() - now.getTime()) / DAY_MS;
+}
+
+function deriveWarningLevel(
+  purchasedCredits: number | null,
+  remainingCredits: number | null,
+  projectedDepletionDate: string | null,
+  now: Date
+): SerperUsageWarningLevel {
+  const daysUntilDepletion = getDaysUntilDate(projectedDepletionDate, now);
   if (!purchasedCredits || remainingCredits === null) {
+    if (daysUntilDepletion !== null && daysUntilDepletion <= 14) {
+      return 'critical';
+    }
+
+    if (daysUntilDepletion !== null && daysUntilDepletion <= 30) {
+      return 'warning';
+    }
+
     return 'ok';
   }
 
   const burnedRatio = (purchasedCredits - remainingCredits) / purchasedCredits;
+  if (daysUntilDepletion !== null && daysUntilDepletion <= 14) return 'critical';
   if (burnedRatio >= 0.9) return 'critical';
+  if (daysUntilDepletion !== null && daysUntilDepletion <= 30) return 'warning';
   if (burnedRatio >= 0.75) return 'warning';
   if (burnedRatio >= 0.5) return 'watch';
   return 'ok';
@@ -566,6 +595,7 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
     : runtimeConfig.pricing.purchasedCredits === null
     ? null
     : Math.max(0, runtimeConfig.pricing.purchasedCredits - creditsUsedTotal);
+  const projectedDepletionDate = deriveProjectedDepletionDate(remainingCredits, week._sum.creditsUsed ?? 0, now);
 
   return {
     configured: runtimeConfig.configured,
@@ -583,9 +613,14 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
     effectiveSpendMonthUsd: Number((month._sum.effectiveCostUsd ?? 0).toFixed(4)),
     effectiveSpendTotalUsd: Number((total._sum.effectiveCostUsd ?? 0).toFixed(4)),
     remainingCredits,
-    projectedDepletionDate: deriveProjectedDepletionDate(remainingCredits, week._sum.creditsUsed ?? 0, now),
+    projectedDepletionDate,
     lastSampledAt: latest?.sampledAt?.toISOString() ?? null,
-    warningLevel: deriveWarningLevel(runtimeConfig.pricing.purchasedCredits, remainingCredits),
+    warningLevel: deriveWarningLevel(
+      runtimeConfig.pricing.purchasedCredits,
+      remainingCredits,
+      projectedDepletionDate,
+      now
+    ),
   };
 }
 

@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   CheckCircle2,
   Clock3,
   ExternalLink,
@@ -17,6 +18,7 @@ import {
   type SeoInsight,
   type SeoInsightBucket,
   type SeoInsightListResult,
+  type SeoSerperUsageSummary,
 } from '../../services/api';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
 import { ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
@@ -107,6 +109,101 @@ function formatTimestamp(value: string | null): string {
   });
 }
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatCount(value: number | null): string {
+  if (value === null) {
+    return 'Uncapped';
+  }
+
+  return value.toLocaleString();
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return 'Not sampled yet';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Not sampled yet';
+  }
+
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function getSerperWarningClasses(level: SeoSerperUsageSummary['warningLevel']): string {
+  switch (level) {
+    case 'critical':
+      return 'border border-rose-300 bg-rose-100 text-rose-700';
+    case 'warning':
+      return 'border border-orange-300 bg-orange-100 text-orange-700';
+    case 'watch':
+      return 'border border-amber-300 bg-amber-100 text-amber-700';
+    case 'ok':
+    default:
+      return 'border border-emerald-200 bg-emerald-100 text-emerald-700';
+  }
+}
+
+function getSerperWarningLabel(level: SeoSerperUsageSummary['warningLevel']): string {
+  switch (level) {
+    case 'critical':
+      return 'Critical';
+    case 'warning':
+      return 'Warning';
+    case 'watch':
+      return 'Watch';
+    case 'ok':
+    default:
+      return 'Healthy';
+  }
+}
+
+function getSerperSummaryText(serper: SeoSerperUsageSummary): string {
+  if (!serper.configured) {
+    return 'Serper is not configured yet, so paid SERP sampling is unavailable.';
+  }
+
+  if (!serper.enabled) {
+    return 'Serper is configured but disabled in pricing policy, so the discovery lane is staying read-only.';
+  }
+
+  if (serper.warningLevel === 'critical') {
+    return serper.projectedDepletionDate
+      ? `Serper usage is critical: credits could run out by ${formatDateTime(serper.projectedDepletionDate)} unless sampling slows down.`
+      : 'Serper usage is critical: purchased credits are almost exhausted and new sampling should pause.';
+  }
+
+  if (serper.warningLevel === 'warning') {
+    return serper.projectedDepletionDate
+      ? `Serper usage needs attention: current burn projects depletion by ${formatDateTime(serper.projectedDepletionDate)}.`
+      : 'Serper usage needs attention: burn has crossed the warning threshold.';
+  }
+
+  if (serper.warningLevel === 'watch') {
+    return 'Serper usage is still within guardrails, but the burn rate is high enough to watch closely.';
+  }
+
+  if (serper.lastSampledAt) {
+    return `Serper sampling is healthy. Last paid sample ran ${formatRelativeTime(serper.lastSampledAt)} and auto top-up remains off.`;
+  }
+
+  return 'Serper is configured and healthy, but no paid samples have been recorded yet.';
+}
+
 function getAgentBannerState(health: SeoInsightsHealth | null): 'first_run' | 'stale' | 'healthy' | 'failed' {
   if (!health?.agentRun) {
     return 'first_run';
@@ -181,6 +278,7 @@ export default function SeoInsightsPage() {
   const agentBannerState = getAgentBannerState(health);
   const agentRun = health?.agentRun ?? null;
   const paused = health?.paused ?? false;
+  const serper = health?.serper ?? null;
   const counts = result?.meta.counts ?? {
     winnable_loss: 0,
     content_gap: 0,
@@ -354,6 +452,68 @@ export default function SeoInsightsPage() {
                   Last GSC ingest {formatRelativeTime(health.lastRunAt)}
                 </span>
               </div>
+
+              {serper && (
+                <div
+                  className="rounded-2xl border border-current/10 bg-white/75 p-4 text-slate-900 shadow-sm"
+                  data-testid="seo-serper-summary"
+                >
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          Serper spend
+                        </span>
+                        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getSerperWarningClasses(serper.warningLevel)}`}>
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          {getSerperWarningLabel(serper.warningLevel)}
+                        </span>
+                        <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                          {serper.autoTopupEnabled ? 'Auto top-up on' : 'Auto top-up off'}
+                        </span>
+                      </div>
+                      <p className="text-sm leading-6 text-slate-700">
+                        {getSerperSummaryText(serper)}
+                      </p>
+                    </div>
+
+                    <div className="grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">This week</p>
+                        <p className="mt-1 text-base font-semibold text-slate-900">
+                          {serper.creditsUsedWeek.toLocaleString()} queries
+                        </p>
+                        <p className="text-slate-600">{formatUsd(serper.effectiveSpendWeekUsd)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Month to date</p>
+                        <p className="mt-1 text-base font-semibold text-slate-900">
+                          {formatUsd(serper.effectiveSpendMonthUsd)}
+                        </p>
+                        <p className="text-slate-600">Budget {formatCount(serper.monthlyCreditBudget)} credits</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Credits left</p>
+                        <p className="mt-1 text-base font-semibold text-slate-900">
+                          {formatCount(serper.remainingCredits)}
+                        </p>
+                        <p className="text-slate-600">Tier {serper.tierLabel ?? 'custom'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Sampling activity</p>
+                        <p className="mt-1 text-base font-semibold text-slate-900">
+                          {formatDateTime(serper.lastSampledAt)}
+                        </p>
+                        <p className="text-slate-600">
+                          {serper.projectedDepletionDate
+                            ? `Projected depletion ${formatDateTime(serper.projectedDepletionDate)}`
+                            : 'No depletion projected'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">

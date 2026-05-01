@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (Serper provider decision + cost-governed SERP-sampling plan integrated)
+> Last updated: 2026-05-01 by Codex (Serper spend reporting live in admin + weekly automation)
 
 ---
 
@@ -55,9 +55,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] SEOI-8 through SEOI-10 are stable in prod
 - [x] GSC cluster mining and experiment ledger are already trusted
 - [x] Wylie approved Serper as the `serp_sample` provider on 2026-05-01
-- [ ] Serper account has a payment card on file and the initial credit pack is intentionally chosen
-- [ ] Serper auto-top-ups remain disabled
-- [ ] SSM params exist for `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json`
+- [x] Serper account has a payment card on file and the initial credit pack is intentionally chosen
+- [x] Serper auto-top-ups remain disabled
+- [x] SSM params exist for `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json`
 - [ ] Local dev server running: `npm run dev` + `npm run dev:server`
 
 ---
@@ -106,7 +106,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - `status`
   - `linkedExperimentId`
 - [x] Generate Prisma migration(s)
-- [ ] Add a Serper cache + metering model, for example `SerpSample`, with fields such as:
+- [x] Add a Serper cache + metering model, for example `SerpSample`, with fields such as:
   - `keywordOpportunityId`
   - `vendor`
   - `normalizedQueryKey`
@@ -120,7 +120,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - `responseJson`
   - `sampledAt`
   - `expiresAt`
-- [ ] Generate Prisma migration(s) for any new Serper cache/metering model(s)
+- [x] Generate Prisma migration(s) for any new Serper cache/metering model(s)
 
 ### 3. Discovery services
 
@@ -128,7 +128,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [ ] Implement the discovery flow:
   - [x] GSC clusters that imply adjacent unmet demand
   - [x] Google Trends or equivalent lightweight trend input
-  - [ ] Serper `search` sampling that inspects result mix and crude competition proxies
+  - [x] Serper `search` sampling that inspects result mix and crude competition proxies
   - [x] content-graph gap checks so LAEA does not “discover” what it already owns
 - [ ] Use Serper only after cheaper signals have already shortlisted a candidate:
   - [ ] sample only `gsc_cluster`, `google_trends`, or `editorial_seed` rows that already clear a base score threshold
@@ -162,22 +162,22 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] current status
   - [x] whether it has an approved experiment
 - [x] Allow operators to promote a discovery into the existing experiment/proposal flow
-- [ ] Show Serper ops state on the portfolio surface:
-  - [ ] credits used this week / month
-  - [ ] effective spend in USD based on the approved pricing config
-  - [ ] remaining purchased balance and projected depletion date
-  - [ ] auto-top-up state (`off` is the default and expected state)
-  - [ ] row-level sample freshness (`last sampled`, `cache expires`)
+- [x] Show Serper ops state on the portfolio surface:
+  - [x] credits used this week / month
+  - [x] effective spend in USD based on the approved pricing config
+  - [x] remaining purchased balance and projected depletion date
+  - [x] auto-top-up state (`off` is the default and expected state)
+  - [x] row-level sample freshness (`last sampled`, `cache expires`)
 
 ### 6. Weekly automation
 
 - [x] Update the weekly agent so it can nominate at most 1-2 new discovery-lane ideas per run
 - [x] Keep the rest in a scored backlog for human review
 - [x] Paused mode remains read-only
-- [ ] Add Serper spend reporting to the weekly agent:
-  - [ ] include this week’s credits used, month-to-date effective spend, remaining purchased balance, and projected depletion date in the digest
-  - [ ] if burn crosses 25% / 50% / 75% / 90% of purchased credits, or projected depletion is under 30 days, elevate the warning in the digest and admin ops banner
-  - [ ] Wylie receives this spend update automatically as part of the weekly SEO digest; do not rely on manual Serper dashboard checks
+- [x] Add Serper spend reporting to the weekly agent:
+  - [x] include this week’s credits used, month-to-date effective spend, remaining purchased balance, and projected depletion date in the digest
+  - [x] if burn crosses 25% / 50% / 75% / 90% of purchased credits, or projected depletion is under 30 days, elevate the warning in the digest and admin ops banner
+  - [x] Wylie receives this spend update automatically as part of the weekly SEO digest; do not rely on manual Serper dashboard checks
 
 ### 7. Tests
 
@@ -190,9 +190,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 8. Deploy
 
-- [ ] Add `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json` to SSM and Lambda env
-- [ ] Keep Serper auto-top-up disabled after setup
-- [ ] Purchase the initial Serper credit pack only once the code path is ready to consume it
+- [x] Add `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json` to SSM and Lambda env
+- [x] Keep Serper auto-top-up disabled after setup
+- [x] Purchase the initial Serper credit pack only once the code path is ready to consume it
 - [x] Backend: `cd infra && sam build && sam deploy --no-confirm-changeset`
 - [x] Run Prisma migration(s) in prod before verification
 - [x] Frontend: `./scripts/deploy-frontend.sh`

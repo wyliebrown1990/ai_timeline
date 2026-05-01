@@ -60,6 +60,13 @@ Required steps:
    - this week's packaging proposals queued
    - this week's discovery nominations queued from the portfolio
    - scored portfolio rows intentionally deferred because of the weekly cap
+   - Serper spend state:
+     - credits used this week
+     - effective month-to-date spend in USD
+     - remaining purchased credits
+     - projected depletion date
+     - auto-top-up state
+   - if Serper burn crosses 25% / 50% / 75% / 90% of purchased credits, or projected depletion is under 30 days, elevate that warning clearly in the digest
    - this week's human-only escalations
    - packaging audits that need product or IA judgment
    - any blocker such as missing GSC data or zero qualifying blog opportunities

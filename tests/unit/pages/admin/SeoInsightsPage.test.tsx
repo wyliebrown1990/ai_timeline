@@ -95,6 +95,26 @@ function buildHealthResult(overrides: Partial<Awaited<ReturnType<typeof seoInsig
     totalRowsLast30d: 354,
     paused: false,
     agentRun: null,
+    serper: {
+      configured: true,
+      enabled: true,
+      autoTopupEnabled: false,
+      tierLabel: 'starter',
+      purchasedCredits: 50_000,
+      monthlyCreditBudget: 2_500,
+      creditsUsedToday: 1,
+      creditsUsedWeek: 4,
+      creditsUsedMonth: 4,
+      creditsUsedTotal: 4,
+      effectiveSpendTodayUsd: 0.001,
+      effectiveSpendWeekUsd: 0.004,
+      effectiveSpendMonthUsd: 0.004,
+      effectiveSpendTotalUsd: 0.004,
+      remainingCredits: 49_996,
+      projectedDepletionDate: '2026-11-17T22:13:00.000Z',
+      lastSampledAt: '2026-05-01T20:53:00.000Z',
+      warningLevel: 'ok' as const,
+    },
     ...overrides,
   };
 }
@@ -354,7 +374,42 @@ describe('SeoInsightsPage', () => {
 
     expect(await screen.findByTestId('seo-ops-banner')).toBeInTheDocument();
     expect(await screen.findByText(/weekly digest is not live yet/i)).toBeInTheDocument();
+    expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('Serper spend');
+    expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('4 queries');
+    expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('Auto top-up off');
     expect(screen.getByRole('button', { name: /pause auto-ship/i })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('elevates Serper warnings on the SEO ops banner when burn looks risky', async () => {
+    mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
+    mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({
+      serper: {
+        configured: true,
+        enabled: true,
+        autoTopupEnabled: false,
+        tierLabel: 'starter',
+        purchasedCredits: 50_000,
+        monthlyCreditBudget: 2_500,
+        creditsUsedToday: 0,
+        creditsUsedWeek: 28_000,
+        creditsUsedMonth: 28_000,
+        creditsUsedTotal: 28_000,
+        effectiveSpendTodayUsd: 0,
+        effectiveSpendWeekUsd: 28,
+        effectiveSpendMonthUsd: 28,
+        effectiveSpendTotalUsd: 28,
+        remainingCredits: 22_000,
+        projectedDepletionDate: '2026-05-06T20:53:00.000Z',
+        lastSampledAt: '2026-05-01T20:53:00.000Z',
+        warningLevel: 'warning',
+      },
+    }));
+
+    renderPage();
+
+    expect(await screen.findByTestId('seo-serper-summary')).toHaveTextContent('Warning');
+    expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent(/needs attention/i);
+    expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent(/Projected depletion/i);
   });
 
   it('pauses immediately and requires confirmation before resuming', async () => {
