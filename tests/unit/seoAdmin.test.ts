@@ -975,6 +975,7 @@ describe('seoAdmin controller', () => {
   it('promotes an eligible keyword opportunity into the proposal lane', async () => {
     mockGetKeywordOpportunity.mockResolvedValue({
       id: 'kw_1',
+      sourceType: 'gsc_cluster',
       seedQuery: 'ai timeline',
       status: 'scored',
       pageTypeRecommendation: 'blog_post',
@@ -1038,6 +1039,43 @@ describe('seoAdmin controller', () => {
     expect(res.json).toHaveBeenCalledWith({
       opportunity: expect.objectContaining({ id: 'kw_seed_1', status: 'promoted' }),
       proposal: expect.objectContaining({ id: 'proposal_seed_1', targetKeyword: 'ai agent memory' }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('promotes a SERP-sampled keyword opportunity through the keyword-opportunity proposal lane', async () => {
+    mockGetKeywordOpportunity.mockResolvedValue({
+      id: 'kw_serp_1',
+      sourceType: 'serp_sample',
+      seedQuery: 'ai timeline',
+      status: 'scored',
+      pageTypeRecommendation: 'blog_post',
+      clusterSnapshotId: 'cluster_1',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+    });
+    mockGenerateProposalFromKeywordOpportunity.mockResolvedValue({
+      id: 'proposal_serp_1',
+      targetKeyword: 'ai timeline',
+      status: 'pending',
+    });
+    mockMarkKeywordOpportunityPromoted.mockResolvedValue({
+      id: 'kw_serp_1',
+      seedQuery: 'ai timeline',
+      status: 'promoted',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await promotePortfolioOpportunity(createRequest({ params: { id: 'kw_serp_1' } }), res, next);
+
+    expect(mockGetKeywordOpportunity).toHaveBeenCalledWith('kw_serp_1');
+    expect(mockGenerateProposalFromKeywordOpportunity).toHaveBeenCalledWith('kw_serp_1');
+    expect(mockGenerateProposalFromCluster).not.toHaveBeenCalled();
+    expect(mockMarkKeywordOpportunityPromoted).toHaveBeenCalledWith('kw_serp_1');
+    expect(res.json).toHaveBeenCalledWith({
+      opportunity: expect.objectContaining({ id: 'kw_serp_1', status: 'promoted' }),
+      proposal: expect.objectContaining({ id: 'proposal_serp_1', targetKeyword: 'ai timeline' }),
     });
     expect(next).not.toHaveBeenCalled();
   });

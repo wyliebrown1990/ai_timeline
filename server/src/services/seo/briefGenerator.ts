@@ -10,6 +10,7 @@ import { matchOrganization, matchPerson } from '../entityMatcher';
 import { ensureExperimentForProposalLink, type SeoExperimentTopicPod } from './experimentLedger';
 import { planTopicPodForCluster } from './topicPodPlanner';
 import { getSeoPackagingAudit, type SeoPackagingAuditRecord, type SeoPackagingIssueRecord } from './serpPackagingAudit';
+import type { SerperKeywordSourceRef } from './serperClient';
 
 const PROPOSAL_MODEL = 'claude-sonnet-4-20250514';
 const SUPPORTED_BUCKETS = new Set(['content_gap', 'trend_signal']);
@@ -184,6 +185,7 @@ interface KeywordOpportunityProposalSourceRecord {
   targetUrl: string | null;
   rationale: string;
   status: string;
+  sourceRefJson: unknown;
   createdAt: Date;
 }
 
@@ -459,6 +461,92 @@ function parseKeywordOpportunitySourceRef(value: unknown): SeoKeywordOpportunity
     windowEnd: null,
     sourceBucket,
     sourceQuery,
+  };
+}
+
+function parseSerperSourceRef(value: unknown): SerperKeywordSourceRef | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const vendor = record.vendor;
+  const requestKey = trimToNull(typeof record.requestKey === 'string' ? record.requestKey : null);
+  const originSourceType = trimToNull(typeof record.originSourceType === 'string' ? record.originSourceType : null);
+  const originOpportunityId = trimToNull(typeof record.originOpportunityId === 'string' ? record.originOpportunityId : null);
+  const originDedupeKey = trimToNull(typeof record.originDedupeKey === 'string' ? record.originDedupeKey : null);
+  const query = trimToNull(typeof record.query === 'string' ? record.query : null);
+  const country = trimToNull(typeof record.country === 'string' ? record.country : null);
+  const language = trimToNull(typeof record.language === 'string' ? record.language : null);
+  const dateRange = trimToNull(typeof record.dateRange === 'string' ? record.dateRange : null);
+  const page = typeof record.page === 'number' ? record.page : null;
+  const sampledAt = trimToNull(typeof record.sampledAt === 'string' ? record.sampledAt : null);
+  const expiresAt = trimToNull(typeof record.expiresAt === 'string' ? record.expiresAt : null);
+  const organicCount = typeof record.organicCount === 'number' ? record.organicCount : null;
+  const peopleAlsoAskCount = typeof record.peopleAlsoAskCount === 'number' ? record.peopleAlsoAskCount : null;
+  const relatedSearchCount = typeof record.relatedSearchCount === 'number' ? record.relatedSearchCount : null;
+  const topDomains = Array.isArray(record.topDomains)
+    ? record.topDomains.filter((item): item is string => typeof item === 'string')
+    : null;
+  const strongDomainCount = typeof record.strongDomainCount === 'number' ? record.strongDomainCount : null;
+  const forumDomainCount = typeof record.forumDomainCount === 'number' ? record.forumDomainCount : null;
+  const videoDomainCount = typeof record.videoDomainCount === 'number' ? record.videoDomainCount : null;
+  const competitionProxy = typeof record.competitionProxy === 'number' ? record.competitionProxy : null;
+  const competitionReason = trimToNull(
+    typeof record.competitionReason === 'string' ? record.competitionReason : null
+  );
+  const effectiveCostUsd = typeof record.effectiveCostUsd === 'number' ? record.effectiveCostUsd : null;
+
+  if (
+    vendor !== 'serper'
+    || !requestKey
+    || !originSourceType
+    || !originOpportunityId
+    || !originDedupeKey
+    || !query
+    || !country
+    || !language
+    || !dateRange
+    || page === null
+    || !sampledAt
+    || !expiresAt
+    || organicCount === null
+    || peopleAlsoAskCount === null
+    || relatedSearchCount === null
+    || !topDomains
+    || strongDomainCount === null
+    || forumDomainCount === null
+    || videoDomainCount === null
+    || competitionProxy === null
+    || !competitionReason
+    || effectiveCostUsd === null
+  ) {
+    return null;
+  }
+
+  return {
+    vendor,
+    requestKey,
+    originSourceType,
+    originOpportunityId,
+    originDedupeKey,
+    query,
+    country,
+    language,
+    dateRange,
+    page,
+    sampledAt,
+    expiresAt,
+    organicCount,
+    peopleAlsoAskCount,
+    relatedSearchCount,
+    topDomains,
+    strongDomainCount,
+    forumDomainCount,
+    videoDomainCount,
+    competitionProxy,
+    competitionReason,
+    effectiveCostUsd,
   };
 }
 
@@ -904,6 +992,7 @@ function buildKeywordOpportunityPrompt(input: {
   linkInventory: SeoProposalLinkInventoryItem[];
   newsHooks: SeoProposalNewsHook[];
 }): string {
+  const serperSourceRef = parseSerperSourceRef(input.opportunity.sourceRefJson);
   const entityLines = input.linkInventory.length > 0
     ? input.linkInventory.map((item) => `- ${item.entityType}: ${item.label} (${item.path})`).join('\n')
     : '- No strong linked entities found yet.';
@@ -911,6 +1000,22 @@ function buildKeywordOpportunityPrompt(input: {
   const newsLines = input.newsHooks.length > 0
     ? input.newsHooks.map((item) => `- ${item.title} (${item.sourceName ?? 'Unknown source'}, ${item.publishedAt})`).join('\n')
     : '- No recent news hooks found.';
+  const serperLines = serperSourceRef
+    ? [
+        `- Sampled query: ${serperSourceRef.query}`,
+        `- Origin source type: ${serperSourceRef.originSourceType}`,
+        `- Locale + window: ${serperSourceRef.country.toUpperCase()} / ${serperSourceRef.language.toUpperCase()} / ${serperSourceRef.dateRange} / page ${serperSourceRef.page}`,
+        `- Sampled at: ${formatIsoDate(new Date(serperSourceRef.sampledAt))}`,
+        `- Refreshed competition proxy: ${serperSourceRef.competitionProxy}`,
+        `- Organic results sampled: ${serperSourceRef.organicCount}`,
+        `- Top domains: ${serperSourceRef.topDomains.join(', ') || 'none captured'}`,
+        `- Authoritative domains in top results: ${serperSourceRef.strongDomainCount}`,
+        `- Forum results: ${serperSourceRef.forumDomainCount}`,
+        `- Video results: ${serperSourceRef.videoDomainCount}`,
+        `- People Also Ask prompts: ${serperSourceRef.peopleAlsoAskCount}`,
+        `- Competition read: ${serperSourceRef.competitionReason}`,
+      ].join('\n')
+    : '- No live SERP sample attached.';
 
   return `You are preparing a content brief for the AI Timeline Atlas blog at letaiexplainai.com.
 
@@ -922,6 +1027,7 @@ Rules:
 - Prefer a concrete, arguable angle that fits an AI history / entity-graph site.
 - Respect the recommended destination and page type.
 - Keep the angle specific enough that a human can hand it to /AIBlogDraft.
+- When live SERP evidence is present, use it to differentiate from the current first-page winners instead of repeating generic category copy.
 
 Return ONLY valid JSON with this exact shape:
 {
@@ -942,6 +1048,9 @@ Keyword opportunity:
 - LAEA fit: ${input.opportunity.laeaFitScore}
 - Overall score: ${input.opportunity.overallScore.toFixed(1)}
 - Operator rationale: ${input.opportunity.rationale}
+
+Live SERP evidence:
+${serperLines}
 
 Linked entities:
 ${entityLines}
@@ -1015,6 +1124,7 @@ function adjustKeywordOpportunityConfidence(
   linkInventoryCount: number,
   newsHookCount: number,
 ): number {
+  const serperSourceRef = parseSerperSourceRef(opportunity.sourceRefJson);
   let nextConfidence = baseConfidence;
 
   if (linkInventoryCount >= 3) {
@@ -1037,6 +1147,28 @@ function adjustKeywordOpportunityConfidence(
 
   if (opportunity.demandProxy < 25) {
     nextConfidence -= 0.06;
+  }
+
+  if (serperSourceRef) {
+    if (serperSourceRef.strongDomainCount >= 3) {
+      nextConfidence -= 0.08;
+    } else if (serperSourceRef.strongDomainCount === 0) {
+      nextConfidence += 0.04;
+    }
+
+    if (serperSourceRef.forumDomainCount > 0 || serperSourceRef.videoDomainCount > 0) {
+      nextConfidence += 0.05;
+    }
+
+    if (serperSourceRef.peopleAlsoAskCount >= 3) {
+      nextConfidence += 0.02;
+    }
+
+    if (serperSourceRef.competitionProxy <= 45) {
+      nextConfidence += 0.04;
+    } else if (serperSourceRef.competitionProxy >= 70) {
+      nextConfidence -= 0.05;
+    }
   }
 
   return clampConfidence(nextConfidence);
@@ -1383,6 +1515,7 @@ async function loadKeywordOpportunitySource(
       targetUrl: true,
       rationale: true,
       status: true,
+      sourceRefJson: true,
       createdAt: true,
     },
   });
@@ -1886,6 +2019,22 @@ async function createKeywordOpportunityProposalRow(
     newsHooks.length,
   );
   const nextStatus: SeoProposalStatus = slopReason ? 'rejected' : 'pending';
+  const serperSourceRef = parseSerperSourceRef(opportunity.sourceRefJson);
+  const proposalSourceRef: Prisma.JsonObject = {
+    opportunityId: opportunity.id,
+    opportunitySourceType: opportunity.sourceType,
+    pageUrl: opportunity.targetUrl,
+    pagePath: normalizePathname(opportunity.targetUrl),
+    pageTypeRecommendation: opportunity.pageTypeRecommendation,
+    windowStart: formatIsoDate(opportunity.createdAt),
+    windowEnd: null,
+    sourceBucket: opportunity.sourceType,
+    sourceQuery: opportunity.seedQuery,
+  };
+
+  if (serperSourceRef) {
+    proposalSourceRef.serperSample = serperSourceRef as unknown as Prisma.JsonObject;
+  }
 
   return prisma.seoProposal.create({
     data: {
@@ -1897,17 +2046,7 @@ async function createKeywordOpportunityProposalRow(
       newsHooksJson: newsHooks,
       rationale: generated.rationale,
       hypothesis: opportunity.rationale,
-      sourceRefJson: {
-        opportunityId: opportunity.id,
-        opportunitySourceType: opportunity.sourceType,
-        pageUrl: opportunity.targetUrl,
-        pagePath: normalizePathname(opportunity.targetUrl),
-        pageTypeRecommendation: opportunity.pageTypeRecommendation,
-        windowStart: formatIsoDate(opportunity.createdAt),
-        windowEnd: null,
-        sourceBucket: opportunity.sourceType,
-        sourceQuery: opportunity.seedQuery,
-      } as Prisma.JsonObject,
+      sourceRefJson: proposalSourceRef,
       confidence,
       status: nextStatus,
       rejectedReason: slopReason,

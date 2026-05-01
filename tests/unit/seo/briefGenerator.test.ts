@@ -279,6 +279,7 @@ function buildKeywordOpportunity(overrides: Partial<{
   targetUrl: string | null;
   rationale: string;
   status: string;
+  sourceRefJson: unknown;
 }> = {}) {
   return {
     id: overrides.id ?? 'kw_1',
@@ -293,6 +294,7 @@ function buildKeywordOpportunity(overrides: Partial<{
     targetUrl: overrides.targetUrl ?? 'https://letaiexplainai.com/blog/ai-agent-memory',
     rationale: overrides.rationale ?? 'Manual seed from strategy review.',
     status: overrides.status ?? 'scored',
+    sourceRefJson: overrides.sourceRefJson ?? null,
     createdAt: new Date('2026-05-01T12:00:00.000Z'),
   };
 }
@@ -565,8 +567,79 @@ describe('briefGenerator', () => {
         sourceType: true,
         seedQuery: true,
         targetUrl: true,
+        sourceRefJson: true,
       }),
     });
+  });
+
+  it('uses attached SERP evidence when generating a proposal from a SERP-sampled opportunity', async () => {
+    mockKeywordOpportunityFindUnique.mockResolvedValue(buildKeywordOpportunity({
+      sourceType: 'serp_sample',
+      seedQuery: 'ai timeline',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+      rationale: 'SERP validation shows mixed competition and a clear blog destination.',
+      sourceRefJson: {
+        vendor: 'serper',
+        requestKey: 'us:en:qdr:m:1:ai timeline',
+        originSourceType: 'gsc_cluster',
+        originOpportunityId: 'kw_origin_1',
+        originDedupeKey: 'gsc_cluster:ai-timeline',
+        query: 'ai timeline',
+        country: 'us',
+        language: 'en',
+        dateRange: 'qdr:m',
+        page: 1,
+        sampledAt: '2026-05-01T20:53:00.000Z',
+        expiresAt: '2026-05-29T20:53:00.000Z',
+        organicCount: 10,
+        peopleAlsoAskCount: 4,
+        relatedSearchCount: 6,
+        topDomains: ['coursera.org', 'reddit.com', 'globaia.org'],
+        strongDomainCount: 1,
+        forumDomainCount: 1,
+        videoDomainCount: 0,
+        competitionProxy: 48,
+        competitionReason: 'Top results include coursera.org, reddit.com, globaia.org; the SERP is mixed with 1 forum result(s) and 0 video result(s).',
+        effectiveCostUsd: 0.001,
+      },
+    }));
+    mockMessageCreate.mockResolvedValue(buildAnthropicResponse(JSON.stringify({
+      suggestedAngle: 'Why searchers looking for an AI timeline still need a narrative guide instead of another course landing page',
+      rationale: 'The first page is mixed enough that LAEA can win with a tighter historical thesis and clearer entity links.',
+      confidence: 0.72,
+    })));
+
+    const result = await generateProposalFromKeywordOpportunity('kw_1');
+
+    expect(result.sourceBucket).toBe('serp_sample');
+    expect(result.sourcePage).toBe('https://letaiexplainai.com/blog/ai-timeline');
+    expect(result.confidence).toBeGreaterThan(0.8);
+    expect(mockMessageCreate).toHaveBeenCalledWith(expect.objectContaining({
+      messages: [
+        expect.objectContaining({
+          content: expect.stringContaining('Live SERP evidence:'),
+        }),
+      ],
+    }));
+    expect(mockMessageCreate).toHaveBeenCalledWith(expect.objectContaining({
+      messages: [
+        expect.objectContaining({
+          content: expect.stringContaining('Top domains: coursera.org, reddit.com, globaia.org'),
+        }),
+      ],
+    }));
+    expect(mockProposalCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        sourceRefJson: expect.objectContaining({
+          sourceBucket: 'serp_sample',
+          serperSample: expect.objectContaining({
+            vendor: 'serper',
+            query: 'ai timeline',
+            competitionProxy: 48,
+          }),
+        }),
+      }),
+    }));
   });
 
   it('creates an evergreen-routing proposal without calling Anthropic when a stronger existing destination is recommended', async () => {

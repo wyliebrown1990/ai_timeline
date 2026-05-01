@@ -681,7 +681,10 @@ export async function promotePortfolioOpportunity(req: Request, res: Response, n
       return;
     }
 
-    const proposal = opportunity.clusterSnapshotId
+    const proposal = (
+      opportunity.sourceType === 'gsc_cluster'
+      && opportunity.clusterSnapshotId
+    )
       ? await generateProposalFromCluster(opportunity.clusterSnapshotId)
       : await generateProposalFromKeywordOpportunity(opportunity.id);
     const updatedOpportunity = await markKeywordOpportunityPromoted(opportunity.id);
