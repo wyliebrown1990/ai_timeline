@@ -195,7 +195,7 @@ These sprints begin **after SEOI-7 is stable**. They do **not** change the pilot
 | **SEOI-8** | 90-day clustered opportunity mining | Query clustering, 28d/90d horizons, all-page-type near-win detection, new clustered opportunities surface in admin | 2-3 days |
 | **SEOI-9** | Topic pods + experiment ledger | Cluster-backed proposals, companion-page planning, experiment scheduling with D+14 / D+28 / D+56 reviews | 2-3 days |
 | **SEOI-10** | News-to-evergreen routing + SERP packaging | Repeated `/news` demand promoted into canonical evergreen actions; title/H1/meta/breadcrumb/schema/internal-link packaging audits | 2-3 days |
-| **SEOI-11** | External discovery + keyword portfolio | Non-GSC keyword discovery, competition proxies, editorial backlog scoring, portfolio UI and agent-fed backlog | 2-3 days |
+| **SEOI-11** | External discovery + keyword portfolio | Non-GSC keyword discovery, Serper-backed competition sampling with cache + spend metering, editorial backlog scoring, portfolio UI, and agent-fed backlog | 2-3 days |
 
 **Expansion-track estimated effort**: 8-12 days after the pilot is stable.
 
@@ -210,6 +210,7 @@ These sprints begin **after SEOI-7 is stable**. They do **not** change the pilot
 - **120 days**: clustered mining surfaces ≥8 meaningful 28d/90d opportunities per month, with ≤20% classified as noise after human review.
 - **150 days**: 100% of approved SEO actions and proposals have scheduled measurement checkpoints and visible outcomes in the admin experiment ledger.
 - **180 days**: at least 3 cluster-backed topic pods have shipped, at least 2 repeated `/news` demand themes have been promoted into canonical evergreen destinations, and at least 1 discovery-lane keyword has produced a measurable organic lift.
+- **Operating discipline**: SEOI-11’s Serper-backed `serp_sample` lane stays within its configured caps, auto-top-up remains off, and Wylie receives automated weekly spend updates with threshold warnings before credits become a surprise.
 
 ---
 
@@ -231,6 +232,7 @@ The user-facing prevalence is downstream: every action the agent ships (better m
 4. **LLM cost.** Metadata rewrites are cheap (~200 tokens out per rewrite, Sonnet). Content briefs (Opus, longer context) are pricier but volume is low (≤5/week). Estimate well under $20/month at expected cadence.
 5. **Slop risk concentrates in one place.** The auto-ship lane is the single point where the system can publish without human review. SEOI-3 (skill) + SEOI-4 (confidence threshold + audit) + SEOI-7 (drift detector) all exist to keep that lane safe. If any of those three slip, the pause switch from SEOI-7 is the killswitch.
 6. **PM decisions deferred to sprints**: whether to add an external notification sink later (SEOI-5 follow-on, not MVP), which entity types beyond blog posts get auto-ship eligibility (SEOI-7), confidence-threshold tuning (SEOI-4 → SEOI-7).
+7. **Serper cost + expiry discipline.** Serper uses top-up credits rather than a monthly subscription, and the current public pricing is Starter `50,000 credits / $50` with 6-month expiry plus optional auto top-ups. SEOI-11 therefore needs cache-first request design, explicit caps, internal spend metering, and automated weekly spend updates to Wylie so the provider never becomes an invisible background cost.
 
 ---
 
@@ -514,7 +516,7 @@ The 2026-04-30 review above covered SEOI-1 through SEOI-7. The post-pilot expans
 
 - **No parallel `Subject` taxonomy across all four sprints.** GSC clusters (SEOI-8), topic pods (SEOI-9), packaging audits (SEOI-10), and keyword portfolio (SEOI-11) all operate on **operational data** (GSC findings, audit results, discovery candidates), not on **content classification**. None bypasses `Subject` + `ContentSubject` per `subject-taxonomy.md` rule.
 - **Extension over fork.** SEOI-8 extends `bucketClassifier.ts` (page-type allowlist), SEOI-9 extends `briefGenerator.ts` (cluster-source proposals), SEOI-10 extends `SeoProposal.proposalType` (evergreen-routing as enum value, not new model). Category 1.1 (Parallel helpers) avoided structurally.
-- **No new vector DB / embedding service / paid keyword API introduced.** SEOI-8 explicitly defers vector clustering. SEOI-11 explicitly forbids paid providers in v1. Avoids Category 4 (Over-engineering) + Category 13 (Dependency hygiene).
+- **No broad SEO suite, proxy stack, or multi-vendor SERP layer introduced.** SEOI-8 explicitly defers vector clustering. SEOI-11 may use Serper, but only as a search-only, cache-first, budget-capped enrichment layer with auto-top-up off. Avoids Category 4 (Over-engineering) + Category 13 (Dependency hygiene).
 - **Auto-ship discipline preserved across the expansion.** SEOI-8's page-type expansion explicitly excludes `BlogPost.bodyMarkdown`. SEOI-10's H1/schema/canonical/internal-link changes stay human-only. The "metadata-only auto-ship" hard cap from SEOI-4 survives the expansion.
 - **Killswitch (`SSM /ai-timeline/prod/seo-agent-paused`) respected by every new surface.** Every SEOI-8/9/10/11 admin flow honors paused → read-only mode. No surface bypasses the pause.
 - **Test paths uniformly at `/tests/unit/`** across all four sprints. The pilot's C-X1 test-path drift (where SEOI-1 through SEOI-7 originally had `__tests__/` colocated paths and were corrected) does NOT recur in SEOI-8 through SEOI-11 — the post-pilot plans were authored with the corrected convention from the start.

@@ -103,6 +103,8 @@ Resources:
           PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
           SEO_AGENT_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-paused'
           SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
+          SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
+          SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
 
       Events:
         ApiProxy:

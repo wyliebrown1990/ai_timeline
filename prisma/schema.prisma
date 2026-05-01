@@ -427,6 +427,7 @@ model KeywordOpportunity {
   status                 String              @default("discovered") // discovered | scored | promoted | archived
   linkedExperimentId     String?             @unique
   linkedExperiment       SeoExperiment?      @relation(fields: [linkedExperimentId], references: [id])
+  serpSamples            SerpSample[]
   createdAt              DateTime            @default(now())
   updatedAt              DateTime            @updatedAt
 
@@ -434,6 +435,34 @@ model KeywordOpportunity {
   @@index([sourceType, overallScore])
   @@index([clusterKey])
   @@index([clusterSnapshotId])
+}
+
+/// Cached and metered SERP samples used to refine external-discovery opportunities.
+/// Each row represents one successful Serper request so spend math remains auditable over time.
+model SerpSample {
+  id                  String              @id @default(cuid())
+  vendor              String // serper
+  sourceOpportunityId String?
+  sourceOpportunity   KeywordOpportunity? @relation(fields: [sourceOpportunityId], references: [id])
+  requestKey          String
+  normalizedQueryKey  String
+  query               String
+  country             String
+  language            String
+  dateRange           String
+  page                Int                 @default(1)
+  creditsUsed         Int                 @default(1)
+  effectiveCostUsd    Float               @default(0)
+  competitionProxy    Int                 @default(0)
+  responseJson        Json
+  summaryJson         Json
+  sampledAt           DateTime            @default(now())
+  expiresAt           DateTime
+  updatedAt           DateTime            @updatedAt
+
+  @@index([requestKey, expiresAt])
+  @@index([vendor, sampledAt])
+  @@index([sourceOpportunityId])
 }
 
 // =============================================================================

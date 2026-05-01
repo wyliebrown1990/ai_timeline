@@ -1,5 +1,10 @@
 import { ArrowUpRight, Compass, Layers3, Search, TrendingUp } from 'lucide-react';
-import type { SeoKeywordOpportunityRecord } from '../../services/api';
+import type {
+  SeoKeywordOpportunityClusterSourceRef,
+  SeoKeywordOpportunityRecord,
+  SeoKeywordOpportunitySerperSourceRef,
+  SeoKeywordOpportunitySourceRef,
+} from '../../services/api';
 import { Drawer } from '../ui';
 
 interface SeoKeywordOpportunityDrawerProps {
@@ -53,6 +58,41 @@ function formatScore(value: number): string {
   return `${Math.round(value)}/100`;
 }
 
+function isSerperSourceRef(
+  sourceRef: SeoKeywordOpportunitySourceRef | null,
+): sourceRef is SeoKeywordOpportunitySerperSourceRef {
+  return Boolean(sourceRef && 'vendor' in sourceRef && sourceRef.vendor === 'serper');
+}
+
+function isClusterSourceRef(
+  sourceRef: SeoKeywordOpportunitySourceRef | null,
+): sourceRef is SeoKeywordOpportunityClusterSourceRef {
+  return Boolean(sourceRef && 'clusterId' in sourceRef);
+}
+
+function formatDateTime(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(value);
+}
+
 export function SeoKeywordOpportunityDrawer({
   opportunity,
   open,
@@ -71,6 +111,7 @@ export function SeoKeywordOpportunityDrawer({
     && opportunity.pageTypeRecommendation === 'blog_post'
     && (Boolean(opportunity.clusterSnapshotId) || Boolean(opportunity.targetUrl))
   );
+  const sourceRef = opportunity.sourceRef;
 
   return (
     <Drawer
@@ -133,21 +174,36 @@ export function SeoKeywordOpportunityDrawer({
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/60">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-            <Layers3 className="h-4 w-4" />
+            {isSerperSourceRef(sourceRef) ? <Search className="h-4 w-4" /> : <Layers3 className="h-4 w-4" />}
             Source detail
           </div>
-          {opportunity.sourceRef ? (
+          {isClusterSourceRef(sourceRef) ? (
             <div className="mt-4 grid gap-3 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-2">
-              <p><span className="font-semibold text-slate-900 dark:text-white">Window:</span> {opportunity.sourceRef.windowStart} to {opportunity.sourceRef.windowEnd}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Cluster bucket:</span> {opportunity.sourceRef.bucket.replace(/_/g, ' ')}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Representative query:</span> {opportunity.sourceRef.representativeQuery}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Primary page:</span> {opportunity.sourceRef.primaryPage.replace('https://letaiexplainai.com', '')}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Canonical path:</span> {opportunity.sourceRef.canonicalPath}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Move type:</span> {opportunity.sourceRef.moveType.replace(/_/g, ' ')}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Visible query variants:</span> {opportunity.sourceRef.memberQueryCount}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Page count:</span> {opportunity.sourceRef.memberPageCount}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Impressions:</span> {opportunity.sourceRef.impressions.toLocaleString()}</p>
-              <p><span className="font-semibold text-slate-900 dark:text-white">Avg. position:</span> {opportunity.sourceRef.position.toFixed(1)}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Window:</span> {sourceRef.windowStart} to {sourceRef.windowEnd}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Cluster bucket:</span> {sourceRef.bucket.replace(/_/g, ' ')}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Representative query:</span> {sourceRef.representativeQuery}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Primary page:</span> {sourceRef.primaryPage.replace('https://letaiexplainai.com', '')}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Canonical path:</span> {sourceRef.canonicalPath}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Move type:</span> {sourceRef.moveType.replace(/_/g, ' ')}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Visible query variants:</span> {sourceRef.memberQueryCount}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Page count:</span> {sourceRef.memberPageCount}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Impressions:</span> {sourceRef.impressions.toLocaleString()}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Avg. position:</span> {sourceRef.position.toFixed(1)}</p>
+            </div>
+          ) : isSerperSourceRef(sourceRef) ? (
+            <div className="mt-4 grid gap-3 text-sm text-slate-700 dark:text-slate-300 sm:grid-cols-2">
+              <p><span className="font-semibold text-slate-900 dark:text-white">Sampled query:</span> {sourceRef.query}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Origin source:</span> {sourceRef.originSourceType.replace(/_/g, ' ')}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Locale:</span> {sourceRef.country.toUpperCase()} · {sourceRef.language.toUpperCase()}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Date range:</span> {sourceRef.dateRange || 'default'} · page {sourceRef.page}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Sampled at:</span> {formatDateTime(sourceRef.sampledAt)}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Cache expires:</span> {formatDateTime(sourceRef.expiresAt)}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Organic results:</span> {sourceRef.organicCount}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">People Also Ask:</span> {sourceRef.peopleAlsoAskCount}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Related searches:</span> {sourceRef.relatedSearchCount}</p>
+              <p><span className="font-semibold text-slate-900 dark:text-white">Sample cost:</span> {formatUsd(sourceRef.effectiveCostUsd)}</p>
+              <p className="sm:col-span-2"><span className="font-semibold text-slate-900 dark:text-white">Top domains:</span> {sourceRef.topDomains.length > 0 ? sourceRef.topDomains.join(', ') : 'No organic domains captured'}</p>
+              <p className="sm:col-span-2"><span className="font-semibold text-slate-900 dark:text-white">Competition note:</span> {sourceRef.competitionReason}</p>
             </div>
           ) : (
             <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">

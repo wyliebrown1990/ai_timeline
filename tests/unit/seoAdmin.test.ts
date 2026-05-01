@@ -40,6 +40,7 @@ const mockCreateEditorialKeywordOpportunity = jest.fn();
 const mockGetKeywordOpportunity = jest.fn();
 const mockMarkKeywordOpportunityPromoted = jest.fn();
 const mockRebuildKeywordPortfolio = jest.fn();
+const mockGetSerperUsageSummary = jest.fn();
 
 jest.mock('../../server/src/services/gsc/gscIngest', () => ({
   runWeeklyIngest: mockRunWeeklyIngest,
@@ -111,6 +112,10 @@ jest.mock('../../server/src/services/seo/keywordDiscovery', () => ({
   rebuildKeywordPortfolio: mockRebuildKeywordPortfolio,
 }));
 
+jest.mock('../../server/src/services/seo/serperClient', () => ({
+  getSerperUsageSummary: mockGetSerperUsageSummary,
+}));
+
 jest.mock('../../server/src/services/seo/agentRunStatus', () => ({
   getLatestAgentRunStatus: mockGetLatestAgentRunStatus,
   setLatestAgentRunStatus: mockSetLatestAgentRunStatus,
@@ -178,6 +183,26 @@ describe('seoAdmin controller', () => {
     jest.clearAllMocks();
     mockIsPaused.mockResolvedValue(false);
     mockGetLatestAgentRunStatus.mockResolvedValue(null);
+    mockGetSerperUsageSummary.mockResolvedValue({
+      configured: false,
+      enabled: false,
+      autoTopupEnabled: false,
+      tierLabel: null,
+      purchasedCredits: null,
+      monthlyCreditBudget: null,
+      creditsUsedToday: 0,
+      creditsUsedWeek: 0,
+      creditsUsedMonth: 0,
+      creditsUsedTotal: 0,
+      effectiveSpendTodayUsd: 0,
+      effectiveSpendWeekUsd: 0,
+      effectiveSpendMonthUsd: 0,
+      effectiveSpendTotalUsd: 0,
+      remainingCredits: null,
+      projectedDepletionDate: null,
+      lastSampledAt: null,
+      warningLevel: 'ok',
+    });
   });
 
   it('returns the ingest summary for manual admin runs', async () => {
@@ -343,6 +368,26 @@ describe('seoAdmin controller', () => {
       },
       paused: false,
       agentRun: null,
+      serper: {
+        configured: false,
+        enabled: false,
+        autoTopupEnabled: false,
+        tierLabel: null,
+        purchasedCredits: null,
+        monthlyCreditBudget: null,
+        creditsUsedToday: 0,
+        creditsUsedWeek: 0,
+        creditsUsedMonth: 0,
+        creditsUsedTotal: 0,
+        effectiveSpendTodayUsd: 0,
+        effectiveSpendWeekUsd: 0,
+        effectiveSpendMonthUsd: 0,
+        effectiveSpendTotalUsd: 0,
+        remainingCredits: null,
+        projectedDepletionDate: null,
+        lastSampledAt: null,
+        warningLevel: 'ok',
+      },
     });
     expect(next).not.toHaveBeenCalled();
   });

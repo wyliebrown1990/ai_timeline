@@ -13,6 +13,8 @@ const mockListClusters = jest.fn();
 const mockGetClusterDetail = jest.fn();
 const mockBuildTopicPodFromCluster = jest.fn();
 const mockGoogleTrendsParseURL = jest.fn();
+const mockBuildSerperKeywordOpportunityCandidates = jest.fn();
+const mockGetSerperUsageSummary = jest.fn();
 
 jest.mock('../../../server/src/db', () => ({
   prisma: {
@@ -41,6 +43,11 @@ jest.mock('../../../server/src/services/gsc/queryClusterer', () => ({
 
 jest.mock('../../../server/src/services/seo/topicPodPlanner', () => ({
   buildTopicPodFromCluster: mockBuildTopicPodFromCluster,
+}));
+
+jest.mock('../../../server/src/services/seo/serperClient', () => ({
+  buildSerperKeywordOpportunityCandidates: mockBuildSerperKeywordOpportunityCandidates,
+  getSerperUsageSummary: mockGetSerperUsageSummary,
 }));
 
 jest.mock('rss-parser', () => {
@@ -106,6 +113,50 @@ describe('keywordDiscovery', () => {
     mockSeoProposalCount.mockResolvedValue(0);
     mockSeoExperimentCount.mockResolvedValue(0);
     mockGoogleTrendsParseURL.mockResolvedValue({ items: [] });
+    mockBuildSerperKeywordOpportunityCandidates.mockResolvedValue({
+      candidates: [],
+      supersededOpportunityIds: [],
+      usage: {
+        configured: false,
+        enabled: false,
+        autoTopupEnabled: false,
+        tierLabel: null,
+        purchasedCredits: null,
+        monthlyCreditBudget: null,
+        creditsUsedToday: 0,
+        creditsUsedWeek: 0,
+        creditsUsedMonth: 0,
+        creditsUsedTotal: 0,
+        effectiveSpendTodayUsd: 0,
+        effectiveSpendWeekUsd: 0,
+        effectiveSpendMonthUsd: 0,
+        effectiveSpendTotalUsd: 0,
+        remainingCredits: null,
+        projectedDepletionDate: null,
+        lastSampledAt: null,
+        warningLevel: 'ok',
+      },
+    });
+    mockGetSerperUsageSummary.mockResolvedValue({
+      configured: false,
+      enabled: false,
+      autoTopupEnabled: false,
+      tierLabel: null,
+      purchasedCredits: null,
+      monthlyCreditBudget: null,
+      creditsUsedToday: 0,
+      creditsUsedWeek: 0,
+      creditsUsedMonth: 0,
+      creditsUsedTotal: 0,
+      effectiveSpendTodayUsd: 0,
+      effectiveSpendWeekUsd: 0,
+      effectiveSpendMonthUsd: 0,
+      effectiveSpendTotalUsd: 0,
+      remainingCredits: null,
+      projectedDepletionDate: null,
+      lastSampledAt: null,
+      warningLevel: 'ok',
+    });
 
     mockListClusters.mockImplementation(async ({ horizon, bucket }: { horizon: string; bucket: string }) => {
       if (horizon === '90d' && bucket === 'cluster_topic_theme') {
@@ -250,6 +301,7 @@ describe('keywordDiscovery', () => {
       candidateCount: 1,
       sourcesUsed: ['gsc_cluster'],
     });
+    expect(mockBuildSerperKeywordOpportunityCandidates).toHaveBeenCalledWith([]);
   });
 
   it('penalizes discovery scores when proposal and experiment capacity is already busy', async () => {
@@ -420,6 +472,135 @@ describe('keywordDiscovery', () => {
         status: 'scored',
       },
     }));
+    expect(listResult.meta.serper).toEqual(expect.objectContaining({
+      configured: false,
+      warningLevel: 'ok',
+    }));
+  });
+
+  it('creates sampled SERP opportunities and archives the superseded source rows', async () => {
+    mockKeywordFindMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'kw_gap_1',
+          sourceType: 'gsc_cluster',
+          dedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+          seedQuery: 'ai timeline',
+          clusterKey: 'ai timeline',
+          clusterSnapshotId: 'cluster_gap_1',
+          targetIntent: 'timeline',
+          demandProxy: 100,
+          competitionProxy: 45,
+          laeaFitScore: 72,
+          pageTypeRecommendation: 'blog_post',
+          targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+          rationale: 'Gap source row',
+          status: 'scored',
+          overallScore: 80.5,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    mockKeywordCount.mockResolvedValueOnce(1);
+    mockKeywordUpdateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    mockBuildSerperKeywordOpportunityCandidates.mockResolvedValueOnce({
+      candidates: [
+        {
+          sourceOpportunityId: 'kw_gap_1',
+          sourceOpportunitySourceType: 'gsc_cluster',
+          dedupeKey: 'serp_sample:ai-timeline:blog-post:https-letaiexplainai-com-blog-ai-timeline',
+          seedQuery: 'ai timeline',
+          clusterKey: 'ai timeline',
+          clusterSnapshotId: 'cluster_gap_1',
+          targetIntent: 'timeline',
+          demandProxy: 100,
+          competitionProxy: 31,
+          laeaFitScore: 72,
+          pageTypeRecommendation: 'blog_post',
+          targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+          rationale: 'SERP sampled row',
+          sourceRef: {
+            vendor: 'serper',
+            requestKey: 'us:en:qdr:m:1:ai timeline',
+            originSourceType: 'gsc_cluster',
+            originOpportunityId: 'kw_gap_1',
+            originDedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+            query: 'ai timeline',
+            country: 'us',
+            language: 'en',
+            dateRange: 'qdr:m',
+            page: 1,
+            sampledAt: '2026-05-01T12:00:00.000Z',
+            expiresAt: '2026-05-29T12:00:00.000Z',
+            organicCount: 10,
+            peopleAlsoAskCount: 3,
+            relatedSearchCount: 8,
+            topDomains: ['wikipedia.org'],
+            strongDomainCount: 1,
+            forumDomainCount: 0,
+            videoDomainCount: 0,
+            competitionProxy: 31,
+            competitionReason: 'Top results include wikipedia.org',
+            effectiveCostUsd: 0.001,
+          },
+        },
+      ],
+      supersededOpportunityIds: ['kw_gap_1'],
+      usage: {
+        configured: true,
+        enabled: true,
+        autoTopupEnabled: false,
+        tierLabel: 'starter',
+        purchasedCredits: 50_000,
+        monthlyCreditBudget: 2_500,
+        creditsUsedToday: 1,
+        creditsUsedWeek: 1,
+        creditsUsedMonth: 1,
+        creditsUsedTotal: 1,
+        effectiveSpendTodayUsd: 0.001,
+        effectiveSpendWeekUsd: 0.001,
+        effectiveSpendMonthUsd: 0.001,
+        effectiveSpendTotalUsd: 0.001,
+        remainingCredits: 49_999,
+        projectedDepletionDate: null,
+        lastSampledAt: '2026-05-01T12:00:00.000Z',
+        warningLevel: 'ok',
+      },
+    });
+
+    const result = await rebuildKeywordPortfolio();
+
+    expect(mockKeywordUpsert).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      create: expect.objectContaining({
+        sourceType: 'serp_sample',
+        status: 'scored',
+        competitionProxy: 31,
+      }),
+      update: expect.objectContaining({
+        sourceType: 'serp_sample',
+        competitionProxy: 31,
+      }),
+    }));
+    expect(mockKeywordUpdateMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      where: expect.objectContaining({
+        id: {
+          in: ['kw_gap_1'],
+        },
+      }),
+      data: {
+        status: 'archived',
+      },
+    }));
+    expect(result).toEqual({
+      created: 2,
+      updated: 0,
+      archived: 1,
+      totalActive: 1,
+      candidateCount: 2,
+      sourcesUsed: ['gsc_cluster', 'serp_sample'],
+    });
   });
 
   it('uses an empty where-clause when listing all sources and statuses', async () => {

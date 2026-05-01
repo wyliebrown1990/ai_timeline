@@ -9,6 +9,14 @@ import {
   type ClusterOpportunityDetail,
 } from '../gsc/queryClusterer';
 import { buildTopicPodFromCluster, type SeoTopicPodPlan } from './topicPodPlanner';
+import {
+  buildSerperKeywordOpportunityCandidates,
+  getSerperUsageSummary,
+  type SerperKeywordOpportunityCandidate,
+  type SerperKeywordOpportunityInput,
+  type SerperKeywordSourceRef,
+  type SerperUsageSummary,
+} from './serperClient';
 
 const _PORTFOLIO_SOURCE_TYPES = ['gsc_cluster', 'google_trends', 'serp_sample', 'editorial_seed'] as const;
 const _PORTFOLIO_STATUS_VALUES = ['discovered', 'scored', 'promoted', 'archived'] as const;
@@ -66,7 +74,7 @@ export type KeywordOpportunityStatus = typeof _PORTFOLIO_STATUS_VALUES[number];
 export type KeywordOpportunityStatusFilter = 'all' | KeywordOpportunityStatus;
 export type KeywordOpportunitySourceFilter = 'all' | KeywordOpportunitySourceType;
 
-export interface KeywordOpportunitySourceRef {
+export interface KeywordOpportunityClusterSourceRef {
   clusterId: string;
   bucket: ClusterBucket;
   horizon: ClusterHorizon;
@@ -84,6 +92,8 @@ export interface KeywordOpportunitySourceRef {
   memberPageCount: number;
   internalLinkCount: number;
 }
+
+export type KeywordOpportunitySourceRef = KeywordOpportunityClusterSourceRef | SerperKeywordSourceRef;
 
 export interface KeywordOpportunityRecord {
   id: string;
@@ -118,6 +128,7 @@ export interface KeywordOpportunityListResult {
   meta: {
     counts: Record<'all' | KeywordOpportunityStatus, number>;
     sourceCounts: Record<'all' | KeywordOpportunitySourceType, number>;
+    serper: SerperUsageSummary;
   };
 }
 
@@ -177,6 +188,8 @@ interface StoredKeywordOpportunityRow {
   createdAt: Date;
   updatedAt: Date;
 }
+
+type SerperShortlistRow = SerperKeywordOpportunityInput;
 
 type DiscoveryCapacityBand = 100 | 75 | 55 | 40;
 
@@ -577,6 +590,115 @@ function buildOverallScore(
   return Number(Math.max(0, baseline - capacityPenalty).toFixed(1));
 }
 
+async function loadSerperShortlistRows(): Promise<SerperShortlistRow[]> {
+  return prisma.keywordOpportunity.findMany({
+    where: {
+      status: {
+        in: ['discovered', 'scored'],
+      },
+      sourceType: {
+        in: ['gsc_cluster', 'google_trends', 'editorial_seed', 'serp_sample'],
+      },
+    },
+    orderBy: [
+      { overallScore: 'desc' },
+      { updatedAt: 'desc' },
+    ],
+    take: 20,
+    select: {
+      id: true,
+      sourceType: true,
+      dedupeKey: true,
+      seedQuery: true,
+      clusterKey: true,
+      clusterSnapshotId: true,
+      targetIntent: true,
+      demandProxy: true,
+      competitionProxy: true,
+      laeaFitScore: true,
+      pageTypeRecommendation: true,
+      targetUrl: true,
+      rationale: true,
+      status: true,
+      overallScore: true,
+    },
+  });
+}
+
+async function upsertSerperCandidates(
+  candidates: SerperKeywordOpportunityCandidate[],
+  capacityScore: DiscoveryCapacityBand,
+): Promise<{ created: number; updated: number }> {
+  if (candidates.length === 0) {
+    return { created: 0, updated: 0 };
+  }
+
+  const existing = await prisma.keywordOpportunity.findMany({
+    where: {
+      dedupeKey: {
+        in: candidates.map((candidate) => candidate.dedupeKey),
+      },
+    },
+    select: {
+      dedupeKey: true,
+    },
+  });
+  const existingKeys = new Set(existing.map((row) => row.dedupeKey));
+
+  for (const candidate of candidates) {
+    const overallScore = buildOverallScore(
+      candidate.demandProxy,
+      candidate.laeaFitScore,
+      candidate.competitionProxy,
+      capacityScore,
+    );
+
+    await prisma.keywordOpportunity.upsert({
+      where: {
+        dedupeKey: candidate.dedupeKey,
+      },
+      create: {
+        sourceType: 'serp_sample',
+        dedupeKey: candidate.dedupeKey,
+        seedQuery: candidate.seedQuery,
+        clusterKey: candidate.clusterKey,
+        clusterSnapshotId: candidate.clusterSnapshotId,
+        sourceRefJson: candidate.sourceRef as unknown as Prisma.InputJsonValue,
+        targetIntent: candidate.targetIntent,
+        demandProxy: candidate.demandProxy,
+        competitionProxy: candidate.competitionProxy,
+        laeaFitScore: candidate.laeaFitScore,
+        overallScore,
+        pageTypeRecommendation: candidate.pageTypeRecommendation,
+        targetUrl: candidate.targetUrl,
+        rationale: candidate.rationale,
+        status: 'scored',
+      },
+      update: {
+        sourceType: 'serp_sample',
+        seedQuery: candidate.seedQuery,
+        clusterKey: candidate.clusterKey,
+        clusterSnapshotId: candidate.clusterSnapshotId,
+        sourceRefJson: candidate.sourceRef as unknown as Prisma.InputJsonValue,
+        targetIntent: candidate.targetIntent,
+        demandProxy: candidate.demandProxy,
+        competitionProxy: candidate.competitionProxy,
+        laeaFitScore: candidate.laeaFitScore,
+        overallScore,
+        pageTypeRecommendation: candidate.pageTypeRecommendation,
+        targetUrl: candidate.targetUrl,
+        rationale: candidate.rationale,
+        status: 'scored',
+      },
+    });
+  }
+
+  return {
+    created: candidates.filter((candidate) => !existingKeys.has(candidate.dedupeKey)).length,
+    updated: candidates.filter((candidate) => existingKeys.has(candidate.dedupeKey)).length,
+  };
+}
+
 export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuildResult> {
   const [details, googleTrendItems] = await Promise.all([
     loadClusterDetails(),
@@ -600,7 +722,7 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
 
   const uniqueCandidates = Array.from(deduped.values());
   const maxDemand = Math.max(...uniqueCandidates.map((candidate) => candidate.rawDemand), 1);
-  const existingRows = await prisma.keywordOpportunity.findMany({
+  const baseExistingRows = await prisma.keywordOpportunity.findMany({
     where: {
       dedupeKey: {
         in: uniqueCandidates.map((candidate) => candidate.dedupeKey),
@@ -610,7 +732,7 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
       dedupeKey: true,
     },
   });
-  const existingKeys = new Set(existingRows.map((row) => row.dedupeKey));
+  const baseExistingKeys = new Set(baseExistingRows.map((row) => row.dedupeKey));
 
   for (const candidate of uniqueCandidates) {
     const demandProxy = clampScore((candidate.rawDemand / maxDemand) * 100);
@@ -660,7 +782,11 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
     });
   }
 
-  const archiveResult = await prisma.keywordOpportunity.updateMany({
+  const serperShortlist = await loadSerperShortlistRows();
+  const serperResult = await buildSerperKeywordOpportunityCandidates(serperShortlist);
+  const serperUpsertResult = await upsertSerperCandidates(serperResult.candidates, capacityScore);
+
+  const staleSourceArchiveResult = await prisma.keywordOpportunity.updateMany({
     where: {
       sourceType: 'gsc_cluster',
       status: {
@@ -675,6 +801,27 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
     },
   });
 
+  let supersededArchiveCount = 0;
+  if (serperResult.supersededOpportunityIds.length > 0) {
+    const supersededArchiveResult = await prisma.keywordOpportunity.updateMany({
+      where: {
+        id: {
+          in: serperResult.supersededOpportunityIds,
+        },
+        sourceType: {
+          not: 'serp_sample',
+        },
+        status: {
+          in: ['discovered', 'scored'],
+        },
+      },
+      data: {
+        status: 'archived',
+      },
+    });
+    supersededArchiveCount = supersededArchiveResult.count;
+  }
+
   const totalActive = await prisma.keywordOpportunity.count({
     where: {
       status: {
@@ -684,12 +831,15 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
   });
 
   return {
-    created: uniqueCandidates.filter((candidate) => !existingKeys.has(candidate.dedupeKey)).length,
-    updated: uniqueCandidates.filter((candidate) => existingKeys.has(candidate.dedupeKey)).length,
-    archived: archiveResult.count,
+    created: uniqueCandidates.filter((candidate) => !baseExistingKeys.has(candidate.dedupeKey)).length + serperUpsertResult.created,
+    updated: uniqueCandidates.filter((candidate) => baseExistingKeys.has(candidate.dedupeKey)).length + serperUpsertResult.updated,
+    archived: staleSourceArchiveResult.count + supersededArchiveCount,
     totalActive,
-    candidateCount: uniqueCandidates.length,
-    sourcesUsed: Array.from(new Set(uniqueCandidates.map((candidate) => candidate.sourceType))),
+    candidateCount: uniqueCandidates.length + serperResult.candidates.length,
+    sourcesUsed: Array.from(new Set([
+      ...uniqueCandidates.map((candidate) => candidate.sourceType),
+      ...serperResult.candidates.map(() => 'serp_sample' as const),
+    ])),
   };
 }
 
@@ -744,7 +894,7 @@ export async function listKeywordOpportunities(options: {
   const statusCountWhere = buildSourceWhere(sourceType);
   const sourceCountWhere = buildStatusWhere(status);
 
-  const [rows, total, allCounts, sourceCounts] = await Promise.all([
+  const [rows, total, allCounts, sourceCounts, serper] = await Promise.all([
     prisma.keywordOpportunity.findMany({
       where,
       orderBy: [
@@ -769,6 +919,7 @@ export async function listKeywordOpportunities(options: {
         _all: true,
       },
     }),
+    getSerperUsageSummary(),
   ]);
 
   const counts: Record<'all' | KeywordOpportunityStatus, number> = {
@@ -806,6 +957,7 @@ export async function listKeywordOpportunities(options: {
     meta: {
       counts,
       sourceCounts: sourceTotals,
+      serper,
     },
   };
 }

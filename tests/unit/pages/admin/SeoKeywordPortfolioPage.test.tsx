@@ -98,6 +98,26 @@ function buildListResult() {
         serp_sample: 0,
         editorial_seed: 0,
       },
+      serper: {
+        configured: true,
+        enabled: true,
+        autoTopupEnabled: false,
+        tierLabel: 'starter',
+        purchasedCredits: 50000,
+        monthlyCreditBudget: 2500,
+        creditsUsedToday: 1,
+        creditsUsedWeek: 3,
+        creditsUsedMonth: 5,
+        creditsUsedTotal: 5,
+        effectiveSpendTodayUsd: 0.001,
+        effectiveSpendWeekUsd: 0.003,
+        effectiveSpendMonthUsd: 0.005,
+        effectiveSpendTotalUsd: 0.005,
+        remainingCredits: 49995,
+        projectedDepletionDate: null,
+        lastSampledAt: '2026-05-01T12:00:00.000Z',
+        warningLevel: 'ok' as const,
+      },
     },
   };
 }
@@ -123,6 +143,8 @@ describe('SeoKeywordPortfolioPage', () => {
     });
     expect(await screen.findByText('mixture of experts', {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByText('GSC cluster')).toBeInTheDocument();
+    expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('Serper Spend Guardrail');
+    expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('Auto top-up off');
 
     await user.click(screen.getByRole('button', { name: /view detail/i }));
 

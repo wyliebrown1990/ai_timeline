@@ -51,6 +51,7 @@ import {
   getSeoPackagingAudit,
   listSeoPackagingAudits,
 } from '../services/seo/serpPackagingAudit';
+import { getSerperUsageSummary } from '../services/seo/serperClient';
 import {
   getLatestAgentRunStatus,
   setLatestAgentRunStatus,
@@ -233,10 +234,11 @@ export async function action(req: Request, res: Response, next: NextFunction) {
 
 export async function health(_req: Request, res: Response, next: NextFunction) {
   try {
-    const [status, paused, agentRun] = await Promise.all([
+    const [status, paused, agentRun, serper] = await Promise.all([
       getGscHealth(),
       isPaused(),
       getLatestAgentRunStatus(),
+      getSerperUsageSummary(),
     ]);
     res.json({
       lastRunAt: status.lastRunAt?.toISOString() ?? null,
@@ -247,6 +249,7 @@ export async function health(_req: Request, res: Response, next: NextFunction) {
       clusterWindows: status.clusterWindows,
       paused,
       agentRun,
+      serper,
     });
   } catch (error) {
     next(error);

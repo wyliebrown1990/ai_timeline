@@ -6225,7 +6225,30 @@ export type SeoKeywordOpportunityStatus = 'discovered' | 'scored' | 'promoted' |
 export type SeoKeywordOpportunityStatusFilter = 'all' | SeoKeywordOpportunityStatus;
 export type SeoKeywordOpportunitySourceFilter = 'all' | SeoKeywordOpportunitySourceType;
 
-export interface SeoKeywordOpportunitySourceRef {
+export type SeoSerperUsageWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
+
+export interface SeoSerperUsageSummary {
+  configured: boolean;
+  enabled: boolean;
+  autoTopupEnabled: boolean;
+  tierLabel: string | null;
+  purchasedCredits: number | null;
+  monthlyCreditBudget: number | null;
+  creditsUsedToday: number;
+  creditsUsedWeek: number;
+  creditsUsedMonth: number;
+  creditsUsedTotal: number;
+  effectiveSpendTodayUsd: number;
+  effectiveSpendWeekUsd: number;
+  effectiveSpendMonthUsd: number;
+  effectiveSpendTotalUsd: number;
+  remainingCredits: number | null;
+  projectedDepletionDate: string | null;
+  lastSampledAt: string | null;
+  warningLevel: SeoSerperUsageWarningLevel;
+}
+
+export interface SeoKeywordOpportunityClusterSourceRef {
   clusterId: string;
   bucket: SeoClusterBucket;
   horizon: SeoClusterHorizon;
@@ -6243,6 +6266,35 @@ export interface SeoKeywordOpportunitySourceRef {
   memberPageCount: number;
   internalLinkCount: number;
 }
+
+export interface SeoKeywordOpportunitySerperSourceRef {
+  vendor: 'serper';
+  requestKey: string;
+  originSourceType: SeoKeywordOpportunitySourceType | string;
+  originOpportunityId: string;
+  originDedupeKey: string;
+  query: string;
+  country: string;
+  language: string;
+  dateRange: string;
+  page: number;
+  sampledAt: string;
+  expiresAt: string;
+  organicCount: number;
+  peopleAlsoAskCount: number;
+  relatedSearchCount: number;
+  topDomains: string[];
+  strongDomainCount: number;
+  forumDomainCount: number;
+  videoDomainCount: number;
+  competitionProxy: number;
+  competitionReason: string;
+  effectiveCostUsd: number;
+}
+
+export type SeoKeywordOpportunitySourceRef =
+  | SeoKeywordOpportunityClusterSourceRef
+  | SeoKeywordOpportunitySerperSourceRef;
 
 export interface SeoKeywordOpportunityRecord {
   id: string;
@@ -6270,6 +6322,7 @@ export interface SeoKeywordOpportunityListResult extends PaginatedResponse<SeoKe
   meta: {
     counts: Record<'all' | SeoKeywordOpportunityStatus, number>;
     sourceCounts: Record<'all' | SeoKeywordOpportunitySourceType, number>;
+    serper: SeoSerperUsageSummary;
   };
 }
 
@@ -6297,6 +6350,7 @@ export interface SeoInsightsHealth {
   clusterWindows?: Partial<Record<SeoClusterHorizon, SeoClusterWindowSummary>>;
   paused: boolean;
   agentRun: SeoAgentRunRecord | null;
+  serper: SeoSerperUsageSummary;
 }
 
 export const seoInsightsApi = {

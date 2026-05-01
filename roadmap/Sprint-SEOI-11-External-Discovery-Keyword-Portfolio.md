@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (content-graph filtering + weekly cap + capacity-aware scoring + Google Trends input live)
+> Last updated: 2026-05-01 by Codex (Serper provider decision + cost-governed SERP-sampling plan integrated)
 
 ---
 
@@ -25,9 +25,10 @@ Before touching any code:
 
 Search Console is the best source for “Google is already testing us here,” but it is not the whole keyword market. This sprint adds a discovery lane that can propose high-value, lower-competition opportunities before LAEA has meaningful impressions for them.
 
-The default posture in this sprint is **lean and cost-aware**:
-- start with GSC clusters, Google Trends, public SERP sampling, and LAEA’s own content graph
-- avoid paid keyword APIs or new billable infra unless Wylie approves them
+The default posture in this sprint is still **lean and cost-aware**, but it is no longer “provider-free”:
+- start with GSC clusters, Google Trends, Serper-backed SERP sampling, and LAEA’s own content graph
+- Wylie approved Serper on 2026-05-01 for the `serp_sample` lane, so the discipline now becomes “one tightly bounded paid provider”
+- do not add a second paid SEO vendor, a scraping/proxy layer, or new billable infra unless Wylie explicitly approves it
 
 This sprint should create a durable keyword portfolio that the weekly agent can feed gradually into the experiment system without drowning the team in speculative ideas.
 
@@ -38,11 +39,25 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ---
 
+## Serper Notes (captured 2026-05-01 from live browser inspection)
+
+- Live playground confirms the v1 query surface we care about: `Search` type with `q`, `gl`, `hl`, `tbs`, `page`, plus an optional mini-batch mode.
+- The generated code sample in the playground uses `POST https://google.serper.dev/search`.
+- Live Billing shows top-up pricing rather than a monthly subscription.
+- Current starter pack surfaced in Billing: `50,000 credits / $50` (`$1.00 / 1k`), credits valid for `6 months`.
+- Auto top-ups exist as a provider-side setting and should remain disabled in v1.
+- The inspected account currently shows `0` balance and no payment history, which is good: the plan can assume a clean first paid setup rather than inheriting unknown vendor drift.
+
+---
+
 ## Prerequisites
 
 - [x] SEOI-8 through SEOI-10 are stable in prod
 - [x] GSC cluster mining and experiment ledger are already trusted
-- [ ] Wylie has approved the default no-paid-provider approach, or explicitly approved any paid provider if needed
+- [x] Wylie approved Serper as the `serp_sample` provider on 2026-05-01
+- [ ] Serper account has a payment card on file and the initial credit pack is intentionally chosen
+- [ ] Serper auto-top-ups remain disabled
+- [ ] SSM params exist for `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json`
 - [ ] Local dev server running: `npm run dev` + `npm run dev:server`
 
 ---
@@ -57,13 +72,24 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - `serp_sample`
   - `editorial_seed`
 - V1 is intentionally split into:
-  - live now: `gsc_cluster`, `editorial_seed`
-  - next up: `google_trends`, `serp_sample`
-- [ ] Before provisioning any new AWS resource or adding any paid provider:
+  - live now: `gsc_cluster`, `editorial_seed`, `google_trends`
+  - next up: `serp_sample` via Serper `search`
+- [ ] Before provisioning any new AWS resource or changing vendor billing configuration:
   - [ ] Run the relevant `aws [service] list-*` checks first
   - [ ] Estimate costs
-  - [ ] Get team approval for billable changes
-- [x] Default v1 must work with zero new paid vendor dependencies
+  - [ ] Get team approval for billable changes above the default Starter pack or for enabling auto top-ups
+- [ ] Lock Serper v1 scope to:
+  - [ ] `POST https://google.serper.dev/search` only
+  - [ ] request params limited to `q`, `gl`, `hl`, `tbs`, and `page`
+  - [ ] `page=1` by default; page 2 only for explicit operator-triggered refresh
+  - [ ] no `images`, `news`, `maps`, `places`, `videos`, `shopping`, `scholar`, `patents`, or `autocomplete` endpoints in v1
+  - [ ] no proxy layer, no scraping fallback, and no second provider
+- [ ] Lock Serper cost controls to:
+  - [ ] auto top-ups disabled in Serper Billing
+  - [ ] initial pack defaults to Starter `50,000 credits / $50`, valid for 6 months
+  - [ ] configurable caps for `maxQueriesPerRun`, `maxQueriesPerDay`, `maxQueriesPerWeek`, and `monthlyCreditBudget`
+  - [ ] provider-specific `serperEnabled` flag composes with the existing SEO pause switch
+- [ ] Record the pricing basis used for internal spend math in config (`$1.00 / 1k queries` on Starter unless Wylie later approves a different tier)
 
 ### 2. Data model
 
@@ -80,15 +106,35 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - `status`
   - `linkedExperimentId`
 - [x] Generate Prisma migration(s)
+- [ ] Add a Serper cache + metering model, for example `SerpSample`, with fields such as:
+  - `keywordOpportunityId`
+  - `vendor`
+  - `normalizedQueryKey`
+  - `query`
+  - `country`
+  - `language`
+  - `dateRange`
+  - `page`
+  - `creditsUsed`
+  - `competitionSummaryJson`
+  - `responseJson`
+  - `sampledAt`
+  - `expiresAt`
+- [ ] Generate Prisma migration(s) for any new Serper cache/metering model(s)
 
 ### 3. Discovery services
 
 - [x] Create `server/src/services/seo/keywordDiscovery.ts`
-- [ ] Implement a public-data discovery flow:
+- [ ] Implement the discovery flow:
   - [x] GSC clusters that imply adjacent unmet demand
   - [x] Google Trends or equivalent lightweight trend input
-  - [ ] SERP sampling that inspects result mix and crude competition proxies
+  - [ ] Serper `search` sampling that inspects result mix and crude competition proxies
   - [x] content-graph gap checks so LAEA does not “discover” what it already owns
+- [ ] Use Serper only after cheaper signals have already shortlisted a candidate:
+  - [ ] sample only `gsc_cluster`, `google_trends`, or `editorial_seed` rows that already clear a base score threshold
+  - [ ] dedupe by normalized `(q, gl, hl, tbs, page)` key
+  - [ ] cache automatic samples for `28` days; manual refresh can bypass only after `7` days
+  - [ ] never sample more than one page of results in automatic flows
 - [x] Keep competition scoring lightweight and explainable in v1
 
 ### 4. Editorial scoring
@@ -99,6 +145,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] fit with LAEA’s existing graph
   - [x] ability to support internal linking
   - [x] experiment capacity
+- [ ] Make Serper a refinement layer, not the primary ranking signal:
+  - [ ] use Serper to refine `competitionProxy` and page-type recommendation
+  - [ ] if Serper is paused, over budget, or cache-hit only, keep the non-Serper score path working
 - [x] Cap the weekly intake so discovery does not overwhelm the backlog
 
 ### 5. Admin portfolio UI
@@ -113,12 +162,22 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] current status
   - [x] whether it has an approved experiment
 - [x] Allow operators to promote a discovery into the existing experiment/proposal flow
+- [ ] Show Serper ops state on the portfolio surface:
+  - [ ] credits used this week / month
+  - [ ] effective spend in USD based on the approved pricing config
+  - [ ] remaining purchased balance and projected depletion date
+  - [ ] auto-top-up state (`off` is the default and expected state)
+  - [ ] row-level sample freshness (`last sampled`, `cache expires`)
 
 ### 6. Weekly automation
 
 - [x] Update the weekly agent so it can nominate at most 1-2 new discovery-lane ideas per run
 - [x] Keep the rest in a scored backlog for human review
 - [x] Paused mode remains read-only
+- [ ] Add Serper spend reporting to the weekly agent:
+  - [ ] include this week’s credits used, month-to-date effective spend, remaining purchased balance, and projected depletion date in the digest
+  - [ ] if burn crosses 25% / 50% / 75% / 90% of purchased credits, or projected depletion is under 30 days, elevate the warning in the digest and admin ops banner
+  - [ ] Wylie receives this spend update automatically as part of the weekly SEO digest; do not rely on manual Serper dashboard checks
 
 ### 7. Tests
 
@@ -131,6 +190,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 8. Deploy
 
+- [ ] Add `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json` to SSM and Lambda env
+- [ ] Keep Serper auto-top-up disabled after setup
+- [ ] Purchase the initial Serper credit pack only once the code path is ready to consume it
 - [x] Backend: `cd infra && sam build && sam deploy --no-confirm-changeset`
 - [x] Run Prisma migration(s) in prod before verification
 - [x] Frontend: `./scripts/deploy-frontend.sh`
@@ -138,13 +200,19 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 9. Backend Validation
 
-- [x] Confirm at least 10 keyword portfolio rows exist in prod without paid-provider dependencies
+- [x] Confirm at least 10 keyword portfolio rows exist in prod before Serper is required
 - [x] Confirm at least 3 opportunities can be promoted into experiment/proposal flows
 - [x] Verify source attribution and rationale are visible and understandable
 - [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
+- [ ] Confirm Serper cache hits prevent duplicate billable requests
+- [ ] Confirm internal spend math matches observed Serper credit consumption on a small test batch
+- [ ] Confirm the weekly digest/admin ops surface shows Serper usage correctly
 
 ### 10. Browser Validation (agent-browser CLI)
 
+- [ ] Open Serper playground: `agent-browser open https://serper.dev/playground`
+- [ ] Open Serper billing: `agent-browser open https://serper.dev/billing`
+- [ ] Verify the provider settings we rely on are visible: search endpoint flow, Starter pricing, auto-top-up state
 - [x] Open the portfolio page: `agent-browser open https://letaiexplainai.com/admin/seo-insights/portfolio`
 - [x] Take initial screenshot: `agent-browser screenshot`
 - [x] Get refs: `agent-browser snapshot -i`
@@ -159,9 +227,12 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 - [ ] All tasks above checked
 - [x] Keyword portfolio is live in prod
-- [x] Discovery lane works without paid providers by default
+- [ ] Discovery lane works with Serper under hard query caps and cache discipline
 - [x] At least 10 portfolio opportunities exist with usable rationale
 - [x] At least 3 opportunities can feed into the existing proposal/experiment flow
+- [ ] Serper auto-top-up remains disabled and documented
+- [ ] Serper spend is visible in the admin and included in the weekly digest
+- [ ] Wylie receives automated Serper spend updates without checking Serper manually
 - [ ] Tests, typecheck, and lint are clean
 - [ ] CloudWatch and browser validation are clean
 - [x] Sprint file timestamp updated
@@ -191,8 +262,9 @@ tests/unit/pages/admin/SeoKeywordPortfolioPage.test.tsx
 
 ## Blocked — PM decision needed
 
-1. **Paid provider escalation.** Default is no SEMrush/Ahrefs/DataForSEO dependency. If Wylie wants one, capture cost, API ownership, and exactly which scoring gap it solves before adding it.
-2. **Discovery volume.** Default weekly intake should stay small. If Wylie wants a larger backlog generated automatically, set an explicit review budget first so the queue does not become junk.
+1. **Serper tier escalation.** Starter `50,000 credits / $50` is the default pack. Any move to a higher tier or enabling auto top-ups requires explicit Wylie approval.
+2. **Dedicated alert channel.** Default v1 is weekly SEO digest + admin ops visibility for Serper spend. If Wylie wants a separate email/SMS alert channel, decide that before adding a new notification path.
+3. **Discovery volume.** Default weekly intake should stay small. If Wylie wants a larger backlog generated automatically, set an explicit review budget first so the queue does not become junk.
 
 ---
 
@@ -317,6 +389,12 @@ The `editorial_seed` source type is human input — Wylie typing in keywords he 
 - [ ] Add-seed form: full keyboard flow with Tab; Escape dismisses the drawer.
 - [ ] Inline demand/competition bars include `aria-label` summarizing the value (e.g. `aria-label="Demand: 78 of 100, high"`).
 
+#### 13. Serper spend visibility
+
+- [ ] Add a compact ops card above the portfolio table showing: `credits used this week`, `effective spend`, `remaining purchased balance`, `projected depletion date`, and `auto-top-up: off`.
+- [ ] The same spend summary appears in the row/detail context when a keyword has a fresh `serp_sample`, so operators can see that the paid enrichment is cached and already paid for.
+- [ ] Threshold states (`25%`, `50%`, `75%`, `90%` credit burn) use icon + text + color, not color alone.
+
 ### Definition of Done additions
 
 - [ ] Portfolio tab + table render correctly at 375px / 768px / 1280px
@@ -327,13 +405,14 @@ The `editorial_seed` source type is human input — Wylie typing in keywords he 
 - [ ] Mobile tab strip fallback decision (dropdown vs scroll) consistent with SEOI-10's call
 - [ ] Lighthouse Accessibility ≥95 with table + drawer + form rendered
 - [ ] Inline bars communicate via length + numeric value + tier label, not color alone
+- [ ] Serper spend card is visible and understandable on desktop + mobile
 
 ### What's correct already
 
 - IA: tab inside `/admin/seo-insights` (seventh tab) — correct, matches established pattern.
 - Cap on weekly automated intake (1-2 ideas per run, Task 6) — UX-correct: prevents the portfolio from becoming an unmanageable backlog.
 - Linked-experiment relationship via `linkedExperimentId` — correctly hands off to SEOI-9 without re-deriving experiment state.
-- Default-no-paid-providers (Task 1) — UX implication: the "source" pill is operationally meaningful (operators can see signal-quality variation by source) rather than vendor-locked.
+- Single-provider discipline (Task 1) — UX implication: the `serp_sample` source can stay legible and trustworthy because operators can see both provenance and spend rather than treating paid enrichment as invisible magic.
 
 ---
 
@@ -359,12 +438,13 @@ Verification against actual codebase. See `PLAN-SEO-Insights-Pilot.md` "Tech Lea
   Cross-references Slop P2-S5. Without these, `prisma.keywordOpportunity.findMany({ include: { experiment: true } })` won't typecheck.
 - **M3. `keywordDiscovery.ts` doesn't collide.** Verified `server/src/services/seo/` — no existing discovery service. New file goes in cleanly.
 - **M4. `/admin/seo-insights/portfolio` route is unclaimed.** Verified `src/App.tsx`: no existing route. Task 5 needs `const SeoKeywordPortfolioPage = lazy(() => import('./pages/admin/SeoKeywordPortfolioPage'))` + `<Route path="seo-insights/portfolio" element={<SeoKeywordPortfolioPage />} />`. Cross-references Slop P2-S3.
-- **M5. "No paid provider" gate (Task 1) — verify before implementing.** Cross-references Slop P2-S4. Two specific concerns:
-  - **Google Trends**: no public API. Common libraries (`pytrends`, `google-trends-api`) scrape the Trends UI; Google rate-limits and serves CAPTCHAs to non-browser clients, especially from Lambda IP ranges. Confirm a working headless path before Task 3 ships.
-  - **SERP sampling without auth**: Google's public results page often blocks/captchas Lambda traffic. DuckDuckGo HTML or Bing public results may work but provide weaker competition signals. Document the chosen path AND the fallback (e.g., "if SERP sampling fails for >20% of seeds, downgrade to LAEA's own content-graph competition proxy and flag for paid-provider escalation").
-  
-  If either source fails the headless test, escalate to PM for the "paid provider" decision in `Blocked` #1 — don't quietly add a residential-proxy dependency to make scraping work.
-- **M6. IAM update task missing for any new AWS resources.** Task 1 says "Run the relevant `aws [service] list-*` checks first" before provisioning new resources. If the discovery service writes to a new SSM param (e.g., `/ai-timeline/prod/keyword-discovery-config`), the Lambda's IAM policy needs to list that param. Existing IAM policy is scoped to `/ai-timeline/${Environment}/*` (verified in `infra/template.yaml` SSM permissions block) — new params under that prefix are already covered. Just confirm in Task 8 (Deploy).
+- **M5. Serper is approved, so the key technical question becomes boundary control.** Cross-references Slop P2-S4. The live Serper playground confirms the v1 request shape we should standardize around: `POST https://google.serper.dev/search` with `q`, `gl`, `hl`, `tbs`, and `page`, plus a mini-batch mode that could otherwise make it too easy to overspend. The live Billing page confirms top-up pricing, 6-month credit expiry, and optional auto top-ups. The plan should therefore codify:
+  - **Search-only scope**: no other Serper endpoints in v1
+  - **Page-1 default**: automatic flows do not fan out to deeper pages
+  - **Cache-first behavior**: exact request-key TTL before any repeat call
+  - **Internal metering**: compute credits/spend from our own successful requests plus the configured pack price; do not assume Serper exposes a stable billing API we can query from Lambda
+  - **Auto-top-up off**: leave the provider-side auto-top-up switch disabled
+- **M6. IAM update task missing for any new AWS resources or SSM config.** Task 1 says "Run the relevant `aws [service] list-*` checks first" before provisioning new resources. Existing IAM policy is scoped to `/ai-timeline/${Environment}/*` (verified in `infra/template.yaml` SSM permissions block), so new params such as `/ai-timeline/prod/serper-api-key` and `/ai-timeline/prod/serper-pricing-json` are already within the pattern. Just confirm the env wiring in Task 8 (Deploy).
 - **M7. `requireAdmin` import path** — same as SEOI-8 M3 / SEOI-9 Mi3 / SEOI-10 M6. Use `'../middleware/auth'` for the new endpoints implied by Tasks 5-6.
 
 ### Minor
@@ -379,7 +459,7 @@ Verification against actual codebase. See `PLAN-SEO-Insights-Pilot.md` "Tech Lea
 - `KeywordOpportunity` model name doesn't collide with any of the 50+ existing models ✓
 - `keywordDiscovery.ts` file doesn't exist (collision-free) ✓
 - `/admin/seo-insights/portfolio` route is unclaimed ✓
-- "Default v1 must work with zero new paid vendor dependencies" (Task 1) — explicit cost discipline ✓
+- Serper can be integrated without adding a second vendor or a scraping/proxy stack ✓
 - Cap weekly intake (Task 6) — avoids backlog explosion ✓
 - Content-graph gap checks (Task 3) — avoids re-deriving what the entity graph already proves ✓
 - `linkedExperimentId` ties to SEOI-9's `SeoExperiment` rather than introducing a parallel measurement system ✓
@@ -388,7 +468,7 @@ Verification against actual codebase. See `PLAN-SEO-Insights-Pilot.md` "Tech Lea
 
 ### Effort impact
 
-~30-45 min for the patches above. M5 (paid-provider verification) might add 1-2 hours if either Google Trends or SERP sampling fails the headless test, in which case the sprint either narrows scope (`gsc_cluster + editorial_seed` only, defer external sources) or escalates the paid-provider decision to PM.
+~45-75 min for the patches above. The extra work versus the original plan is not scraping-validation anymore; it is metering + cache discipline + ops visibility so Serper stays cheap and explainable after it lands.
 
 ---
 
@@ -415,7 +495,7 @@ Reviewed against the 17-category vibe-code slop checklist + LAEA's centralized s
   Also add a Prisma `///` comment on `KeywordOpportunity` referencing the taxonomy. Category 2 (Inconsistency / drift if undocumented) + Category 1.1 (Parallel helpers risk).
 - **P2-S2. Per-route `requireAdmin` not specified.** New endpoints implied in Tasks 5-6 (portfolio CRUD + promote-to-experiment) need explicit per-route middleware. Same as SEOI-8/9/10 P2-S1. Category 2.
 - **P2-S3. `SeoKeywordPortfolioPage` lazy import not addressed.** Files Touched lists `src/pages/admin/SeoKeywordPortfolioPage.tsx`. Plan needs `const SeoKeywordPortfolioPage = lazy(() => import('./pages/admin/SeoKeywordPortfolioPage'))` in `src/App.tsx` matching SEOI-2/4/6. Category 3 (Hallucination — implicit).
-- **P2-S4. `google_trends` and `serp_sample` source types — verify "no paid provider" actually holds.** Task 1 says "default v1 must work with zero new paid vendor dependencies." Google Trends has no public API, only Trends UI scraping (via `pytrends` or unofficial libraries) which is rate-limited and unreliable. Public SERP sampling without auth often triggers Google's bot defenses (recaptchas, IP blocks). **Fix:** before Task 3 implementation, add a sub-task to verify each source can actually deliver data without paid auth: "(a) confirm the chosen Google Trends fetch path works headless from Lambda for at least 10 keywords without rate-limit blocks; (b) confirm public SERP sampling (e.g. via DuckDuckGo HTML or Bing public results) returns usable competition signal without auth." If either fails, the "no paid vendor" gate is hit and the sprint needs a different signal source — don't quietly add `puppeteer` + a residential proxy to make scraping work. Category 13 (Dependency hygiene — heavy infra introduced sideways).
+- **P2-S4. Paid-provider scope creep is now the main `serp_sample` risk.** Serper is approved, which is cleaner than scraping, but it introduces a different failure mode: v1 quietly broadens from a narrow `search`-only enrichment layer into a general-purpose paid search dependency. The risk surfaces as page-2 fan-out, multi-endpoint expansion (`news`, `images`, etc.), auto-top-ups, missing cache TTLs, or adding a second SERP vendor without revisiting the budget model. **Fix:** Task 1 and Task 3 must explicitly codify search-only scope, page-1-only automatic flows, request-key caching, provider-specific caps, auto-top-up off, and internal spend reporting to Wylie. Category 13 (Dependency hygiene — paid dependency allowed to sprawl sideways).
 - **P2-S5. `linkedExperimentId` foreign-key declaration.** Task 2 lists `linkedExperimentId` as a field. As with SEOI-4's `SeoAgentAction.snapshotId` and SEOI-6's `SeoProposal.snapshotId`/`draftPostId`, this should be declared as a Prisma `@relation`, not a raw FK string, so `prisma.keywordOpportunity.findMany({ include: { experiment: true } })` typechecks. **Fix:**
   ```prisma
   experiment   SeoExperiment? @relation(fields: [linkedExperimentId], references: [id])
@@ -428,7 +508,7 @@ Reviewed against the 17-category vibe-code slop checklist + LAEA's centralized s
 
 ### Slop Avoided
 
-- **"Default v1 must work with zero new paid vendor dependencies"** — Task 1 explicit cost discipline. Avoids Category 13 (Dependency hygiene — paid service for unverified value). (P2-S4 above sharpens the implementation-time check so this stays true.)
+- **Single-provider, search-only discipline** — Task 1 now explicitly bounds Serper to one narrow lane with caps, cache TTLs, and auto-top-up off. Avoids Category 13 (Dependency hygiene — paid service expanding past its justified scope).
 - **Cap weekly intake** at 1-2 new discovery-lane ideas (Task 6) so discovery doesn't overwhelm the backlog. Avoids Category 17 (Misreading the task — "AI suggested 200 keywords this week" as success).
 - **Content-graph gap checks** ensure LAEA doesn't "discover" keywords for content it already owns (Task 3). Category 1.1 (Parallel helpers — re-deriving what the entity graph already proves) avoided.
 - **`linkedExperimentId` ties to SEOI-9's experiment table** rather than introducing a parallel measurement system inside `KeywordOpportunity`. Category 1.1 avoided. (P2-S5 sharpens to make the relation declaration explicit.)

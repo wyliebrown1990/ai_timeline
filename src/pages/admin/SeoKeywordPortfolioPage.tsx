@@ -12,6 +12,7 @@ import {
   type SeoKeywordOpportunitySourceFilter,
   type SeoKeywordOpportunityStatus,
   type SeoKeywordOpportunityStatusFilter,
+  type SeoSerperUsageSummary,
 } from '../../services/api';
 
 type PortfolioSort = 'laea_fit' | 'overall' | 'demand' | 'competition';
@@ -31,6 +32,27 @@ const SOURCE_FILTERS: Array<{ id: SeoKeywordOpportunitySourceFilter; label: stri
   { id: 'serp_sample', label: 'SERP sample' },
   { id: 'editorial_seed', label: 'Editorial seed' },
 ];
+
+const EMPTY_SERPER_SUMMARY: SeoSerperUsageSummary = {
+  configured: false,
+  enabled: false,
+  autoTopupEnabled: false,
+  tierLabel: null,
+  purchasedCredits: null,
+  monthlyCreditBudget: null,
+  creditsUsedToday: 0,
+  creditsUsedWeek: 0,
+  creditsUsedMonth: 0,
+  creditsUsedTotal: 0,
+  effectiveSpendTodayUsd: 0,
+  effectiveSpendWeekUsd: 0,
+  effectiveSpendMonthUsd: 0,
+  effectiveSpendTotalUsd: 0,
+  remainingCredits: null,
+  projectedDepletionDate: null,
+  lastSampledAt: null,
+  warningLevel: 'ok',
+};
 
 function getSourceConfig(sourceType: SeoKeywordOpportunityRecord['sourceType']) {
   switch (sourceType) {
@@ -114,6 +136,55 @@ function ScoreBar({ value, inverse = false }: { value: number; inverse?: boolean
   );
 }
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatCount(value: number | null): string {
+  if (value === null) {
+    return 'Uncapped';
+  }
+
+  return value.toLocaleString();
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return 'Not sampled yet';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return 'Not sampled yet';
+  }
+
+  return parsed.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function getSerperWarningClasses(level: SeoSerperUsageSummary['warningLevel']): string {
+  switch (level) {
+    case 'critical':
+      return 'bg-rose-100 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300';
+    case 'warning':
+      return 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-300';
+    case 'watch':
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300';
+    case 'ok':
+    default:
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300';
+  }
+}
+
 function canPromoteOpportunity(opportunity: SeoKeywordOpportunityRecord): boolean {
   return (
     opportunity.status === 'scored'
@@ -192,6 +263,7 @@ export default function SeoKeywordPortfolioPage() {
     serp_sample: 0,
     editorial_seed: 0,
   };
+  const serper = result?.meta.serper ?? EMPTY_SERPER_SUMMARY;
   const hasActiveFilters = status !== 'all' || sourceType !== 'all';
 
   async function handleRebuild() {
@@ -280,6 +352,75 @@ export default function SeoKeywordPortfolioPage() {
       </header>
 
       <SeoInsightsSectionNav />
+
+      <section
+        className="rounded-[28px] border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-slate-50 p-5 shadow-sm dark:border-amber-900/40 dark:from-slate-950 dark:via-slate-950 dark:to-amber-950/20"
+        data-testid="seo-serper-ops-card"
+      >
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
+              <Search className="h-3.5 w-3.5" />
+              Serper Spend Guardrail
+            </div>
+            <h2 className="mt-3 text-lg font-semibold text-slate-900 dark:text-white">Keep paid SERP discovery intentional.</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Serper is only used to refine shortlisted opportunities. Cache-first sampling and query caps keep this lane useful without becoming a quiet cost leak.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getSerperWarningClasses(serper.warningLevel)}`}>
+              {serper.warningLevel === 'ok' ? 'Healthy' : serper.warningLevel}
+            </span>
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
+              {serper.autoTopupEnabled ? 'Auto top-up on' : 'Auto top-up off'}
+            </span>
+          </div>
+        </div>
+
+        {!serper.configured ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-amber-300 bg-white/70 px-4 py-4 text-sm text-slate-700 dark:border-amber-900/60 dark:bg-slate-950/50 dark:text-slate-300">
+            Serper is not configured yet. Once the API key and pricing JSON are in SSM, this page will start showing live credits, spend, and the last sampled SERP timestamp.
+          </div>
+        ) : (
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">This Week</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                {serper.creditsUsedWeek.toLocaleString()} queries
+              </p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{formatUsd(serper.effectiveSpendWeekUsd)} spent</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">This Month</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                {formatUsd(serper.effectiveSpendMonthUsd)}
+              </p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Budget {formatCount(serper.monthlyCreditBudget)} credits
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Remaining Credits</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
+                {formatCount(serper.remainingCredits)}
+              </p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                Tier {serper.tierLabel ?? 'custom'} · Purchased {formatCount(serper.purchasedCredits)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Sampling Activity</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">{formatDateTime(serper.lastSampledAt)}</p>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                {serper.projectedDepletionDate
+                  ? `Projected depletion ${formatDateTime(serper.projectedDepletionDate)}`
+                  : 'No depletion projected at current burn'}
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
 
       <section className="rounded-[28px] border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="border-b border-gray-200 px-5 py-5 dark:border-gray-800">

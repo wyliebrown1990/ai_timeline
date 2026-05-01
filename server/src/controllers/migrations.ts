@@ -759,6 +759,97 @@ END $$;
 `;
 
 /**
+ * Migration: Add Serper sample cache + spend ledger
+ * SEOI-11 - Serper-backed SERP sampling with auditable request history
+ * Mirrors Prisma migration 20260501223000_add_serp_samples and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0022_SERP_SAMPLES = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260501223000_add_serp_samples'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260501223000_add_serp_samples already recorded, skipping';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'SerpSample'
+    ) THEN
+        CREATE TABLE "SerpSample" (
+            "id" TEXT NOT NULL,
+            "vendor" TEXT NOT NULL,
+            "sourceOpportunityId" TEXT,
+            "requestKey" TEXT NOT NULL,
+            "normalizedQueryKey" TEXT NOT NULL,
+            "query" TEXT NOT NULL,
+            "country" TEXT NOT NULL,
+            "language" TEXT NOT NULL,
+            "dateRange" TEXT NOT NULL,
+            "page" INTEGER NOT NULL DEFAULT 1,
+            "creditsUsed" INTEGER NOT NULL DEFAULT 1,
+            "effectiveCostUsd" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "competitionProxy" INTEGER NOT NULL DEFAULT 0,
+            "responseJson" JSONB NOT NULL,
+            "summaryJson" JSONB NOT NULL,
+            "sampledAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "expiresAt" TIMESTAMP(3) NOT NULL,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "SerpSample_pkey" PRIMARY KEY ("id")
+        );
+        RAISE NOTICE 'Created SerpSample table';
+    ELSE
+        RAISE NOTICE 'SerpSample table already exists, recording Prisma migration only';
+    END IF;
+
+    CREATE INDEX IF NOT EXISTS "SerpSample_requestKey_expiresAt_idx"
+        ON "SerpSample"("requestKey", "expiresAt");
+    CREATE INDEX IF NOT EXISTS "SerpSample_vendor_sampledAt_idx"
+        ON "SerpSample"("vendor", "sampledAt");
+    CREATE INDEX IF NOT EXISTS "SerpSample_sourceOpportunityId_idx"
+        ON "SerpSample"("sourceOpportunityId");
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'SerpSample_sourceOpportunityId_fkey'
+    ) THEN
+        ALTER TABLE "SerpSample"
+            ADD CONSTRAINT "SerpSample_sourceOpportunityId_fkey"
+            FOREIGN KEY ("sourceOpportunityId") REFERENCES "KeywordOpportunity"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        '924f23f56201b7b4889d8d58f7cc7ea75ed8fe38f39092d7954f6483be5f89fe',
+        NOW(),
+        '20260501223000_add_serp_samples',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260501223000_add_serp_samples';
+END $$;
+`;
+
+/**
  * Migration: Add Key Figures System Tables
  * Sprint 44 - Key Figures Data Foundation
  * Creates KeyFigure, MilestoneContributor, KeyFigureDraft tables
@@ -1708,7 +1799,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal', '0018_gsc_cluster_snapshot', '0019_seo_experiment_ledger', '0020_seo_packaging_fix_proposals', '0021_keyword_opportunity'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal', '0018_gsc_cluster_snapshot', '0019_seo_experiment_ledger', '0020_seo_packaging_fix_proposals', '0021_keyword_opportunity', '0022_serp_samples'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -1910,6 +2001,15 @@ export async function runMigrations(
         message: 'Migration 0021_keyword_opportunity completed successfully',
         tables: ['KeywordOpportunity'],
         changes: ['Recorded Prisma migration 20260501203000_add_keyword_opportunity in _prisma_migrations'],
+      });
+    } else if (migration === '0022_serp_samples') {
+      await prisma.$executeRawUnsafe(MIGRATION_0022_SERP_SAMPLES);
+      console.log('[Migrations] Migration 0022_serp_samples completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0022_serp_samples completed successfully',
+        tables: ['SerpSample'],
+        changes: ['Recorded Prisma migration 20260501223000_add_serp_samples in _prisma_migrations'],
       });
     }
   } catch (error) {
@@ -2161,6 +2261,7 @@ export async function getMigrationStatus(
         '0019_seo_experiment_ledger': existingTables.includes('SeoExperiment'),
         '0020_seo_packaging_fix_proposals': hasSeoPackagingFixProposalFields,
         '0021_keyword_opportunity': existingTables.includes('KeywordOpportunity'),
+        '0022_serp_samples': existingTables.includes('SerpSample'),
       },
     });
   } catch (error) {
