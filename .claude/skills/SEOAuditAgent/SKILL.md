@@ -1,6 +1,6 @@
 ---
 name: SEOAuditAgent
-description: SEO audit agent for letaiexplainai.com. Reads GSC insights and packaging audits from /admin/seo-insights, classifies findings into auto-ship, propose, or human-only lanes, composes with /AIBlogDraft and /AISEOReview, and refuses slop using seo_voice.md plus explicit bucket playbooks. USE WHEN reviewing weekly SEO findings, preparing metadata rewrites, scoping content-gap opportunities, reviewing packaging backlog, or running the weekly SEO digest.
+description: SEO audit agent for letaiexplainai.com. Reads GSC insights, packaging audits, and the keyword portfolio from /admin/seo-insights, classifies findings into auto-ship, propose, or human-only lanes, composes with /AIBlogDraft and /AISEOReview, and refuses slop using seo_voice.md plus explicit bucket playbooks. USE WHEN reviewing weekly SEO findings, preparing metadata rewrites, scoping content-gap opportunities, reviewing packaging backlog, reviewing the keyword portfolio, or running the weekly SEO digest.
 ---
 
 # SEOAuditAgent
@@ -42,7 +42,7 @@ Every workflow follows the same 5 phases:
 
 1. **Mode selection** — decide digest vs bucket vs finding.
 2. **Read context** — voice, slop rules, playbook, prior learnings.
-3. **Pull findings** — query `/api/admin/seo/insights` for weekly buckets and `/api/admin/seo/packaging` for packaging backlog when relevant.
+3. **Pull findings** — query `/api/admin/seo/insights` for weekly buckets, `/api/admin/seo/packaging` for packaging backlog, and `/api/admin/seo/portfolio?status=scored` for discovery backlog when relevant.
 4. **Classify lane** — `auto_ship`, `propose`, or `human_only`.
 5. **Generate artifact + pre-flight slop check** — emit the artifact, then run the reject-list before returning it.
 
@@ -63,6 +63,7 @@ Every workflow follows the same 5 phases:
 
 - Never auto-ship blog body content.
 - Never auto-ship more than 3 entities per week without explicit human approval.
+- Never auto-promote more than 2 non-editorial keyword-portfolio ideas per weekly digest run.
 - Never auto-ship without an audit-log entry in the live system once SEOI-4 is wired.
 - Treat any slop-category hit as an automatic downgrade to `human_only`.
 - Treat any confidence score below `0.6` as `human_only`.

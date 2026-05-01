@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (content-graph gap filtering live in prod)
+> Last updated: 2026-05-01 by Codex (content-graph filtering + weekly discovery cap live)
 
 ---
 
@@ -99,7 +99,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] fit with LAEA’s existing graph
   - [x] ability to support internal linking
   - [ ] experiment capacity
-- [ ] Cap the weekly intake so discovery does not overwhelm the backlog
+- [x] Cap the weekly intake so discovery does not overwhelm the backlog
 
 ### 5. Admin portfolio UI
 
@@ -116,9 +116,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 6. Weekly automation
 
-- [ ] Update the weekly agent so it can nominate at most 1-2 new discovery-lane ideas per run
-- [ ] Keep the rest in a scored backlog for human review
-- [ ] Paused mode remains read-only
+- [x] Update the weekly agent so it can nominate at most 1-2 new discovery-lane ideas per run
+- [x] Keep the rest in a scored backlog for human review
+- [x] Paused mode remains read-only
 
 ### 7. Tests
 
