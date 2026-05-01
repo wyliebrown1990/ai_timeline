@@ -345,6 +345,191 @@ The plan correctly handles every load-bearing security concern: `requireAdmin` o
 
 ---
 
+## UX Lead Re-Verification (2026-05-01)
+
+The 2026-04-30 UX Lead Review (above) covered SEOI-1 through SEOI-7. This 2026-05-01 pass (a) re-verifies whether the prior review's prescriptions actually shipped, and (b) adds UX Lead Reviews to the post-pilot sprints (SEOI-8 through SEOI-11) which had none. Per-sprint findings live in each sprint's "## UX Lead Review (2026-05-01)" section.
+
+### Re-verification of 2026-04-30 UX prescriptions
+
+The 2026-04-30 UX review prescribed three new shared `ui/` primitives (`<Tabs>`, `<Drawer>`, `<EmptyState>`) plus reuse of the existing `<ConfirmDialog>` / `<ErrorState>` / `<LoadingSkeleton>`. Verified shipped:
+
+- ✅ **`src/components/ui/Drawer.tsx`** — shipped. Right-side slide-in primitive with focus trap + Escape dismiss + mobile full-screen mode.
+- ✅ **`src/components/ui/Tabs.tsx`** — shipped. Reusable tab nav primitive used by SEOI-2/4/6 and ready for SEOI-8/9/10/11 to inherit.
+- ✅ **`<EmptyState>`** — shipped. Colocated inside `src/components/ui/ErrorState.tsx` (one file, two named exports). `src/components/ui/index.ts` exports both. Functionally available; the colocation is a minor cleanup-when-touched (P3-shape) — extracting `EmptyState.tsx` as its own file would aid grep-ability but isn't worth a dedicated edit.
+- ✅ **`src/components/ui/ConfirmDialog.tsx`** — was already shipped before this initiative; correctly reused across SEOI-2/4/6 destructive flows.
+- ✅ **`src/components/ui/ErrorState.tsx`** — was already shipped; reused across SEOI-2/4/6.
+- ✅ **`src/components/ui/LoadingSkeleton.tsx`** — was already shipped (with `MilestoneCardSkeleton`, `TimelineSkeleton` variants); reused across SEOI-2/4/6.
+
+All seven primitives the 2026-04-30 UX review depended on are exported from `src/components/ui/index.ts` and ready for SEOI-8 through SEOI-11 to compose against. **The primitive prescription landed cleanly** — no rework needed for the post-pilot sprints to inherit them.
+
+### Cross-cutting UX findings for the post-pilot track
+
+#### CC-UX-1. Tab nav grows from 3 → 7 tabs across SEOI-8/9/10/11
+
+After the post-pilot track ships, the in-page tab nav at `/admin/seo-insights` will hold seven tabs:
+`Insights · Actions · Proposals · Clusters · Experiments · Packaging · Portfolio`.
+
+This crosses a usability threshold on mobile. **Decision needed before SEOI-8 implementation** (since the choice affects every subsequent sprint):
+
+- **Option A:** Keep horizontal scroll-with-snap on mobile (per SEOI-2 UX-2 spec). Operators scroll the tab strip on 375px screens; auto-scroll-active-tab on mount. Survives 7 tabs but starts to feel cramped.
+- **Option B:** Collapse tab strip to a `<select>` dropdown on mobile when tab count >5. Single-row dropdown with active label; tap to open the full list. Shipped widely as a tab-overflow pattern. Recommended.
+- **Option C:** Group SEO admin tabs into two rows. Adds vertical real estate but feels less polished than A or B.
+
+**Recommendation:** Option B. Land the dropdown variant in the shared `<Tabs>` primitive in SEOI-8 (since it's the first post-pilot sprint to push tab count past 5) so all subsequent sprints inherit it.
+
+Add a sub-task to SEOI-8 Task 6: "Extend `<Tabs>` primitive with a `mobileVariant: 'scroll' | 'dropdown'` prop; default to `dropdown` when tab count >5."
+
+#### CC-UX-2. Color-blind safety as a uniform DoD bar
+
+Every post-pilot sprint introduces new status / severity / score / source pills. The pilot's UX-X4 didn't fully cover this; the post-pilot review elevates color-blind safety to a per-sprint DoD line item:
+
+- All status / severity pills MUST include icon + text + color, never color alone (SEOI-9 status pills, SEOI-10 severity pills, SEOI-11 source pills, SEOI-8 cluster bucket pills).
+- All score visualizations (SEOI-11 demand/competition bars, SEOI-7 confidence chips) MUST include numeric value + tier label alongside the visual signal.
+- All diff panels (SEOI-4 metadata diff, SEOI-10 canonical diff) MUST label "Before"/"After" or "Current"/"Recommended" with text headings, not just background tint.
+
+This is enumerated per-sprint in each post-pilot UX section.
+
+#### CC-UX-3. Mobile responsive falls back to card layout for dense tables
+
+Three post-pilot sprints add information-dense tables (SEOI-9 experiments, SEOI-10 packaging, SEOI-11 portfolio). At `<md` (768px), horizontal table scroll preserves data shape but hides signal columns (checkpoint timeline, severity, demand bars). **Cross-cutting recommendation:** at mobile breakpoint, collapse each table row to a card layout that keeps the highest-signal field visible without horizontal scrolling.
+
+The pattern is enumerated in SEOI-9 #5 (experiment cards). SEOI-10 + SEOI-11 should match the pattern.
+
+#### CC-UX-4. Single-theme (light) admin chrome continues; primitives stay dark-mode-ready
+
+The 2026-04-30 UX-X1 decision ("match existing AdminLayout styling — single-theme light for content area") continues across the post-pilot track. Page chrome stays light; the shared `ui/` primitives ship full `dark:` coverage so a future admin-dark-mode backfill won't re-touch any of these surfaces.
+
+Per-sprint pill colors include `dark:` variants (per the per-sprint UX sections) so the pills themselves are theme-aware even though the surrounding page isn't.
+
+#### CC-UX-5. Outcome celebration moments deserve respect-reduced-motion treatment
+
+SEOI-9 #8 introduces the first "celebrate the win" moment in the SEO admin (toast + optional confetti when an experiment lands `won`). Set the precedent: **all celebration animations across the post-pilot track must respect `prefers-reduced-motion`** — the toast remains, the confetti drops to nothing, and operators with reduced-motion preferences still get the success signal without the visual noise.
+
+If SEOI-7 polish or SEOI-10 SERP-packaging later add similar "drift-clean" or "audit-clean" celebration moments, follow the same pattern.
+
+### One UX risk to flag
+
+- ⚠️ **UX-RISK-1. Editorial-seed drawer form is the first user-input form added in the SEO admin track.** SEOI-2 through SEOI-10 are all read/select/dismiss/promote flows — no free-text input from operators (other than the SEOI-6 reject reason). SEOI-11 #9 introduces an `Add seed` form. This is a small but real new UX surface area: form validation, error states, autosave-on-blur (or not?), keyboard flow. The pattern doesn't exist elsewhere in the SEO admin to copy from. **Recommendation:** the implementing dev pulls the form pattern from `src/pages/admin/BlogEditorPage.tsx` (or another existing admin form) rather than improvising. Document the chosen reference in SEOI-11 Task 5 before implementing.
+
+### Verdict (post-pilot)
+
+**UX-ready after the per-sprint additions are absorbed.** No structural rework needed. The shared `ui/` primitive set delivered by the pilot is the right foundation for all four post-pilot sprints to compose against.
+
+The two cross-cutting decisions worth making upfront:
+1. **CC-UX-1 mobile tab fallback** — recommend Option B (dropdown when tab count >5), implemented as a `<Tabs>` variant in SEOI-8 so it propagates.
+2. **CC-UX-2 color-blind safety as DoD** — folded into each per-sprint UX section explicitly.
+
+The single UX risk (CC-UX-RISK-1, the editorial-seed form being the first form pattern in the SEO admin) is a documentation fix, not architectural.
+
+---
+
+## Tech Lead Re-Verification (2026-05-01)
+
+The 2026-04-30 Tech Lead Review (above) covered SEOI-1 through SEOI-7. This 2026-05-01 pass (a) re-verifies the prior review's claims against the now-shipped code, and (b) adds Tech Lead Reviews to the post-pilot sprints (SEOI-8 through SEOI-11) which had none. Per-sprint findings live in each sprint's "## Tech Lead Review (2026-05-01)" section.
+
+### Re-verification of 2026-04-30 claims
+
+All 2026-04-30 TLR claims hold up against current state:
+
+- ✅ **C-X1 test path correction shipped.** `tests/unit/seo/`, `tests/unit/gsc/`, `tests/unit/pages/admin/Seo*` all exist at repo root. No `__tests__/` colocation in `server/src/` or `src/`. Pilot fix landed.
+- ✅ **C-X2 admin route mount style correctly per-route.** `server/src/routes/seoAdmin.ts` declares `requireAdmin` per-handler exactly like `server/src/routes/glossary.ts:69-86`. Pilot fix landed.
+- ✅ **C-X3 finalized PT window discipline shipped.** `gscIngest.ts` and `feedbackMeasurement.ts` use the latest-finalized-PT-day computation, not naive "now - N days." Pilot fix landed.
+- ⚠️ **M-X1 `requireAdmin` import path — definitively settled.** Both `server/src/middleware/auth.ts` (exports `requireAdmin` at line 108) AND `server/src/middleware/authMiddleware.ts` (exports `requireAdmin` at line 70) exist. **Shipped admin routes consistently use `'../middleware/auth'`** — verified at `server/src/routes/glossary.ts:4`, `server/src/routes/learningPaths.ts:1`, and the existing `server/src/routes/seoAdmin.ts`. The 2026-04-30 TLR M-X1 was correct (`'../middleware/auth'`); the AISlopReviewer skill doc (which claims `authMiddleware.ts` is canonical) is stale and should be corrected. SEOI-8/9/10/11 TLR sections all reference this canonical path explicitly.
+- ✅ **M-X4 migration sequence safe.** Three migrations (`20260430173000_add_gsc_metrics`, `20260430213500_add_seo_agent_action`, `20260430234500_add_seo_proposal`) have monotonically increasing timestamps. FKs across them are clean (`SeoAgentAction.snapshotId` → `GscWeeklySnapshot`, `SeoProposal.snapshotId` → `GscWeeklySnapshot`, `SeoProposal.draftPostId` → `BlogPost`). Deployed in order.
+- ✅ **M-X5 Prisma `@relation` declarations shipped.** `SeoAgentAction.snapshot @relation(...)` (line ~295) and `SeoProposal.snapshot @relation(...)` + `SeoProposal.draftPost @relation(...)` (line ~327) are declared per the prescribed fix. The pattern is set for SEOI-8/9/11's new models.
+- ✅ **M-X6 EventBridge + Lambda Permission pairing.** `GscWeeklyIngestRule` (`infra/template.yaml:332`) paired with `GscWeeklyIngestPermission` (line 344). Pilot fix landed.
+
+### One **NEW** finding from re-verification
+
+- ⚠️ **NEW-1. SEO agent SSM params wired only into API Lambda env, not Ingestion Lambda env.** `infra/template.yaml`: `/ai-timeline/${Environment}/seo-agent-paused` and `/ai-timeline/${Environment}/seo-agent-last-run` are exposed as `SEO_AGENT_PAUSED_PARAM` / `SEO_AGENT_LAST_RUN_PARAM` env vars on the API Lambda (lines 104-105) but NOT on the Ingestion Lambda (lines 227-235). For the pilot this is correct — the `/SEOAuditAgent` workflow is driven by the `/schedule` remote agent + admin-API endpoints, not by ingestion-Lambda code paths. **Flag as a future-proofing risk:** if a future sprint moves any pause-check or run-status-write into the Ingestion Lambda (e.g., to make GSC ingest itself pause-aware), the env vars must be added there too. Add to `seo-pipeline.md` (when SEOI-7 writes that file) as a known constraint. Not blocking for SEOI-8 through SEOI-11.
+
+### Cross-cutting findings for the post-pilot track (SEOI-8 → SEOI-11)
+
+Per-sprint TLR sections in each sprint file capture the specifics. Cross-cutting items below.
+
+#### CC-1. Admin nav stays flat — use in-page tab nav for new SEO sub-surfaces.
+
+`src/components/admin/AdminLayout.tsx` `navItems` (lines 35-141) supports flat top-level entries only. The current SEO IA is one flat entry (`SEO Insights` line 73) with `actions` and `proposals` reachable only via the in-page tab nav added in SEOI-4. **All four post-pilot sprints (SEOI-8 clusters, SEOI-9 experiments, SEOI-10 packaging, SEOI-11 portfolio) should add their surface as a new tab in the existing `/admin/seo-insights` tab nav rather than a flat sidebar entry.** This means the tab nav grows from 3 (Insights / Actions / Proposals) to 7 (+ Clusters / Experiments / Packaging / Portfolio). At desktop that's still readable; at mobile, horizontal scroll-with-snap (per UX-X-2 in the 2026-04-30 UX review) handles it. Confirmed in each post-pilot sprint's TLR M-section.
+
+#### CC-2. Page-type allowlist (used by SEOI-8 Task 4) is real and stable.
+
+The 6 routes (`/explained/:slug`, `/who-invented/:slug`, `/events/:id`, `/people/:slug`, `/organizations/:slug`, `/timeline`) all exist in `src/App.tsx` and are wired in production. SEOI-8's `bucketClassifier.ts` extension can match GSC `page` URLs against these via prefix matching with confidence.
+
+#### CC-3. SEO foundation is fully shipped — SEOI-10's audit-vs-generate boundary is enforceable.
+
+`src/components/SEO.tsx` (Helmet-driven canonical, JSON-LD, meta) and `server/src/routes/sitemap.ts` (full URL enumeration) are production-ready. SEOI-10's `serpPackagingAudit.ts` has real generators to read from. Confirmed in SEOI-10's TLR M1 with explicit read-only contract.
+
+#### CC-4. Post-pilot data-model fragmentation needs documentation, not consolidation.
+
+After SEOI-11 ships, the schema will hold four overlapping shapes:
+
+| Model | Sprint | Role | Lifecycle |
+|---|---|---|---|
+| `SeoAgentAction` | SEOI-4 | Auto-shipped change with rollback | Single 7-day measured delta |
+| `SeoProposal` | SEOI-6 | Post-finding draft (GSC evidence exists; specific page+keyword pair) | `pending → drafting → (approved \| shipped) \| rejected` |
+| `SeoExperiment` | SEOI-9 | Approved action with scheduled measurement checkpoints | D+14 / D+28 / D+56 schedule; `planned → running → won \| flat \| lost \| archived` |
+| `KeywordOpportunity` | SEOI-11 | Pre-impression demand scouting (no GSC evidence yet) | `discovered → scored → promoted-to-experiment \| archived` |
+
+The four roles ARE genuinely distinct. The risk is documentation, not architecture. **Patch:** add this taxonomy to the "Data Model Summary" section above when SEOI-9 ships, and add Prisma `///` comments on each model referencing the taxonomy. Cross-references AISlopReviewer CC-P1 in this PLAN's slop section.
+
+#### CC-5. Sprint-template gaps surfaced uniformly across SEOI-8/9/10/11.
+
+All four sprints had implicit (not explicit) commitments to: (a) per-route `requireAdmin` middleware in the route file; (b) `lazy(() => import(...))` registration in `src/App.tsx`. Both ARE conventions — the shipped pilot code follows them — but the sprint TEMPLATE doesn't surface them as default sub-tasks. Cleanup-when-touched: update `/AIDevPlanning` skill to surface "per-route requireAdmin" and "lazy admin page import" as default checklist items for any sprint adding an admin route or page. Logged as `LEDGER-003`.
+
+### Verdict (post-pilot)
+
+**Ready to implement after the per-sprint patches are absorbed.** The structural assumptions all hold: no Prisma collisions, no service-file collisions, no React Router collisions, the page-type allowlist is real, the SEO foundation is shipped, the auth/route conventions are settled. The single P1-shaped finding (SEOI-9 C1 measurement-table reconciliation) is a documentation/comment fix, not architectural rework.
+
+The recurring CC-1 (in-page tab nav) and CC-5 (sprint-template gap) findings are template-shape, not per-sprint — fold them into `/AIDevPlanning` once and they don't re-occur.
+
+---
+
+## Slop Findings — Post-pilot expansion track (AISlopReviewer — 2026-05-01)
+
+The 2026-04-30 review above covered SEOI-1 through SEOI-7. The post-pilot expansion track (SEOI-8 through SEOI-11) was added in commit `389beb7` after that review and needs its own pass. Per-sprint findings live in each sprint file under their own "## Slop Findings (AISlopReviewer — 2026-05-01)" section. This subsection captures the cross-cutting concerns that span SEOI-8 through SEOI-11.
+
+### Cross-cutting P1
+
+- **CC-P1. Data-model fragmentation across SEOI-6, SEOI-9, SEOI-11.** The schema now has FOUR overlapping shapes for "approved-or-candidate SEO action with target/source/measurement metadata":
+  - `SeoAgentAction` (SEOI-4) — auto-shipped change with rollback + single 7-day measured delta (`measuredDelta: Json?`)
+  - `SeoProposal` (SEOI-6) — post-finding draft (GSC evidence exists; specific page+keyword pair)
+  - `SeoExperiment` (SEOI-9) — approved action with scheduled measurement checkpoints (D+14/D+28/D+56) + `metricsBeforeJson` / `metricsAfterJson`
+  - `KeywordOpportunity` (SEOI-11) — pre-impression demand scouting (no GSC evidence yet)
+  
+  The shapes ARE genuinely different (cardinality, lifecycle, evidence requirements differ), but the difference is invisible from the schema alone. Without an explicit taxonomy, future devs will either merge two of them by accident, fork a fifth, or duplicate functionality across them.
+  
+  **Fix:** add the 4-row taxonomy above to this PLAN's "Data Model Summary" section. Add Prisma `///` comments on each model's first line referencing the taxonomy and the table's specific role. Add a top-of-file comment on `experimentLedger.ts` distinguishing it from `feedbackMeasurement.ts`. Category 2 (Inconsistency / drift if undocumented) + Category 1.1 (Parallel helpers risk).
+
+### Cross-cutting P2
+
+- **CC-P2-1. Per-route `requireAdmin` not specified in any of the four post-pilot sprints.** SEOI-8/9/10/11 each add new admin endpoints without explicitly stating that they follow the per-route `adminRouter.METHOD('/path', requireAdmin, ctrl)` pattern (canonical: `server/src/routes/glossary.ts:69-86`; existing `seoAdmin.ts` already follows it). Each sprint's per-sprint section flags this individually as P2-S1. The fix is uniform: add an explicit one-line note under the route-task in each sprint.
+- **CC-P2-2. Lazy admin page imports not committed in any of the four post-pilot sprints.** SEOI-8 (clusters page or tab — undecided), SEOI-9 (`SeoExperimentsPage`), SEOI-10 (`SeoPackagingPage`), SEOI-11 (`SeoKeywordPortfolioPage`) all introduce new admin pages but none explicitly call out the `const PageName = lazy(() => import(...))` addition to `src/App.tsx` that SEOI-2/4/6 followed. Each sprint flags this as a P2 finding. The cross-cutting fix: add an explicit lazy-import sub-task to each new-page sprint as a sprint-template default.
+- **CC-P2-3. Audit-vs-generate boundary on `serpPackagingAudit.ts` (SEOI-10).** The packaging audit must read what the existing Sprint-SEO-1 through SEO-7 foundation services produce (canonical tags, sitemap, structured data, breadcrumbs) and flag drift, NOT regenerate them. SEOI-10's per-sprint section flags this as P1-S1 with a top-of-file boundary comment as the fix.
+
+### Cross-cutting P3
+
+- **CC-P3-1. URL pattern coupling.** SEOI-10 hardcodes `/news` and `/news/:id` in `serpPackagingAudit.ts`. SEOI-11 implies SERP-sampling URLs hardcoded into `keywordDiscovery.ts`. Cleanup-when-touched: read URL patterns from a constants file or the React Router config rather than hardcoding strings inside services.
+
+### Cross-cutting Slop Avoided (call out — these patterns continue from the pilot review)
+
+- **No parallel `Subject` taxonomy across all four sprints.** GSC clusters (SEOI-8), topic pods (SEOI-9), packaging audits (SEOI-10), and keyword portfolio (SEOI-11) all operate on **operational data** (GSC findings, audit results, discovery candidates), not on **content classification**. None bypasses `Subject` + `ContentSubject` per `subject-taxonomy.md` rule.
+- **Extension over fork.** SEOI-8 extends `bucketClassifier.ts` (page-type allowlist), SEOI-9 extends `briefGenerator.ts` (cluster-source proposals), SEOI-10 extends `SeoProposal.proposalType` (evergreen-routing as enum value, not new model). Category 1.1 (Parallel helpers) avoided structurally.
+- **No new vector DB / embedding service / paid keyword API introduced.** SEOI-8 explicitly defers vector clustering. SEOI-11 explicitly forbids paid providers in v1. Avoids Category 4 (Over-engineering) + Category 13 (Dependency hygiene).
+- **Auto-ship discipline preserved across the expansion.** SEOI-8's page-type expansion explicitly excludes `BlogPost.bodyMarkdown`. SEOI-10's H1/schema/canonical/internal-link changes stay human-only. The "metadata-only auto-ship" hard cap from SEOI-4 survives the expansion.
+- **Killswitch (`SSM /ai-timeline/prod/seo-agent-paused`) respected by every new surface.** Every SEOI-8/9/10/11 admin flow honors paused → read-only mode. No surface bypasses the pause.
+- **Test paths uniformly at `/tests/unit/`** across all four sprints. The pilot's C-X1 test-path drift (where SEOI-1 through SEOI-7 originally had `__tests__/` colocated paths and were corrected) does NOT recur in SEOI-8 through SEOI-11 — the post-pilot plans were authored with the corrected convention from the start.
+- **No `mcp__claude-in-chrome__*`, no `VITE_*` secrets, no manual AWS console steps, no backwards-compat shims** in any of the four post-pilot sprints. Discipline carries forward from the pilot.
+
+### Verdict (post-pilot)
+
+**Minor adjustments.** The expansion track respects every centralized-system rule the pilot established. The single P1 (data-model fragmentation across SEOI-6/9/11) is a documentation fix, not structural rework — the four tables ARE genuinely distinct, but the schema alone doesn't communicate that. Adding the 4-row taxonomy to this PLAN + Prisma `///` comments closes it.
+
+The recurring P2 patterns (per-route `requireAdmin`, lazy imports) are sprint-template-shape findings, not architectural problems — the *first* sprint to land in this track (likely SEOI-8) should establish the explicit defaults and the others should inherit. Worth folding into the next `/AIDevPlanning` skill update so future sprints surface these by default rather than requiring an AISlopReviewer pass to catch them.
+
+**Composition note:** if SEOI-8 ships and the deterministic clustering produces noisy clusters on real data, **run `/AISEOReview`** on a representative sample of cluster-backed proposals before SEOI-9's experiment ledger ships — that adds the SERP-winnability lens (does the cluster actually represent winnable demand?) which AISlopReviewer doesn't cover.
+
+---
+
 ## UX Lead Review (2026-04-30)
 
 Reviewed against LAEA's actual frontend conventions and the small `src/components/ui/` primitives library. The initiative is **admin-only** — no public surface — so the UX bar is *desktop-first power-user productivity* rather than mobile-first reading experience. Per-sprint findings live in each sprint file under their own "## UX Lead Review" section. This section captures cross-cutting concerns.
