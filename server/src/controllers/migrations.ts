@@ -233,6 +233,167 @@ END $$;
 `;
 
 /**
+ * Migration: Add SeoAgentAction audit log table
+ * SEOI-4 - Auto-ship metadata rewrites
+ * Mirrors Prisma migration 20260430213500_add_seo_agent_action and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0016_SEO_AGENT_ACTION = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260430213500_add_seo_agent_action'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260430213500_add_seo_agent_action already recorded, skipping';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'SeoAgentAction'
+    ) THEN
+        CREATE TABLE "SeoAgentAction" (
+            "id" TEXT NOT NULL,
+            "snapshotId" TEXT,
+            "actionType" TEXT NOT NULL,
+            "targetType" TEXT NOT NULL,
+            "targetId" TEXT NOT NULL,
+            "beforeJson" JSONB NOT NULL,
+            "afterJson" JSONB NOT NULL,
+            "confidence" DOUBLE PRECISION NOT NULL,
+            "rationale" TEXT NOT NULL,
+            "shippedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "rolledBackAt" TIMESTAMP(3),
+            "measuredAt" TIMESTAMP(3),
+            "measuredDelta" JSONB,
+            CONSTRAINT "SeoAgentAction_pkey" PRIMARY KEY ("id")
+        );
+
+        CREATE INDEX "SeoAgentAction_targetType_targetId_idx" ON "SeoAgentAction"("targetType", "targetId");
+        CREATE INDEX "SeoAgentAction_shippedAt_idx" ON "SeoAgentAction"("shippedAt");
+        CREATE INDEX "SeoAgentAction_rolledBackAt_idx" ON "SeoAgentAction"("rolledBackAt");
+        ALTER TABLE "SeoAgentAction"
+            ADD CONSTRAINT "SeoAgentAction_snapshotId_fkey"
+            FOREIGN KEY ("snapshotId") REFERENCES "GscWeeklySnapshot"("id")
+            ON DELETE SET NULL
+            ON UPDATE CASCADE;
+        RAISE NOTICE 'Created SeoAgentAction table';
+    ELSE
+        RAISE NOTICE 'SeoAgentAction table already exists, recording Prisma migration only';
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        'e9168667890ce74cbc22aac00d38ea127954e75fa187980053d3960de9124cff',
+        NOW(),
+        '20260430213500_add_seo_agent_action',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260430213500_add_seo_agent_action';
+END $$;
+`;
+
+/**
+ * Migration: Add SeoProposal queue table
+ * SEOI-6 - Proposal lane for content-gap and trend-signal findings
+ * Mirrors Prisma migration 20260430234500_add_seo_proposal and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0017_SEO_PROPOSAL = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260430234500_add_seo_proposal'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260430234500_add_seo_proposal already recorded, skipping';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'SeoProposal'
+    ) THEN
+        CREATE TABLE "SeoProposal" (
+            "id" TEXT NOT NULL,
+            "snapshotId" TEXT NOT NULL,
+            "proposalType" TEXT NOT NULL,
+            "targetKeyword" TEXT NOT NULL,
+            "suggestedAngle" TEXT NOT NULL,
+            "linkInventoryJson" JSONB NOT NULL,
+            "newsHooksJson" JSONB,
+            "rationale" TEXT NOT NULL,
+            "confidence" DOUBLE PRECISION NOT NULL,
+            "status" TEXT NOT NULL DEFAULT 'pending',
+            "draftPostId" TEXT,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "actedAt" TIMESTAMP(3),
+            "rejectedReason" TEXT,
+            CONSTRAINT "SeoProposal_pkey" PRIMARY KEY ("id")
+        );
+
+        CREATE INDEX "SeoProposal_status_createdAt_idx" ON "SeoProposal"("status", "createdAt");
+        CREATE INDEX "SeoProposal_targetKeyword_createdAt_idx" ON "SeoProposal"("targetKeyword", "createdAt");
+        ALTER TABLE "SeoProposal"
+            ADD CONSTRAINT "SeoProposal_snapshotId_fkey"
+            FOREIGN KEY ("snapshotId") REFERENCES "GscWeeklySnapshot"("id")
+            ON DELETE RESTRICT
+            ON UPDATE CASCADE;
+        ALTER TABLE "SeoProposal"
+            ADD CONSTRAINT "SeoProposal_draftPostId_fkey"
+            FOREIGN KEY ("draftPostId") REFERENCES "BlogPost"("id")
+            ON DELETE SET NULL
+            ON UPDATE CASCADE;
+        RAISE NOTICE 'Created SeoProposal table';
+    ELSE
+        RAISE NOTICE 'SeoProposal table already exists, recording Prisma migration only';
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        '9697711996041c758df5216712e9fdddac55386dfd830b72ec5a2d3364406ec0',
+        NOW(),
+        '20260430234500_add_seo_proposal',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260430234500_add_seo_proposal';
+END $$;
+`;
+
+/**
  * Migration: Add Key Figures System Tables
  * Sprint 44 - Key Figures Data Foundation
  * Creates KeyFigure, MilestoneContributor, KeyFigureDraft tables
@@ -1182,7 +1343,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -1331,6 +1492,24 @@ export async function runMigrations(
           'CurrentEvent table now has isPaywalled, paywallReason columns',
         ],
       });
+    } else if (migration === '0016_seo_agent_action') {
+      await prisma.$executeRawUnsafe(MIGRATION_0016_SEO_AGENT_ACTION);
+      console.log('[Migrations] Migration 0016_seo_agent_action completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0016_seo_agent_action completed successfully',
+        tables: ['SeoAgentAction'],
+        changes: ['Recorded Prisma migration 20260430213500_add_seo_agent_action in _prisma_migrations'],
+      });
+    } else if (migration === '0017_seo_proposal') {
+      await prisma.$executeRawUnsafe(MIGRATION_0017_SEO_PROPOSAL);
+      console.log('[Migrations] Migration 0017_seo_proposal completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0017_seo_proposal completed successfully',
+        tables: ['SeoProposal'],
+        changes: ['Recorded Prisma migration 20260430234500_add_seo_proposal in _prisma_migrations'],
+      });
     }
   } catch (error) {
     console.error('[Migrations] Migration failed:', error);
@@ -1474,7 +1653,8 @@ export async function getMigrationStatus(
         'User',
         'Comment', 'CommentVote', 'CommentReport',
         'SpamFilter',
-        'NewsInteraction', 'SavedCollection'
+        'NewsInteraction', 'SavedCollection',
+        'SeoAgentAction', 'SeoProposal'
       )
       ORDER BY tablename
     `;
@@ -1561,6 +1741,8 @@ export async function getMigrationStatus(
         '0012_moderation_system': hasModerationSystem,
         '0013_vote_integrity': hasVoteIntegrity,
         '0014_feed_engagement': existingTables.includes('NewsInteraction'),
+        '0016_seo_agent_action': existingTables.includes('SeoAgentAction'),
+        '0017_seo_proposal': existingTables.includes('SeoProposal'),
       },
     });
   } catch (error) {

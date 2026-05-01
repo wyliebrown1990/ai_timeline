@@ -16,6 +16,7 @@ import type { IngestionJobResult } from './jobs/ingestionJob';
 import { analyzeAllPending, analyzeArticle, screenOnly } from './services/ingestion/articleAnalyzer';
 import { ingestBibliography, generateMarkdownReport } from './services/ingestion/bibliographyIngestion';
 import { prisma } from './db';
+import { runBackfill, runWeeklyIngest } from './services/gsc/gscIngest';
 
 /**
  * Lambda response structure
@@ -129,7 +130,16 @@ interface GenerateQuizEvent {
   forceRegenerate?: boolean;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent;
+interface GscWeeklyIngestEvent {
+  action: 'gscWeeklyIngest';
+}
+
+interface GscBackfillEvent {
+  action: 'gscBackfill';
+  daysBack?: number;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -173,6 +183,14 @@ function isBulkUpdateLayeredContentEvent(event: LambdaEvent): event is BulkUpdat
 
 function isGenerateQuizEvent(event: LambdaEvent): event is GenerateQuizEvent {
   return (event as GenerateQuizEvent).action === 'generateQuiz';
+}
+
+function isGscWeeklyIngestEvent(event: LambdaEvent): event is GscWeeklyIngestEvent {
+  return (event as GscWeeklyIngestEvent).action === 'gscWeeklyIngest';
+}
+
+function isGscBackfillEvent(event: LambdaEvent): event is GscBackfillEvent {
+  return (event as GscBackfillEvent).action === 'gscBackfill';
 }
 
 /**
@@ -1124,6 +1142,61 @@ Return ONLY the JSON object, no other text.`;
 
       // Re-throw so Lambda reports as failed — triggers CloudWatch alarm + EventBridge retry
       throw error;
+    }
+  }
+
+  if (isGscWeeklyIngestEvent(event)) {
+    console.log('[IngestionLambda] Running weekly GSC ingest');
+
+    try {
+      const result = await runWeeklyIngest();
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Weekly GSC ingest completed successfully',
+          summary: result,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Weekly GSC ingest failed:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'Weekly GSC ingest failed',
+          error: errorMessage,
+        }),
+      };
+    }
+  }
+
+  if (isGscBackfillEvent(event)) {
+    const daysBack = event.daysBack ?? 90;
+    console.log(`[IngestionLambda] Running GSC backfill for ${daysBack} days`);
+
+    try {
+      const result = await runBackfill(daysBack);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'GSC backfill completed successfully',
+          summary: result,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] GSC backfill failed:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
+
+      return {
+        statusCode: 500,
+        body: JSON.stringify({
+          message: 'GSC backfill failed',
+          error: errorMessage,
+        }),
+      };
     }
   }
 

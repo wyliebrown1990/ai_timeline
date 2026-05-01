@@ -85,6 +85,10 @@ npx prisma migrate deploy                      # Production (set DATABASE_URL fi
 /ai-timeline/prod/admin-password
 /ai-timeline/prod/anthropic-api-key
 /ai-timeline/prod/cors-origin
+/ai-timeline/prod/gsc-oauth-credentials-json
+/ai-timeline/prod/gsc-site-url
+/ai-timeline/prod/seo-agent-paused
+/ai-timeline/prod/seo-agent-last-run
 ```
 
 ## Chrome extension CORS
@@ -113,3 +117,14 @@ Rationale and full sprint context: `roadmap/Sprint-Ext-1-Backend-Prep.md`.
 ## Monitoring
 - CloudWatch Dashboard: `AI-Timeline-Production`
 - Log Groups: `/aws/lambda/ai-timeline-api-prod`, `/aws/lambda/ai-timeline-ingestion-prod`
+
+## SEO Automation
+
+- Use `.claude/skills/SEOAuditAgent/` as the operator-facing skill layer for weekly SEO finding review.
+- The skill reads `/api/admin/seo/insights` output and delegates full draft writing to `/AIBlogDraft`.
+- Weekly SEO feedback + control endpoints live under:
+  - `GET /api/admin/seo/health`
+  - `GET /api/admin/seo/feedback/pending`
+  - `POST /api/admin/seo/actions/:id/measure`
+  - `PUT /api/admin/seo/pause`
+  - `PUT /api/admin/seo/run-status`

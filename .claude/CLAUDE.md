@@ -47,6 +47,11 @@ export DATABASE_URL=$(aws ssm get-parameter --name "/ai-timeline/prod/database-u
 npx prisma migrate deploy
 ```
 
+## Skills
+
+- `/AIBlogDraft` — create and publish SEO-aware blog drafts
+- `/SEOAuditAgent` — review `/admin/seo-insights`, classify findings into action lanes, and prepare metadata or brief artifacts without publishing slop
+
 ## Project Structure
 ```
 src/

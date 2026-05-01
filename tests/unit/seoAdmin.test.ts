@@ -1,0 +1,684 @@
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import type { NextFunction, Request, Response } from 'express';
+
+const mockRunWeeklyIngest = jest.fn();
+const mockGetGscHealth = jest.fn();
+const mockListInsights = jest.fn();
+const mockGetInsightDetail = jest.fn();
+const mockDismissInsight = jest.fn();
+const mockMarkInsightActioned = jest.fn();
+const mockProposeRewrite = jest.fn();
+const mockShipRewrite = jest.fn();
+const mockListSeoActions = jest.fn();
+const mockRollbackSeoAction = jest.fn();
+const mockListPendingFeedbackActions = jest.fn();
+const mockMeasureSeoAction = jest.fn();
+const mockIsPaused = jest.fn();
+const mockSetPaused = jest.fn();
+const mockGetLatestAgentRunStatus = jest.fn();
+const mockSetLatestAgentRunStatus = jest.fn();
+const mockListSeoProposals = jest.fn();
+const mockGenerateProposal = jest.fn();
+const mockApproveSeoProposal = jest.fn();
+const mockRejectSeoProposal = jest.fn();
+const mockLinkProposalDraft = jest.fn();
+
+jest.mock('../../server/src/services/gsc/gscIngest', () => ({
+  runWeeklyIngest: mockRunWeeklyIngest,
+  getGscHealth: mockGetGscHealth,
+}));
+
+jest.mock('../../server/src/services/gsc/bucketClassifier', () => ({
+  INSIGHT_BUCKETS: ['winnable_loss', 'content_gap', 'trend_signal', 'decay'],
+  listInsights: mockListInsights,
+  getInsightDetail: mockGetInsightDetail,
+  dismissInsight: mockDismissInsight,
+  markInsightActioned: mockMarkInsightActioned,
+}));
+
+jest.mock('../../server/src/services/seo/metadataRewriter', () => ({
+  proposeRewrite: mockProposeRewrite,
+  shipRewrite: mockShipRewrite,
+  listSeoActions: mockListSeoActions,
+  rollbackSeoAction: mockRollbackSeoAction,
+}));
+
+jest.mock('../../server/src/services/seo/feedbackMeasurement', () => ({
+  listPendingFeedbackActions: mockListPendingFeedbackActions,
+  measureSeoAction: mockMeasureSeoAction,
+}));
+
+jest.mock('../../server/src/services/seo/agentControl', () => ({
+  isPaused: mockIsPaused,
+  setPaused: mockSetPaused,
+}));
+
+jest.mock('../../server/src/services/seo/briefGenerator', () => ({
+  listSeoProposals: mockListSeoProposals,
+  generateProposal: mockGenerateProposal,
+  approveSeoProposal: mockApproveSeoProposal,
+  rejectSeoProposal: mockRejectSeoProposal,
+  linkProposalDraft: mockLinkProposalDraft,
+}));
+
+jest.mock('../../server/src/services/seo/agentRunStatus', () => ({
+  getLatestAgentRunStatus: mockGetLatestAgentRunStatus,
+  setLatestAgentRunStatus: mockSetLatestAgentRunStatus,
+}));
+
+import {
+  action,
+  actions,
+  detail,
+  dismiss,
+  health,
+  ingest,
+  linkProposal,
+  list,
+  measureAction,
+  pause,
+  pendingFeedback,
+  proposals,
+  proposeInsightRewrite,
+  approveProposal,
+  generateProposalFromInsight,
+  rejectProposal,
+  rollback,
+  shipInsightRewrite,
+  updateRunStatus,
+} from '../../server/src/controllers/seoAdmin';
+
+function createResponse(): Response {
+  const response = {
+    json: jest.fn(),
+    status: jest.fn(),
+  } as unknown as Response;
+
+  (response.status as unknown as jest.Mock).mockReturnValue(response);
+  return response;
+}
+
+function createRequest(overrides: Partial<Request> = {}): Request {
+  return {
+    query: {},
+    params: {},
+    ...overrides,
+  } as unknown as Request;
+}
+
+describe('seoAdmin controller', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsPaused.mockResolvedValue(false);
+    mockGetLatestAgentRunStatus.mockResolvedValue(null);
+  });
+
+  it('returns the ingest summary for manual admin runs', async () => {
+    mockRunWeeklyIngest.mockResolvedValue({
+      mode: 'weekly',
+      startDate: '2026-04-24',
+      endDate: '2026-04-30',
+      finalizedThroughDate: '2026-04-30',
+      dailyRowsInserted: 20,
+      dailyRowsAttempted: 24,
+      snapshotsCreated: 8,
+      weekStartsRebuilt: ['2026-04-24'],
+      durationMs: 250,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await ingest({} as Request, res, next);
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      mode: 'weekly',
+      dailyRowsInserted: 20,
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists SEO insights with pagination and bucket filters', async () => {
+    mockListInsights.mockResolvedValue({
+      data: [
+        {
+          id: 'snapshot_1',
+          bucket: 'winnable_loss',
+        },
+      ],
+      pagination: { page: 2, limit: 10, total: 1, totalPages: 1 },
+      meta: {
+        weekStart: '2026-04-24',
+        availableWeeks: ['2026-04-24'],
+        counts: {
+          winnable_loss: 1,
+          content_gap: 0,
+          trend_signal: 0,
+          decay: 0,
+        },
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await list(createRequest({
+      query: {
+        bucket: 'winnable_loss',
+        page: '2',
+        limit: '10',
+        weekStart: '2026-04-24',
+      },
+    }), res, next);
+
+    expect(mockListInsights).toHaveBeenCalledWith({
+      bucket: 'winnable_loss',
+      limit: 10,
+      page: 2,
+      weekStart: '2026-04-24',
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([
+        expect.objectContaining({ id: 'snapshot_1' }),
+      ]),
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns SEO insight detail when the finding exists', async () => {
+    mockGetInsightDetail.mockResolvedValue({
+      id: 'snapshot_1',
+      bucket: 'trend_signal',
+      trend: [{ weekStart: '2026-04-24', impressions: 80, clicks: 8, ctr: 0.1, position: 3 }],
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await detail(createRequest({ params: { id: 'snapshot_1' } }), res, next);
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'snapshot_1',
+      bucket: 'trend_signal',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for missing SEO insight detail', async () => {
+    mockGetInsightDetail.mockResolvedValue(null);
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await detail(createRequest({ params: { id: 'missing' } }), res, next);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'SEO insight not found' });
+  });
+
+  it('dismisses a finding', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await dismiss(createRequest({ params: { id: 'snapshot_2' } }), res, next);
+
+    expect(mockDismissInsight).toHaveBeenCalledWith('snapshot_2');
+    expect(res.json).toHaveBeenCalledWith({ id: 'snapshot_2', status: 'dismissed' });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('marks a finding as actioned', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await action(createRequest({ params: { id: 'snapshot_3' } }), res, next);
+
+    expect(mockMarkInsightActioned).toHaveBeenCalledWith('snapshot_3');
+    expect(res.json).toHaveBeenCalledWith({ id: 'snapshot_3', status: 'actioned' });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns health in API-friendly JSON shape', async () => {
+    mockGetGscHealth.mockResolvedValue({
+      lastRunAt: new Date('2026-05-01T12:00:00.000Z'),
+      finalizedThroughDate: '2026-04-30',
+      lastRowCount: 120,
+      lastWeekCovered: '2026-04-24',
+      totalRowsLast30d: 840,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await health({} as Request, res, next);
+
+    expect(res.json).toHaveBeenCalledWith({
+      lastRunAt: '2026-05-01T12:00:00.000Z',
+      finalizedThroughDate: '2026-04-30',
+      lastRowCount: 120,
+      lastWeekCovered: '2026-04-24',
+      totalRowsLast30d: 840,
+      paused: false,
+      agentRun: null,
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns a rewrite proposal for a winnable-loss finding', async () => {
+    mockProposeRewrite.mockResolvedValue({
+      snapshotId: 'snapshot_1',
+      proposedTitle: 'Turing Award Quiz: Why Multiple Winners Matter',
+      proposedDescription: 'Sharper metadata for the multiple-winners angle.',
+      rationale: 'The query intent is clearer in the rewritten metadata.',
+      confidence: 0.88,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await proposeInsightRewrite(createRequest({ params: { id: 'snapshot_1' } }), res, next);
+
+    expect(mockProposeRewrite).toHaveBeenCalledWith('snapshot_1');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      snapshotId: 'snapshot_1',
+      confidence: 0.88,
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('ships a rewrite and returns the audit-log row', async () => {
+    mockShipRewrite.mockResolvedValue({
+      id: 'action_1',
+      status: 'shipped',
+      targetId: 'post_1',
+      confidence: 0.9,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await shipInsightRewrite(createRequest({ params: { id: 'snapshot_1' } }), res, next);
+
+    expect(mockShipRewrite).toHaveBeenCalledWith('snapshot_1', false);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'action_1',
+      status: 'shipped',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists SEO agent actions with filters', async () => {
+    mockListSeoActions.mockResolvedValue({
+      data: [
+        {
+          id: 'action_1',
+          status: 'shipped',
+        },
+      ],
+      pagination: {
+        page: 2,
+        limit: 10,
+        total: 11,
+        totalPages: 2,
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await actions(createRequest({
+      query: {
+        targetType: 'blog_post',
+        page: '2',
+        limit: '10',
+        status: 'shipped',
+      },
+    }), res, next);
+
+    expect(mockListSeoActions).toHaveBeenCalledWith({
+      targetType: 'blog_post',
+      page: 2,
+      limit: 10,
+      status: 'shipped',
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([
+        expect.objectContaining({ id: 'action_1' }),
+      ]),
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists SEO proposals using the requested status filter', async () => {
+    mockListSeoProposals.mockResolvedValue({
+      data: [
+        {
+          id: 'proposal_1',
+          status: 'pending',
+        },
+      ],
+      pagination: {
+        page: 1,
+        limit: 25,
+        total: 1,
+        totalPages: 1,
+      },
+      meta: {
+        counts: {
+          all: 1,
+          pending: 1,
+          drafting: 0,
+          approved: 0,
+          rejected: 0,
+          shipped: 0,
+        },
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await proposals(createRequest({
+      query: {
+        status: 'pending',
+        page: '1',
+        limit: '25',
+      },
+    }), res, next);
+
+    expect(mockListSeoProposals).toHaveBeenCalledWith({
+      status: 'pending',
+      page: 1,
+      limit: 25,
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([
+        expect.objectContaining({ id: 'proposal_1' }),
+      ]),
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('generates a proposal from an eligible insight', async () => {
+    mockGenerateProposal.mockResolvedValue({
+      id: 'proposal_1',
+      targetKeyword: 'AI agents in healthcare',
+      status: 'pending',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await generateProposalFromInsight(createRequest({ params: { id: 'snapshot_9' } }), res, next);
+
+    expect(mockGenerateProposal).toHaveBeenCalledWith('snapshot_9');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'proposal_1',
+      status: 'pending',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('approves a proposal and returns the /AIBlogDraft handoff payload', async () => {
+    mockApproveSeoProposal.mockResolvedValue({
+      proposal: {
+        id: 'proposal_1',
+        status: 'drafting',
+      },
+      handoff: {
+        command: '/AIBlogDraft topic: "Why AI agent pilots in healthcare keep hitting workflow bottlenecks"',
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await approveProposal(createRequest({ params: { id: 'proposal_1' } }), res, next);
+
+    expect(mockApproveSeoProposal).toHaveBeenCalledWith('proposal_1');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      proposal: expect.objectContaining({ status: 'drafting' }),
+      handoff: expect.objectContaining({ command: expect.stringContaining('/AIBlogDraft') }),
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects a proposal when a reason is supplied', async () => {
+    mockRejectSeoProposal.mockResolvedValue({
+      id: 'proposal_1',
+      status: 'rejected',
+      rejectedReason: 'Too broad and too close to an existing glossary page.',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await rejectProposal(createRequest({
+      params: { id: 'proposal_1' },
+      body: { reason: 'Too broad and too close to an existing glossary page.' },
+    }), res, next);
+
+    expect(mockRejectSeoProposal).toHaveBeenCalledWith(
+      'proposal_1',
+      'Too broad and too close to an existing glossary page.'
+    );
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'rejected',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when rejecting a proposal without a reason', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await rejectProposal(createRequest({
+      params: { id: 'proposal_1' },
+      body: { reason: '   ' },
+    }), res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'reason is required' });
+    expect(mockRejectSeoProposal).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('links a generated draft back to the proposal', async () => {
+    mockLinkProposalDraft.mockResolvedValue({
+      id: 'proposal_1',
+      status: 'approved',
+      draftPost: {
+        id: 'post_1',
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await linkProposal(createRequest({
+      params: { id: 'proposal_1' },
+      body: { draftPostId: 'post_1' },
+    }), res, next);
+
+    expect(mockLinkProposalDraft).toHaveBeenCalledWith('proposal_1', 'post_1');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'approved',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when link-draft is missing a draftPostId', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await linkProposal(createRequest({
+      params: { id: 'proposal_1' },
+      body: {},
+    }), res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'draftPostId is required' });
+    expect(mockLinkProposalDraft).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists pending feedback actions that are ready to measure', async () => {
+    mockListPendingFeedbackActions.mockResolvedValue([
+      {
+        id: 'action_1',
+        pageUrl: 'https://letaiexplainai.com/blog/turing-award-quiz',
+        shippedAt: '2026-04-01T15:00:00.000Z',
+        afterEnd: '2026-04-08',
+      },
+    ]);
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await pendingFeedback({} as Request, res, next);
+
+    expect(res.json).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'action_1',
+          afterEnd: '2026-04-08',
+        }),
+      ],
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('measures a shipped rewrite action and returns the stored delta', async () => {
+    mockMeasureSeoAction.mockResolvedValue({
+      actionId: 'action_1',
+      pageUrl: 'https://letaiexplainai.com/blog/turing-award-quiz',
+      ctrBefore: 0.08,
+      ctrAfter: 0.12,
+      avgPositionBefore: 5.3,
+      avgPositionAfter: 4.8,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await measureAction(createRequest({ params: { id: 'action_1' } }), res, next);
+
+    expect(mockMeasureSeoAction).toHaveBeenCalledWith('action_1');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      actionId: 'action_1',
+      ctrAfter: 0.12,
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rolls back a shipped SEO action', async () => {
+    mockRollbackSeoAction.mockResolvedValue({
+      id: 'action_1',
+      status: 'rolled_back',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await rollback(createRequest({ params: { id: 'action_1' } }), res, next);
+
+    expect(mockRollbackSeoAction).toHaveBeenCalledWith('action_1');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'action_1',
+      status: 'rolled_back',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('toggles the SEO pause switch when the request body is valid', async () => {
+    mockSetPaused.mockResolvedValue(true);
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await pause(createRequest({ body: { paused: true } }), res, next);
+
+    expect(mockSetPaused).toHaveBeenCalledWith(true);
+    expect(res.json).toHaveBeenCalledWith({ paused: true });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects pause updates when paused is not a boolean', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await pause(createRequest({ body: { paused: 'yes' } }), res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'paused must be a boolean' });
+    expect(mockSetPaused).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('stores the latest scheduled agent run summary', async () => {
+    mockSetLatestAgentRunStatus.mockResolvedValue({
+      status: 'success',
+      startedAt: '2026-05-05T13:00:00.000Z',
+      completedAt: '2026-05-05T13:03:00.000Z',
+      weekStart: '2026-04-28T00:00:00.000Z',
+      shippedCount: 2,
+      proposalCount: 1,
+      humanOnlyCount: 0,
+      measuredCount: 1,
+      digestUrl: 'https://discord.com/channels/1/2/3',
+      errorMessage: null,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await updateRunStatus(createRequest({
+      body: {
+        status: 'success',
+        startedAt: '2026-05-05T13:00:00.000Z',
+        completedAt: '2026-05-05T13:03:00.000Z',
+        weekStart: '2026-04-28T00:00:00.000Z',
+        shippedCount: 2,
+        proposalCount: 1,
+        measuredCount: 1,
+        digestUrl: 'https://discord.com/channels/1/2/3',
+      },
+    }), res, next);
+
+    expect(mockSetLatestAgentRunStatus).toHaveBeenCalledWith({
+      status: 'success',
+      startedAt: '2026-05-05T13:00:00.000Z',
+      completedAt: '2026-05-05T13:03:00.000Z',
+      weekStart: '2026-04-28T00:00:00.000Z',
+      shippedCount: 2,
+      proposalCount: 1,
+      humanOnlyCount: 0,
+      measuredCount: 1,
+      digestUrl: 'https://discord.com/channels/1/2/3',
+      errorMessage: null,
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'success',
+      shippedCount: 2,
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid run-status payloads', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await updateRunStatus(createRequest({
+      body: {
+        status: 'paused',
+        startedAt: 'not-a-date',
+        completedAt: '2026-05-05T13:03:00.000Z',
+      },
+    }), res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'status must be success or failed' });
+    expect(mockSetLatestAgentRunStatus).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+});

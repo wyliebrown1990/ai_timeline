@@ -101,6 +101,8 @@ Resources:
           CORS_ORIGIN: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/cors-origin}}'
           YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
           PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
+          SEO_AGENT_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-paused'
+          SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
 
       Events:
         ApiProxy:
@@ -146,6 +148,7 @@ Resources:
               Action:
                 - ssm:GetParameter
                 - ssm:GetParameters
+                - ssm:PutParameter
               Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
             # CloudWatch Logs Insights for API monitoring
             - Effect: Allow
@@ -322,6 +325,29 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt QuizGenerationScheduleRule.Arn
+
+  # ============================================
+  # Weekly Google Search Console Ingest
+  # ============================================
+  GscWeeklyIngestRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ai-timeline-gsc-schedule-${Environment}
+      Description: Triggers weekly Google Search Console ingest
+      ScheduleExpression: "cron(0 6 ? * MON *)"
+      State: ENABLED
+      Targets:
+        - Id: GscWeeklyIngestLambdaTarget
+          Arn: !GetAtt IngestionFunction.Arn
+          Input: '{"action":"gscWeeklyIngest"}'
+
+  GscWeeklyIngestPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt GscWeeklyIngestRule.Arn
 
   # ============================================
   # Alerting - SNS Topic + CloudWatch Alarms

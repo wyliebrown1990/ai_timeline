@@ -54,6 +54,7 @@ import whoInventedRouter from './routes/whoInvented'; // Sprint SEO-4 - Who Inve
 import seoContentRouter from './routes/seoContent'; // Sprint SEO-4 - SEO Content Generation
 import blogRouter, { authorsRouter } from './routes/blog'; // Sprint Blog-1 - Public blog
 import blogAdminRouter, { authorsAdminRouter } from './routes/blogAdmin'; // Sprint Blog-1 - Admin blog
+import seoAdminRouter from './routes/seoAdmin'; // Sprint SEOI-1 - SEO Insights admin API
 
 /**
  * Create and configure the Express application
@@ -169,6 +170,7 @@ export function createApp() {
   app.use('/api/admin/bibliography', bibliographyRouter); // Admin bibliography ingestion API (Sprint Bib-1)
   app.use('/api/admin/feed', adminFeedRouter); // Admin feed API (Sprint Feed-1)
   app.use('/api/admin/seo-content', seoContentRouter); // Admin SEO content generation API (Sprint SEO-4)
+  app.use('/api/admin/seo', seoAdminRouter); // Admin SEO insights API (Sprint SEOI-1)
   app.use('/api/admin/blog', blogAdminRouter); // Admin blog API (Sprint Blog-1)
   app.use('/api/admin/authors', authorsAdminRouter); // Admin author management (Sprint Blog-1)
 

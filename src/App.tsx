@@ -127,6 +127,9 @@ const SpamFiltersPage = lazy(() => import('./pages/admin/SpamFiltersPage'));
 const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage'));
 const SubjectsAdminPage = lazy(() => import('./pages/admin/SubjectsAdminPage'));
 const SeoContentGeneratorPage = lazy(() => import('./pages/admin/SeoContentGeneratorPage')); // Sprint SEO-4 Task 8
+const SeoInsightsPage = lazy(() => import('./pages/admin/SeoInsightsPage'));
+const SeoActionsPage = lazy(() => import('./pages/admin/SeoActionsPage'));
+const SeoProposalsPage = lazy(() => import('./pages/admin/SeoProposalsPage'));
 const ExtensionDownloadPage = lazy(() => import('./pages/admin/ExtensionDownloadPage'));
 
 /**
@@ -320,6 +323,9 @@ function App() {
                     <Route path="spam-filters" element={<SpamFiltersPage />} />
                     <Route path="users" element={<UserManagementPage />} />
                     <Route path="subjects" element={<SubjectsAdminPage />} />
+                    <Route path="seo-insights" element={<SeoInsightsPage />} />
+                    <Route path="seo-insights/actions" element={<SeoActionsPage />} />
+                    <Route path="seo-insights/proposals" element={<SeoProposalsPage />} />
                     <Route path="seo-content" element={<SeoContentGeneratorPage />} />
                     <Route path="extensions" element={<ExtensionDownloadPage />} />
                     <Route path="extension" element={<ExtensionDownloadPage />} />

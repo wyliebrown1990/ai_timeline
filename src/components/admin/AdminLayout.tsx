@@ -16,6 +16,7 @@ import {
   Plus,
   Puzzle,
   Rss,
+  Search,
   Shield,
   UserPlus,
   Users,
@@ -66,6 +67,11 @@ const navItems: NavItem[] = [
     label: 'Articles',
     href: '/admin/articles',
     icon: <FileText className="h-5 w-5" />,
+  },
+  {
+    label: 'SEO Insights',
+    href: '/admin/seo-insights',
+    icon: <Search className="h-5 w-5" />,
   },
   {
     label: 'Submit Article',

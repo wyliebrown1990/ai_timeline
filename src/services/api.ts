@@ -70,11 +70,11 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
     if (attempt > 0) {
       // Exponential backoff: 1s, 2s, 4s
       const delay = BASE_RETRY_DELAY_MS * Math.pow(2, attempt - 1);
-      console.log(`[API] Retry ${attempt}/${MAX_RETRIES} for ${url} after ${delay}ms`);
+      console.warn(`[API] Retry ${attempt}/${MAX_RETRIES} for ${url} after ${delay}ms`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
 
-    console.log('[API] Fetching:', url);
+    console.warn('[API] Fetching:', url);
 
     try {
       const response = await fetch(url, {
@@ -85,7 +85,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
         },
       });
 
-      console.log('[API] Response status:', response.status, 'for', url);
+      console.warn('[API] Response status:', response.status, 'for', url);
 
       // Retry on 503 Service Unavailable (DB overload)
       if (response.status === 503 && attempt < MAX_RETRIES) {
@@ -93,7 +93,7 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
         if (retryAfter) {
           const retryMs = parseInt(retryAfter, 10) * 1000;
           if (!isNaN(retryMs) && retryMs > 0) {
-            console.log(`[API] Server requested Retry-After: ${retryAfter}s`);
+            console.warn(`[API] Server requested Retry-After: ${retryAfter}s`);
             await new Promise((resolve) => setTimeout(resolve, retryMs));
           }
         }
@@ -5815,6 +5815,320 @@ export const authorsAdminApi = {
       method: 'PUT',
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
+    });
+  },
+};
+
+export type SeoInsightBucket = 'winnable_loss' | 'content_gap' | 'trend_signal' | 'decay';
+export type SeoInsightStatus = 'open' | 'actioned' | 'dismissed' | 'shipped';
+
+export interface SeoInsightMetrics {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+}
+
+export interface SeoInsight {
+  id: string;
+  weekStart: string;
+  bucket: SeoInsightBucket;
+  status: SeoInsightStatus;
+  query: string | null;
+  page: string;
+  currentMetrics: SeoInsightMetrics;
+  baselineMetrics: SeoInsightMetrics | null;
+  score: number;
+  evidence: string;
+  suggestedAction: string;
+  canonicalPath?: string | null;
+}
+
+export interface SeoInsightDetail extends SeoInsight {
+  trend: Array<SeoInsightMetrics & { weekStart: string }>;
+}
+
+export interface SeoInsightListResult extends PaginatedResponse<SeoInsight> {
+  meta: {
+    weekStart: string | null;
+    availableWeeks: string[];
+    counts: Record<SeoInsightBucket, number>;
+  };
+}
+
+export interface SeoRewriteProposal {
+  snapshotId: string;
+  targetType: 'blog_post';
+  targetId: string;
+  targetSlug: string;
+  targetTitle: string;
+  pageUrl: string;
+  query: string;
+  impressions: number;
+  currentTitle: string;
+  currentDescription: string;
+  proposedTitle: string;
+  proposedDescription: string;
+  rationale: string;
+  confidence: number;
+}
+
+export type SeoActionStatusFilter = 'all' | 'shipped' | 'rolled_back' | 'measured';
+export type SeoAgentActionStatus = 'shipped' | 'rolled_back' | 'measured';
+
+export interface SeoAgentActionMetadata {
+  slug: string;
+  pageUrl: string;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}
+
+export type SeoAgentRunStatus = 'success' | 'failed';
+
+export interface SeoAgentRunRecord {
+  status: SeoAgentRunStatus;
+  startedAt: string;
+  completedAt: string;
+  weekStart: string | null;
+  shippedCount: number;
+  proposalCount: number;
+  humanOnlyCount: number;
+  measuredCount: number;
+  digestUrl: string | null;
+  errorMessage: string | null;
+}
+
+export interface SeoAgentActionRecord {
+  id: string;
+  snapshotId: string | null;
+  actionType: string;
+  targetType: string;
+  targetId: string;
+  targetLabel: string;
+  targetPath: string;
+  query: string | null;
+  status: SeoAgentActionStatus;
+  confidence: number;
+  rationale: string;
+  shippedAt: string;
+  rolledBackAt: string | null;
+  measuredAt: string | null;
+  before: SeoAgentActionMetadata;
+  after: SeoAgentActionMetadata;
+}
+
+export type SeoActionListResult = PaginatedResponse<SeoAgentActionRecord>;
+export type SeoProposalStatus = 'pending' | 'drafting' | 'approved' | 'rejected' | 'shipped';
+export type SeoProposalStatusFilter = 'all' | SeoProposalStatus;
+
+export interface SeoProposalLinkInventoryItem {
+  entityType: 'person' | 'organization' | 'glossary_term' | 'milestone';
+  id: string;
+  label: string;
+  path: string;
+  reason: string;
+}
+
+export interface SeoProposalNewsHook {
+  articleId: string;
+  title: string;
+  externalUrl: string;
+  sourceName: string | null;
+  publishedAt: string;
+}
+
+export interface SeoProposalHandoff {
+  topic: string;
+  keyword: string;
+  newsUrl: string | null;
+  command: string;
+  proposalPath: string;
+}
+
+export interface SeoProposalRecord {
+  id: string;
+  snapshotId: string;
+  proposalType: string;
+  targetKeyword: string;
+  suggestedAngle: string;
+  rationale: string;
+  confidence: number;
+  status: SeoProposalStatus;
+  rejectedReason: string | null;
+  createdAt: string;
+  actedAt: string | null;
+  weekStart: string;
+  sourceBucket: string | null;
+  sourcePage: string;
+  sourceQuery: string | null;
+  linkInventory: SeoProposalLinkInventoryItem[];
+  newsHooks: SeoProposalNewsHook[];
+  handoff: SeoProposalHandoff;
+  draftPost: {
+    id: string;
+    slug: string;
+    title: string;
+    status: string;
+    publishedAt: string | null;
+  } | null;
+}
+
+export interface SeoProposalListResult extends PaginatedResponse<SeoProposalRecord> {
+  meta: {
+    counts: Record<'all' | 'pending' | 'drafting' | 'approved' | 'rejected' | 'shipped', number>;
+  };
+}
+
+export interface SeoInsightsHealth {
+  lastRunAt: string | null;
+  finalizedThroughDate: string | null;
+  lastRowCount: number;
+  lastWeekCovered: string | null;
+  totalRowsLast30d: number;
+  paused: boolean;
+  agentRun: SeoAgentRunRecord | null;
+}
+
+export const seoInsightsApi = {
+  async list(params: {
+    bucket: SeoInsightBucket;
+    weekStart?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<SeoInsightListResult> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('bucket', params.bucket);
+    if (params.weekStart) searchParams.set('weekStart', params.weekStart);
+    if (params.limit) searchParams.set('limit', String(params.limit));
+    if (params.page) searchParams.set('page', String(params.page));
+
+    return fetchJson<SeoInsightListResult>(`${API_BASE}/admin/seo/insights?${searchParams.toString()}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async get(id: string): Promise<SeoInsightDetail> {
+    return fetchJson<SeoInsightDetail>(`${API_BASE}/admin/seo/insights/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async dismiss(id: string): Promise<{ id: string; status: SeoInsightStatus }> {
+    return fetchJson<{ id: string; status: SeoInsightStatus }>(`${API_BASE}/admin/seo/insights/${id}/dismiss`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async markActioned(id: string): Promise<{ id: string; status: SeoInsightStatus }> {
+    return fetchJson<{ id: string; status: SeoInsightStatus }>(`${API_BASE}/admin/seo/insights/${id}/action`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async proposeRewrite(id: string): Promise<SeoRewriteProposal> {
+    return fetchJson<SeoRewriteProposal>(`${API_BASE}/admin/seo/insights/${id}/propose-rewrite`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async shipRewrite(id: string): Promise<SeoAgentActionRecord> {
+    return fetchJson<SeoAgentActionRecord>(`${API_BASE}/admin/seo/insights/${id}/ship-rewrite`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async generateProposal(id: string): Promise<SeoProposalRecord> {
+    return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/insights/${id}/generate-proposal`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async listActions(params?: {
+    page?: number;
+    limit?: number;
+    targetType?: string;
+    status?: SeoActionStatusFilter;
+  }): Promise<SeoActionListResult> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.targetType) searchParams.set('targetType', params.targetType);
+    if (params?.status) searchParams.set('status', params.status);
+
+    const query = searchParams.toString();
+    return fetchJson<SeoActionListResult>(`${API_BASE}/admin/seo/actions${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async rollbackAction(id: string): Promise<SeoAgentActionRecord> {
+    return fetchJson<SeoAgentActionRecord>(`${API_BASE}/admin/seo/actions/${id}/rollback`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async listProposals(params?: {
+    page?: number;
+    limit?: number;
+    status?: SeoProposalStatusFilter;
+  }): Promise<SeoProposalListResult> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.status) searchParams.set('status', params.status);
+
+    const query = searchParams.toString();
+    return fetchJson<SeoProposalListResult>(`${API_BASE}/admin/seo/proposals${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async approveProposal(id: string): Promise<{
+    proposal: SeoProposalRecord;
+    handoff: SeoProposalHandoff;
+  }> {
+    return fetchJson<{
+      proposal: SeoProposalRecord;
+      handoff: SeoProposalHandoff;
+    }>(`${API_BASE}/admin/seo/proposals/${id}/approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async rejectProposal(id: string, reason: string): Promise<SeoProposalRecord> {
+    return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/proposals/${id}/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+  },
+
+  async linkProposalDraft(id: string, draftPostId: string): Promise<SeoProposalRecord> {
+    return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/proposals/${id}/link-draft`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ draftPostId }),
+    });
+  },
+
+  async getHealth(): Promise<SeoInsightsHealth> {
+    return fetchJson<SeoInsightsHealth>(`${API_BASE}/admin/seo/health`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async setPaused(paused: boolean): Promise<{ paused: boolean }> {
+    return fetchJson<{ paused: boolean }>(`${API_BASE}/admin/seo/pause`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ paused }),
     });
   },
 };

@@ -1,0 +1,371 @@
+import type { Request, Response, NextFunction } from 'express';
+import {
+  dismissInsight,
+  getInsightDetail,
+  INSIGHT_BUCKETS,
+  listInsights,
+  markInsightActioned,
+  type InsightBucket,
+} from '../services/gsc/bucketClassifier';
+import { getGscHealth, runWeeklyIngest } from '../services/gsc/gscIngest';
+import {
+  listSeoActions,
+  proposeRewrite,
+  rollbackSeoAction,
+  shipRewrite,
+} from '../services/seo/metadataRewriter';
+import {
+  listPendingFeedbackActions,
+  measureSeoAction,
+} from '../services/seo/feedbackMeasurement';
+import { isPaused, setPaused } from '../services/seo/agentControl';
+import {
+  approveSeoProposal,
+  generateProposal,
+  linkProposalDraft,
+  listSeoProposals,
+  rejectSeoProposal,
+  type SeoProposalStatusFilter,
+} from '../services/seo/briefGenerator';
+import {
+  getLatestAgentRunStatus,
+  setLatestAgentRunStatus,
+  type SeoAgentRunStatusRecord,
+} from '../services/seo/agentRunStatus';
+
+function parseOptionalPositiveInt(value: unknown, fallback: number): number {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function parseBucket(value: unknown): InsightBucket {
+  if (typeof value !== 'string' || !INSIGHT_BUCKETS.includes(value as InsightBucket)) {
+    return 'winnable_loss';
+  }
+
+  return value as InsightBucket;
+}
+
+function parseActionStatus(value: unknown): 'all' | 'shipped' | 'rolled_back' | 'measured' {
+  if (value === 'shipped' || value === 'rolled_back' || value === 'measured') {
+    return value;
+  }
+
+  return 'all';
+}
+
+function parseProposalStatus(value: unknown): SeoProposalStatusFilter {
+  if (
+    value === 'pending' ||
+    value === 'drafting' ||
+    value === 'approved' ||
+    value === 'rejected' ||
+    value === 'shipped'
+  ) {
+    return value;
+  }
+
+  return 'all';
+}
+
+export async function ingest(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const summary = await runWeeklyIngest();
+    res.json(summary);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function list(req: Request, res: Response, next: NextFunction) {
+  try {
+    const bucket = parseBucket(req.query.bucket);
+    const limit = parseOptionalPositiveInt(req.query.limit, 50);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const weekStart = typeof req.query.weekStart === 'string' ? req.query.weekStart : undefined;
+    const result = await listInsights({
+      bucket,
+      limit,
+      page,
+      weekStart,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function detail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const insight = await getInsightDetail(req.params.id);
+    if (!insight) {
+      res.status(404).json({ error: 'SEO insight not found' });
+      return;
+    }
+
+    res.json(insight);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function dismiss(req: Request, res: Response, next: NextFunction) {
+  try {
+    await dismissInsight(req.params.id);
+    res.json({ id: req.params.id, status: 'dismissed' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function action(req: Request, res: Response, next: NextFunction) {
+  try {
+    await markInsightActioned(req.params.id);
+    res.json({ id: req.params.id, status: 'actioned' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function health(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const [status, paused, agentRun] = await Promise.all([
+      getGscHealth(),
+      isPaused(),
+      getLatestAgentRunStatus(),
+    ]);
+    res.json({
+      lastRunAt: status.lastRunAt?.toISOString() ?? null,
+      finalizedThroughDate: status.finalizedThroughDate,
+      lastRowCount: status.lastRowCount,
+      lastWeekCovered: status.lastWeekCovered,
+      totalRowsLast30d: status.totalRowsLast30d,
+      paused,
+      agentRun,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function proposeInsightRewrite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const proposal = await proposeRewrite(req.params.id);
+    res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function shipInsightRewrite(req: Request, res: Response, next: NextFunction) {
+  try {
+    const actionRecord = await shipRewrite(req.params.id, false);
+    res.json(actionRecord);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function actions(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = parseOptionalPositiveInt(req.query.limit, 25);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const targetType = typeof req.query.targetType === 'string' ? req.query.targetType : undefined;
+    const status = parseActionStatus(req.query.status);
+
+    const result = await listSeoActions({
+      targetType,
+      limit,
+      page,
+      status,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function pendingFeedback(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await listPendingFeedbackActions();
+    res.json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function measureAction(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await measureSeoAction(req.params.id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function rollback(req: Request, res: Response, next: NextFunction) {
+  try {
+    const actionRecord = await rollbackSeoAction(req.params.id);
+    res.json(actionRecord);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function proposals(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = parseOptionalPositiveInt(req.query.limit, 25);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const status = parseProposalStatus(req.query.status);
+    const result = await listSeoProposals({
+      status,
+      page,
+      limit,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateProposalFromInsight(req: Request, res: Response, next: NextFunction) {
+  try {
+    const proposal = await generateProposal(req.params.id);
+    res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function approveProposal(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await approveSeoProposal(req.params.id);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function rejectProposal(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { reason } = req.body as { reason?: unknown };
+    if (typeof reason !== 'string' || reason.trim().length === 0) {
+      res.status(400).json({ error: 'reason is required' });
+      return;
+    }
+
+    const proposal = await rejectSeoProposal(req.params.id, reason);
+    res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function linkProposal(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { draftPostId } = req.body as { draftPostId?: unknown };
+    if (typeof draftPostId !== 'string' || draftPostId.trim().length === 0) {
+      res.status(400).json({ error: 'draftPostId is required' });
+      return;
+    }
+
+    const proposal = await linkProposalDraft(req.params.id, draftPostId);
+    res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function pause(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { paused } = req.body as { paused?: unknown };
+    if (typeof paused !== 'boolean') {
+      res.status(400).json({ error: 'paused must be a boolean' });
+      return;
+    }
+
+    const nextState = await setPaused(paused);
+    res.json({ paused: nextState });
+  } catch (error) {
+    next(error);
+  }
+}
+
+function isValidIsoDate(value: unknown): value is string {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+}
+
+function parseNonNegativeInteger(value: unknown, fallback: number = 0): number {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+export async function updateRunStatus(req: Request, res: Response, next: NextFunction) {
+  try {
+    const {
+      status,
+      startedAt,
+      completedAt,
+      weekStart,
+      shippedCount,
+      proposalCount,
+      humanOnlyCount,
+      measuredCount,
+      digestUrl,
+      errorMessage,
+    } = req.body as Partial<SeoAgentRunStatusRecord>;
+
+    if (status !== 'success' && status !== 'failed') {
+      res.status(400).json({ error: 'status must be success or failed' });
+      return;
+    }
+
+    if (!isValidIsoDate(startedAt) || !isValidIsoDate(completedAt)) {
+      res.status(400).json({ error: 'startedAt and completedAt must be ISO timestamps' });
+      return;
+    }
+
+    if (weekStart !== undefined && weekStart !== null && !isValidIsoDate(weekStart)) {
+      res.status(400).json({ error: 'weekStart must be null or an ISO timestamp' });
+      return;
+    }
+
+    if (digestUrl !== undefined && digestUrl !== null && typeof digestUrl !== 'string') {
+      res.status(400).json({ error: 'digestUrl must be null or a string' });
+      return;
+    }
+
+    if (errorMessage !== undefined && errorMessage !== null && typeof errorMessage !== 'string') {
+      res.status(400).json({ error: 'errorMessage must be null or a string' });
+      return;
+    }
+
+    const nextStatus = await setLatestAgentRunStatus({
+      status,
+      startedAt,
+      completedAt,
+      weekStart: weekStart ?? null,
+      shippedCount: parseNonNegativeInteger(shippedCount),
+      proposalCount: parseNonNegativeInteger(proposalCount),
+      humanOnlyCount: parseNonNegativeInteger(humanOnlyCount),
+      measuredCount: parseNonNegativeInteger(measuredCount),
+      digestUrl: digestUrl ?? null,
+      errorMessage: errorMessage ?? null,
+    });
+
+    res.json(nextStatus);
+  } catch (error) {
+    next(error);
+  }
+}

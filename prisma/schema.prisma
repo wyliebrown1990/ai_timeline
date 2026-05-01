@@ -239,6 +239,101 @@ model PipelineSettings {
 }
 
 // =============================================================================
+// SEO Insights Pilot (Sprint SEOI-1)
+// =============================================================================
+
+/// Daily Google Search Console metrics. Dates are stored as midnight UTC for the
+/// corresponding PT reporting day so callers can treat them as date-only values.
+model GscDailyMetric {
+  id          String   @id @default(cuid())
+  date        DateTime
+  dataSource  String   // query_detail | page_aggregate
+  query       String?  // null only for page_aggregate rows
+  queryKey    String   // query value or page_aggregate sentinel for idempotent dedupe
+  page        String
+  device      String   // DESKTOP | MOBILE | TABLET
+  country     String   // ISO-3166-1 alpha-3
+  clicks      Int
+  impressions Int
+  ctr         Float
+  position    Float
+  createdAt   DateTime @default(now())
+
+  @@unique([date, dataSource, queryKey, page, device, country])
+  @@index([page, date, dataSource])
+  @@index([query, date])
+}
+
+/// Pre-aggregated 7-day finalized PT windows derived from GSC daily metrics.
+model GscWeeklySnapshot {
+  id          String   @id @default(cuid())
+  weekStart   DateTime // start of the finalized 7-day PT reporting window
+  dataSource  String   // query_detail | page_aggregate
+  query       String?
+  queryKey    String   // query value or page_aggregate sentinel for idempotent dedupe
+  page        String
+  clicks      Int
+  impressions Int
+  ctr         Float
+  position    Float
+  bucket      String?  // populated in SEOI-2
+  bucketScore Float?   // populated in SEOI-2
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+
+  agentActions SeoAgentAction[]
+  proposals    SeoProposal[]
+
+  @@unique([weekStart, dataSource, queryKey, page])
+  @@index([bucket, weekStart])
+}
+
+/// Audit log for agent-shipped SEO changes and rollbacks.
+model SeoAgentAction {
+  id           String             @id @default(cuid())
+  snapshotId   String?
+  snapshot     GscWeeklySnapshot? @relation(fields: [snapshotId], references: [id])
+  actionType   String
+  targetType   String
+  targetId     String
+  beforeJson   Json
+  afterJson    Json
+  confidence   Float
+  rationale    String
+  shippedAt    DateTime           @default(now())
+  rolledBackAt DateTime?
+  measuredAt   DateTime?
+  measuredDelta Json?
+
+  @@index([targetType, targetId])
+  @@index([shippedAt])
+  @@index([rolledBackAt])
+}
+
+/// Proposed content briefs queued for human-driven /AIBlogDraft handoff.
+model SeoProposal {
+  id                String             @id @default(cuid())
+  snapshotId        String
+  snapshot          GscWeeklySnapshot  @relation(fields: [snapshotId], references: [id])
+  proposalType      String
+  targetKeyword     String
+  suggestedAngle    String             @db.Text
+  linkInventoryJson Json
+  newsHooksJson     Json?
+  rationale         String             @db.Text
+  confidence        Float
+  status            String             @default("pending") // pending | drafting | approved | rejected | shipped
+  draftPostId       String?
+  draftPost         BlogPost?          @relation(fields: [draftPostId], references: [id])
+  createdAt         DateTime           @default(now())
+  actedAt           DateTime?
+  rejectedReason    String?
+
+  @@index([status, createdAt])
+  @@index([targetKeyword, createdAt])
+}
+
+// =============================================================================
 // Flashcard System (Sprint 36)
 // =============================================================================
 
@@ -1423,6 +1518,7 @@ model BlogPost {
 
   subjects  BlogPostSubject[]
   relations BlogPostRelation[]
+  seoProposals SeoProposal[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([featured, publishedAt(sort: Desc)])
