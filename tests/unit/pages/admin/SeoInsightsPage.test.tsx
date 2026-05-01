@@ -102,17 +102,20 @@ function buildHealthResult(overrides: Partial<Awaited<ReturnType<typeof seoInsig
 function buildProposalRecord() {
   return {
     id: 'proposal_1',
-    snapshotId: 'insight_2',
+    sourceType: 'weekly_snapshot',
+    sourceId: 'insight_2',
     proposalType: 'blog_post',
     targetKeyword: 'Turing Award',
     suggestedAngle: 'Why the Turing Award still shapes how AI breakthroughs get interpreted',
     rationale: 'The query is landing on /news, so the better move is a durable editorial explainer with a real thesis.',
+    hypothesis: 'The query is landing on /news, so the better move is a durable editorial explainer with a real thesis.',
     confidence: 0.82,
     status: 'pending' as const,
     rejectedReason: null,
     createdAt: '2026-04-30T12:00:00.000Z',
     actedAt: null,
-    weekStart: '2026-04-24T00:00:00.000Z',
+    sourceWindowStart: '2026-04-24T00:00:00.000Z',
+    sourceWindowEnd: null,
     sourceBucket: 'content_gap',
     sourcePage: 'https://letaiexplainai.com/news',
     sourceQuery: 'Turing Award',
@@ -125,6 +128,8 @@ function buildProposalRecord() {
         reason: 'Existing milestone page that can support internal linking.',
       },
     ],
+    topicPod: null,
+    routingPlan: null,
     newsHooks: [
       {
         articleId: 'article_1',
@@ -135,12 +140,16 @@ function buildProposalRecord() {
       },
     ],
     handoff: {
+      mode: 'blog_draft' as const,
+      label: 'Send to /AIBlogDraft',
       topic: 'Why the Turing Award still shapes how AI breakthroughs get interpreted',
       keyword: 'Turing Award',
       newsUrl: 'https://example.com/turing-award-ai-era',
       command: '/AIBlogDraft topic: "Why the Turing Award still shapes how AI breakthroughs get interpreted" keyword: "Turing Award" news_url: "https://example.com/turing-award-ai-era"',
       proposalPath: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+      guidance: 'Approving this proposal keeps a human in the loop and prepares a structured /AIBlogDraft handoff.',
     },
+    packagingFixPlan: null,
     draftPost: null,
   };
 }

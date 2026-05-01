@@ -128,8 +128,11 @@ const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage')
 const SubjectsAdminPage = lazy(() => import('./pages/admin/SubjectsAdminPage'));
 const SeoContentGeneratorPage = lazy(() => import('./pages/admin/SeoContentGeneratorPage')); // Sprint SEO-4 Task 8
 const SeoInsightsPage = lazy(() => import('./pages/admin/SeoInsightsPage'));
+const SeoClustersPage = lazy(() => import('./pages/admin/SeoClustersPage'));
 const SeoActionsPage = lazy(() => import('./pages/admin/SeoActionsPage'));
 const SeoProposalsPage = lazy(() => import('./pages/admin/SeoProposalsPage'));
+const SeoExperimentsPage = lazy(() => import('./pages/admin/SeoExperimentsPage'));
+const SeoPackagingPage = lazy(() => import('./pages/admin/SeoPackagingPage'));
 const ExtensionDownloadPage = lazy(() => import('./pages/admin/ExtensionDownloadPage'));
 
 /**
@@ -324,8 +327,11 @@ function App() {
                     <Route path="users" element={<UserManagementPage />} />
                     <Route path="subjects" element={<SubjectsAdminPage />} />
                     <Route path="seo-insights" element={<SeoInsightsPage />} />
+                    <Route path="seo-insights/clusters" element={<SeoClustersPage />} />
                     <Route path="seo-insights/actions" element={<SeoActionsPage />} />
                     <Route path="seo-insights/proposals" element={<SeoProposalsPage />} />
+                    <Route path="seo-insights/experiments" element={<SeoExperimentsPage />} />
+                    <Route path="seo-insights/packaging" element={<SeoPackagingPage />} />
                     <Route path="seo-content" element={<SeoContentGeneratorPage />} />
                     <Route path="extensions" element={<ExtensionDownloadPage />} />
                     <Route path="extension" element={<ExtensionDownloadPage />} />

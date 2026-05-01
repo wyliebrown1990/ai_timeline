@@ -13,6 +13,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "tsc -b && vite build && cp -r dist/api dist/data && find dist -name '*.map' -delete",
     "build:extension-zip": "./scripts/build-extension-zip.sh",
+    "deploy:backend": "./scripts/deploy-backend.sh",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "jest",

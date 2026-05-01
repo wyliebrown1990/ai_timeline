@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 const mockMessageCreate = jest.fn();
 const mockSnapshotFindUnique = jest.fn();
 const mockSnapshotUpdate = jest.fn();
+const mockClusterFindUnique = jest.fn();
+const mockClusterUpdate = jest.fn();
 const mockProposalFindFirst = jest.fn();
 const mockProposalFindUnique = jest.fn();
 const mockProposalFindMany = jest.fn();
@@ -20,6 +22,9 @@ const mockSearchMilestones = jest.fn();
 const mockMatchPerson = jest.fn();
 const mockMatchOrganization = jest.fn();
 const mockTransaction = jest.fn();
+const mockEnsureExperimentForProposalLink = jest.fn();
+const mockPlanTopicPodForCluster = jest.fn();
+const mockGetSeoPackagingAudit = jest.fn();
 
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
@@ -37,6 +42,9 @@ const mockTx = {
   gscWeeklySnapshot: {
     update: mockSnapshotUpdate,
   },
+  gscClusterSnapshot: {
+    update: mockClusterUpdate,
+  },
 };
 
 jest.mock('../../../server/src/db', () => ({
@@ -44,6 +52,10 @@ jest.mock('../../../server/src/db', () => ({
     gscWeeklySnapshot: {
       findUnique: mockSnapshotFindUnique,
       update: mockSnapshotUpdate,
+    },
+    gscClusterSnapshot: {
+      findUnique: mockClusterFindUnique,
+      update: mockClusterUpdate,
     },
     seoProposal: {
       findFirst: mockProposalFindFirst,
@@ -90,7 +102,24 @@ jest.mock('../../../server/src/services/entityMatcher', () => ({
   matchOrganization: mockMatchOrganization,
 }));
 
-import { generateProposal } from '../../../server/src/services/seo/briefGenerator';
+jest.mock('../../../server/src/services/seo/experimentLedger', () => ({
+  ensureExperimentForProposalLink: mockEnsureExperimentForProposalLink,
+}));
+
+jest.mock('../../../server/src/services/seo/topicPodPlanner', () => ({
+  planTopicPodForCluster: mockPlanTopicPodForCluster,
+}));
+
+jest.mock('../../../server/src/services/seo/serpPackagingAudit', () => ({
+  getSeoPackagingAudit: mockGetSeoPackagingAudit,
+}));
+
+import {
+  generateEvergreenRoutingProposal,
+  generatePackagingFixProposal,
+  generateProposal,
+  generateProposalFromCluster,
+} from '../../../server/src/services/seo/briefGenerator';
 
 function buildAnthropicResponse(text: string) {
   return {
@@ -130,39 +159,97 @@ function buildSnapshot(overrides: Partial<{
 }
 
 function buildCreatedProposal(overrides: Partial<{
+  sourceType: string;
+  clusterSnapshotId: string | null;
+  proposalType: string;
   targetKeyword: string;
   suggestedAngle: string;
   rationale: string;
+  hypothesis: string | null;
+  topicPodJson: unknown;
+  sourceRefJson: unknown;
+  packagingFixJson: unknown;
   confidence: number;
   status: string;
   rejectedReason: string | null;
   linkInventoryJson: unknown;
   newsHooksJson: unknown;
+  primaryPage: string;
+  representativeQuery: string;
+  sourcePage: string;
+  sourceQuery: string | null;
 }> = {}) {
   const snapshot = buildSnapshot();
   return {
     id: 'proposal_1',
-    snapshotId: snapshot.id,
-    proposalType: 'blog_post',
+    sourceType: overrides.sourceType ?? 'weekly_snapshot',
+    snapshotId: overrides.sourceType === 'cluster_snapshot' || overrides.sourceType === 'packaging_audit' ? null : snapshot.id,
+    clusterSnapshotId: overrides.clusterSnapshotId ?? null,
+    proposalType: overrides.proposalType ?? 'blog_post',
     targetKeyword: overrides.targetKeyword ?? 'AI agents in healthcare',
     suggestedAngle: overrides.suggestedAngle ?? 'Why AI agent rollouts in healthcare stall at the last mile',
     linkInventoryJson: overrides.linkInventoryJson ?? [],
     newsHooksJson: overrides.newsHooksJson ?? [],
     rationale: overrides.rationale ?? 'Healthcare AI agents look timely, but deployment friction is the real thesis.',
+    hypothesis: overrides.hypothesis ?? (overrides.rationale ?? 'Healthcare AI agents look timely, but deployment friction is the real thesis.'),
+    topicPodJson: overrides.topicPodJson ?? null,
+    sourceRefJson: overrides.sourceRefJson ?? (overrides.sourceType === 'packaging_audit' ? {
+      auditId: 'packaging_1',
+      pageUrl: overrides.sourcePage ?? 'https://letaiexplainai.com/news',
+      pagePath: '/news',
+      pageType: 'news_index',
+      windowStart: '2026-01-29',
+      windowEnd: '2026-04-28',
+      sourceBucket: 'serp_packaging',
+      sourceQuery: null,
+    } : null),
+    packagingFixJson: overrides.packagingFixJson ?? null,
     confidence: overrides.confidence ?? 0.88,
     status: overrides.status ?? 'pending',
     draftPostId: null,
     createdAt: new Date('2026-04-30T12:00:00.000Z'),
     actedAt: null,
     rejectedReason: overrides.rejectedReason ?? null,
-    snapshot: {
+    snapshot: overrides.sourceType === 'cluster_snapshot' || overrides.sourceType === 'packaging_audit' ? null : {
       id: snapshot.id,
       weekStart: snapshot.weekStart,
       bucket: snapshot.bucket,
-      page: snapshot.page,
-      query: snapshot.query,
+      page: overrides.sourcePage ?? snapshot.page,
+      query: overrides.sourceQuery === undefined ? snapshot.query : overrides.sourceQuery,
     },
+    clusterSnapshot: overrides.sourceType === 'cluster_snapshot'
+      ? {
+          id: overrides.clusterSnapshotId ?? 'cluster_1',
+          windowStart: new Date('2026-04-01T00:00:00.000Z'),
+          windowEnd: new Date('2026-04-28T00:00:00.000Z'),
+          bucket: 'cluster_content_gap',
+          primaryPage: overrides.primaryPage ?? 'https://letaiexplainai.com/timeline',
+          representativeQuery: overrides.representativeQuery ?? overrides.targetKeyword ?? 'AI timeline',
+        }
+      : null,
     draftPost: null,
+  };
+}
+
+function buildCluster(overrides: Partial<{
+  id: string;
+  representativeQuery: string;
+  primaryPage: string;
+  bucket: string;
+  impressions: number;
+}> = {}) {
+  return {
+    id: overrides.id ?? 'cluster_1',
+    windowStart: new Date('2026-04-01T00:00:00.000Z'),
+    windowEnd: new Date('2026-04-28T00:00:00.000Z'),
+    bucket: overrides.bucket ?? 'cluster_content_gap',
+    primaryPage: overrides.primaryPage ?? 'https://letaiexplainai.com/timeline',
+    representativeQuery: overrides.representativeQuery ?? 'AI timeline',
+    clicks: 0,
+    impressions: overrides.impressions ?? 95,
+    ctr: 0,
+    position: 79.3,
+    status: 'open',
   };
 }
 
@@ -172,6 +259,7 @@ describe('briefGenerator', () => {
     process.env.ANTHROPIC_API_KEY = 'test-key';
 
     mockSnapshotFindUnique.mockResolvedValue(buildSnapshot());
+    mockClusterFindUnique.mockResolvedValue(buildCluster());
     mockProposalFindFirst.mockResolvedValue(null);
     mockProposalFindUnique.mockResolvedValue(null);
     mockProposalFindMany.mockResolvedValue([]);
@@ -186,20 +274,81 @@ describe('briefGenerator', () => {
     mockSearchMilestones.mockResolvedValue({ results: [], total: 0 });
     mockMatchPerson.mockResolvedValue({ matched: false, confidence: 0, suggestedAction: 'create_draft', matchType: 'none' });
     mockMatchOrganization.mockResolvedValue({ matched: false, confidence: 0, suggestedAction: 'create_draft', matchType: 'none' });
+    mockEnsureExperimentForProposalLink.mockResolvedValue(undefined);
+    mockGetSeoPackagingAudit.mockResolvedValue({
+      id: 'packaging_1',
+      windowStart: '2026-01-29',
+      windowEnd: '2026-04-28',
+      pageUrl: 'https://letaiexplainai.com/news',
+      pagePath: '/news',
+      pageType: 'news_index',
+      title: 'AI News - Latest Artificial Intelligence Headlines & Updates',
+      h1: 'AI News Hub',
+      description: 'Stay current with the latest AI news and developments.',
+      canonicalPath: '/news',
+      impressions: 80,
+      clicks: 0,
+      ctr: 0,
+      position: 8.7,
+      issueCount: 1,
+      criticalCount: 0,
+      experimentActive: false,
+      issueTypes: ['title_link_risk'],
+      issues: [
+        {
+          id: 'title_link_risk:secondary',
+          type: 'title_link_risk',
+          severity: 'warning',
+          label: 'Archive page is attracting impressions without clicks',
+          details: '80 impressions produced no clicks.',
+          recommendedFix: 'Strengthen the page title and description.',
+        },
+      ],
+      structuredDataTypes: [],
+      evergreenRecommendation: null,
+    });
+    mockPlanTopicPodForCluster.mockResolvedValue({
+      keyword: 'AI timeline',
+      sourceType: 'cluster_snapshot',
+      sourceId: 'cluster_1',
+      sourceLabel: '90d content gap',
+      primaryPage: 'https://letaiexplainai.com/timeline',
+      moveType: 'create_new',
+      hypothesis: 'A dedicated AI timeline explainer should outperform the generic hub page.',
+      canonicalDestination: {
+        type: 'new_blog_post',
+        label: 'New blog explainer: AI Timeline',
+        path: '/blog/ai-timeline',
+        exists: false,
+        reason: 'No stronger destination exists yet.',
+      },
+      companionAssets: [],
+      internalLinkOpportunities: [],
+    });
     mockTransaction.mockImplementation(async (callback: (tx: typeof mockTx) => unknown) => callback(mockTx));
     mockProposalCreate.mockImplementation(async ({ data }: { data: Record<string, unknown> }) =>
       buildCreatedProposal({
+        sourceType: (data.sourceType as string | undefined) ?? 'weekly_snapshot',
+        clusterSnapshotId: (data.clusterSnapshotId as string | null | undefined) ?? null,
+        proposalType: (data.proposalType as string | undefined) ?? 'blog_post',
         targetKeyword: data.targetKeyword as string,
         suggestedAngle: data.suggestedAngle as string,
         rationale: data.rationale as string,
+        hypothesis: (data.hypothesis as string | null | undefined) ?? null,
+        topicPodJson: data.topicPodJson ?? null,
+        sourceRefJson: data.sourceRefJson ?? null,
+        packagingFixJson: data.packagingFixJson ?? null,
         confidence: data.confidence as number,
         status: data.status as string,
         rejectedReason: (data.rejectedReason as string | null | undefined) ?? null,
         linkInventoryJson: data.linkInventoryJson,
         newsHooksJson: data.newsHooksJson ?? [],
+        sourcePage: (data.sourceRefJson as { pageUrl?: string } | undefined)?.pageUrl ?? undefined,
+        sourceQuery: (data.sourceRefJson as { sourceQuery?: string | null } | undefined)?.sourceQuery ?? undefined,
       })
     );
     mockSnapshotUpdate.mockResolvedValue({});
+    mockClusterUpdate.mockResolvedValue({});
   });
 
   it('rejects generic listicle angles before persisting them as pending work', async () => {
@@ -308,6 +457,7 @@ describe('briefGenerator', () => {
     expect(result.linkInventory).toHaveLength(4);
     expect(result.newsHooks).toHaveLength(1);
     expect(result.confidence).toBeGreaterThan(0.85);
+    expect(result.handoff.mode).toBe('blog_draft');
     expect(result.handoff.command).toContain('/AIBlogDraft topic:');
     expect(mockSnapshotUpdate).toHaveBeenCalledWith({
       where: { id: 'snapshot_1' },
@@ -326,5 +476,159 @@ describe('briefGenerator', () => {
     });
 
     expect(mockProposalCreate).not.toHaveBeenCalled();
+  });
+
+  it('generates a cluster-backed proposal with topic pod context', async () => {
+    mockMessageCreate.mockResolvedValue(buildAnthropicResponse(JSON.stringify({
+      suggestedAngle: 'Why AI timeline queries need a dedicated explainer instead of a generic hub page',
+      rationale: 'The clustered demand is consistent enough to justify a canonical explainer page with a clear thesis.',
+      confidence: 0.82,
+    })));
+
+    const result = await generateProposalFromCluster('cluster_1');
+
+    expect(result.sourceType).toBe('cluster_snapshot');
+    expect(result.proposalType).toBe('blog_post');
+    expect(result.sourceBucket).toBe('cluster_content_gap');
+    expect(result.topicPod?.canonicalDestination.path).toBe('/blog/ai-timeline');
+    expect(mockClusterUpdate).toHaveBeenCalledWith({
+      where: { id: 'cluster_1' },
+      data: { status: 'actioned' },
+    });
+  });
+
+  it('creates an evergreen-routing proposal without calling Anthropic when a stronger existing destination is recommended', async () => {
+    mockPlanTopicPodForCluster.mockResolvedValue({
+      keyword: 'AI timeline',
+      sourceType: 'cluster_snapshot',
+      sourceId: 'cluster_1',
+      sourceLabel: '90d content gap',
+      primaryPage: 'https://letaiexplainai.com/news',
+      moveType: 'optimize_current',
+      hypothesis: 'The timeline hub should be the canonical destination for this recurring demand.',
+      canonicalDestination: {
+        type: 'timeline',
+        label: 'AI Timeline',
+        path: '/timeline',
+        exists: true,
+        reason: 'The existing timeline page already fits the intent.',
+      },
+      companionAssets: [],
+      internalLinkOpportunities: [],
+    });
+    mockClusterFindUnique.mockResolvedValue(buildCluster({
+      primaryPage: 'https://letaiexplainai.com/news',
+      representativeQuery: 'ai timeline',
+    }));
+    mockProposalCreate.mockResolvedValueOnce(buildCreatedProposal({
+      sourceType: 'cluster_snapshot',
+      clusterSnapshotId: 'cluster_1',
+      proposalType: 'evergreen_routing',
+      targetKeyword: 'AI timeline',
+      suggestedAngle: 'Retarget /timeline so it becomes the canonical destination for this recurring search demand.',
+      rationale: 'The timeline hub should be the canonical destination for this recurring demand. Current landing page: /news. Recommended canonical destination: /timeline.',
+      hypothesis: 'The timeline hub should be the canonical destination for this recurring demand.',
+      topicPodJson: {
+        keyword: 'AI timeline',
+        sourceType: 'cluster_snapshot',
+        sourceId: 'cluster_1',
+        sourceLabel: '90d content gap',
+        primaryPage: 'https://letaiexplainai.com/news',
+        moveType: 'optimize_current',
+        hypothesis: 'The timeline hub should be the canonical destination for this recurring demand.',
+        canonicalDestination: {
+          type: 'timeline',
+          label: 'AI Timeline',
+          path: '/timeline',
+          exists: true,
+          reason: 'The existing timeline page already fits the intent.',
+        },
+        companionAssets: [],
+        internalLinkOpportunities: [],
+      },
+      confidence: 0.84,
+      status: 'pending',
+      rejectedReason: null,
+      linkInventoryJson: [],
+      newsHooksJson: [],
+      primaryPage: 'https://letaiexplainai.com/news',
+      representativeQuery: 'ai timeline',
+    }));
+
+    const result = await generateEvergreenRoutingProposal('cluster_1');
+
+    expect(result.proposalType).toBe('evergreen_routing');
+    expect(result.handoff.mode).toBe('manual_routing_review');
+    expect(result.handoff.command).toBeNull();
+    expect(result.routingPlan).toMatchObject({
+      currentPath: '/news',
+      targetPath: '/timeline',
+      moveType: 'optimize_current',
+    });
+    expect(mockMessageCreate).not.toHaveBeenCalled();
+    expect(mockClusterUpdate).toHaveBeenCalledWith({
+      where: { id: 'cluster_1' },
+      data: { status: 'actioned' },
+    });
+  });
+
+  it('creates a packaging-fix proposal without calling Anthropic', async () => {
+    mockProposalCreate.mockResolvedValueOnce(buildCreatedProposal({
+      sourceType: 'packaging_audit',
+      proposalType: 'packaging_fix',
+      targetKeyword: '/news',
+      suggestedAngle: 'Tighten the title signal on /news so the page presents a clearer answer in search.',
+      rationale: '/news already has 80 impressions but is still showing a packaging gap.',
+      hypothesis: 'If /news gets clearer title packaging, click-through should improve on the existing impression base.',
+      sourceRefJson: {
+        auditId: 'packaging_1',
+        pageUrl: 'https://letaiexplainai.com/news',
+        pagePath: '/news',
+        pageType: 'news_index',
+        windowStart: '2026-01-29',
+        windowEnd: '2026-04-28',
+        sourceBucket: 'serp_packaging',
+        sourceQuery: null,
+      },
+      packagingFixJson: {
+        pagePath: '/news',
+        pageType: 'news_index',
+        title: 'AI News - Latest Artificial Intelligence Headlines & Updates',
+        h1: 'AI News Hub',
+        description: 'Stay current with the latest AI news and developments.',
+        canonicalPath: '/news',
+        structuredDataTypes: [],
+        issueTypes: ['title_link_risk'],
+        issues: [
+          {
+            id: 'title_link_risk:secondary',
+            type: 'title_link_risk',
+            severity: 'warning',
+            label: 'Archive page is attracting impressions without clicks',
+            details: '80 impressions produced no clicks.',
+            recommendedFix: 'Strengthen the page title and description.',
+          },
+        ],
+      },
+      confidence: 0.76,
+      status: 'pending',
+      rejectedReason: null,
+      linkInventoryJson: [],
+      newsHooksJson: [],
+      sourcePage: 'https://letaiexplainai.com/news',
+      sourceQuery: null,
+    }));
+
+    const result = await generatePackagingFixProposal('packaging_1');
+
+    expect(result.proposalType).toBe('packaging_fix');
+    expect(result.handoff.mode).toBe('manual_packaging_fix');
+    expect(result.handoff.command).toBeNull();
+    expect(result.sourceType).toBe('packaging_audit');
+    expect(result.packagingFixPlan).toMatchObject({
+      pagePath: '/news',
+      issueTypes: ['title_link_risk'],
+    });
+    expect(mockMessageCreate).not.toHaveBeenCalled();
   });
 });

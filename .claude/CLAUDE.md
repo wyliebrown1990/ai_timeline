@@ -39,8 +39,8 @@ Always deploy via `scripts/deploy-frontend.sh` — it strips sourcemaps and appl
 npm run build && aws s3 sync dist/ s3://ai-timeline-frontend-1765916222/ --exclude "*.map" --delete
 aws cloudfront create-invalidation --distribution-id E23Z9QNRPDI3HW --paths "/*"
 
-# Backend
-cd infra && sam build && sam deploy --no-confirm-changeset
+# Backend (preferred: regenerates Prisma client and forces a clean SAM build)
+./scripts/deploy-backend.sh
 
 # Database migrations (run before backend deploy if schema changed)
 export DATABASE_URL=$(aws ssm get-parameter --name "/ai-timeline/prod/database-url" --with-decryption --query "Parameter.Value" --output text)

@@ -10,10 +10,13 @@ Deep-dives one bucket.
    - `content-gaps.md`
    - `trend-signals.md`
    - `decay.md`
-3. Pull up to 50 findings from `/api/admin/seo/insights`.
+   - `serp-packaging.md`
+3. Pull the matching source data:
+   - weekly buckets → up to 50 findings from `/api/admin/seo/insights`
+   - packaging backlog → current rows from `/api/admin/seo/packaging`
 4. Rank the findings by opportunity and confidence.
 5. Produce the lane decision and artifact for each finding.
-6. Downgrade anything weird, voice-fragile, or unclear to `human_only`.
+6. Never auto-ship packaging fixes. Downgrade anything weird, voice-fragile, structurally risky, or unclear to `human_only`.
 
 ## Output Shape
 

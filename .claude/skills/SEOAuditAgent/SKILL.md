@@ -1,6 +1,6 @@
 ---
 name: SEOAuditAgent
-description: SEO audit agent for letaiexplainai.com. Reads GSC insights from /admin/seo-insights, classifies findings into auto-ship, propose, or human-only lanes, composes with /AIBlogDraft and /AISEOReview, and refuses slop using seo_voice.md plus explicit bucket playbooks. USE WHEN reviewing weekly SEO findings, preparing metadata rewrites, scoping content-gap opportunities, or running the weekly SEO digest.
+description: SEO audit agent for letaiexplainai.com. Reads GSC insights and packaging audits from /admin/seo-insights, classifies findings into auto-ship, propose, or human-only lanes, composes with /AIBlogDraft and /AISEOReview, and refuses slop using seo_voice.md plus explicit bucket playbooks. USE WHEN reviewing weekly SEO findings, preparing metadata rewrites, scoping content-gap opportunities, reviewing packaging backlog, or running the weekly SEO digest.
 ---
 
 # SEOAuditAgent
@@ -42,14 +42,14 @@ Every workflow follows the same 5 phases:
 
 1. **Mode selection** — decide digest vs bucket vs finding.
 2. **Read context** — voice, slop rules, playbook, prior learnings.
-3. **Pull findings** — query `/api/admin/seo/insights` for the requested week and scope.
+3. **Pull findings** — query `/api/admin/seo/insights` for weekly buckets and `/api/admin/seo/packaging` for packaging backlog when relevant.
 4. **Classify lane** — `auto_ship`, `propose`, or `human_only`.
 5. **Generate artifact + pre-flight slop check** — emit the artifact, then run the reject-list before returning it.
 
 ## Lane Definitions
 
 - **`auto_ship`**: metadata-only changes for low-blast-radius surfaces. Initial scope is blog `seoTitle` + `seoDescription` only.
-- **`propose`**: create a content brief or refresh brief for a human or downstream skill to approve.
+- **`propose`**: create a content brief, evergreen-routing plan, or packaging-fix plan for a human or downstream skill to approve.
 - **`human_only`**: anything ambiguous, high-risk, architectural, or voice-fragile.
 
 ## Composition Rules
@@ -57,7 +57,7 @@ Every workflow follows the same 5 phases:
 - Use **`/AIBlogDraft`** for any content brief that becomes a real draft. SEOAuditAgent never writes full blog bodies.
 - Use **`/AISEOReview`** when a metadata rewrite is borderline, when a content brief needs SEO quality review, or when the weekly digest includes anything surprising.
 - Offer **`/AITechLeadReview`** or **`/AIUXLeadReview`** when the right action is architectural, navigational, or experience-level rather than editorial.
-- Do not implement infra work (canonicals, sitemap, structured data) from this skill. Surface it as `human_only`.
+- Do not auto-ship canonicals, sitemap changes, structured data, H1 rewrites, or broad internal-link changes from this skill. Surface them as `propose` or `human_only` with explicit human approval boundaries.
 
 ## Safety + Anti-Patterns
 
@@ -81,7 +81,7 @@ Each finding returns:
 Artifacts vary by lane:
 
 - `auto_ship` → `seoTitle`, `seoDescription`, rationale, rollback note
-- `propose` → content or refresh brief, target keyword, link inventory, why now
+- `propose` → content brief, evergreen-routing plan, or packaging-fix plan; include target keyword or target page, evidence window, and why now
 - `human_only` → concise explanation, options, suggested reviewer
 
 ## Examples
@@ -103,7 +103,16 @@ User: "Review this week's content gaps"
 → Produces brief-ready proposals and human-only escalations
 ```
 
-**Example 3: One finding**
+**Example 3: Packaging backlog**
+```text
+User: "Review the packaging backlog"
+→ Invokes Bucket workflow
+→ Uses bucket_playbooks/serp-packaging.md
+→ Pulls /api/admin/seo/packaging
+→ Produces evergreen-routing or packaging-fix proposals with human approval boundaries
+```
+
+**Example 4: One finding**
 ```text
 User: "Act on this winnable loss"
 → Invokes Finding workflow

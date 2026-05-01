@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (sprint created — no tasks started)
+> Last updated: 2026-05-01 by Codex (data model foundation shipped)
 
 ---
 
@@ -34,14 +34,14 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 **Priority**: MEDIUM-HIGH
 **Depends on**: SEOI-8 through SEOI-10
 **Estimated Effort**: 2-3 days
-**Status**: Not started
+**Status**: In progress
 
 ---
 
 ## Prerequisites
 
-- [ ] SEOI-8 through SEOI-10 are stable in prod
-- [ ] GSC cluster mining and experiment ledger are already trusted
+- [x] SEOI-8 through SEOI-10 are stable in prod
+- [x] GSC cluster mining and experiment ledger are already trusted
 - [ ] Wylie has approved the default no-paid-provider approach, or explicitly approved any paid provider if needed
 - [ ] Local dev server running: `npm run dev` + `npm run dev:server`
 
@@ -64,7 +64,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 2. Data model
 
-- [ ] Add a keyword-portfolio model, for example `KeywordOpportunity`, with fields such as:
+- [x] Add a keyword-portfolio model, for example `KeywordOpportunity`, with fields such as:
   - `sourceType`
   - `seedQuery`
   - `clusterKey`
@@ -76,7 +76,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - `rationale`
   - `status`
   - `linkedExperimentId`
-- [ ] Generate Prisma migration(s)
+- [x] Generate Prisma migration(s)
 
 ### 3. Discovery services
 
@@ -431,4 +431,3 @@ Reviewed against the 17-category vibe-code slop checklist + LAEA's centralized s
 - **Paused mode remains read-only** (Task 6). Discovery lane respects the SEOI-5 killswitch boundary.
 - **Test paths use `/tests/unit/` convention** (`tests/unit/seo/keywordDiscovery.test.ts`, etc.). ✓
 - **No `mcp__claude-in-chrome__*`, no `VITE_*` secrets, no manual AWS console steps, no backwards-compat shims.**
-

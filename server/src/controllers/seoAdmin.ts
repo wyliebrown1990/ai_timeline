@@ -9,6 +9,16 @@ import {
 } from '../services/gsc/bucketClassifier';
 import { getGscHealth, runWeeklyIngest } from '../services/gsc/gscIngest';
 import {
+  CLUSTER_BUCKETS,
+  CLUSTER_HORIZONS,
+  dismissCluster,
+  getClusterDetail,
+  listClusters,
+  markClusterActioned,
+  type ClusterBucket,
+  type ClusterHorizon,
+} from '../services/gsc/queryClusterer';
+import {
   listSeoActions,
   proposeRewrite,
   rollbackSeoAction,
@@ -21,12 +31,25 @@ import {
 import { isPaused, setPaused } from '../services/seo/agentControl';
 import {
   approveSeoProposal,
+  generateEvergreenRoutingProposal,
+  generatePackagingFixProposal,
   generateProposal,
+  generateProposalFromCluster,
   linkProposalDraft,
   listSeoProposals,
   rejectSeoProposal,
   type SeoProposalStatusFilter,
 } from '../services/seo/briefGenerator';
+import {
+  getSeoExperiment,
+  listSeoExperiments,
+  reviewSeoExperiment,
+  type SeoExperimentStatusFilter,
+} from '../services/seo/experimentLedger';
+import {
+  getSeoPackagingAudit,
+  listSeoPackagingAudits,
+} from '../services/seo/serpPackagingAudit';
 import {
   getLatestAgentRunStatus,
   setLatestAgentRunStatus,
@@ -50,6 +73,22 @@ function parseBucket(value: unknown): InsightBucket {
   return value as InsightBucket;
 }
 
+function parseClusterBucket(value: unknown): ClusterBucket {
+  if (typeof value !== 'string' || !CLUSTER_BUCKETS.includes(value as ClusterBucket)) {
+    return 'cluster_content_gap';
+  }
+
+  return value as ClusterBucket;
+}
+
+function parseClusterHorizon(value: unknown): ClusterHorizon {
+  if (typeof value !== 'string' || !CLUSTER_HORIZONS.includes(value as ClusterHorizon)) {
+    return '90d';
+  }
+
+  return value as ClusterHorizon;
+}
+
 function parseActionStatus(value: unknown): 'all' | 'shipped' | 'rolled_back' | 'measured' {
   if (value === 'shipped' || value === 'rolled_back' || value === 'measured') {
     return value;
@@ -65,6 +104,21 @@ function parseProposalStatus(value: unknown): SeoProposalStatusFilter {
     value === 'approved' ||
     value === 'rejected' ||
     value === 'shipped'
+  ) {
+    return value;
+  }
+
+  return 'all';
+}
+
+function parseExperimentStatus(value: unknown): SeoExperimentStatusFilter {
+  if (
+    value === 'planned'
+    || value === 'running'
+    || value === 'won'
+    || value === 'flat'
+    || value === 'lost'
+    || value === 'archived'
   ) {
     return value;
   }
@@ -145,9 +199,70 @@ export async function health(_req: Request, res: Response, next: NextFunction) {
       lastRowCount: status.lastRowCount,
       lastWeekCovered: status.lastWeekCovered,
       totalRowsLast30d: status.totalRowsLast30d,
+      clusterWindows: status.clusterWindows,
       paused,
       agentRun,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function listClusterOpportunities(req: Request, res: Response, next: NextFunction) {
+  try {
+    const horizon = parseClusterHorizon(req.query.horizon);
+    const bucket = parseClusterBucket(req.query.bucket);
+    const limit = parseOptionalPositiveInt(req.query.limit, 50);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const result = await listClusters({
+      horizon,
+      bucket,
+      limit,
+      page,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function clusterDetail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const cluster = await getClusterDetail(req.params.id);
+    if (!cluster) {
+      res.status(404).json({ error: 'SEO cluster not found' });
+      return;
+    }
+
+    res.json(cluster);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function dismissClusterOpportunity(req: Request, res: Response, next: NextFunction) {
+  try {
+    await dismissCluster(req.params.id);
+    res.json({ id: req.params.id, status: 'dismissed' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function actionClusterOpportunity(req: Request, res: Response, next: NextFunction) {
+  try {
+    await markClusterActioned(req.params.id);
+    res.json({ id: req.params.id, status: 'actioned' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function generateProposalFromClusterOpportunity(req: Request, res: Response, next: NextFunction) {
+  try {
+    const proposal = await generateProposalFromCluster(req.params.id);
+    res.json(proposal);
   } catch (error) {
     next(error);
   }
@@ -278,6 +393,110 @@ export async function linkProposal(req: Request, res: Response, next: NextFuncti
 
     const proposal = await linkProposalDraft(req.params.id, draftPostId);
     res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function experiments(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = parseOptionalPositiveInt(req.query.limit, 25);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const status = parseExperimentStatus(req.query.status);
+    const result = await listSeoExperiments({
+      status,
+      page,
+      limit,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function packaging(req: Request, res: Response, next: NextFunction) {
+  try {
+    const limit = parseOptionalPositiveInt(req.query.limit, 50);
+    const page = parseOptionalPositiveInt(req.query.page, 1);
+    const result = await listSeoPackagingAudits({
+      limit,
+      page,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function packagingDetail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const audit = await getSeoPackagingAudit(req.params.id);
+    if (!audit) {
+      res.status(404).json({ error: 'SEO packaging audit not found' });
+      return;
+    }
+
+    res.json(audit);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function proposePackagingEvergreen(req: Request, res: Response, next: NextFunction) {
+  try {
+    const audit = await getSeoPackagingAudit(req.params.id);
+    if (!audit) {
+      res.status(404).json({ error: 'SEO packaging audit not found' });
+      return;
+    }
+
+    if (!audit.evergreenRecommendation) {
+      res.status(409).json({ error: 'This packaging audit does not have an evergreen-routing recommendation' });
+      return;
+    }
+
+    const proposal = await generateEvergreenRoutingProposal(audit.evergreenRecommendation.clusterId);
+    res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function proposePackagingFix(req: Request, res: Response, next: NextFunction) {
+  try {
+    const audit = await getSeoPackagingAudit(req.params.id);
+    if (!audit) {
+      res.status(404).json({ error: 'SEO packaging audit not found' });
+      return;
+    }
+
+    if (audit.issues.every((issue) => issue.type === 'evergreen_routing')) {
+      res.status(409).json({ error: 'This packaging audit does not have a manual packaging-fix recommendation' });
+      return;
+    }
+
+    const proposal = await generatePackagingFixProposal(audit.id);
+    res.json(proposal);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function experimentDetail(req: Request, res: Response, next: NextFunction) {
+  try {
+    const experiment = await getSeoExperiment(req.params.id);
+    res.json(experiment);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function reviewExperiment(req: Request, res: Response, next: NextFunction) {
+  try {
+    const experiment = await reviewSeoExperiment(req.params.id);
+    res.json(experiment);
   } catch (error) {
     next(error);
   }

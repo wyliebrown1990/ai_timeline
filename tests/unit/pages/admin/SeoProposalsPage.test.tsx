@@ -35,6 +35,7 @@ function renderPage() {
 function buildProposal(overrides: Partial<{
   id: string;
   status: 'pending' | 'drafting' | 'approved' | 'rejected' | 'shipped';
+  proposalType: 'blog_post' | 'evergreen_routing' | 'packaging_fix';
   targetKeyword: string;
   suggestedAngle: string;
   rejectedReason: string | null;
@@ -48,17 +49,20 @@ function buildProposal(overrides: Partial<{
 }> = {}) {
   return {
     id: overrides.id ?? 'proposal_1',
-    snapshotId: 'snapshot_1',
-    proposalType: 'blog_post',
+    sourceType: 'weekly_snapshot',
+    sourceId: 'snapshot_1',
+    proposalType: overrides.proposalType ?? 'blog_post',
     targetKeyword: overrides.targetKeyword ?? 'AI agents in healthcare',
     suggestedAngle: overrides.suggestedAngle ?? 'Why AI agent pilots in healthcare keep hitting workflow bottlenecks',
     rationale: 'The query is rising and the workflow bottleneck gives the post a real thesis.',
+    hypothesis: 'The query is rising and the workflow bottleneck gives the post a real thesis.',
     confidence: 0.86,
     status: overrides.status ?? 'pending',
     rejectedReason: overrides.rejectedReason ?? null,
     createdAt: '2026-04-30T12:00:00.000Z',
     actedAt: null,
-    weekStart: '2026-04-21T00:00:00.000Z',
+    sourceWindowStart: '2026-04-21T00:00:00.000Z',
+    sourceWindowEnd: null,
     sourceBucket: 'content_gap',
     sourcePage: 'https://letaiexplainai.com/news',
     sourceQuery: 'AI agents in healthcare',
@@ -80,12 +84,22 @@ function buildProposal(overrides: Partial<{
         publishedAt: '2026-04-28T12:00:00.000Z',
       },
     ],
+    topicPod: null,
+    routingPlan: null,
+    packagingFixPlan: null,
     handoff: {
+      mode: overrides.proposalType === 'packaging_fix' ? 'manual_packaging_fix' as const : 'blog_draft' as const,
+      label: overrides.proposalType === 'packaging_fix' ? 'Review packaging plan' : 'Send to /AIBlogDraft',
       topic: 'Why AI agent pilots in healthcare keep hitting workflow bottlenecks',
-      keyword: 'AI agents in healthcare',
-      newsUrl: 'https://example.com/hospitals-test-ai-agents',
-      command: '/AIBlogDraft topic: "Why AI agent pilots in healthcare keep hitting workflow bottlenecks" keyword: "AI agents in healthcare" news_url: "https://example.com/hospitals-test-ai-agents"',
+      keyword: overrides.targetKeyword ?? 'AI agents in healthcare',
+      newsUrl: overrides.proposalType === 'packaging_fix' ? null : 'https://example.com/hospitals-test-ai-agents',
+      command: overrides.proposalType === 'packaging_fix'
+        ? null
+        : '/AIBlogDraft topic: "Why AI agent pilots in healthcare keep hitting workflow bottlenecks" keyword: "AI agents in healthcare" news_url: "https://example.com/hospitals-test-ai-agents"',
       proposalPath: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+      guidance: overrides.proposalType === 'packaging_fix'
+        ? 'Review the recommended title, metadata, breadcrumb, and structured-data changes manually before shipping. Packaging fixes stay human-approved.'
+        : 'Approving this proposal keeps a human in the loop and prepares a structured /AIBlogDraft handoff.',
     },
     draftPost: overrides.draftPost ?? null,
   };
@@ -129,7 +143,7 @@ describe('SeoProposalsPage', () => {
 
     await user.click(screen.getByRole('button', { name: /view detail/i }));
 
-    expect(await screen.findByText(/structured \/aiblogdraft handoff/i)).toBeInTheDocument();
+    expect(await screen.findByText(/human-reviewed follow-through plan/i)).toBeInTheDocument();
     expect(screen.getByText(/hospitals test ai agents for clinician workflows/i)).toBeInTheDocument();
     expect(screen.getByText(/link inventory/i)).toBeInTheDocument();
   });
@@ -166,6 +180,50 @@ describe('SeoProposalsPage', () => {
     await waitFor(() => {
       expect(mockSeoInsightsApi.approveProposal).toHaveBeenCalledWith('proposal_1');
     });
+  });
+
+  it('shows the packaging approval action for manual packaging proposals', async () => {
+    mockSeoInsightsApi.listProposals.mockResolvedValue(buildListResult({
+      data: [
+        {
+          ...buildProposal({
+            proposalType: 'packaging_fix',
+            targetKeyword: '/news',
+            suggestedAngle: 'Tighten the title signal on /news so the page presents a clearer answer in search.',
+          }),
+          sourceType: 'packaging_audit',
+          sourceId: 'packaging_1',
+          sourceBucket: 'serp_packaging',
+          sourcePage: 'https://letaiexplainai.com/news',
+          sourceQuery: null,
+          packagingFixPlan: {
+            pagePath: '/news',
+            pageType: 'news_index',
+            title: 'AI News - Latest Artificial Intelligence Headlines & Updates',
+            h1: 'AI News Hub',
+            description: 'Stay current with the latest AI news and developments.',
+            canonicalPath: '/news',
+            structuredDataTypes: [],
+            issueTypes: ['title_link_risk'],
+            issues: [
+              {
+                id: 'title_link_risk:secondary',
+                type: 'title_link_risk',
+                severity: 'warning',
+                label: 'Archive page is attracting impressions without clicks',
+                details: '80 impressions produced no clicks.',
+                recommendedFix: 'Strengthen the page title and description.',
+              },
+            ],
+          },
+        },
+      ],
+    }));
+
+    renderPage();
+
+    expect(await screen.findByText('/news')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /approve packaging plan/i })).toBeInTheDocument();
   });
 
   it('rejects a proposal after collecting a reason', async () => {

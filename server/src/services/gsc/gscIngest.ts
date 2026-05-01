@@ -10,6 +10,7 @@ import {
 } from './gscClient';
 import type { GscRow } from './gscClient';
 import { classifyAllBuckets } from './bucketClassifier';
+import { getClusterWindowHealth, rebuildClusterSnapshots, type ClusterWindowSummary } from './queryClusterer';
 
 const QUERY_DETAIL_DIMENSIONS = ['date', 'query', 'page', 'device', 'country'] as const;
 const PAGE_AGGREGATE_DIMENSIONS = ['date', 'page', 'device', 'country'] as const;
@@ -28,6 +29,7 @@ export interface GscIngestSummary {
   dailyRowsAttempted: number;
   snapshotsCreated: number;
   weekStartsRebuilt: string[];
+  clusterWindowsRebuilt: ClusterWindowSummary[];
   durationMs: number;
 }
 
@@ -40,6 +42,27 @@ interface SnapshotAccumulator {
   impressions: number;
   weightedPositionSum: number;
   weightSum: number;
+}
+
+function isMissingClusterTableError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return error.message.includes('GscClusterSnapshot') && error.message.includes('does not exist');
+}
+
+async function rebuildClusterSnapshotsSafely(now: Date): Promise<ClusterWindowSummary[]> {
+  try {
+    return await rebuildClusterSnapshots({ now });
+  } catch (error) {
+    if (isMissingClusterTableError(error)) {
+      console.warn('[GSC_CLUSTER] Cluster table missing during ingest; skipping clustered rebuild until migration lands');
+      return [];
+    }
+
+    throw error;
+  }
 }
 
 function getRequiredKey(keys: string[], index: number, label: string): string {
@@ -270,10 +293,11 @@ export async function runWeeklyIngest(now: Date = new Date()): Promise<GscIngest
   const { inserted, attempted } = await ingestDateRange(startDate, endDate);
   const snapshotsCreated = await rebuildWeeklySnapshots(startDate);
   await classifyAllBuckets({ weekStart: startDate });
+  const clusterWindowsRebuilt = await rebuildClusterSnapshotsSafely(now);
   const durationMs = Date.now() - startedAt;
 
   console.log(
-    `[GSC_INGEST] mode=weekly start=${startDate} end=${endDate} attempted=${attempted} inserted=${inserted} snapshots=${snapshotsCreated} durationMs=${durationMs}`
+    `[GSC_INGEST] mode=weekly start=${startDate} end=${endDate} attempted=${attempted} inserted=${inserted} snapshots=${snapshotsCreated} clusters=${clusterWindowsRebuilt.map((window) => `${window.horizon}:${window.clusterCount}`).join(',')} durationMs=${durationMs}`
   );
 
   return {
@@ -285,6 +309,7 @@ export async function runWeeklyIngest(now: Date = new Date()): Promise<GscIngest
     dailyRowsAttempted: attempted,
     snapshotsCreated,
     weekStartsRebuilt: [startDate],
+    clusterWindowsRebuilt,
     durationMs,
   };
 }
@@ -313,10 +338,11 @@ export async function runBackfill(daysBack: number, now: Date = new Date()): Pro
     snapshotsCreated += await rebuildWeeklySnapshots(weekStart);
     await classifyAllBuckets({ weekStart });
   }
+  const clusterWindowsRebuilt = await rebuildClusterSnapshotsSafely(now);
 
   const durationMs = Date.now() - startedAt;
   console.log(
-    `[GSC_INGEST] mode=backfill start=${startDate} end=${finalizedThroughDate} attempted=${dailyRowsAttempted} inserted=${dailyRowsInserted} snapshots=${snapshotsCreated} durationMs=${durationMs}`
+    `[GSC_INGEST] mode=backfill start=${startDate} end=${finalizedThroughDate} attempted=${dailyRowsAttempted} inserted=${dailyRowsInserted} snapshots=${snapshotsCreated} clusters=${clusterWindowsRebuilt.map((window) => `${window.horizon}:${window.clusterCount}`).join(',')} durationMs=${durationMs}`
   );
 
   return {
@@ -328,6 +354,7 @@ export async function runBackfill(daysBack: number, now: Date = new Date()): Pro
     dailyRowsAttempted,
     snapshotsCreated,
     weekStartsRebuilt,
+    clusterWindowsRebuilt,
     durationMs,
   };
 }
@@ -338,9 +365,10 @@ export async function getGscHealth(now: Date = new Date()): Promise<{
   lastRowCount: number;
   lastWeekCovered: string | null;
   totalRowsLast30d: number;
+  clusterWindows: Partial<Record<'28d' | '90d', ClusterWindowSummary>>;
 }> {
   const finalizedThroughDate = getLatestFinalizedPtDate(now);
-  const [latestMetric, latestSnapshot, latestWeekSnapshot] = await Promise.all([
+  const [latestMetric, latestSnapshot, latestWeekSnapshot, clusterWindowsResult] = await Promise.allSettled([
     prisma.gscDailyMetric.findFirst({
       orderBy: { createdAt: 'desc' },
       select: { createdAt: true },
@@ -353,9 +381,29 @@ export async function getGscHealth(now: Date = new Date()): Promise<{
       orderBy: { weekStart: 'desc' },
       select: { weekStart: true },
     }),
+    getClusterWindowHealth(),
   ]);
 
-  const lastWeekCovered = latestWeekSnapshot?.weekStart.toISOString().slice(0, 10) ?? null;
+  if (latestMetric.status === 'rejected') {
+    throw latestMetric.reason;
+  }
+
+  if (latestSnapshot.status === 'rejected') {
+    throw latestSnapshot.reason;
+  }
+
+  if (latestWeekSnapshot.status === 'rejected') {
+    throw latestWeekSnapshot.reason;
+  }
+
+  let clusterWindows: Partial<Record<'28d' | '90d', ClusterWindowSummary>> = {};
+  if (clusterWindowsResult.status === 'fulfilled') {
+    clusterWindows = clusterWindowsResult.value;
+  } else if (!isMissingClusterTableError(clusterWindowsResult.reason)) {
+    throw clusterWindowsResult.reason;
+  }
+
+  const lastWeekCovered = latestWeekSnapshot.value?.weekStart.toISOString().slice(0, 10) ?? null;
   const totalRowsLast30d = await prisma.gscDailyMetric.count({
     where: {
       date: {
@@ -375,7 +423,7 @@ export async function getGscHealth(now: Date = new Date()): Promise<{
     })
     : 0;
 
-  const latestTimestamps = [latestMetric?.createdAt, latestSnapshot?.createdAt]
+  const latestTimestamps = [latestMetric.value?.createdAt, latestSnapshot.value?.createdAt]
     .filter((value): value is Date => Boolean(value))
     .sort((a, b) => b.getTime() - a.getTime());
 
@@ -385,5 +433,6 @@ export async function getGscHealth(now: Date = new Date()): Promise<{
     lastRowCount,
     lastWeekCovered,
     totalRowsLast30d,
+    clusterWindows,
   };
 }

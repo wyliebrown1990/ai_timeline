@@ -10,23 +10,23 @@ datasource db {
 
 /// AI development milestone entity
 model Milestone {
-  id                   String   @id @default(cuid())
+  id                   String        @id @default(cuid())
   title                String
   description          String
   date                 DateTime
   category             String
   significance         Int
   era                  String?
-  organization         String?  // Legacy string field (kept for backwards compatibility)
-  organizationId       String?  // New FK to Organization
+  organization         String? // Legacy string field (kept for backwards compatibility)
+  organizationId       String? // New FK to Organization
   organizationRef      Organization? @relation(fields: [organizationId], references: [id])
-  contributors         String   @default("[]") // Legacy JSON array, migrating to MilestoneContributor
+  contributors         String        @default("[]") // Legacy JSON array, migrating to MilestoneContributor
   sourceUrl            String?
   imageUrl             String?
-  tags                 String   @default("[]")
-  sources              String   @default("[]")
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  tags                 String        @default("[]")
+  sources              String        @default("[]")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
   businessImpact       String?
   commonMisconceptions String?
   historicalContext    String?
@@ -36,7 +36,7 @@ model Milestone {
   whyItMattersToday    String?
 
   // Prerequisite concepts (Sprint LEarn-1)
-  prerequisiteConceptIds String   @default("[]") // JSON array of GlossaryTerm IDs needed to understand this milestone
+  prerequisiteConceptIds String @default("[]") // JSON array of GlossaryTerm IDs needed to understand this milestone
 
   // Key Figures relation (Sprint 44)
   keyFigures MilestoneContributor[]
@@ -56,8 +56,8 @@ enum SourceType {
   web_scraper
   youtube_channel
   youtube_playlist
-  single_url       // One-time URL submission (paste or Playwright)
-  youtube_video    // One-time YouTube video submission
+  single_url // One-time URL submission (paste or Playwright)
+  youtube_video // One-time YouTube video submission
 }
 
 /// News source for automated ingestion (supports RSS, YouTube, web scraping)
@@ -108,8 +108,8 @@ model IngestedArticle {
   duplicateReason String? // "title_match" | "content_match" | "url_match"
 
   // Subject classification (Sprint Subj-2)
-  classifiedSubjects    Json?      // Array of {subjectId, confidence, isPrimary}
-  subjectClassifiedAt   DateTime?
+  classifiedSubjects  Json? // Array of {subjectId, confidence, isPrimary}
+  subjectClassifiedAt DateTime?
 
   // Paywall detection (Sprint PD-1)
   isPaywalled       Boolean   @default(false)
@@ -119,7 +119,7 @@ model IngestedArticle {
   // Relations
   drafts          ContentDraft[]
   keyFigureDrafts KeyFigureDraft[] // Sprint 44 (legacy)
-  personDrafts    PersonDraft[]    // Sprint KPC
+  personDrafts    PersonDraft[] // Sprint KPC
 
   @@index([sourceId])
   @@index([publishedAt])
@@ -175,32 +175,32 @@ model GlossaryTerm {
   sourceArticleId     String? // Link to ingested article if AI-generated
 
   // Quick Answer for SEO (Sprint SEO-2)
-  quickAnswer         String? // 50-70 word direct answer optimized for featured snippets
+  quickAnswer String? // 50-70 word direct answer optimized for featured snippets
 
   // Prerequisite system (Sprint LEarn-1)
-  prerequisiteIds     String   @default("[]") // JSON array of term IDs to learn first
-  difficulty          Int      @default(1) // 1-5 scale (1=beginner, 5=expert)
-  conceptType         String   @default("foundational") // foundational, intermediate, advanced
+  prerequisiteIds String @default("[]") // JSON array of term IDs to learn first
+  difficulty      Int    @default(1) // 1-5 scale (1=beginner, 5=expert)
+  conceptType     String @default("foundational") // foundational, intermediate, advanced
 
   // News event links (Sprint LEarn-2)
-  newsEventLinks      NewsEventConcept[]
+  newsEventLinks NewsEventConcept[]
 
   // Key figures links (Sprint SEO-3)
-  keyFigures          GlossaryTermPerson[]
+  keyFigures GlossaryTermPerson[]
 
   // Organization links (Sprint SEO-3)
-  organizationLinks   GlossaryTermOrganization[]
+  organizationLinks GlossaryTermOrganization[]
 
   // Milestone links (Sprint SEO-3)
-  milestoneLinks      MilestoneGlossaryTerm[]
+  milestoneLinks MilestoneGlossaryTerm[]
 
   // SEO Content Generation (Sprint SEO-4 Task 8)
-  historySection           String?  // History of the concept - AI generated
-  howItWorksSection        String?  // Technical explanation - AI generated
-  faqItems                 String   @default("[]") // JSON array of {question, answer} objects
-  whoInventedQuickAnswer   String?  // Quick answer for "Who invented X?" - AI generated
-  seoContentGeneratedAt    DateTime? // When SEO content was last generated
-  seoContentStatus         String   @default("pending") // pending, generating, complete, error
+  historySection         String? // History of the concept - AI generated
+  howItWorksSection      String? // Technical explanation - AI generated
+  faqItems               String    @default("[]") // JSON array of {question, answer} objects
+  whoInventedQuickAnswer String? // Quick answer for "Who invented X?" - AI generated
+  seoContentGeneratedAt  DateTime? // When SEO content was last generated
+  seoContentStatus       String    @default("pending") // pending, generating, complete, error
 
   @@index([term])
   @@index([category])
@@ -247,12 +247,12 @@ model PipelineSettings {
 model GscDailyMetric {
   id          String   @id @default(cuid())
   date        DateTime
-  dataSource  String   // query_detail | page_aggregate
-  query       String?  // null only for page_aggregate rows
-  queryKey    String   // query value or page_aggregate sentinel for idempotent dedupe
+  dataSource  String // query_detail | page_aggregate
+  query       String? // null only for page_aggregate rows
+  queryKey    String // query value or page_aggregate sentinel for idempotent dedupe
   page        String
-  device      String   // DESKTOP | MOBILE | TABLET
-  country     String   // ISO-3166-1 alpha-3
+  device      String // DESKTOP | MOBILE | TABLET
+  country     String // ISO-3166-1 alpha-3
   clicks      Int
   impressions Int
   ctr         Float
@@ -268,16 +268,16 @@ model GscDailyMetric {
 model GscWeeklySnapshot {
   id          String   @id @default(cuid())
   weekStart   DateTime // start of the finalized 7-day PT reporting window
-  dataSource  String   // query_detail | page_aggregate
+  dataSource  String // query_detail | page_aggregate
   query       String?
-  queryKey    String   // query value or page_aggregate sentinel for idempotent dedupe
+  queryKey    String // query value or page_aggregate sentinel for idempotent dedupe
   page        String
   clicks      Int
   impressions Int
   ctr         Float
   position    Float
-  bucket      String?  // populated in SEOI-2
-  bucketScore Float?   // populated in SEOI-2
+  bucket      String? // populated in SEOI-2
+  bucketScore Float? // populated in SEOI-2
   status      String   @default("open")
   createdAt   DateTime @default(now())
 
@@ -288,22 +288,54 @@ model GscWeeklySnapshot {
   @@index([bucket, weekStart])
 }
 
+/// Clustered 28-day and 90-day finalized PT windows derived from query-detail rows.
+/// Intentionally separate from GscWeeklySnapshot because cluster windows are not week-aligned
+/// and because clustering collapses the exact (query, page) row identity preserved there.
+model GscClusterSnapshot {
+  id                  String   @id @default(cuid())
+  windowStart         DateTime
+  windowEnd           DateTime
+  horizon             String // 28d | 90d
+  clusterKey          String
+  representativeQuery String
+  memberQueriesJson   Json
+  memberPagesJson     Json
+  primaryPage         String
+  clicks              Int
+  impressions         Int
+  ctr                 Float
+  position            Float
+  bucket              String? // cluster_content_gap | cluster_near_win | cluster_topic_theme | null
+  bucketScore         Float?
+  status              String   @default("open")
+  evidenceJson        Json?
+  createdAt           DateTime @default(now())
+
+  proposals            SeoProposal[]
+  keywordOpportunities KeywordOpportunity[]
+
+  @@unique([windowEnd, horizon, clusterKey])
+  @@index([horizon, bucket, windowEnd])
+  @@index([status, windowEnd])
+}
+
 /// Audit log for agent-shipped SEO changes and rollbacks.
 model SeoAgentAction {
-  id           String             @id @default(cuid())
-  snapshotId   String?
-  snapshot     GscWeeklySnapshot? @relation(fields: [snapshotId], references: [id])
-  actionType   String
-  targetType   String
-  targetId     String
-  beforeJson   Json
-  afterJson    Json
-  confidence   Float
-  rationale    String
-  shippedAt    DateTime           @default(now())
-  rolledBackAt DateTime?
-  measuredAt   DateTime?
+  id            String             @id @default(cuid())
+  snapshotId    String?
+  snapshot      GscWeeklySnapshot? @relation(fields: [snapshotId], references: [id])
+  actionType    String
+  targetType    String
+  targetId      String
+  beforeJson    Json
+  afterJson     Json
+  confidence    Float
+  rationale     String
+  shippedAt     DateTime           @default(now())
+  rolledBackAt  DateTime?
+  measuredAt    DateTime?
   measuredDelta Json?
+  experiments   SeoExperiment[]
 
   @@index([targetType, targetId])
   @@index([shippedAt])
@@ -312,25 +344,96 @@ model SeoAgentAction {
 
 /// Proposed content briefs queued for human-driven /AIBlogDraft handoff.
 model SeoProposal {
-  id                String             @id @default(cuid())
-  snapshotId        String
-  snapshot          GscWeeklySnapshot  @relation(fields: [snapshotId], references: [id])
+  id                String              @id @default(cuid())
+  sourceType        String              @default("weekly_snapshot")
+  snapshotId        String?
+  snapshot          GscWeeklySnapshot?  @relation(fields: [snapshotId], references: [id])
+  clusterSnapshotId String?
+  clusterSnapshot   GscClusterSnapshot? @relation(fields: [clusterSnapshotId], references: [id])
   proposalType      String
   targetKeyword     String
-  suggestedAngle    String             @db.Text
+  suggestedAngle    String              @db.Text
   linkInventoryJson Json
   newsHooksJson     Json?
-  rationale         String             @db.Text
+  rationale         String              @db.Text
+  hypothesis        String?             @db.Text
+  topicPodJson      Json?
+  sourceRefJson     Json?
+  packagingFixJson  Json?
   confidence        Float
-  status            String             @default("pending") // pending | drafting | approved | rejected | shipped
+  status            String              @default("pending") // pending | drafting | approved | rejected | shipped
   draftPostId       String?
-  draftPost         BlogPost?          @relation(fields: [draftPostId], references: [id])
-  createdAt         DateTime           @default(now())
+  draftPost         BlogPost?           @relation(fields: [draftPostId], references: [id])
+  createdAt         DateTime            @default(now())
   actedAt           DateTime?
   rejectedReason    String?
+  experiments       SeoExperiment[]
 
   @@index([status, createdAt])
   @@index([targetKeyword, createdAt])
+  @@index([sourceType, createdAt])
+  @@index([clusterSnapshotId])
+}
+
+/// Scheduled measurement ledger for approved SEO actions and cluster-backed proposals.
+model SeoExperiment {
+  id                String          @id @default(cuid())
+  sourceType        String
+  sourceId          String
+  proposalId        String?         @unique
+  proposal          SeoProposal?    @relation(fields: [proposalId], references: [id])
+  actionId          String?         @unique
+  action            SeoAgentAction? @relation(fields: [actionId], references: [id])
+  targetKeyword     String
+  targetUrl         String
+  hypothesis        String          @db.Text
+  variantType       String
+  topicPodJson      Json?
+  checkpointsJson   Json
+  scheduledReviewAt DateTime
+  reviewWindowDays  Int
+  status            String          @default("planned") // planned | running | won | flat | lost | archived
+  metricsBeforeJson Json?
+  metricsAfterJson  Json?
+  notes             String?         @db.Text
+  lastReviewedAt    DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  keywordOpportunity KeywordOpportunity?
+
+  @@index([status, scheduledReviewAt])
+  @@index([sourceType, sourceId])
+}
+
+/// Durable backlog of external-discovery keyword opportunities.
+/// This stores scored ideas before they become concrete proposals or experiments.
+model KeywordOpportunity {
+  id                     String              @id @default(cuid())
+  sourceType             String // gsc_cluster | google_trends | serp_sample | editorial_seed
+  dedupeKey              String              @unique
+  seedQuery              String
+  clusterKey             String?
+  clusterSnapshotId      String?
+  clusterSnapshot        GscClusterSnapshot? @relation(fields: [clusterSnapshotId], references: [id])
+  sourceRefJson          Json?
+  targetIntent           String
+  demandProxy            Int                 @default(0)
+  competitionProxy       Int                 @default(0)
+  laeaFitScore           Int                 @default(0)
+  overallScore           Float               @default(0)
+  pageTypeRecommendation String
+  targetUrl              String?
+  rationale              String              @db.Text
+  status                 String              @default("discovered") // discovered | scored | promoted | archived
+  linkedExperimentId     String?             @unique
+  linkedExperiment       SeoExperiment?      @relation(fields: [linkedExperimentId], references: [id])
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@index([status, overallScore])
+  @@index([sourceType, overallScore])
+  @@index([clusterKey])
+  @@index([clusterSnapshotId])
 }
 
 // =============================================================================
@@ -449,34 +552,34 @@ model CurrentEvent {
   isPublished              Boolean   @default(true)
   // Media fields
   mediaType                String    @default("text") // text, video, audio
-  videoId                  String?   // YouTube video ID for embedding
-  thumbnailUrl             String?   // Video thumbnail URL
+  videoId                  String? // YouTube video ID for embedding
+  thumbnailUrl             String? // Video thumbnail URL
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
   // Entity mentions (Sprint KPC)
-  personMentions           NewsEventPersonMention[]
-  orgMentions              NewsEventOrgMention[]
+  personMentions NewsEventPersonMention[]
+  orgMentions    NewsEventOrgMention[]
 
   // Learning context (Sprint LEarn-2)
-  relatedMilestoneIds      String    @default("[]") // Historical milestones this relates to
-  whyItMatters             String?                   // AI-generated context explanation
-  conceptLinks             NewsEventConcept[]
+  relatedMilestoneIds String             @default("[]") // Historical milestones this relates to
+  whyItMatters        String? // AI-generated context explanation
+  conceptLinks        NewsEventConcept[]
 
   // Feed engagement fields (Sprint Feed-1)
-  upvotes                  Int       @default(0)
-  downvotes                Int       @default(0)
-  viewCount                Int       @default(0)
-  completionCount          Int       @default(0)    // Users who engaged (not just swiped)
-  hotScore                 Float     @default(0)    // Computed ranking score for feed
-  tldr                     String?                   // Auto-generated "3 things to know"
+  upvotes         Int     @default(0)
+  downvotes       Int     @default(0)
+  viewCount       Int     @default(0)
+  completionCount Int     @default(0) // Users who engaged (not just swiped)
+  hotScore        Float   @default(0) // Computed ranking score for feed
+  tldr            String? // Auto-generated "3 things to know"
 
   // Paywall propagation (Sprint PD-1) — denormalized from source IngestedArticle at publish time
-  isPaywalled              Boolean   @default(false)
-  paywallReason            String?
+  isPaywalled   Boolean @default(false)
+  paywallReason String?
 
   // Feed interactions relation
-  interactions             NewsInteraction[]
+  interactions NewsInteraction[]
 
   @@index([featured])
   @@index([publishedDate])
@@ -489,16 +592,16 @@ model CurrentEvent {
 
 /// Junction table linking news events to glossary concepts (Sprint LEarn-2)
 model NewsEventConcept {
-  id              String       @id @default(cuid())
-  eventId         String
-  event           CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  conceptId       String
-  concept         GlossaryTerm @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  id        String       @id @default(cuid())
+  eventId   String
+  event     CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  conceptId String
+  concept   GlossaryTerm @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
-  mentionContext  String?      // Sentence where concept appears
-  isKeyTopic      Boolean      @default(false) // Primary topic vs mentioned
+  mentionContext String? // Sentence where concept appears
+  isKeyTopic     Boolean @default(false) // Primary topic vs mentioned
 
-  createdAt       DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([eventId, conceptId])
   @@index([eventId])
@@ -507,15 +610,15 @@ model NewsEventConcept {
 
 /// Junction table linking glossary terms to key figures (Sprint SEO-3)
 model GlossaryTermPerson {
-  id               String       @id @default(cuid())
-  glossaryTermId   String
-  glossaryTerm     GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
-  personId         String
-  person           Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  glossaryTermId String
+  glossaryTerm   GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
+  personId       String
+  person         Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
 
-  contributionNote String?      // e.g., "Invented", "Pioneered", "Popularized", "Co-developed"
+  contributionNote String? // e.g., "Invented", "Pioneered", "Popularized", "Co-developed"
 
-  createdAt        DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([glossaryTermId, personId])
   @@index([glossaryTermId])
@@ -524,15 +627,15 @@ model GlossaryTermPerson {
 
 /// Junction table linking glossary terms to organizations (Sprint SEO-3)
 model GlossaryTermOrganization {
-  id               String       @id @default(cuid())
-  glossaryTermId   String
-  glossaryTerm     GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
-  organizationId   String
-  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  glossaryTermId String
+  glossaryTerm   GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  contributionNote String?      // e.g., "Developed", "Pioneered", "Commercialized", "Open-sourced"
+  contributionNote String? // e.g., "Developed", "Pioneered", "Commercialized", "Open-sourced"
 
-  createdAt        DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([glossaryTermId, organizationId])
   @@index([glossaryTermId])
@@ -541,15 +644,15 @@ model GlossaryTermOrganization {
 
 /// Junction table linking milestones to glossary terms (Sprint SEO-3)
 model MilestoneGlossaryTerm {
-  id               String       @id @default(cuid())
-  milestoneId      String
-  milestone        Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
-  glossaryTermId   String
-  glossaryTerm     GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  milestoneId    String
+  milestone      Milestone    @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  glossaryTermId String
+  glossaryTerm   GlossaryTerm @relation(fields: [glossaryTermId], references: [id], onDelete: Cascade)
 
-  relevanceNote    String?      // e.g., "Key technology", "First application", "Breakthrough in"
+  relevanceNote String? // e.g., "Key technology", "First application", "Breakthrough in"
 
-  createdAt        DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([milestoneId, glossaryTermId])
   @@index([milestoneId])
@@ -571,47 +674,47 @@ enum OrgType {
 
 /// Organization in the AI ecosystem (companies, labs, universities, nonprofits)
 model Organization {
-  id               String   @id // kebab-case: "openai", "google-deepmind"
-  name             String   @unique
-  slug             String   @unique
+  id   String @id // kebab-case: "openai", "google-deepmind"
+  name String @unique
+  slug String @unique
 
   // Classification
-  type             OrgType  @default(company)
+  type OrgType @default(company)
 
   // Content sections
-  shortDescription String   // 1-2 sentences
-  mission          String?  // Mission statement
-  history          String?  // Founding story, evolution
-  currentFocus     String?  // What they're working on now (auto-updated)
+  shortDescription      String // 1-2 sentences
+  mission               String? // Mission statement
+  history               String? // Founding story, evolution
+  currentFocus          String? // What they're working on now (auto-updated)
   currentFocusUpdatedAt DateTime?
 
   // Key areas
-  focusAreas       String   @default("[]") // JSON: ["LLMs", "Robotics", "Safety"]
-  products         String   @default("[]") // JSON: ["ChatGPT", "GPT-4", "DALL-E"]
+  focusAreas String @default("[]") // JSON: ["LLMs", "Robotics", "Safety"]
+  products   String @default("[]") // JSON: ["ChatGPT", "GPT-4", "DALL-E"]
 
   // Media
-  logoUrl          String?
+  logoUrl String?
 
   // External links
-  websiteUrl       String?
-  wikipediaUrl     String?
-  linkedInUrl      String?
+  websiteUrl   String?
+  wikipediaUrl String?
+  linkedInUrl  String?
 
   // Details
-  foundedYear      Int?
-  headquarters     String?
+  foundedYear  Int?
+  headquarters String?
 
   // Relationships
-  currentEmployees Person[]       @relation("CurrentEmployees")
-  affiliations     Affiliation[]
-  milestones       Milestone[]
+  currentEmployees  Person[]                   @relation("CurrentEmployees")
+  affiliations      Affiliation[]
+  milestones        Milestone[]
   newsEventMentions NewsEventOrgMention[]
   glossaryTermLinks GlossaryTermOrganization[]
 
   // Metadata
-  status           String   @default("published") // draft, published
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  status    String   @default("published") // draft, published
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([type])
   @@index([status])
@@ -620,55 +723,55 @@ model Organization {
 
 /// Person in AI (researcher, executive, founder, etc.) - evolved from KeyFigure
 model Person {
-  id              String   @id // kebab-case: "geoffrey-hinton"
-  canonicalName   String   @unique // "Geoffrey Hinton"
-  slug            String   @unique
-  aliases         String   @default("[]") // JSON: ["Geoff Hinton", "G. Hinton"]
+  id            String @id // kebab-case: "geoffrey-hinton"
+  canonicalName String @unique // "Geoffrey Hinton"
+  slug          String @unique
+  aliases       String @default("[]") // JSON: ["Geoff Hinton", "G. Hinton"]
 
   // Structured biography sections
-  shortBio        String   // 1-2 sentences
-  background      String?  // Education, early life, academic background
-  careerHistory   String?  // Career narrative and progression
-  contributions   String?  // Major AI contributions and innovations
-  philosophy      String?  // Research approach, beliefs, notable perspectives
-  currentlyDoing  String?  // What they're working on now (auto-updated from news)
+  shortBio                String // 1-2 sentences
+  background              String? // Education, early life, academic background
+  careerHistory           String? // Career narrative and progression
+  contributions           String? // Major AI contributions and innovations
+  philosophy              String? // Research approach, beliefs, notable perspectives
+  currentlyDoing          String? // What they're working on now (auto-updated from news)
   currentlyDoingUpdatedAt DateTime?
 
   // Legacy fields (kept for backwards compatibility, will be deprecated)
-  fullBio         String?  // Detailed biography (legacy - use structured sections)
-  primaryOrg      String?  // Current affiliation (legacy - use currentOrgId)
-  previousOrgs    String   @default("[]") // JSON array (legacy - use affiliations)
-  notableFor      String?  // Key contribution summary (legacy - use contributions)
+  fullBio      String? // Detailed biography (legacy - use structured sections)
+  primaryOrg   String? // Current affiliation (legacy - use currentOrgId)
+  previousOrgs String  @default("[]") // JSON array (legacy - use affiliations)
+  notableFor   String? // Key contribution summary (legacy - use contributions)
 
   // Classification
-  role            String   // researcher, executive, founder, policy_maker, engineer, other
-  focusAreas      String   @default("[]") // JSON: ["LLMs", "Safety", "Scaling"]
+  role       String // researcher, executive, founder, policy_maker, engineer, other
+  focusAreas String @default("[]") // JSON: ["LLMs", "Safety", "Scaling"]
 
   // Current affiliation (denormalized for quick access)
-  currentOrgId    String?
-  currentOrg      Organization? @relation("CurrentEmployees", fields: [currentOrgId], references: [id])
-  currentRole     String?  // Current job title
+  currentOrgId String?
+  currentOrg   Organization? @relation("CurrentEmployees", fields: [currentOrgId], references: [id])
+  currentRole  String? // Current job title
 
   // Media
-  imageUrl        String?
+  imageUrl String?
 
   // External links
-  wikipediaUrl    String?
-  linkedInUrl     String?
-  twitterHandle   String?
-  personalWebsite String?
+  wikipediaUrl     String?
+  linkedInUrl      String?
+  twitterHandle    String?
+  personalWebsite  String?
   googleScholarUrl String?
 
   // Relationships
-  affiliations     Affiliation[]
-  milestoneLinks   MilestoneContributor[]
+  affiliations      Affiliation[]
+  milestoneLinks    MilestoneContributor[]
   newsEventMentions NewsEventPersonMention[]
-  matchedDrafts    PersonDraft[] @relation("MatchedPerson")
+  matchedDrafts     PersonDraft[]            @relation("MatchedPerson")
   glossaryTermLinks GlossaryTermPerson[]
 
   // Metadata
   status          String   @default("published") // draft, pending_review, published
-  sourceArticleId String?  // If extracted from ingested article
+  sourceArticleId String? // If extracted from ingested article
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -681,20 +784,20 @@ model Person {
 
 /// Affiliation - tracks person's career history at organizations
 model Affiliation {
-  id            String       @id @default(cuid())
-  personId      String
-  person        Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
-  orgId         String
-  organization  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  id           String       @id @default(cuid())
+  personId     String
+  person       Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  orgId        String
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  role          String       // Job title: "CEO", "Research Scientist", "Professor"
-  startDate     DateTime?
-  endDate       DateTime?    // null = current position
-  isCurrent     Boolean      @default(false)
-  notes         String?      // Optional context
+  role      String // Job title: "CEO", "Research Scientist", "Professor"
+  startDate DateTime?
+  endDate   DateTime? // null = current position
+  isCurrent Boolean   @default(false)
+  notes     String? // Optional context
 
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([personId, orgId, role, startDate])
   @@index([personId])
@@ -704,16 +807,16 @@ model Affiliation {
 
 /// News event person mention - links CurrentEvent to Person
 model NewsEventPersonMention {
-  id          String       @id @default(cuid())
-  eventId     String
-  event       CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  personId    String
-  person      Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
+  id       String       @id @default(cuid())
+  eventId  String
+  event    CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  personId String
+  person   Person       @relation(fields: [personId], references: [id], onDelete: Cascade)
 
-  mentionType String       @default("mentioned") // mentioned, subject, quoted
-  context     String?      // Sentence where mentioned
+  mentionType String  @default("mentioned") // mentioned, subject, quoted
+  context     String? // Sentence where mentioned
 
-  createdAt   DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([eventId, personId])
   @@index([eventId])
@@ -722,16 +825,16 @@ model NewsEventPersonMention {
 
 /// News event organization mention - links CurrentEvent to Organization
 model NewsEventOrgMention {
-  id          String       @id @default(cuid())
-  eventId     String
-  event       CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  orgId       String
+  id           String       @id @default(cuid())
+  eventId      String
+  event        CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  orgId        String
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
-  mentionType String       @default("mentioned") // mentioned, subject, announcement
-  context     String?      // Sentence where mentioned
+  mentionType String  @default("mentioned") // mentioned, subject, announcement
+  context     String? // Sentence where mentioned
 
-  createdAt   DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([eventId, orgId])
   @@index([eventId])
@@ -743,15 +846,15 @@ model PersonDraft {
   id              String          @id @default(cuid())
   articleId       String
   article         IngestedArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  extractedName   String          // Raw name from article
-  normalizedName  String          // Processed for matching
-  context         String          // Sentence where mentioned
-  suggestedBio    String?         // LLM-generated draft bio
+  extractedName   String // Raw name from article
+  normalizedName  String // Processed for matching
+  context         String // Sentence where mentioned
+  suggestedBio    String? // LLM-generated draft bio
   suggestedOrg    String?
   suggestedRole   String?
-  matchedPersonId String?         // Potential duplicate match
+  matchedPersonId String? // Potential duplicate match
   matchedPerson   Person?         @relation("MatchedPerson", fields: [matchedPersonId], references: [id])
-  matchConfidence Float?          // 0-1 match score
+  matchConfidence Float? // 0-1 match score
   status          String          @default("pending") // pending, approved, rejected, merged
   reviewNotes     String?
   createdAt       DateTime        @default(now())
@@ -764,16 +867,16 @@ model PersonDraft {
 
 /// Currently Doing update draft - pending review
 model CurrentlyDoingDraft {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   personId        String
   proposedText    String
   sourceArticleId String?
   sourceEventId   String?
-  changeType      String   // career, research, announcement
+  changeType      String // career, research, announcement
   confidence      Float
-  status          String   @default("pending") // pending, approved, rejected
+  status          String    @default("pending") // pending, approved, rejected
   reviewNotes     String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
   reviewedAt      DateTime?
 
   @@index([personId])
@@ -817,17 +920,17 @@ model KeyFigure {
 
 /// Junction table linking milestones to key figures/persons
 model MilestoneContributor {
-  id               String    @id @default(cuid())
-  milestoneId      String
-  milestone        Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  milestoneId String
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
   // Legacy: links to KeyFigure (will be deprecated)
-  keyFigureId      String?
-  keyFigure        KeyFigure? @relation(fields: [keyFigureId], references: [id], onDelete: Cascade)
+  keyFigureId String?
+  keyFigure   KeyFigure? @relation(fields: [keyFigureId], references: [id], onDelete: Cascade)
 
   // New: links to Person
-  personId         String?
-  person           Person?    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  personId String?
+  person   Person? @relation(fields: [personId], references: [id], onDelete: Cascade)
 
   contributionType String? // lead, co_author, advisor, founder, mentioned
 
@@ -868,26 +971,26 @@ model KeyFigureDraft {
 
 /// Authenticated user account
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
+  id           String  @id @default(cuid())
+  email        String  @unique
   passwordHash String
-  username     String    @unique
+  username     String  @unique
   displayName  String?
   avatarUrl    String?
-  bio          String?   @db.Text
+  bio          String? @db.Text
 
   // Permissions
-  isAdmin      Boolean   @default(false)
-  isVerified   Boolean   @default(false)
+  isAdmin    Boolean @default(false)
+  isVerified Boolean @default(false)
 
   // Karma (Sprint LEarn-4)
-  commentKarma Int       @default(0)  // Sum of scores on user's comments
-  postKarma    Int       @default(0)  // Future: for user-created content
+  commentKarma Int @default(0) // Sum of scores on user's comments
+  postKarma    Int @default(0) // Future: for user-created content
 
   // Timestamps
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  lastLoginAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLoginAt DateTime?
 
   // Email verification
   emailVerifiedAt    DateTime?
@@ -921,9 +1024,9 @@ model User {
   learningActionsCount   Int       @default(0)
 
   // Shadowban (Sprint Spam-3)
-  isShadowbanned    Boolean   @default(false)
-  shadowbannedAt    DateTime?
-  shadowbanReason   String?
+  isShadowbanned  Boolean   @default(false)
+  shadowbannedAt  DateTime?
+  shadowbanReason String?
 
   // Relations
   sessions         UserSession[]
@@ -945,7 +1048,7 @@ model User {
 model UserSession {
   id           String   @id @default(cuid())
   deviceId     String   @unique // Browser fingerprint or generated UUID
-  userId       String?  // Link to User model for authenticated users
+  userId       String? // Link to User model for authenticated users
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
   lastActiveAt DateTime @default(now())
@@ -1135,7 +1238,7 @@ model UserCheckpointProgress {
 model NewsQuiz {
   id        String   @id @default(cuid())
   weekOf    DateTime // Start of week (Monday 00:00 UTC)
-  questions Json     // Array of NewsQuizQuestion objects
+  questions Json // Array of NewsQuizQuestion objects
   createdAt DateTime @default(now())
 
   // Track quiz attempts
@@ -1151,12 +1254,12 @@ model NewsQuizAttempt {
   sessionId String
   session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  quizId      String
-  quiz        NewsQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  score       Int // Number of correct answers
+  quizId         String
+  quiz           NewsQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  score          Int // Number of correct answers
   totalQuestions Int
-  answers     Json     // Array of { questionIndex: number, selectedAnswer: number, correct: boolean }
-  completedAt DateTime @default(now())
+  answers        Json // Array of { questionIndex: number, selectedAnswer: number, correct: boolean }
+  completedAt    DateTime @default(now())
 
   @@index([sessionId])
   @@index([quizId])
@@ -1178,45 +1281,45 @@ enum CommentTargetType {
 
 /// Reddit-style threaded comment
 model Comment {
-  id           String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Author
-  authorId     String
-  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   // Content
-  body         String   @db.Text  // Markdown supported
-  bodyHtml     String?  @db.Text  // Pre-rendered HTML for display
+  body     String  @db.Text // Markdown supported
+  bodyHtml String? @db.Text // Pre-rendered HTML for display
 
   // Threading
-  parentId     String?
-  parent       Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies      Comment[] @relation("CommentReplies")
-  depth        Int      @default(0)  // 0 = top-level, 1 = reply, etc.
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comment[] @relation("CommentReplies")
+  depth    Int       @default(0) // 0 = top-level, 1 = reply, etc.
 
   // Polymorphic target (content being commented on)
-  targetType   CommentTargetType
-  targetId     String   // ID of the target entity
+  targetType CommentTargetType
+  targetId   String // ID of the target entity
 
   // Scoring
-  upvotes      Int      @default(0)
-  downvotes    Int      @default(0)
-  score        Int      @default(0)  // upvotes - downvotes
-  legitimateScore Int   @default(0)  // Score excluding suspicious votes (Sprint Spam-4)
-  hotScore     Float    @default(0)  // Time-weighted score for "Best" sort
+  upvotes          Int   @default(0)
+  downvotes        Int   @default(0)
+  score            Int   @default(0) // upvotes - downvotes
+  legitimateScore  Int   @default(0) // Score excluding suspicious votes (Sprint Spam-4)
+  hotScore         Float @default(0) // Time-weighted score for "Best" sort
   controversyScore Float @default(0) // High engagement, mixed votes
 
   // Status
-  isDeleted    Boolean  @default(false)
-  isHidden     Boolean  @default(false)  // Hidden by mod, visible to author
-  reportCount  Int      @default(0)
+  isDeleted   Boolean @default(false)
+  isHidden    Boolean @default(false) // Hidden by mod, visible to author
+  reportCount Int     @default(0)
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  editedAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  editedAt  DateTime?
 
   // Relations
-  votes        CommentVote[]
+  votes CommentVote[]
 
   @@index([targetType, targetId])
   @@index([parentId])
@@ -1228,19 +1331,19 @@ model Comment {
 
 /// Vote on a comment (upvote or downvote)
 model CommentVote {
-  id         String   @id @default(cuid())
-  commentId  String
-  comment    Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  value      Int      // 1 = upvote, -1 = downvote
+  id        String  @id @default(cuid())
+  commentId String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  value     Int // 1 = upvote, -1 = downvote
 
   // Vote integrity (Sprint Spam-4)
   voterIp          String?
-  isSuspicious     Boolean  @default(false)
-  suspiciousReason String?  // 'same_ip_as_author', 'vote_pattern', 'vote_brigade'
+  isSuspicious     Boolean @default(false)
+  suspiciousReason String? // 'same_ip_as_author', 'vote_pattern', 'vote_brigade'
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([commentId, userId])
   @@index([userId])
@@ -1259,17 +1362,17 @@ enum CommentReportReason {
 
 /// Report on a comment for moderation
 model CommentReport {
-  id         String   @id @default(cuid())
+  id         String              @id @default(cuid())
   commentId  String
-  reporterId String   // User who reported
+  reporterId String // User who reported
   reason     CommentReportReason
-  details    String?  // Optional additional context
+  details    String? // Optional additional context
 
-  status     String   @default("pending")  // pending, reviewed, dismissed
+  status     String    @default("pending") // pending, reviewed, dismissed
   reviewedAt DateTime?
-  reviewedBy String?  // Admin who reviewed
+  reviewedBy String? // Admin who reviewed
 
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([commentId])
   @@index([status])
@@ -1281,15 +1384,15 @@ model CommentReport {
 
 /// Configurable spam filter rules (blocked domains, keywords, regex patterns)
 model SpamFilter {
-  id         String   @id @default(cuid())
-  filterType String   // 'blocked_domain', 'blocked_keyword', 'regex'
-  pattern    String   // The pattern to match
-  action     String   // 'block', 'flag_review'
-  isActive   Boolean  @default(true)
-  hitCount   Int      @default(0)  // Track how many times this filter triggered
+  id         String  @id @default(cuid())
+  filterType String // 'blocked_domain', 'blocked_keyword', 'regex'
+  pattern    String // The pattern to match
+  action     String // 'block', 'flag_review'
+  isActive   Boolean @default(true)
+  hitCount   Int     @default(0) // Track how many times this filter triggered
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([filterType, isActive])
 }
@@ -1300,16 +1403,16 @@ model SpamFilter {
 
 /// Audit log for all moderation actions
 model ModerationLog {
-  id          String   @id @default(cuid())
-  moderatorId String?  // null if automated action
-  action      String   // 'shadowban', 'unshadowban', 'remove_comment', 'flag', 'approve', 'reject'
-  targetType  String   // 'user', 'comment'
+  id          String  @id @default(cuid())
+  moderatorId String? // null if automated action
+  action      String // 'shadowban', 'unshadowban', 'remove_comment', 'flag', 'approve', 'reject'
+  targetType  String // 'user', 'comment'
   targetId    String
   reason      String?
-  automated   Boolean  @default(false)
-  metadata    Json?    // Additional context (IP, user agent, etc.)
+  automated   Boolean @default(false)
+  metadata    Json? // Additional context (IP, user agent, etc.)
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([targetType, targetId])
   @@index([moderatorId])
@@ -1320,19 +1423,19 @@ model ModerationLog {
 /// Content flagged for moderation review
 model FlaggedContent {
   id          String    @id @default(cuid())
-  contentType String    // 'comment'
+  contentType String // 'comment'
   contentId   String
-  reason      String    // 'new_account_link', 'similar_text', 'rapid_posting', 'user_report', 'low_trust_long_comment'
-  severity    String    @default("medium")  // 'low', 'medium', 'high'
+  reason      String // 'new_account_link', 'similar_text', 'rapid_posting', 'user_report', 'low_trust_long_comment'
+  severity    String    @default("medium") // 'low', 'medium', 'high'
   status      String    @default("pending") // 'pending', 'approved', 'removed'
-  reviewedBy  String?   // Admin who reviewed
+  reviewedBy  String? // Admin who reviewed
   reviewedAt  DateTime?
 
-  createdAt   DateTime  @default(now())
+  createdAt DateTime @default(now())
 
+  @@unique([contentType, contentId])
   @@index([status, severity])
   @@index([status, createdAt])
-  @@unique([contentType, contentId])
 }
 
 // =============================================================================
@@ -1341,36 +1444,36 @@ model FlaggedContent {
 
 /// Hierarchical subject taxonomy node (Domain > Category > Subcategory)
 model Subject {
-  id          String   @id @default(cuid())
-  slug        String   @unique           // "science-cs-nlp"
-  name        String                     // "Natural Language Processing"
+  id          String  @id @default(cuid())
+  slug        String  @unique // "science-cs-nlp"
+  name        String // "Natural Language Processing"
   description String?
 
   // Hierarchy
-  level       Int                        // 0=domain, 1=category, 2=subcategory
-  parentId    String?
-  parent      Subject?  @relation("SubjectHierarchy", fields: [parentId], references: [id])
-  children    Subject[] @relation("SubjectHierarchy")
+  level    Int // 0=domain, 1=category, 2=subcategory
+  parentId String?
+  parent   Subject?  @relation("SubjectHierarchy", fields: [parentId], references: [id])
+  children Subject[] @relation("SubjectHierarchy")
 
   // Denormalized for fast queries
-  path        String                     // "Science > Computer Science > NLP"
-  domainSlug  String                     // "science" (for domain filtering)
+  path       String // "Science > Computer Science > NLP"
+  domainSlug String // "science" (for domain filtering)
 
   // Learning metadata
-  defaultDifficulty  String?             // beginner, intermediate, advanced
-  learningObjectives String @default("[]") // JSON array
+  defaultDifficulty  String? // beginner, intermediate, advanced
+  learningObjectives String  @default("[]") // JSON array
 
   // UI
-  color       String?
-  icon        String?
+  color String?
+  icon  String?
 
   // Relations
   contentSubjects ContentSubject[]
   synonyms        SubjectSynonym[]
   posts           BlogPostSubject[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([level])
   @@index([domainSlug])
@@ -1382,29 +1485,29 @@ model SubjectSynonym {
   id        String  @id @default(cuid())
   subjectId String
   subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  term      String  @unique  // "LLMs" → science-cs-nlp
+  term      String  @unique // "LLMs" → science-cs-nlp
 
   @@index([subjectId])
 }
 
 /// Polymorphic junction linking any content type to subjects
 model ContentSubject {
-  id          String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Polymorphic target (like Comment system)
-  contentType String   // milestone, glossary_term, current_event, person, organization
+  contentType String // milestone, glossary_term, current_event, person, organization
   contentId   String
 
   // Subject reference
-  subjectId   String
-  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   // Classification metadata
-  isPrimary   Boolean  @default(false)   // One primary subject per content
-  confidence  Float?                     // AI classification confidence (0-1)
-  source      String   @default("auto")  // auto, manual, migration
+  isPrimary  Boolean @default(false) // One primary subject per content
+  confidence Float? // AI classification confidence (0-1)
+  source     String  @default("auto") // auto, manual, migration
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([contentType, contentId, subjectId])
   @@index([contentType, contentId])
@@ -1420,17 +1523,17 @@ model ContentSubject {
 /// Tracks views, votes, saves, shares for engagement metrics
 model NewsInteraction {
   id        String       @id @default(cuid())
-  sessionId String       // Anonymous session ID from frontend
+  sessionId String // Anonymous session ID from frontend
   eventId   String
   event     CurrentEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   // Interaction type
-  action    String       // view, upvote, downvote, save, share, chat, swipe_past, not_interested
+  action String // view, upvote, downvote, save, share, chat, swipe_past, not_interested
 
   // Additional context
-  metadata  String?      // JSON for additional context (platform for shares, etc.)
+  metadata String? // JSON for additional context (platform for shares, etc.)
 
-  createdAt DateTime     @default(now())
+  createdAt DateTime @default(now())
 
   @@index([sessionId, eventId])
   @@index([eventId, action])
@@ -1441,18 +1544,18 @@ model NewsInteraction {
 
 /// User's saved collections for organizing news items
 model SavedCollection {
-  id        String       @id @default(cuid())
-  sessionId String       // Anonymous session ID
-  userId    String?      // Optional: linked to authenticated user
-  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id        String  @id @default(cuid())
+  sessionId String // Anonymous session ID
+  userId    String? // Optional: linked to authenticated user
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
-  name      String       // Collection name (e.g., "Saved", "AI Safety", "Business Impact")
-  items     String       @default("[]") // JSON array of event IDs
-  isPublic  Boolean      @default(false)
-  isDefault Boolean      @default(false) // The default "Saved" collection
+  name      String // Collection name (e.g., "Saved", "AI Safety", "Business Impact")
+  items     String  @default("[]") // JSON array of event IDs
+  isPublic  Boolean @default(false)
+  isDefault Boolean @default(false) // The default "Saved" collection
 
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([sessionId])
   @@index([userId])
@@ -1464,8 +1567,8 @@ model SavedCollection {
 model BlockedDomain {
   id          String   @id @default(cuid())
   domain      String   @unique // Root domain (e.g., "bloomberg.com")
-  failureType String   // captcha, paywall, forbidden, blocked, empty
-  failureUrl  String   // Original URL that triggered the block record
+  failureType String // captcha, paywall, forbidden, blocked, empty
+  failureUrl  String // Original URL that triggered the block record
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -1479,17 +1582,17 @@ model BlockedDomain {
 
 /// Author of blog posts. Designed to support N authors; v1 ships with just Wylie.
 model Author {
-  id         String     @id @default(cuid())
-  slug       String     @unique
-  name       String
-  role       String?
-  bio        String?
-  avatarUrl  String?
-  links      String     @default("{}") // JSON: { twitter, linkedin, website }
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  role      String?
+  bio       String?
+  avatarUrl String?
+  links     String   @default("{}") // JSON: { twitter, linkedin, website }
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  posts      BlogPost[]
+  posts BlogPost[]
 }
 
 /// Longform editorial post. bodyMarkdown is source of truth.
@@ -1498,7 +1601,7 @@ model BlogPost {
   slug           String    @unique
   title          String
   subtitle       String?
-  excerpt        String    // cards + OG description
+  excerpt        String // cards + OG description
   bodyMarkdown   String
   coverImageUrl  String?
   authorId       String
@@ -1516,8 +1619,8 @@ model BlogPost {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  subjects  BlogPostSubject[]
-  relations BlogPostRelation[]
+  subjects     BlogPostSubject[]
+  relations    BlogPostRelation[]
   seoProposals SeoProposal[]
 
   @@index([status, publishedAt(sort: Desc)])
@@ -1543,9 +1646,9 @@ model BlogPostRelation {
   id            String   @id @default(cuid())
   postId        String
   post          BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  entityType    String   // milestone | person | organization | glossary_term
+  entityType    String // milestone | person | organization | glossary_term
   entityId      String
-  relationLabel String?  // e.g. "Explains", "Profile of"
+  relationLabel String? // e.g. "Explains", "Profile of"
   createdAt     DateTime @default(now())
 
   @@unique([postId, entityType, entityId])
@@ -1557,7 +1660,7 @@ model BlogPostRelation {
 model Subscriber {
   id             String    @id @default(cuid())
   email          String    @unique
-  source         String?   // e.g. "blog-index", "post-footer:why-we-built-laea"
+  source         String? // e.g. "blog-index", "post-footer:why-we-built-laea"
   subscribedAt   DateTime  @default(now())
   unsubscribedAt DateTime?
 

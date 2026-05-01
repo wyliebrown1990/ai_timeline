@@ -5,6 +5,7 @@ import { ApiError } from '../../middleware/error';
 import { prisma } from '../../db';
 import { getInsightDetail, type InsightDetail } from '../gsc/bucketClassifier';
 import { isPaused } from './agentControl';
+import { ensureExperimentForAction } from './experimentLedger';
 
 // The /SEOAuditAgent skill drives reasoning (what to rewrite and why).
 // This service drives execution (writes, audit, rollback, blast-radius caps).
@@ -926,6 +927,7 @@ export async function shipRewrite(
     });
   });
 
+  await ensureExperimentForAction(createdAction.id);
   const [serialized] = await serializeActions([createdAction as StoredActionRow]);
   return serialized;
 }

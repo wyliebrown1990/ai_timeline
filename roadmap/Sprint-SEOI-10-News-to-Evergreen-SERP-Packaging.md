@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (sprint created — no tasks started)
+> Last updated: 2026-05-01 by Codex (core packaging, evergreen-routing, and agent-integration slices shipped; final cleanup remaining)
 
 ---
 
@@ -32,15 +32,15 @@ This sprint should **compose with** the already-shipped SEO foundations in `PLAN
 **Priority**: HIGH
 **Depends on**: SEOI-8 and SEOI-9
 **Estimated Effort**: 2-3 days
-**Status**: Not started
+**Status**: In progress
 
 ---
 
 ## Prerequisites
 
-- [ ] SEOI-8 clustered mining is live
-- [ ] SEOI-9 experiment ledger is live
-- [ ] Existing sitewide canonicals, sitemap, and baseline structured data from earlier SEO plans are already shipped
+- [x] SEOI-8 clustered mining is live
+- [x] SEOI-9 experiment ledger is live
+- [x] Existing sitewide canonicals, sitemap, and baseline structured data from earlier SEO plans are already shipped
 - [ ] Local dev server running: `npm run dev` + `npm run dev:server`
 
 ---
@@ -49,95 +49,95 @@ This sprint should **compose with** the already-shipped SEO foundations in `PLAN
 
 ### 1. News-to-evergreen detector
 
-- [ ] Create a detector for repeated demand landing on:
+- [x] Create a detector for repeated demand landing on:
   - `/news`
   - `/news/:id`
   - other generic or transient destinations
-- [ ] Classify the best next action:
+- [x] Classify the best next action:
   - route to existing canonical entity page
   - create new evergreen page
   - expand an existing evergreen page
   - keep as news only (if demand is clearly transient)
-- [ ] Use 28-day and 90-day evidence to avoid overreacting to one-day spikes
+- [x] Use 28-day and 90-day evidence to avoid overreacting to one-day spikes
 
 ### 2. Evergreen routing proposal flow
 
-- [ ] Add a proposal type for evergreen routing / canonical promotion
-- [ ] Proposal payload should include:
+- [x] Add a proposal type for evergreen routing / canonical promotion
+- [x] Proposal payload should include:
   - current landing page(s)
   - repeated query cluster
   - recommended canonical destination
   - whether this is a redirect/routing fix, a linking fix, or a new-content ask
-- [ ] Keep blog creation as only one option, not the default answer
+- [x] Keep blog creation as only one option, not the default answer
 
 ### 3. SERP packaging audit service
 
-- [ ] Create `server/src/services/seo/serpPackagingAudit.ts`
-- [ ] Audit pages with real impressions for:
+- [x] Create `server/src/services/seo/serpPackagingAudit.ts`
+- [x] Audit pages with real impressions for:
   - title link risk (boilerplate, weak differentiation, title/H1 mismatch)
   - metadata quality
   - breadcrumb health
   - supported structured-data coverage relevant to the page type
   - internal-link support from related pages
-- [ ] Tie the audit rubric to Google guidance:
+- [x] Tie the audit rubric to Google guidance:
   - title links can be derived from multiple sources, not just `<title>`
   - breadcrumbs should reflect a typical user path
   - supported structured data should be valid and non-spammy
-- [ ] Do **not** add unsupported or spammy schema just to “check a box”
+- [x] Do **not** add unsupported or spammy schema just to “check a box”
 
 ### 4. Admin API
 
-- [ ] Add endpoints such as:
+- [x] Add endpoints such as:
   - `GET /api/admin/seo/packaging`
   - `GET /api/admin/seo/packaging/:id`
   - `POST /api/admin/seo/packaging/:id/propose-fix`
-  - `POST /api/admin/seo/clusters/:id/propose-evergreen`
-- [ ] Reuse existing action/proposal status patterns where possible
+  - `POST /api/admin/seo/packaging/:id/propose-evergreen`
+- [x] Reuse existing action/proposal status patterns where possible
 
 ### 5. Admin UI
 
-- [ ] Add a packaging surface or sub-view in the SEO Insights admin
-- [ ] For each audited page, show:
+- [x] Add a packaging surface or sub-view in the SEO Insights admin
+- [x] For each audited page, show:
   - page URL
   - target cluster or queries
   - packaging issues found
   - proposed fixes
   - whether the page currently sits in an active experiment
-- [ ] Add an evergreen-routing detail state showing the current vs recommended canonical destination
+- [x] Add an evergreen-routing detail state showing the current vs recommended canonical destination
 
 ### 6. Agent integration
 
-- [ ] Allow the weekly agent to surface packaging and evergreen-routing proposals
-- [ ] Keep human approval required for:
+- [x] Allow the weekly agent to surface packaging and evergreen-routing proposals
+- [x] Keep human approval required for:
   - H1 changes
   - schema changes
   - canonical/routing changes
   - broad internal-link changes
-- [ ] Auto-ship remains limited to the already-approved metadata lane unless Wylie explicitly expands it later
+- [x] Auto-ship remains limited to the already-approved metadata lane unless Wylie explicitly expands it later
 
 ### 7. Tests
 
-- [ ] Unit tests for `serpPackagingAudit.ts`
+- [x] Unit tests for `serpPackagingAudit.ts`
 - [ ] Unit tests for news-to-evergreen classification
 - [ ] Integration tests for packaging and evergreen proposal endpoints
-- [ ] Frontend tests for packaging admin views
-- [ ] `npm run typecheck` — zero errors
+- [x] Frontend tests for packaging admin views
+- [x] `npm run typecheck` — zero errors
 - [ ] `npm run lint` — zero errors
-- [ ] Focused tests pass
+- [x] Focused tests pass
 
 ### 8. Deploy
 
-- [ ] Backend: `cd infra && sam build && sam deploy --no-confirm-changeset`
-- [ ] Run any required Prisma migration(s) in prod before verification
-- [ ] Frontend: `./scripts/deploy-frontend.sh`
-- [ ] Rebuild packaging audits and evergreen-routing proposals after deploy
+- [x] Backend: `./scripts/deploy-backend.sh`
+- [x] Run any required Prisma migration(s) in prod before verification
+- [x] Frontend: `./scripts/deploy-frontend.sh`
+- [x] Rebuild packaging audits and evergreen-routing proposals after deploy
 
 ### 9. Backend Validation
 
-- [ ] Confirm at least one repeated `/news` demand theme becomes an evergreen-routing proposal in prod
-- [ ] Confirm packaging audits exist for pages with real GSC impressions
-- [ ] Verify that at least one proposal references an existing evergreen destination rather than defaulting to “write a blog post”
-- [ ] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
+- [x] Confirm at least one repeated `/news` demand theme becomes an evergreen-routing proposal in prod
+- [x] Confirm packaging audits exist for pages with real GSC impressions
+- [x] Verify that at least one proposal references an existing evergreen destination rather than defaulting to “write a blog post”
+- [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
 
 ### 10. Browser Validation (agent-browser CLI)
 
@@ -381,4 +381,3 @@ Reviewed against the 17-category vibe-code slop checklist + LAEA's centralized s
 - **"Keep blog creation as only one option, not the default answer"** (Task 2) — explicitly resists the pattern where every signal becomes a blog post. Avoids Category 17 (Misreading the task — every problem looks like a nail).
 - **Test paths use `/tests/unit/` convention** (`tests/unit/seo/serpPackagingAudit.test.ts`, etc.). ✓
 - **No `mcp__claude-in-chrome__*`, no `VITE_*` secrets, no manual AWS console steps, no backwards-compat shims.**
-

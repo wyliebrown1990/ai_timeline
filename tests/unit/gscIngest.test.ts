@@ -4,6 +4,8 @@ const mockQueryAllRows = jest.fn();
 const mockGetMostRecentFinalizedWindow = jest.fn();
 const mockGetLatestFinalizedPtDate = jest.fn();
 const mockClassifyAllBuckets = jest.fn();
+const mockRebuildClusterSnapshots = jest.fn();
+const mockGetClusterWindowHealth = jest.fn();
 const mockCreateManyDaily = jest.fn();
 const mockFindManyDaily = jest.fn();
 const mockFindFirstDaily = jest.fn();
@@ -38,6 +40,11 @@ jest.mock('../../server/src/services/gsc/gscClient', () => ({
 
 jest.mock('../../server/src/services/gsc/bucketClassifier', () => ({
   classifyAllBuckets: mockClassifyAllBuckets,
+}));
+
+jest.mock('../../server/src/services/gsc/queryClusterer', () => ({
+  rebuildClusterSnapshots: mockRebuildClusterSnapshots,
+  getClusterWindowHealth: mockGetClusterWindowHealth,
 }));
 
 jest.mock('../../server/src/db', () => ({
@@ -79,6 +86,21 @@ describe('gscIngest', () => {
       trend_signal: 0,
       decay: 0,
     });
+    mockRebuildClusterSnapshots.mockResolvedValue([
+      {
+        horizon: '28d',
+        windowStart: '2026-04-01',
+        windowEnd: '2026-04-28',
+        clusterCount: 3,
+      },
+      {
+        horizon: '90d',
+        windowStart: '2026-01-29',
+        windowEnd: '2026-04-28',
+        clusterCount: 5,
+      },
+    ]);
+    mockGetClusterWindowHealth.mockResolvedValue({});
     mockCreateManyDaily.mockResolvedValue({ count: 2 });
     mockFindManyDaily.mockResolvedValue([
       {
@@ -239,6 +261,9 @@ describe('gscIngest', () => {
     expect(mockClassifyAllBuckets).toHaveBeenCalledWith({
       weekStart: '2026-04-24',
     });
+    expect(mockRebuildClusterSnapshots).toHaveBeenCalledWith({
+      now: new Date('2026-05-04T06:00:00.000Z'),
+    });
     expect(result).toMatchObject({
       mode: 'weekly',
       startDate: '2026-04-24',
@@ -248,6 +273,10 @@ describe('gscIngest', () => {
       dailyRowsAttempted: 2,
       snapshotsCreated: 2,
       weekStartsRebuilt: ['2026-04-24'],
+      clusterWindowsRebuilt: [
+        expect.objectContaining({ horizon: '28d', clusterCount: 3 }),
+        expect.objectContaining({ horizon: '90d', clusterCount: 5 }),
+      ],
     });
   });
 });

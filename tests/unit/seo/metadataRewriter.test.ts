@@ -15,6 +15,7 @@ const mockSeoAgentActionCreate = jest.fn();
 const mockSeoAgentActionUpdate = jest.fn();
 const mockGscWeeklySnapshotUpdate = jest.fn();
 const mockTransaction = jest.fn();
+const mockEnsureExperimentForAction = jest.fn();
 
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
@@ -31,6 +32,10 @@ jest.mock('../../../server/src/services/gsc/bucketClassifier', () => ({
 
 jest.mock('../../../server/src/services/seo/agentControl', () => ({
   isPaused: mockIsPaused,
+}));
+
+jest.mock('../../../server/src/services/seo/experimentLedger', () => ({
+  ensureExperimentForAction: mockEnsureExperimentForAction,
 }));
 
 const mockTx = {
@@ -153,6 +158,7 @@ describe('metadataRewriter', () => {
     mockSeoAgentActionFindUnique.mockResolvedValue(null);
     mockSeoAgentActionFindMany.mockResolvedValue([]);
     mockSeoAgentActionCount.mockResolvedValue(0);
+    mockEnsureExperimentForAction.mockResolvedValue(undefined);
     mockMessageCreate.mockResolvedValue(buildAnthropicResponse(buildProposalResponse()));
     mockBlogPostUpdate.mockResolvedValue(undefined);
     mockGscWeeklySnapshotUpdate.mockResolvedValue(undefined);
@@ -355,6 +361,7 @@ describe('metadataRewriter', () => {
       },
     });
     expect(mockSeoAgentActionCreate).toHaveBeenCalled();
+    expect(mockEnsureExperimentForAction).toHaveBeenCalledWith('action_1');
     expect(action).toMatchObject({
       id: 'action_1',
       status: 'shipped',

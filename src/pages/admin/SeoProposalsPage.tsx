@@ -38,17 +38,53 @@ function getStatusBadgeClasses(status: SeoProposalRecord['status']): string {
   }
 }
 
+function getProposalTypeBadgeClasses(type: SeoProposalRecord['proposalType']): string {
+  switch (type) {
+    case 'evergreen_routing':
+      return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300';
+    case 'packaging_fix':
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200';
+    case 'blog_post':
+    default:
+      return 'bg-violet-100 text-violet-700 dark:bg-violet-950/50 dark:text-violet-300';
+  }
+}
+
+function getProposalTypeLabel(type: SeoProposalRecord['proposalType']): string {
+  switch (type) {
+    case 'evergreen_routing':
+      return 'Evergreen routing';
+    case 'packaging_fix':
+      return 'Packaging fix';
+    case 'blog_post':
+    default:
+      return 'Blog post';
+  }
+}
+
+function getApproveLabel(proposal: SeoProposalRecord): string {
+  if (proposal.handoff.mode === 'manual_routing_review') {
+    return 'Approve routing plan';
+  }
+
+  if (proposal.handoff.mode === 'manual_packaging_fix') {
+    return 'Approve packaging plan';
+  }
+
+  return proposal.handoff.label;
+}
+
 function getEmptyStateCopy(status: Exclude<SeoProposalStatusFilter, 'all'>): { title: string; description: string } {
   switch (status) {
     case 'drafting':
       return {
         title: 'No drafting handoffs in progress',
-        description: 'Approved proposals will land here once they are handed off to /AIBlogDraft.',
+        description: 'Approved blog-draft proposals land here once they are handed off to /AIBlogDraft.',
       };
     case 'approved':
       return {
-        title: 'No linked drafts yet',
-        description: 'Once a proposal is connected to a blog post draft, it will appear here for follow-through.',
+        title: 'No approved follow-through items yet',
+        description: 'Approved routing plans and linked blog drafts will show up here for follow-through.',
       };
     case 'rejected':
       return {
@@ -59,7 +95,7 @@ function getEmptyStateCopy(status: Exclude<SeoProposalStatusFilter, 'all'>): { t
     default:
       return {
         title: 'No pending proposals',
-        description: 'Generate proposals from content-gap or trend-signal findings to queue them for editorial review.',
+        description: 'Generate proposals from content gaps, trend signals, or packaging audits to queue them for editorial review.',
       };
   }
 }
@@ -116,7 +152,13 @@ export default function SeoProposalsPage() {
     try {
       const response = await seoInsightsApi.approveProposal(proposal.id);
       setSelectedProposal(response.proposal);
-      toast.success('Sent to /AIBlogDraft for drafting');
+      toast.success(
+        response.handoff.mode === 'manual_routing_review'
+          ? 'Routing plan approved'
+          : response.handoff.mode === 'manual_packaging_fix'
+            ? 'Packaging plan approved'
+            : 'Sent to /AIBlogDraft for drafting'
+      );
       await loadProposals();
     } catch (nextError) {
       toast.error(nextError instanceof Error ? nextError.message : 'Failed to approve proposal');
@@ -177,7 +219,7 @@ export default function SeoProposalsPage() {
             </div>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight">Turn search gaps into deliberate editorial handoffs.</h1>
             <p className="mt-3 text-sm leading-6 text-amber-100/85">
-              Queue thesis-shaped blog ideas from content-gap and trend-signal findings, then hand them to `/AIBlogDraft` without ever bypassing human review.
+              Queue thesis-shaped blog ideas, evergreen-routing plans, and manual packaging fixes from live search demand, then move each one through the right human-reviewed workflow.
             </p>
           </div>
           <div className="grid gap-3 rounded-3xl bg-white/8 p-4 backdrop-blur sm:grid-cols-3">
@@ -205,7 +247,7 @@ export default function SeoProposalsPage() {
             <div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Proposal queue</h2>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                Pending means the brief exists; drafting means it was handed off; approved includes linked drafts and published follow-through.
+                Pending means the plan exists; drafting means a blog-draft handoff is in flight; approved includes accepted routing plans, packaging plans, and linked drafts.
               </p>
             </div>
             <button
@@ -254,7 +296,7 @@ export default function SeoProposalsPage() {
             <EmptyState
               icon={<Sparkles className="h-6 w-6" />}
               title="No proposal briefs yet"
-              description="Generate a proposal from a content-gap or trend-signal finding, or let the weekly SEO automation create them once that step is enabled."
+              description="Generate a proposal from a content gap, trend signal, evergreen-routing packaging finding, or manual packaging fix, or let the weekly SEO automation create them once that step is enabled."
             />
           </div>
         ) : proposals.length === 0 ? (
@@ -273,7 +315,7 @@ export default function SeoProposalsPage() {
                   <tr>
                     <th className="px-4 py-3">Created</th>
                     <th className="px-4 py-3">Bucket</th>
-                    <th className="px-4 py-3">Target Keyword</th>
+                    <th className="px-4 py-3">Target</th>
                     <th className="px-4 py-3">Suggested Angle</th>
                     <th className="px-4 py-3">Confidence</th>
                     <th className="px-4 py-3">Status</th>
@@ -291,7 +333,12 @@ export default function SeoProposalsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <p className="font-medium text-gray-900 dark:text-white">{proposal.targetKeyword}</p>
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{proposal.sourcePage}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getProposalTypeBadgeClasses(proposal.proposalType)}`}>
+                            {getProposalTypeLabel(proposal.proposalType)}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{proposal.sourcePage}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <p className="max-w-md text-sm leading-6 text-gray-700 dark:text-gray-300">{proposal.suggestedAngle}</p>
@@ -321,7 +368,7 @@ export default function SeoProposalsPage() {
                               disabled={approvePendingId === proposal.id}
                               className="inline-flex items-center gap-2 rounded-full bg-violet-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                              {approvePendingId === proposal.id ? 'Sending…' : 'Send to /AIBlogDraft'}
+                              {approvePendingId === proposal.id ? 'Sending…' : getApproveLabel(proposal)}
                             </button>
                           )}
                           {proposal.status !== 'rejected' && proposal.status !== 'shipped' && (

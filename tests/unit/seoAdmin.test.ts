@@ -7,6 +7,10 @@ const mockListInsights = jest.fn();
 const mockGetInsightDetail = jest.fn();
 const mockDismissInsight = jest.fn();
 const mockMarkInsightActioned = jest.fn();
+const mockListClusters = jest.fn();
+const mockGetClusterDetail = jest.fn();
+const mockDismissCluster = jest.fn();
+const mockMarkClusterActioned = jest.fn();
 const mockProposeRewrite = jest.fn();
 const mockShipRewrite = jest.fn();
 const mockListSeoActions = jest.fn();
@@ -19,9 +23,17 @@ const mockGetLatestAgentRunStatus = jest.fn();
 const mockSetLatestAgentRunStatus = jest.fn();
 const mockListSeoProposals = jest.fn();
 const mockGenerateProposal = jest.fn();
+const mockGenerateProposalFromCluster = jest.fn();
+const mockGenerateEvergreenRoutingProposal = jest.fn();
+const mockGeneratePackagingFixProposal = jest.fn();
 const mockApproveSeoProposal = jest.fn();
 const mockRejectSeoProposal = jest.fn();
 const mockLinkProposalDraft = jest.fn();
+const mockListSeoExperiments = jest.fn();
+const mockGetSeoExperiment = jest.fn();
+const mockReviewSeoExperiment = jest.fn();
+const mockListSeoPackagingAudits = jest.fn();
+const mockGetSeoPackagingAudit = jest.fn();
 
 jest.mock('../../server/src/services/gsc/gscIngest', () => ({
   runWeeklyIngest: mockRunWeeklyIngest,
@@ -34,6 +46,15 @@ jest.mock('../../server/src/services/gsc/bucketClassifier', () => ({
   getInsightDetail: mockGetInsightDetail,
   dismissInsight: mockDismissInsight,
   markInsightActioned: mockMarkInsightActioned,
+}));
+
+jest.mock('../../server/src/services/gsc/queryClusterer', () => ({
+  CLUSTER_BUCKETS: ['cluster_content_gap', 'cluster_near_win', 'cluster_topic_theme'],
+  CLUSTER_HORIZONS: ['28d', '90d'],
+  listClusters: mockListClusters,
+  getClusterDetail: mockGetClusterDetail,
+  dismissCluster: mockDismissCluster,
+  markClusterActioned: mockMarkClusterActioned,
 }));
 
 jest.mock('../../server/src/services/seo/metadataRewriter', () => ({
@@ -56,9 +77,23 @@ jest.mock('../../server/src/services/seo/agentControl', () => ({
 jest.mock('../../server/src/services/seo/briefGenerator', () => ({
   listSeoProposals: mockListSeoProposals,
   generateProposal: mockGenerateProposal,
+  generateProposalFromCluster: mockGenerateProposalFromCluster,
+  generateEvergreenRoutingProposal: mockGenerateEvergreenRoutingProposal,
+  generatePackagingFixProposal: mockGeneratePackagingFixProposal,
   approveSeoProposal: mockApproveSeoProposal,
   rejectSeoProposal: mockRejectSeoProposal,
   linkProposalDraft: mockLinkProposalDraft,
+}));
+
+jest.mock('../../server/src/services/seo/experimentLedger', () => ({
+  listSeoExperiments: mockListSeoExperiments,
+  getSeoExperiment: mockGetSeoExperiment,
+  reviewSeoExperiment: mockReviewSeoExperiment,
+}));
+
+jest.mock('../../server/src/services/seo/serpPackagingAudit', () => ({
+  listSeoPackagingAudits: mockListSeoPackagingAudits,
+  getSeoPackagingAudit: mockGetSeoPackagingAudit,
 }));
 
 jest.mock('../../server/src/services/seo/agentRunStatus', () => ({
@@ -68,9 +103,20 @@ jest.mock('../../server/src/services/seo/agentRunStatus', () => ({
 
 import {
   action,
+  actionClusterOpportunity,
   actions,
+  clusterDetail,
   detail,
   dismiss,
+  dismissClusterOpportunity,
+  experiments,
+  experimentDetail,
+  packaging,
+  packagingDetail,
+  proposePackagingEvergreen,
+  proposePackagingFix,
+  generateProposalFromClusterOpportunity,
+  listClusterOpportunities,
   health,
   ingest,
   linkProposal,
@@ -83,6 +129,7 @@ import {
   approveProposal,
   generateProposalFromInsight,
   rejectProposal,
+  reviewExperiment,
   rollback,
   shipInsightRewrite,
   updateRunStatus,
@@ -245,6 +292,14 @@ describe('seoAdmin controller', () => {
       lastRowCount: 120,
       lastWeekCovered: '2026-04-24',
       totalRowsLast30d: 840,
+      clusterWindows: {
+        '90d': {
+          horizon: '90d',
+          windowStart: '2026-01-29',
+          windowEnd: '2026-04-28',
+          clusterCount: 5,
+        },
+      },
     });
 
     const res = createResponse();
@@ -258,10 +313,102 @@ describe('seoAdmin controller', () => {
       lastRowCount: 120,
       lastWeekCovered: '2026-04-24',
       totalRowsLast30d: 840,
+      clusterWindows: {
+        '90d': {
+          horizon: '90d',
+          windowStart: '2026-01-29',
+          windowEnd: '2026-04-28',
+          clusterCount: 5,
+        },
+      },
       paused: false,
       agentRun: null,
     });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists clustered SEO opportunities with horizon and bucket filters', async () => {
+    mockListClusters.mockResolvedValue({
+      data: [
+        {
+          id: 'cluster_1',
+          bucket: 'cluster_content_gap',
+        },
+      ],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      meta: {
+        horizon: '90d',
+        windowStart: '2026-01-29',
+        windowEnd: '2026-04-28',
+        counts: {
+          cluster_content_gap: 1,
+          cluster_near_win: 0,
+          cluster_topic_theme: 0,
+        },
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await listClusterOpportunities(createRequest({
+      query: {
+        horizon: '90d',
+        bucket: 'cluster_content_gap',
+        page: '1',
+        limit: '10',
+      },
+    }), res, next);
+
+    expect(mockListClusters).toHaveBeenCalledWith({
+      horizon: '90d',
+      bucket: 'cluster_content_gap',
+      limit: 10,
+      page: 1,
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.arrayContaining([
+        expect.objectContaining({ id: 'cluster_1' }),
+      ]),
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns cluster detail and 404s when missing', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    mockGetClusterDetail.mockResolvedValueOnce({
+      id: 'cluster_1',
+      bucket: 'cluster_near_win',
+    });
+
+    await clusterDetail(createRequest({ params: { id: 'cluster_1' } }), res, next);
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'cluster_1',
+      bucket: 'cluster_near_win',
+    }));
+
+    const missingRes = createResponse();
+    mockGetClusterDetail.mockResolvedValueOnce(null);
+    await clusterDetail(createRequest({ params: { id: 'missing' } }), missingRes, next);
+
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+    expect(missingRes.json).toHaveBeenCalledWith({ error: 'SEO cluster not found' });
+  });
+
+  it('dismisses and action-marks clustered opportunities', async () => {
+    const next = jest.fn() as unknown as NextFunction;
+    const dismissRes = createResponse();
+    await dismissClusterOpportunity(createRequest({ params: { id: 'cluster_2' } }), dismissRes, next);
+    expect(mockDismissCluster).toHaveBeenCalledWith('cluster_2');
+    expect(dismissRes.json).toHaveBeenCalledWith({ id: 'cluster_2', status: 'dismissed' });
+
+    const actionRes = createResponse();
+    await actionClusterOpportunity(createRequest({ params: { id: 'cluster_3' } }), actionRes, next);
+    expect(mockMarkClusterActioned).toHaveBeenCalledWith('cluster_3');
+    expect(actionRes.json).toHaveBeenCalledWith({ id: 'cluster_3', status: 'actioned' });
   });
 
   it('returns a rewrite proposal for a winnable-loss finding', async () => {
@@ -419,6 +566,82 @@ describe('seoAdmin controller', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('generates a proposal from a cluster opportunity', async () => {
+    mockGenerateProposalFromCluster.mockResolvedValue({
+      id: 'proposal_cluster_1',
+      sourceType: 'cluster_snapshot',
+      status: 'pending',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await generateProposalFromClusterOpportunity(createRequest({ params: { id: 'cluster_9' } }), res, next);
+
+    expect(mockGenerateProposalFromCluster).toHaveBeenCalledWith('cluster_9');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'proposal_cluster_1',
+      sourceType: 'cluster_snapshot',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('generates an evergreen routing proposal from a packaging audit', async () => {
+    mockGetSeoPackagingAudit.mockResolvedValue({
+      id: 'packaging_1',
+      evergreenRecommendation: {
+        clusterId: 'cluster_9',
+      },
+    });
+    mockGenerateEvergreenRoutingProposal.mockResolvedValue({
+      id: 'proposal_routing_1',
+      proposalType: 'evergreen_routing',
+      status: 'pending',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await proposePackagingEvergreen(createRequest({ params: { id: 'packaging_1' } }), res, next);
+
+    expect(mockGetSeoPackagingAudit).toHaveBeenCalledWith('packaging_1');
+    expect(mockGenerateEvergreenRoutingProposal).toHaveBeenCalledWith('cluster_9');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'proposal_routing_1',
+      proposalType: 'evergreen_routing',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('generates a packaging-fix proposal from a packaging audit', async () => {
+    mockGetSeoPackagingAudit.mockResolvedValue({
+      id: 'packaging_1',
+      issues: [
+        {
+          type: 'title_link_risk',
+        },
+      ],
+    });
+    mockGeneratePackagingFixProposal.mockResolvedValue({
+      id: 'proposal_fix_1',
+      proposalType: 'packaging_fix',
+      status: 'pending',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await proposePackagingFix(createRequest({ params: { id: 'packaging_1' } }), res, next);
+
+    expect(mockGetSeoPackagingAudit).toHaveBeenCalledWith('packaging_1');
+    expect(mockGeneratePackagingFixProposal).toHaveBeenCalledWith('packaging_1');
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'proposal_fix_1',
+      proposalType: 'packaging_fix',
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('approves a proposal and returns the /AIBlogDraft handoff payload', async () => {
     mockApproveSeoProposal.mockResolvedValue({
       proposal: {
@@ -519,6 +742,101 @@ describe('seoAdmin controller', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'draftPostId is required' });
     expect(mockLinkProposalDraft).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists experiments with the requested status filter', async () => {
+    mockListSeoExperiments.mockResolvedValue({
+      data: [{ id: 'experiment_1', status: 'running' }],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      meta: {
+        dueCount: 1,
+        counts: {
+          all: 1,
+          planned: 0,
+          running: 1,
+          won: 0,
+          flat: 0,
+          lost: 0,
+          archived: 0,
+        },
+      },
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await experiments(createRequest({
+      query: {
+        status: 'running',
+        page: '1',
+        limit: '10',
+      },
+    }), res, next);
+
+    expect(mockListSeoExperiments).toHaveBeenCalledWith({
+      status: 'running',
+      page: 1,
+      limit: 10,
+    });
+    expect(res.json).toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns experiment detail and reviews a due checkpoint', async () => {
+    mockGetSeoExperiment.mockResolvedValue({ id: 'experiment_1', status: 'planned' });
+    mockReviewSeoExperiment.mockResolvedValue({ id: 'experiment_1', status: 'running' });
+
+    const detailRes = createResponse();
+    const reviewRes = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await experimentDetail(createRequest({ params: { id: 'experiment_1' } }), detailRes, next);
+    await reviewExperiment(createRequest({ params: { id: 'experiment_1' } }), reviewRes, next);
+
+    expect(mockGetSeoExperiment).toHaveBeenCalledWith('experiment_1');
+    expect(detailRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'experiment_1' }));
+    expect(mockReviewSeoExperiment).toHaveBeenCalledWith('experiment_1');
+    expect(reviewRes.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'running' }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('lists packaging audits and returns a packaging detail record', async () => {
+    mockListSeoPackagingAudits.mockResolvedValue({
+      data: [{ id: 'packaging_1', pagePath: '/news' }],
+      pagination: { page: 1, limit: 10, total: 1, totalPages: 1 },
+      meta: {
+        windowStart: '2026-01-29',
+        windowEnd: '2026-04-28',
+        counts: {
+          all: 1,
+          critical: 1,
+          warning: 0,
+          info: 0,
+        },
+      },
+    });
+    mockGetSeoPackagingAudit.mockResolvedValue({ id: 'packaging_1', pagePath: '/news' });
+
+    const listRes = createResponse();
+    const detailRes = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await packaging(createRequest({
+      query: {
+        page: '1',
+        limit: '10',
+      },
+    }), listRes, next);
+    await packagingDetail(createRequest({ params: { id: 'packaging_1' } }), detailRes, next);
+
+    expect(mockListSeoPackagingAudits).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+    });
+    expect(listRes.json).toHaveBeenCalled();
+    expect(mockGetSeoPackagingAudit).toHaveBeenCalledWith('packaging_1');
+    expect(detailRes.json).toHaveBeenCalledWith(expect.objectContaining({ id: 'packaging_1' }));
     expect(next).not.toHaveBeenCalled();
   });
 

@@ -5856,6 +5856,66 @@ export interface SeoInsightListResult extends PaginatedResponse<SeoInsight> {
   };
 }
 
+export type SeoClusterBucket = 'cluster_content_gap' | 'cluster_near_win' | 'cluster_topic_theme';
+export type SeoClusterHorizon = '28d' | '90d';
+export type SeoClusterStatus = SeoInsightStatus;
+
+export interface SeoClusterWindowSummary {
+  horizon: SeoClusterHorizon;
+  windowStart: string;
+  windowEnd: string;
+  clusterCount: number;
+}
+
+export interface SeoClusterMemberQuery {
+  query: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  position: number;
+}
+
+export interface SeoClusterMemberPage {
+  page: string;
+  path: string;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  position: number;
+}
+
+export interface SeoClusterOpportunity {
+  id: string;
+  horizon: SeoClusterHorizon;
+  windowStart: string;
+  windowEnd: string;
+  bucket: SeoClusterBucket;
+  status: SeoClusterStatus;
+  clusterKey: string;
+  representativeQuery: string;
+  primaryPage: string;
+  currentMetrics: SeoInsightMetrics;
+  memberQueryCount: number;
+  memberPageCount: number;
+  score: number;
+  evidence: string;
+  suggestedAction: string;
+}
+
+export interface SeoClusterOpportunityDetail extends SeoClusterOpportunity {
+  memberQueries: SeoClusterMemberQuery[];
+  memberPages: SeoClusterMemberPage[];
+}
+
+export interface SeoClusterListResult extends PaginatedResponse<SeoClusterOpportunity> {
+  meta: {
+    horizon: SeoClusterHorizon;
+    windowStart: string | null;
+    windowEnd: string | null;
+    counts: Record<SeoClusterBucket, number>;
+  };
+}
+
 export interface SeoRewriteProposal {
   snapshotId: string;
   targetType: 'blog_post';
@@ -5920,6 +5980,8 @@ export interface SeoAgentActionRecord {
 export type SeoActionListResult = PaginatedResponse<SeoAgentActionRecord>;
 export type SeoProposalStatus = 'pending' | 'drafting' | 'approved' | 'rejected' | 'shipped';
 export type SeoProposalStatusFilter = 'all' | SeoProposalStatus;
+export type SeoProposalType = 'blog_post' | 'evergreen_routing' | 'packaging_fix';
+export type SeoProposalHandoffMode = 'blog_draft' | 'manual_routing_review' | 'manual_packaging_fix';
 
 export interface SeoProposalLinkInventoryItem {
   entityType: 'person' | 'organization' | 'glossary_term' | 'milestone';
@@ -5938,31 +6000,61 @@ export interface SeoProposalNewsHook {
 }
 
 export interface SeoProposalHandoff {
-  topic: string;
+  mode: SeoProposalHandoffMode;
+  label: string;
+  topic: string | null;
   keyword: string;
   newsUrl: string | null;
-  command: string;
+  command: string | null;
   proposalPath: string;
+  guidance: string;
+}
+
+export interface SeoProposalRoutingPlan {
+  currentPath: string;
+  representativeQuery: string | null;
+  targetPath: string;
+  targetLabel: string;
+  moveType: 'optimize_current' | 'create_new' | 'expand_existing' | 'internal_link_only';
+  rationale: string;
+}
+
+export interface SeoProposalPackagingFixPlan {
+  pagePath: string;
+  pageType: SeoPackagingPageType;
+  title: string | null;
+  h1: string | null;
+  description: string | null;
+  canonicalPath: string | null;
+  structuredDataTypes: string[];
+  issueTypes: SeoPackagingIssueType[];
+  issues: SeoPackagingIssueRecord[];
 }
 
 export interface SeoProposalRecord {
   id: string;
-  snapshotId: string;
-  proposalType: string;
+  sourceType: string;
+  sourceId: string;
+  proposalType: SeoProposalType;
   targetKeyword: string;
   suggestedAngle: string;
   rationale: string;
+  hypothesis: string | null;
   confidence: number;
   status: SeoProposalStatus;
   rejectedReason: string | null;
   createdAt: string;
   actedAt: string | null;
-  weekStart: string;
+  sourceWindowStart: string;
+  sourceWindowEnd: string | null;
   sourceBucket: string | null;
   sourcePage: string;
   sourceQuery: string | null;
   linkInventory: SeoProposalLinkInventoryItem[];
   newsHooks: SeoProposalNewsHook[];
+  topicPod: SeoTopicPodPlan | null;
+  routingPlan: SeoProposalRoutingPlan | null;
+  packagingFixPlan: SeoProposalPackagingFixPlan | null;
   handoff: SeoProposalHandoff;
   draftPost: {
     id: string;
@@ -5979,12 +6071,162 @@ export interface SeoProposalListResult extends PaginatedResponse<SeoProposalReco
   };
 }
 
+export interface SeoTopicPodPlan {
+  keyword: string;
+  sourceType: 'cluster_snapshot';
+  sourceId: string;
+  sourceLabel: string;
+  primaryPage: string;
+  moveType: 'optimize_current' | 'create_new' | 'expand_existing' | 'internal_link_only';
+  hypothesis: string;
+  canonicalDestination: {
+    type: string;
+    label: string;
+    path: string;
+    exists: boolean;
+    reason: string;
+  };
+  companionAssets: Array<{
+    type: string;
+    label: string;
+    path: string | null;
+    status: string;
+    reason: string;
+  }>;
+  internalLinkOpportunities: Array<{
+    entityType: string;
+    label: string;
+    path: string;
+    reason: string;
+  }>;
+}
+
+export type SeoExperimentStatus = 'planned' | 'running' | 'won' | 'flat' | 'lost' | 'archived';
+export type SeoExperimentStatusFilter = 'all' | SeoExperimentStatus;
+export type SeoExperimentCheckpointState = 'scheduled' | 'due' | 'reviewed' | 'missed';
+
+export interface SeoExperimentMetrics {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  avgPosition: number;
+  windowStart: string;
+  windowEnd: string;
+}
+
+export interface SeoExperimentCheckpoint {
+  label: string;
+  reviewWindowDays: number;
+  scheduledReviewAt: string;
+  state: SeoExperimentCheckpointState;
+  reviewedAt: string | null;
+  outcome: 'won' | 'flat' | 'lost' | null;
+  metricsAfter: SeoExperimentMetrics | null;
+  notes: string | null;
+}
+
+export interface SeoExperimentRecord {
+  id: string;
+  sourceType: string;
+  sourceId: string;
+  proposalId: string | null;
+  actionId: string | null;
+  targetKeyword: string;
+  targetUrl: string;
+  hypothesis: string;
+  variantType: string;
+  status: SeoExperimentStatus;
+  scheduledReviewAt: string;
+  reviewWindowDays: number;
+  notes: string | null;
+  lastReviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  metricsBefore: SeoExperimentMetrics | null;
+  metricsAfter: SeoExperimentMetrics | null;
+  checkpoints: SeoExperimentCheckpoint[];
+  topicPod: SeoTopicPodPlan | null;
+}
+
+export interface SeoExperimentListResult extends PaginatedResponse<SeoExperimentRecord> {
+  meta: {
+    dueCount: number;
+    counts: Record<SeoExperimentStatus | 'all', number>;
+  };
+}
+
+export type SeoPackagingSeverity = 'critical' | 'warning' | 'info';
+export type SeoPackagingIssueType =
+  | 'evergreen_routing'
+  | 'title_link_risk'
+  | 'metadata_thin'
+  | 'breadcrumb_missing'
+  | 'schema_gap';
+export type SeoPackagingPageType =
+  | 'home'
+  | 'timeline'
+  | 'news_index'
+  | 'news_detail'
+  | 'blog_post'
+  | 'unknown';
+
+export interface SeoPackagingIssueRecord {
+  id: string;
+  type: SeoPackagingIssueType;
+  severity: SeoPackagingSeverity;
+  label: string;
+  details: string;
+  recommendedFix: string;
+}
+
+export interface SeoPackagingEvergreenRecommendation {
+  clusterId: string;
+  representativeQuery: string;
+  targetPath: string;
+  targetLabel: string;
+  moveType: 'optimize_current' | 'create_new' | 'expand_existing' | 'internal_link_only';
+  rationale: string;
+}
+
+export interface SeoPackagingAuditRecord {
+  id: string;
+  windowStart: string;
+  windowEnd: string;
+  pageUrl: string;
+  pagePath: string;
+  pageType: SeoPackagingPageType;
+  title: string | null;
+  h1: string | null;
+  description: string | null;
+  canonicalPath: string | null;
+  impressions: number;
+  clicks: number;
+  ctr: number;
+  position: number;
+  issueCount: number;
+  criticalCount: number;
+  experimentActive: boolean;
+  issueTypes: SeoPackagingIssueType[];
+  issues: SeoPackagingIssueRecord[];
+  structuredDataTypes: string[];
+  evergreenRecommendation: SeoPackagingEvergreenRecommendation | null;
+}
+
+export interface SeoPackagingAuditListResult extends PaginatedResponse<SeoPackagingAuditRecord> {
+  meta: {
+    windowStart: string;
+    windowEnd: string;
+    counts: Record<'all' | 'critical' | 'warning' | 'info', number>;
+  };
+}
+
 export interface SeoInsightsHealth {
   lastRunAt: string | null;
   finalizedThroughDate: string | null;
   lastRowCount: number;
   lastWeekCovered: string | null;
   totalRowsLast30d: number;
+  clusterWindows?: Partial<Record<SeoClusterHorizon, SeoClusterWindowSummary>>;
   paused: boolean;
   agentRun: SeoAgentRunRecord | null;
 }
@@ -6043,6 +6285,51 @@ export const seoInsightsApi = {
 
   async generateProposal(id: string): Promise<SeoProposalRecord> {
     return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/insights/${id}/generate-proposal`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async listClusters(params?: {
+    horizon?: SeoClusterHorizon;
+    bucket?: SeoClusterBucket;
+    page?: number;
+    limit?: number;
+  }): Promise<SeoClusterListResult> {
+    const searchParams = new URLSearchParams();
+    if (params?.horizon) searchParams.set('horizon', params.horizon);
+    if (params?.bucket) searchParams.set('bucket', params.bucket);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const query = searchParams.toString();
+    return fetchJson<SeoClusterListResult>(`${API_BASE}/admin/seo/clusters${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async getCluster(id: string): Promise<SeoClusterOpportunityDetail> {
+    return fetchJson<SeoClusterOpportunityDetail>(`${API_BASE}/admin/seo/clusters/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async dismissCluster(id: string): Promise<{ id: string; status: SeoClusterStatus }> {
+    return fetchJson<{ id: string; status: SeoClusterStatus }>(`${API_BASE}/admin/seo/clusters/${id}/dismiss`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async markClusterActioned(id: string): Promise<{ id: string; status: SeoClusterStatus }> {
+    return fetchJson<{ id: string; status: SeoClusterStatus }>(`${API_BASE}/admin/seo/clusters/${id}/action`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async generateClusterProposal(id: string): Promise<SeoProposalRecord> {
+    return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/clusters/${id}/generate-proposal`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -6115,6 +6402,69 @@ export const seoInsightsApi = {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ draftPostId }),
+    });
+  },
+
+  async listExperiments(params?: {
+    page?: number;
+    limit?: number;
+    status?: SeoExperimentStatusFilter;
+  }): Promise<SeoExperimentListResult> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.status) searchParams.set('status', params.status);
+
+    const query = searchParams.toString();
+    return fetchJson<SeoExperimentListResult>(`${API_BASE}/admin/seo/experiments${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async getExperiment(id: string): Promise<SeoExperimentRecord> {
+    return fetchJson<SeoExperimentRecord>(`${API_BASE}/admin/seo/experiments/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async reviewExperiment(id: string): Promise<SeoExperimentRecord> {
+    return fetchJson<SeoExperimentRecord>(`${API_BASE}/admin/seo/experiments/${id}/review`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async listPackagingAudits(params?: {
+    page?: number;
+    limit?: number;
+  }): Promise<SeoPackagingAuditListResult> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const query = searchParams.toString();
+    return fetchJson<SeoPackagingAuditListResult>(`${API_BASE}/admin/seo/packaging${query ? `?${query}` : ''}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async getPackagingAudit(id: string): Promise<SeoPackagingAuditRecord> {
+    return fetchJson<SeoPackagingAuditRecord>(`${API_BASE}/admin/seo/packaging/${id}`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async proposePackagingEvergreen(id: string): Promise<SeoProposalRecord> {
+    return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/packaging/${id}/propose-evergreen`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async proposePackagingFix(id: string): Promise<SeoProposalRecord> {
+    return fetchJson<SeoProposalRecord>(`${API_BASE}/admin/seo/packaging/${id}/propose-fix`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
     });
   },
 

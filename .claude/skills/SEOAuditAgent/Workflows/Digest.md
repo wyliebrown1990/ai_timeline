@@ -4,7 +4,7 @@ Runs the weekly all-buckets sweep.
 
 ## Steps
 
-1. Read `seo_voice.md`, `slop_categories.md`, and each bucket playbook.
+1. Read `seo_voice.md`, `slop_categories.md`, and each bucket playbook, including `serp-packaging.md`.
 2. Call `GET /api/admin/seo/health`.
    - If `paused === true`, produce a digest-only run. Do not call mutating endpoints such as `ship-rewrite` or `generate-proposal`.
    - If `agentRun` is null, treat the run as the system's first digest and say so plainly.
@@ -12,17 +12,23 @@ Runs the weekly all-buckets sweep.
    - `GET /api/admin/seo/feedback/pending`
    - `POST /api/admin/seo/actions/:id/measure` for each eligible action
    - capture any measured gains or regressions for the digest and `seo_voice.md`
-4. Pull the selected week from `/api/admin/seo/insights` for all four buckets.
-5. Skip findings already marked `dismissed` or `shipped`.
-6. Classify each finding into `auto_ship`, `propose`, or `human_only`.
+4. Pull the selected week from `/api/admin/seo/insights` for all four buckets, then pull the current packaging backlog from `/api/admin/seo/packaging`.
+5. Skip weekly findings already marked `dismissed` or `shipped`. For packaging audits, skip anything that already has a recent duplicate proposal or that has no actionable recommendation.
+6. Classify each weekly finding or packaging audit into `auto_ship`, `propose`, or `human_only`.
 7. When active, execute the lane mutations:
    - `auto_ship`: call `POST /api/admin/seo/insights/:id/ship-rewrite` only for qualifying metadata rewrites and stay under the weekly ship cap.
    - `propose`: for `content_gap` or `trend_signal` findings with confidence `>= 0.60`, call `POST /api/admin/seo/insights/:id/generate-proposal`.
+   - `propose`: for packaging audits with clear canonical promotion, call `POST /api/admin/seo/packaging/:id/propose-evergreen`.
+   - `propose`: for packaging audits where the current page is right but the packaging is weak, call `POST /api/admin/seo/packaging/:id/propose-fix`.
    - If `generate-proposal` returns `409`, treat it as already queued recently and keep going.
+   - Treat `409` from packaging proposal endpoints the same way: note the duplicate in the digest and keep going.
+   - Never auto-ship packaging changes. H1, structured-data, canonical, and broad internal-link changes stay human-approved.
 8. Produce a ranked digest:
    - top auto-ship candidates
    - proposals queued this run
+   - packaging proposals queued this run
    - top human-only escalations
+   - packaging escalations that need product or IA judgment
    - any measured deltas from the prior week
 9. Run the slop check before returning any artifact.
 10. Do not rely on Discord or email for MVP delivery. Persist run status and treat the admin pages as the operator surface for the weekly run.

@@ -16,8 +16,10 @@ CloudFront → API Gateway → Lambda (VPC) → RDS PostgreSQL
 
 ## Deployment
 ```bash
-cd infra && sam build && sam deploy --no-confirm-changeset
+./scripts/deploy-backend.sh
 ```
+
+Use the backend deploy script instead of calling `sam build` directly so Prisma Client is regenerated and SAM does a clean build after schema changes.
 
 ## API Endpoints
 

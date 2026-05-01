@@ -394,6 +394,371 @@ END $$;
 `;
 
 /**
+ * Migration: Add clustered SEO opportunity snapshots
+ * SEOI-8 - Deterministic 28d/90d query clustering
+ * Mirrors Prisma migration 20260501153000_add_gsc_cluster_snapshot and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0018_GSC_CLUSTER_SNAPSHOT = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260501153000_add_gsc_cluster_snapshot'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260501153000_add_gsc_cluster_snapshot already recorded, skipping';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'GscClusterSnapshot'
+    ) THEN
+        CREATE TABLE "GscClusterSnapshot" (
+            "id" TEXT NOT NULL,
+            "windowStart" TIMESTAMP(3) NOT NULL,
+            "windowEnd" TIMESTAMP(3) NOT NULL,
+            "horizon" TEXT NOT NULL,
+            "clusterKey" TEXT NOT NULL,
+            "representativeQuery" TEXT NOT NULL,
+            "memberQueriesJson" JSONB NOT NULL,
+            "memberPagesJson" JSONB NOT NULL,
+            "primaryPage" TEXT NOT NULL,
+            "clicks" INTEGER NOT NULL,
+            "impressions" INTEGER NOT NULL,
+            "ctr" DOUBLE PRECISION NOT NULL,
+            "position" DOUBLE PRECISION NOT NULL,
+            "bucket" TEXT,
+            "bucketScore" DOUBLE PRECISION,
+            "status" TEXT NOT NULL DEFAULT 'open',
+            "evidenceJson" JSONB,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT "GscClusterSnapshot_pkey" PRIMARY KEY ("id")
+        );
+
+        CREATE UNIQUE INDEX "GscClusterSnapshot_windowEnd_horizon_clusterKey_key"
+            ON "GscClusterSnapshot"("windowEnd", "horizon", "clusterKey");
+        CREATE INDEX "GscClusterSnapshot_horizon_bucket_windowEnd_idx"
+            ON "GscClusterSnapshot"("horizon", "bucket", "windowEnd");
+        CREATE INDEX "GscClusterSnapshot_status_windowEnd_idx"
+            ON "GscClusterSnapshot"("status", "windowEnd");
+        RAISE NOTICE 'Created GscClusterSnapshot table';
+    ELSE
+        RAISE NOTICE 'GscClusterSnapshot table already exists, recording Prisma migration only';
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        '9b4d50470451fc81d419f9e3bfb9f93f2adc6ff8ad9d26dfec4fb18468b279c9',
+        NOW(),
+        '20260501153000_add_gsc_cluster_snapshot',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260501153000_add_gsc_cluster_snapshot';
+END $$;
+`;
+
+/**
+ * Migration: Add experiment ledger + cluster-backed proposal fields
+ * SEOI-9 - Topic pods and measurement checkpoints
+ * Mirrors Prisma migration 20260501171000_add_seo_experiment_ledger and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0019_SEO_EXPERIMENT_LEDGER = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260501171000_add_seo_experiment_ledger'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260501171000_add_seo_experiment_ledger already recorded, skipping';
+        RETURN;
+    END IF;
+
+    ALTER TABLE "SeoProposal"
+        ADD COLUMN IF NOT EXISTS "sourceType" TEXT NOT NULL DEFAULT 'weekly_snapshot',
+        ADD COLUMN IF NOT EXISTS "clusterSnapshotId" TEXT,
+        ADD COLUMN IF NOT EXISTS "hypothesis" TEXT,
+        ADD COLUMN IF NOT EXISTS "topicPodJson" JSONB;
+
+    ALTER TABLE "SeoProposal"
+        ALTER COLUMN "snapshotId" DROP NOT NULL;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'SeoProposal_clusterSnapshotId_fkey'
+    ) THEN
+        ALTER TABLE "SeoProposal"
+            ADD CONSTRAINT "SeoProposal_clusterSnapshotId_fkey"
+            FOREIGN KEY ("clusterSnapshotId") REFERENCES "GscClusterSnapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    CREATE INDEX IF NOT EXISTS "SeoProposal_sourceType_createdAt_idx"
+        ON "SeoProposal"("sourceType", "createdAt");
+    CREATE INDEX IF NOT EXISTS "SeoProposal_clusterSnapshotId_idx"
+        ON "SeoProposal"("clusterSnapshotId");
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'SeoExperiment'
+    ) THEN
+        CREATE TABLE "SeoExperiment" (
+            "id" TEXT NOT NULL,
+            "sourceType" TEXT NOT NULL,
+            "sourceId" TEXT NOT NULL,
+            "proposalId" TEXT,
+            "actionId" TEXT,
+            "targetKeyword" TEXT NOT NULL,
+            "targetUrl" TEXT NOT NULL,
+            "hypothesis" TEXT NOT NULL,
+            "variantType" TEXT NOT NULL,
+            "topicPodJson" JSONB,
+            "checkpointsJson" JSONB NOT NULL,
+            "scheduledReviewAt" TIMESTAMP(3) NOT NULL,
+            "reviewWindowDays" INTEGER NOT NULL,
+            "status" TEXT NOT NULL DEFAULT 'planned',
+            "metricsBeforeJson" JSONB,
+            "metricsAfterJson" JSONB,
+            "notes" TEXT,
+            "lastReviewedAt" TIMESTAMP(3),
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "SeoExperiment_pkey" PRIMARY KEY ("id")
+        );
+        RAISE NOTICE 'Created SeoExperiment table';
+    ELSE
+        RAISE NOTICE 'SeoExperiment table already exists, recording Prisma migration only';
+    END IF;
+
+    CREATE INDEX IF NOT EXISTS "SeoExperiment_status_scheduledReviewAt_idx"
+        ON "SeoExperiment"("status", "scheduledReviewAt");
+    CREATE INDEX IF NOT EXISTS "SeoExperiment_sourceType_sourceId_idx"
+        ON "SeoExperiment"("sourceType", "sourceId");
+    CREATE UNIQUE INDEX IF NOT EXISTS "SeoExperiment_proposalId_key"
+        ON "SeoExperiment"("proposalId");
+    CREATE UNIQUE INDEX IF NOT EXISTS "SeoExperiment_actionId_key"
+        ON "SeoExperiment"("actionId");
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'SeoExperiment_proposalId_fkey'
+    ) THEN
+        ALTER TABLE "SeoExperiment"
+            ADD CONSTRAINT "SeoExperiment_proposalId_fkey"
+            FOREIGN KEY ("proposalId") REFERENCES "SeoProposal"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'SeoExperiment_actionId_fkey'
+    ) THEN
+        ALTER TABLE "SeoExperiment"
+            ADD CONSTRAINT "SeoExperiment_actionId_fkey"
+            FOREIGN KEY ("actionId") REFERENCES "SeoAgentAction"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        '4367ca3b39c08da151c1115791faa152b2b09a553f92f5e792c8a85e84e40305',
+        NOW(),
+        '20260501171000_add_seo_experiment_ledger',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260501171000_add_seo_experiment_ledger';
+END $$;
+`;
+
+/**
+ * Migration: Add generic packaging-fix proposal payloads
+ * SEOI-10 - Manual packaging-fix proposal lane
+ * Mirrors Prisma migration 20260501190000_add_seo_packaging_fix_proposals and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0020_SEO_PACKAGING_FIX_PROPOSALS = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260501190000_add_seo_packaging_fix_proposals'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260501190000_add_seo_packaging_fix_proposals already recorded, skipping';
+        RETURN;
+    END IF;
+
+    ALTER TABLE "SeoProposal"
+        ADD COLUMN IF NOT EXISTS "sourceRefJson" JSONB,
+        ADD COLUMN IF NOT EXISTS "packagingFixJson" JSONB;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        'fab159d03049c1d8f9df97ca27241afe88c1cd56a52d6c6bb2c841092546cd94',
+        NOW(),
+        '20260501190000_add_seo_packaging_fix_proposals',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260501190000_add_seo_packaging_fix_proposals';
+END $$;
+`;
+
+/**
+ * Migration: Add keyword opportunity portfolio table
+ * SEOI-11 - External discovery backlog foundation
+ * Mirrors Prisma migration 20260501203000_add_keyword_opportunity and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0021_KEYWORD_OPPORTUNITY = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260501203000_add_keyword_opportunity'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260501203000_add_keyword_opportunity already recorded, skipping';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'KeywordOpportunity'
+    ) THEN
+        CREATE TABLE "KeywordOpportunity" (
+            "id" TEXT NOT NULL,
+            "sourceType" TEXT NOT NULL,
+            "dedupeKey" TEXT NOT NULL,
+            "seedQuery" TEXT NOT NULL,
+            "clusterKey" TEXT,
+            "clusterSnapshotId" TEXT,
+            "sourceRefJson" JSONB,
+            "targetIntent" TEXT NOT NULL,
+            "demandProxy" INTEGER NOT NULL DEFAULT 0,
+            "competitionProxy" INTEGER NOT NULL DEFAULT 0,
+            "laeaFitScore" INTEGER NOT NULL DEFAULT 0,
+            "overallScore" DOUBLE PRECISION NOT NULL DEFAULT 0,
+            "pageTypeRecommendation" TEXT NOT NULL,
+            "targetUrl" TEXT,
+            "rationale" TEXT NOT NULL,
+            "status" TEXT NOT NULL DEFAULT 'discovered',
+            "linkedExperimentId" TEXT,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "KeywordOpportunity_pkey" PRIMARY KEY ("id")
+        );
+        RAISE NOTICE 'Created KeywordOpportunity table';
+    ELSE
+        RAISE NOTICE 'KeywordOpportunity table already exists, recording Prisma migration only';
+    END IF;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS "KeywordOpportunity_dedupeKey_key"
+        ON "KeywordOpportunity"("dedupeKey");
+    CREATE UNIQUE INDEX IF NOT EXISTS "KeywordOpportunity_linkedExperimentId_key"
+        ON "KeywordOpportunity"("linkedExperimentId");
+    CREATE INDEX IF NOT EXISTS "KeywordOpportunity_status_overallScore_idx"
+        ON "KeywordOpportunity"("status", "overallScore");
+    CREATE INDEX IF NOT EXISTS "KeywordOpportunity_sourceType_overallScore_idx"
+        ON "KeywordOpportunity"("sourceType", "overallScore");
+    CREATE INDEX IF NOT EXISTS "KeywordOpportunity_clusterKey_idx"
+        ON "KeywordOpportunity"("clusterKey");
+    CREATE INDEX IF NOT EXISTS "KeywordOpportunity_clusterSnapshotId_idx"
+        ON "KeywordOpportunity"("clusterSnapshotId");
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'KeywordOpportunity_clusterSnapshotId_fkey'
+    ) THEN
+        ALTER TABLE "KeywordOpportunity"
+            ADD CONSTRAINT "KeywordOpportunity_clusterSnapshotId_fkey"
+            FOREIGN KEY ("clusterSnapshotId") REFERENCES "GscClusterSnapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'KeywordOpportunity_linkedExperimentId_fkey'
+    ) THEN
+        ALTER TABLE "KeywordOpportunity"
+            ADD CONSTRAINT "KeywordOpportunity_linkedExperimentId_fkey"
+            FOREIGN KEY ("linkedExperimentId") REFERENCES "SeoExperiment"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        'c1e953e9b3405d841eb71949ad8b4c27bd0101d8a940b78711553eed92bb05b1',
+        NOW(),
+        '20260501203000_add_keyword_opportunity',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260501203000_add_keyword_opportunity';
+END $$;
+`;
+
+/**
  * Migration: Add Key Figures System Tables
  * Sprint 44 - Key Figures Data Foundation
  * Creates KeyFigure, MilestoneContributor, KeyFigureDraft tables
@@ -1343,7 +1708,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal', '0018_gsc_cluster_snapshot', '0019_seo_experiment_ledger', '0020_seo_packaging_fix_proposals', '0021_keyword_opportunity'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -1510,6 +1875,42 @@ export async function runMigrations(
         tables: ['SeoProposal'],
         changes: ['Recorded Prisma migration 20260430234500_add_seo_proposal in _prisma_migrations'],
       });
+    } else if (migration === '0018_gsc_cluster_snapshot') {
+      await prisma.$executeRawUnsafe(MIGRATION_0018_GSC_CLUSTER_SNAPSHOT);
+      console.log('[Migrations] Migration 0018_gsc_cluster_snapshot completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0018_gsc_cluster_snapshot completed successfully',
+        tables: ['GscClusterSnapshot'],
+        changes: ['Recorded Prisma migration 20260501153000_add_gsc_cluster_snapshot in _prisma_migrations'],
+      });
+    } else if (migration === '0019_seo_experiment_ledger') {
+      await prisma.$executeRawUnsafe(MIGRATION_0019_SEO_EXPERIMENT_LEDGER);
+      console.log('[Migrations] Migration 0019_seo_experiment_ledger completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0019_seo_experiment_ledger completed successfully',
+        tables: ['SeoExperiment'],
+        changes: ['Recorded Prisma migration 20260501171000_add_seo_experiment_ledger in _prisma_migrations'],
+      });
+    } else if (migration === '0020_seo_packaging_fix_proposals') {
+      await prisma.$executeRawUnsafe(MIGRATION_0020_SEO_PACKAGING_FIX_PROPOSALS);
+      console.log('[Migrations] Migration 0020_seo_packaging_fix_proposals completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0020_seo_packaging_fix_proposals completed successfully',
+        tables: ['SeoProposal'],
+        changes: ['Recorded Prisma migration 20260501190000_add_seo_packaging_fix_proposals in _prisma_migrations'],
+      });
+    } else if (migration === '0021_keyword_opportunity') {
+      await prisma.$executeRawUnsafe(MIGRATION_0021_KEYWORD_OPPORTUNITY);
+      console.log('[Migrations] Migration 0021_keyword_opportunity completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0021_keyword_opportunity completed successfully',
+        tables: ['KeywordOpportunity'],
+        changes: ['Recorded Prisma migration 20260501203000_add_keyword_opportunity in _prisma_migrations'],
+      });
     }
   } catch (error) {
     console.error('[Migrations] Migration failed:', error);
@@ -1654,7 +2055,7 @@ export async function getMigrationStatus(
         'Comment', 'CommentVote', 'CommentReport',
         'SpamFilter',
         'NewsInteraction', 'SavedCollection',
-        'SeoAgentAction', 'SeoProposal'
+        'SeoAgentAction', 'SeoProposal', 'GscClusterSnapshot', 'SeoExperiment', 'KeywordOpportunity'
       )
       ORDER BY tablename
     `;
@@ -1723,6 +2124,19 @@ export async function getMigrationStatus(
       // Column might not exist yet
     }
 
+    let hasSeoPackagingFixProposalFields = false;
+    try {
+      const packagingProposalColumns = await prisma.$queryRaw<Array<{ column_name: string }>>`
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name = 'SeoProposal'
+        AND column_name IN ('sourceRefJson', 'packagingFixJson')
+      `;
+      const columnNames = packagingProposalColumns.map((column) => column.column_name);
+      hasSeoPackagingFixProposalFields = columnNames.includes('sourceRefJson') && columnNames.includes('packagingFixJson');
+    } catch {
+      // Columns might not exist yet
+    }
+
     res.json({
       existingTables,
       counts,
@@ -1743,6 +2157,10 @@ export async function getMigrationStatus(
         '0014_feed_engagement': existingTables.includes('NewsInteraction'),
         '0016_seo_agent_action': existingTables.includes('SeoAgentAction'),
         '0017_seo_proposal': existingTables.includes('SeoProposal'),
+        '0018_gsc_cluster_snapshot': existingTables.includes('GscClusterSnapshot'),
+        '0019_seo_experiment_ledger': existingTables.includes('SeoExperiment'),
+        '0020_seo_packaging_fix_proposals': hasSeoPackagingFixProposalFields,
+        '0021_keyword_opportunity': existingTables.includes('KeywordOpportunity'),
       },
     });
   } catch (error) {
