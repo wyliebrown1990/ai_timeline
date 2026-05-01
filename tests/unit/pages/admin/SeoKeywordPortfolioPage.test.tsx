@@ -290,6 +290,111 @@ describe('SeoKeywordPortfolioPage', () => {
     });
   });
 
+  it('queues a proposal for an editorial-seed blog-post opportunity with a target URL', async () => {
+    const editorialOpportunity = buildOpportunity({
+      id: 'kw_seed_1',
+      sourceType: 'editorial_seed',
+      dedupeKey: 'editorial_seed:ai-agent-memory:blog_post:https-letaiexplainai-com-blog-ai-agent-memory',
+      seedQuery: 'ai agent memory',
+      clusterKey: null,
+      clusterSnapshotId: null,
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+      rationale: 'Manual seed from strategy review.',
+      demandProxy: 64,
+      competitionProxy: 38,
+      laeaFitScore: 82,
+      overallScore: 69.9,
+      sourceRef: null,
+    });
+
+    mockSeoInsightsApi.listKeywordPortfolio
+      .mockResolvedValueOnce({
+        ...buildListResult(),
+        data: [editorialOpportunity],
+      })
+      .mockResolvedValueOnce({
+        ...buildListResult(),
+        data: [
+          {
+            ...editorialOpportunity,
+            status: 'promoted',
+          },
+        ],
+        meta: {
+          counts: {
+            all: 1,
+            discovered: 0,
+            scored: 0,
+            promoted: 1,
+            archived: 0,
+          },
+          sourceCounts: {
+            all: 1,
+            gsc_cluster: 0,
+            google_trends: 0,
+            serp_sample: 0,
+            editorial_seed: 1,
+          },
+        },
+      });
+    mockSeoInsightsApi.promoteKeywordOpportunity.mockResolvedValue({
+      opportunity: {
+        ...editorialOpportunity,
+        status: 'promoted',
+      },
+      proposal: {
+        id: 'proposal_seed_1',
+        sourceType: 'keyword_opportunity',
+        sourceId: 'kw_seed_1',
+        proposalType: 'blog_post',
+        sourceBucket: 'editorial_seed',
+        sourcePage: 'https://letaiexplainai.com/blog/ai-agent-memory',
+        sourceQuery: 'ai agent memory',
+        sourceWindowStart: '2026-05-01',
+        sourceWindowEnd: null,
+        targetKeyword: 'ai agent memory',
+        suggestedAngle: 'Why AI agent memory is becoming the real bottleneck for trustworthy agents.',
+        rationale: 'Manual keyword seed with a clear LAEA fit and destination.',
+        linkInventory: [],
+        newsHooks: [],
+        confidence: 0.79,
+        status: 'pending',
+        draftPost: null,
+        actedAt: null,
+        rejectedReason: null,
+        hypothesis: 'Manual seed from strategy review.',
+        createdAt: '2026-05-01T12:00:00.000Z',
+        topicPod: null,
+        routingPlan: null,
+        packagingFixPlan: null,
+        handoff: {
+          mode: 'blog_draft',
+          command: '/AIBlogDraft topic: "Why AI agent memory is becoming the real bottleneck for trustworthy agents."',
+          label: 'Send to /AIBlogDraft',
+          topic: 'Why AI agent memory is becoming the real bottleneck for trustworthy agents.',
+          keyword: 'ai agent memory',
+          newsUrl: null,
+          proposalPath: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+          guidance: 'Approving this proposal keeps a human in the loop and prepares a structured /AIBlogDraft handoff.',
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('ai agent memory')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /queue proposal/i }));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.promoteKeywordOpportunity).toHaveBeenCalledWith('kw_seed_1');
+    });
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.listKeywordPortfolio).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('adds an editorial seed and switches to the editorial filter', async () => {
     mockSeoInsightsApi.listKeywordPortfolio
       .mockResolvedValueOnce(buildListResult())

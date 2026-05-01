@@ -35,6 +35,7 @@ import {
   generatePackagingFixProposal,
   generateProposal,
   generateProposalFromCluster,
+  generateProposalFromKeywordOpportunity,
   linkProposalDraft,
   listSeoProposals,
   rejectSeoProposal,
@@ -663,14 +664,23 @@ export async function promotePortfolioOpportunity(req: Request, res: Response, n
       return;
     }
 
-    if (opportunity.pageTypeRecommendation !== 'blog_post' || !opportunity.clusterSnapshotId) {
+    if (opportunity.pageTypeRecommendation !== 'blog_post') {
       res.status(409).json({
-        error: 'Only cluster-backed blog-post opportunities can enter the proposal lane in this first portfolio slice',
+        error: 'Only blog-post keyword opportunities can enter the proposal lane in this portfolio slice',
       });
       return;
     }
 
-    const proposal = await generateProposalFromCluster(opportunity.clusterSnapshotId);
+    if (!opportunity.clusterSnapshotId && !opportunity.targetUrl) {
+      res.status(409).json({
+        error: 'This keyword opportunity needs either cluster context or a concrete target URL before it can enter the proposal lane',
+      });
+      return;
+    }
+
+    const proposal = opportunity.clusterSnapshotId
+      ? await generateProposalFromCluster(opportunity.clusterSnapshotId)
+      : await generateProposalFromKeywordOpportunity(opportunity.id);
     const updatedOpportunity = await markKeywordOpportunityPromoted(opportunity.id);
 
     res.json({

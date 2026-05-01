@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (portfolio promotion + editorial seed flows shipped)
+> Last updated: 2026-05-01 by Codex (editorial-seed promotion flow live in prod)
 
 ---
 
@@ -139,7 +139,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 ### 9. Backend Validation
 
 - [x] Confirm at least 10 keyword portfolio rows exist in prod without paid-provider dependencies
-- [ ] Confirm at least 3 opportunities can be promoted into experiment/proposal flows
+- [x] Confirm at least 3 opportunities can be promoted into experiment/proposal flows
 - [x] Verify source attribution and rationale are visible and understandable
 - [ ] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
 
@@ -161,7 +161,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] Keyword portfolio is live in prod
 - [x] Discovery lane works without paid providers by default
 - [x] At least 10 portfolio opportunities exist with usable rationale
-- [ ] At least 3 opportunities can feed into the existing proposal/experiment flow
+- [x] At least 3 opportunities can feed into the existing proposal/experiment flow
 - [ ] Tests, typecheck, and lint are clean
 - [ ] CloudWatch and browser validation are clean
 - [x] Sprint file timestamp updated
@@ -174,6 +174,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 prisma/schema.prisma
 prisma/migrations/<ts>_add_keyword_opportunity/
 server/src/services/seo/keywordDiscovery.ts
+server/src/services/seo/briefGenerator.ts
 server/src/controllers/seoAdmin.ts
 server/src/routes/seoAdmin.ts
 src/pages/admin/SeoKeywordPortfolioPage.tsx

@@ -69,7 +69,7 @@ export function SeoKeywordOpportunityDrawer({
   const canPromote = (
     opportunity.status === 'scored'
     && opportunity.pageTypeRecommendation === 'blog_post'
-    && Boolean(opportunity.clusterSnapshotId)
+    && (Boolean(opportunity.clusterSnapshotId) || Boolean(opportunity.targetUrl))
   );
 
   return (

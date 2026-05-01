@@ -118,7 +118,7 @@ function canPromoteOpportunity(opportunity: SeoKeywordOpportunityRecord): boolea
   return (
     opportunity.status === 'scored'
     && opportunity.pageTypeRecommendation === 'blog_post'
-    && Boolean(opportunity.clusterSnapshotId)
+    && (Boolean(opportunity.clusterSnapshotId) || Boolean(opportunity.targetUrl))
   );
 }
 

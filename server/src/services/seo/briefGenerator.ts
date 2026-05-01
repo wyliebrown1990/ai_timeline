@@ -159,6 +159,34 @@ interface SeoPackagingProposalSourceRef {
   sourceQuery: null;
 }
 
+interface SeoKeywordOpportunityProposalSourceRef {
+  opportunityId: string;
+  opportunitySourceType: 'gsc_cluster' | 'google_trends' | 'serp_sample' | 'editorial_seed';
+  pageUrl: string;
+  pagePath: string;
+  pageTypeRecommendation: string;
+  windowStart: string;
+  windowEnd: null;
+  sourceBucket: 'gsc_cluster' | 'google_trends' | 'serp_sample' | 'editorial_seed';
+  sourceQuery: string;
+}
+
+interface KeywordOpportunityProposalSourceRecord {
+  id: string;
+  sourceType: 'gsc_cluster' | 'google_trends' | 'serp_sample' | 'editorial_seed';
+  seedQuery: string;
+  targetIntent: string;
+  demandProxy: number;
+  competitionProxy: number;
+  laeaFitScore: number;
+  overallScore: number;
+  pageTypeRecommendation: string;
+  targetUrl: string | null;
+  rationale: string;
+  status: string;
+  createdAt: Date;
+}
+
 export interface SeoProposalPackagingFixPlan {
   pagePath: string;
   pageType: SeoPackagingAuditRecord['pageType'];
@@ -380,6 +408,57 @@ function parsePackagingSourceRef(value: unknown): SeoPackagingProposalSourceRef 
     windowEnd,
     sourceBucket,
     sourceQuery: null,
+  };
+}
+
+function parseKeywordOpportunitySourceRef(value: unknown): SeoKeywordOpportunityProposalSourceRef | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const opportunityId = trimToNull(typeof record.opportunityId === 'string' ? record.opportunityId : null);
+  const opportunitySourceType = record.opportunitySourceType;
+  const pageUrl = trimToNull(typeof record.pageUrl === 'string' ? record.pageUrl : null);
+  const pagePath = trimToNull(typeof record.pagePath === 'string' ? record.pagePath : null);
+  const pageTypeRecommendation = trimToNull(
+    typeof record.pageTypeRecommendation === 'string' ? record.pageTypeRecommendation : null
+  );
+  const windowStart = trimToNull(typeof record.windowStart === 'string' ? record.windowStart : null);
+  const windowEnd = record.windowEnd;
+  const sourceBucket = record.sourceBucket;
+  const sourceQuery = trimToNull(typeof record.sourceQuery === 'string' ? record.sourceQuery : null);
+
+  if (
+    !opportunityId
+    || (opportunitySourceType !== 'gsc_cluster'
+      && opportunitySourceType !== 'google_trends'
+      && opportunitySourceType !== 'serp_sample'
+      && opportunitySourceType !== 'editorial_seed')
+    || !pageUrl
+    || !pagePath
+    || !pageTypeRecommendation
+    || !windowStart
+    || windowEnd !== null
+    || (sourceBucket !== 'gsc_cluster'
+      && sourceBucket !== 'google_trends'
+      && sourceBucket !== 'serp_sample'
+      && sourceBucket !== 'editorial_seed')
+    || !sourceQuery
+  ) {
+    return null;
+  }
+
+  return {
+    opportunityId,
+    opportunitySourceType,
+    pageUrl,
+    pagePath,
+    pageTypeRecommendation,
+    windowStart,
+    windowEnd: null,
+    sourceBucket,
+    sourceQuery,
   };
 }
 
@@ -819,6 +898,60 @@ ${newsLines}
 Write the angle for a blog post proposal, not metadata.`;
 }
 
+function buildKeywordOpportunityPrompt(input: {
+  opportunity: KeywordOpportunityProposalSourceRecord;
+  keyword: string;
+  linkInventory: SeoProposalLinkInventoryItem[];
+  newsHooks: SeoProposalNewsHook[];
+}): string {
+  const entityLines = input.linkInventory.length > 0
+    ? input.linkInventory.map((item) => `- ${item.entityType}: ${item.label} (${item.path})`).join('\n')
+    : '- No strong linked entities found yet.';
+
+  const newsLines = input.newsHooks.length > 0
+    ? input.newsHooks.map((item) => `- ${item.title} (${item.sourceName ?? 'Unknown source'}, ${item.publishedAt})`).join('\n')
+    : '- No recent news hooks found.';
+
+  return `You are preparing a content brief for the AI Timeline Atlas blog at letaiexplainai.com.
+
+Your job is to turn a manually scored keyword opportunity into a blog angle with a clear thesis.
+
+Rules:
+- Do not write a generic recap or glossary definition.
+- Do not write a "Top 10" or other listicle framing.
+- Prefer a concrete, arguable angle that fits an AI history / entity-graph site.
+- Respect the recommended destination and page type.
+- Keep the angle specific enough that a human can hand it to /AIBlogDraft.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "suggestedAngle": "one sentence angle",
+  "rationale": "2-4 sentence explanation of why this angle is timely and winnable",
+  "confidence": 0.0
+}
+
+Keyword opportunity:
+- Source type: ${input.opportunity.sourceType}
+- Added: ${formatIsoDay(input.opportunity.createdAt)}
+- Target keyword: ${input.keyword}
+- Target intent: ${input.opportunity.targetIntent}
+- Recommended page type: ${input.opportunity.pageTypeRecommendation}
+- Planned destination: ${input.opportunity.targetUrl ?? 'not set'}
+- Demand proxy: ${input.opportunity.demandProxy}
+- Competition proxy: ${input.opportunity.competitionProxy}
+- LAEA fit: ${input.opportunity.laeaFitScore}
+- Overall score: ${input.opportunity.overallScore.toFixed(1)}
+- Operator rationale: ${input.opportunity.rationale}
+
+Linked entities:
+${entityLines}
+
+Recent news hooks:
+${newsLines}
+
+Write the angle for a blog post proposal, not metadata.`;
+}
+
 function adjustConfidence(
   baseConfidence: number,
   snapshot: SnapshotRecord,
@@ -871,6 +1004,39 @@ function adjustClusterConfidence(
     nextConfidence += 0.04;
   } else if (moveType === 'internal_link_only') {
     nextConfidence -= 0.05;
+  }
+
+  return clampConfidence(nextConfidence);
+}
+
+function adjustKeywordOpportunityConfidence(
+  baseConfidence: number,
+  opportunity: KeywordOpportunityProposalSourceRecord,
+  linkInventoryCount: number,
+  newsHookCount: number,
+): number {
+  let nextConfidence = baseConfidence;
+
+  if (linkInventoryCount >= 3) {
+    nextConfidence += 0.07;
+  } else if (linkInventoryCount === 0) {
+    nextConfidence -= 0.07;
+  }
+
+  if (newsHookCount > 0) {
+    nextConfidence += 0.05;
+  }
+
+  if (opportunity.laeaFitScore >= 80) {
+    nextConfidence += 0.05;
+  }
+
+  if (opportunity.competitionProxy <= 40) {
+    nextConfidence += 0.04;
+  }
+
+  if (opportunity.demandProxy < 25) {
+    nextConfidence -= 0.06;
   }
 
   return clampConfidence(nextConfidence);
@@ -1050,20 +1216,44 @@ function serializeProposal(row: ProposalRow): SeoProposalRecord {
   const newsHooks = parseNewsHooks(row.newsHooksJson);
   const proposalType = getProposalType(row.proposalType);
   const topicPod = parseTopicPod(row.topicPodJson);
-  const sourceRef = parsePackagingSourceRef(row.sourceRefJson);
+  const packagingSourceRef = parsePackagingSourceRef(row.sourceRefJson);
+  const keywordOpportunitySourceRef = parseKeywordOpportunitySourceRef(row.sourceRefJson);
   const packagingFixPlan = parsePackagingFixPlan(row.packagingFixJson);
   const sourceWindowStart = row.snapshot
     ? formatIsoDate(row.snapshot.weekStart)
     : row.clusterSnapshot
       ? formatIsoDate(row.clusterSnapshot.windowStart)
-      : sourceRef?.windowStart ?? formatIsoDate(row.createdAt);
+      : packagingSourceRef?.windowStart ?? keywordOpportunitySourceRef?.windowStart ?? formatIsoDate(row.createdAt);
   const sourceWindowEnd = row.clusterSnapshot
     ? formatIsoDate(row.clusterSnapshot.windowEnd)
-    : sourceRef?.windowEnd ?? null;
-  const sourceBucket = row.snapshot?.bucket ?? row.clusterSnapshot?.bucket ?? sourceRef?.sourceBucket ?? null;
-  const sourcePage = row.snapshot?.page ?? row.clusterSnapshot?.primaryPage ?? sourceRef?.pageUrl ?? '';
-  const sourceQuery = row.snapshot?.query ?? row.clusterSnapshot?.representativeQuery ?? sourceRef?.sourceQuery ?? null;
-  const sourceId = row.clusterSnapshotId ?? row.snapshotId ?? sourceRef?.auditId;
+    : packagingSourceRef?.windowEnd ?? keywordOpportunitySourceRef?.windowEnd ?? null;
+  const sourceBucket = (
+    row.snapshot?.bucket
+    ?? row.clusterSnapshot?.bucket
+    ?? packagingSourceRef?.sourceBucket
+    ?? keywordOpportunitySourceRef?.sourceBucket
+    ?? null
+  );
+  const sourcePage = (
+    row.snapshot?.page
+    ?? row.clusterSnapshot?.primaryPage
+    ?? packagingSourceRef?.pageUrl
+    ?? keywordOpportunitySourceRef?.pageUrl
+    ?? ''
+  );
+  const sourceQuery = (
+    row.snapshot?.query
+    ?? row.clusterSnapshot?.representativeQuery
+    ?? packagingSourceRef?.sourceQuery
+    ?? keywordOpportunitySourceRef?.sourceQuery
+    ?? null
+  );
+  const sourceId = (
+    row.clusterSnapshotId
+    ?? row.snapshotId
+    ?? packagingSourceRef?.auditId
+    ?? keywordOpportunitySourceRef?.opportunityId
+  );
 
   if (!sourceId) {
     throw ApiError.internal('SEO proposal source is missing');
@@ -1173,6 +1363,44 @@ async function loadClusterSource(clusterId: string): Promise<ClusterSourceRecord
   }
 
   return cluster;
+}
+
+async function loadKeywordOpportunitySource(
+  opportunityId: string,
+): Promise<KeywordOpportunityProposalSourceRecord> {
+  const opportunity = await prisma.keywordOpportunity.findUnique({
+    where: { id: opportunityId },
+    select: {
+      id: true,
+      sourceType: true,
+      seedQuery: true,
+      targetIntent: true,
+      demandProxy: true,
+      competitionProxy: true,
+      laeaFitScore: true,
+      overallScore: true,
+      pageTypeRecommendation: true,
+      targetUrl: true,
+      rationale: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  if (!opportunity) {
+    throw ApiError.notFound('SEO keyword opportunity not found');
+  }
+
+  if (
+    opportunity.sourceType !== 'gsc_cluster'
+    && opportunity.sourceType !== 'google_trends'
+    && opportunity.sourceType !== 'serp_sample'
+    && opportunity.sourceType !== 'editorial_seed'
+  ) {
+    throw ApiError.internal('SEO keyword opportunity source type is invalid');
+  }
+
+  return opportunity;
 }
 
 async function ensureNoRecentDuplicate(keyword: string, proposalType: SeoProposalType): Promise<void> {
@@ -1608,6 +1836,115 @@ async function createClusterProposalRow(cluster: ClusterSourceRecord): Promise<P
   });
 }
 
+async function createKeywordOpportunityProposalRow(
+  opportunity: KeywordOpportunityProposalSourceRecord,
+): Promise<ProposalRow> {
+  const keyword = normalizeWhitespace(opportunity.seedQuery);
+  if (!keyword) {
+    throw new ApiError(409, 'Could not derive a target keyword for this keyword opportunity');
+  }
+
+  if (!opportunity.targetUrl) {
+    throw new ApiError(409, 'Keyword opportunity needs a concrete target URL before it can enter the proposal lane');
+  }
+
+  await ensureNoRecentDuplicate(keyword, BLOG_PROPOSAL_TYPE);
+
+  const [linkInventory, newsHooks] = await Promise.all([
+    loadLinkInventory(keyword),
+    loadNewsHooks(keyword),
+  ]);
+
+  const client = getAnthropicClient();
+  const prompt = buildKeywordOpportunityPrompt({
+    opportunity,
+    keyword,
+    linkInventory,
+    newsHooks,
+  });
+  const response = await client.messages.create({
+    model: PROPOSAL_MODEL,
+    max_tokens: 700,
+    messages: [
+      {
+        role: 'user',
+        content: prompt,
+      },
+    ],
+  });
+
+  const generated = parseGeneratedAngleResponse(extractResponseText(response));
+  const slopReason = await runSlopPreflight({
+    keyword,
+    rawQuery: opportunity.seedQuery,
+    suggestedAngle: generated.suggestedAngle,
+  });
+  const confidence = adjustKeywordOpportunityConfidence(
+    generated.confidence,
+    opportunity,
+    linkInventory.length,
+    newsHooks.length,
+  );
+  const nextStatus: SeoProposalStatus = slopReason ? 'rejected' : 'pending';
+
+  return prisma.seoProposal.create({
+    data: {
+      sourceType: 'keyword_opportunity',
+      proposalType: BLOG_PROPOSAL_TYPE,
+      targetKeyword: keyword,
+      suggestedAngle: generated.suggestedAngle,
+      linkInventoryJson: linkInventory,
+      newsHooksJson: newsHooks,
+      rationale: generated.rationale,
+      hypothesis: opportunity.rationale,
+      sourceRefJson: {
+        opportunityId: opportunity.id,
+        opportunitySourceType: opportunity.sourceType,
+        pageUrl: opportunity.targetUrl,
+        pagePath: normalizePathname(opportunity.targetUrl),
+        pageTypeRecommendation: opportunity.pageTypeRecommendation,
+        windowStart: formatIsoDate(opportunity.createdAt),
+        windowEnd: null,
+        sourceBucket: opportunity.sourceType,
+        sourceQuery: opportunity.seedQuery,
+      } as Prisma.JsonObject,
+      confidence,
+      status: nextStatus,
+      rejectedReason: slopReason,
+    },
+    include: {
+      snapshot: {
+        select: {
+          id: true,
+          weekStart: true,
+          bucket: true,
+          page: true,
+          query: true,
+        },
+      },
+      clusterSnapshot: {
+        select: {
+          id: true,
+          windowStart: true,
+          windowEnd: true,
+          bucket: true,
+          primaryPage: true,
+          representativeQuery: true,
+        },
+      },
+      draftPost: {
+        select: {
+          id: true,
+          slug: true,
+          title: true,
+          status: true,
+          publishedAt: true,
+        },
+      },
+    },
+  });
+}
+
 async function createEvergreenRoutingProposalRow(cluster: ClusterSourceRecord): Promise<ProposalRow> {
   const topicPod = await planTopicPodForCluster(cluster.id);
   const keyword = topicPod.keyword;
@@ -1847,6 +2184,12 @@ export async function generateProposal(snapshotId: string): Promise<SeoProposalR
 export async function generateProposalFromCluster(clusterId: string): Promise<SeoProposalRecord> {
   const cluster = await loadClusterSource(clusterId);
   const created = await createClusterProposalRow(cluster);
+  return serializeProposal(created);
+}
+
+export async function generateProposalFromKeywordOpportunity(opportunityId: string): Promise<SeoProposalRecord> {
+  const opportunity = await loadKeywordOpportunitySource(opportunityId);
+  const created = await createKeywordOpportunityProposalRow(opportunity);
   return serializeProposal(created);
 }
 

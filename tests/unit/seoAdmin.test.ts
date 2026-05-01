@@ -24,6 +24,7 @@ const mockSetLatestAgentRunStatus = jest.fn();
 const mockListSeoProposals = jest.fn();
 const mockGenerateProposal = jest.fn();
 const mockGenerateProposalFromCluster = jest.fn();
+const mockGenerateProposalFromKeywordOpportunity = jest.fn();
 const mockGenerateEvergreenRoutingProposal = jest.fn();
 const mockGeneratePackagingFixProposal = jest.fn();
 const mockApproveSeoProposal = jest.fn();
@@ -83,6 +84,7 @@ jest.mock('../../server/src/services/seo/briefGenerator', () => ({
   listSeoProposals: mockListSeoProposals,
   generateProposal: mockGenerateProposal,
   generateProposalFromCluster: mockGenerateProposalFromCluster,
+  generateProposalFromKeywordOpportunity: mockGenerateProposalFromKeywordOpportunity,
   generateEvergreenRoutingProposal: mockGenerateEvergreenRoutingProposal,
   generatePackagingFixProposal: mockGeneratePackagingFixProposal,
   approveSeoProposal: mockApproveSeoProposal,
@@ -955,6 +957,42 @@ describe('seoAdmin controller', () => {
     expect(res.json).toHaveBeenCalledWith({
       opportunity: expect.objectContaining({ id: 'kw_1', status: 'promoted' }),
       proposal: expect.objectContaining({ id: 'proposal_1', targetKeyword: 'ai timeline' }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('promotes an editorial-seed keyword opportunity into the proposal lane', async () => {
+    mockGetKeywordOpportunity.mockResolvedValue({
+      id: 'kw_seed_1',
+      sourceType: 'editorial_seed',
+      seedQuery: 'ai agent memory',
+      status: 'scored',
+      pageTypeRecommendation: 'blog_post',
+      clusterSnapshotId: null,
+      targetUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+    });
+    mockGenerateProposalFromKeywordOpportunity.mockResolvedValue({
+      id: 'proposal_seed_1',
+      targetKeyword: 'ai agent memory',
+      status: 'pending',
+    });
+    mockMarkKeywordOpportunityPromoted.mockResolvedValue({
+      id: 'kw_seed_1',
+      seedQuery: 'ai agent memory',
+      status: 'promoted',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await promotePortfolioOpportunity(createRequest({ params: { id: 'kw_seed_1' } }), res, next);
+
+    expect(mockGetKeywordOpportunity).toHaveBeenCalledWith('kw_seed_1');
+    expect(mockGenerateProposalFromKeywordOpportunity).toHaveBeenCalledWith('kw_seed_1');
+    expect(mockMarkKeywordOpportunityPromoted).toHaveBeenCalledWith('kw_seed_1');
+    expect(res.json).toHaveBeenCalledWith({
+      opportunity: expect.objectContaining({ id: 'kw_seed_1', status: 'promoted' }),
+      proposal: expect.objectContaining({ id: 'proposal_seed_1', targetKeyword: 'ai agent memory' }),
     });
     expect(next).not.toHaveBeenCalled();
   });

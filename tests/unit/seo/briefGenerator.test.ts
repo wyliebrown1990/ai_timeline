@@ -5,6 +5,7 @@ const mockSnapshotFindUnique = jest.fn();
 const mockSnapshotUpdate = jest.fn();
 const mockClusterFindUnique = jest.fn();
 const mockClusterUpdate = jest.fn();
+const mockKeywordOpportunityFindUnique = jest.fn();
 const mockProposalFindFirst = jest.fn();
 const mockProposalFindUnique = jest.fn();
 const mockProposalFindMany = jest.fn();
@@ -56,6 +57,9 @@ jest.mock('../../../server/src/db', () => ({
     gscClusterSnapshot: {
       findUnique: mockClusterFindUnique,
       update: mockClusterUpdate,
+    },
+    keywordOpportunity: {
+      findUnique: mockKeywordOpportunityFindUnique,
     },
     seoProposal: {
       findFirst: mockProposalFindFirst,
@@ -119,6 +123,7 @@ import {
   generatePackagingFixProposal,
   generateProposal,
   generateProposalFromCluster,
+  generateProposalFromKeywordOpportunity,
 } from '../../../server/src/services/seo/briefGenerator';
 
 function buildAnthropicResponse(text: string) {
@@ -183,7 +188,11 @@ function buildCreatedProposal(overrides: Partial<{
   return {
     id: 'proposal_1',
     sourceType: overrides.sourceType ?? 'weekly_snapshot',
-    snapshotId: overrides.sourceType === 'cluster_snapshot' || overrides.sourceType === 'packaging_audit' ? null : snapshot.id,
+    snapshotId: (
+      overrides.sourceType === 'cluster_snapshot'
+      || overrides.sourceType === 'packaging_audit'
+      || overrides.sourceType === 'keyword_opportunity'
+    ) ? null : snapshot.id,
     clusterSnapshotId: overrides.clusterSnapshotId ?? null,
     proposalType: overrides.proposalType ?? 'blog_post',
     targetKeyword: overrides.targetKeyword ?? 'AI agents in healthcare',
@@ -210,7 +219,11 @@ function buildCreatedProposal(overrides: Partial<{
     createdAt: new Date('2026-04-30T12:00:00.000Z'),
     actedAt: null,
     rejectedReason: overrides.rejectedReason ?? null,
-    snapshot: overrides.sourceType === 'cluster_snapshot' || overrides.sourceType === 'packaging_audit' ? null : {
+    snapshot: (
+      overrides.sourceType === 'cluster_snapshot'
+      || overrides.sourceType === 'packaging_audit'
+      || overrides.sourceType === 'keyword_opportunity'
+    ) ? null : {
       id: snapshot.id,
       weekStart: snapshot.weekStart,
       bucket: snapshot.bucket,
@@ -253,6 +266,37 @@ function buildCluster(overrides: Partial<{
   };
 }
 
+function buildKeywordOpportunity(overrides: Partial<{
+  id: string;
+  sourceType: 'gsc_cluster' | 'google_trends' | 'serp_sample' | 'editorial_seed';
+  seedQuery: string;
+  targetIntent: string;
+  demandProxy: number;
+  competitionProxy: number;
+  laeaFitScore: number;
+  overallScore: number;
+  pageTypeRecommendation: string;
+  targetUrl: string | null;
+  rationale: string;
+  status: string;
+}> = {}) {
+  return {
+    id: overrides.id ?? 'kw_1',
+    sourceType: overrides.sourceType ?? 'editorial_seed',
+    seedQuery: overrides.seedQuery ?? 'ai agent memory',
+    targetIntent: overrides.targetIntent ?? 'topic_theme',
+    demandProxy: overrides.demandProxy ?? 64,
+    competitionProxy: overrides.competitionProxy ?? 38,
+    laeaFitScore: overrides.laeaFitScore ?? 82,
+    overallScore: overrides.overallScore ?? 69.9,
+    pageTypeRecommendation: overrides.pageTypeRecommendation ?? 'blog_post',
+    targetUrl: overrides.targetUrl ?? 'https://letaiexplainai.com/blog/ai-agent-memory',
+    rationale: overrides.rationale ?? 'Manual seed from strategy review.',
+    status: overrides.status ?? 'scored',
+    createdAt: new Date('2026-05-01T12:00:00.000Z'),
+  };
+}
+
 describe('briefGenerator', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -260,6 +304,7 @@ describe('briefGenerator', () => {
 
     mockSnapshotFindUnique.mockResolvedValue(buildSnapshot());
     mockClusterFindUnique.mockResolvedValue(buildCluster());
+    mockKeywordOpportunityFindUnique.mockResolvedValue(buildKeywordOpportunity());
     mockProposalFindFirst.mockResolvedValue(null);
     mockProposalFindUnique.mockResolvedValue(null);
     mockProposalFindMany.mockResolvedValue([]);
@@ -494,6 +539,33 @@ describe('briefGenerator', () => {
     expect(mockClusterUpdate).toHaveBeenCalledWith({
       where: { id: 'cluster_1' },
       data: { status: 'actioned' },
+    });
+  });
+
+  it('generates a manual keyword-opportunity proposal for editorial seeds', async () => {
+    mockMessageCreate.mockResolvedValue(buildAnthropicResponse(JSON.stringify({
+      suggestedAngle: 'Why AI agent memory is becoming the real bottleneck for trustworthy agents',
+      rationale: 'The keyword is specific, the target page is clear, and the operator rationale points at a credible LAEA explainer angle.',
+      confidence: 0.76,
+    })));
+
+    const result = await generateProposalFromKeywordOpportunity('kw_1');
+
+    expect(result.sourceType).toBe('keyword_opportunity');
+    expect(result.proposalType).toBe('blog_post');
+    expect(result.sourceBucket).toBe('editorial_seed');
+    expect(result.sourcePage).toBe('https://letaiexplainai.com/blog/ai-agent-memory');
+    expect(result.sourceQuery).toBe('ai agent memory');
+    expect(result.hypothesis).toBe('Manual seed from strategy review.');
+    expect(result.handoff.mode).toBe('blog_draft');
+    expect(mockKeywordOpportunityFindUnique).toHaveBeenCalledWith({
+      where: { id: 'kw_1' },
+      select: expect.objectContaining({
+        id: true,
+        sourceType: true,
+        seedQuery: true,
+        targetUrl: true,
+      }),
     });
   });
 
