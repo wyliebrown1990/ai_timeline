@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (content-graph filtering + weekly discovery cap live)
+> Last updated: 2026-05-01 by Codex (content-graph filtering + weekly cap + capacity-aware scoring live)
 
 ---
 
@@ -98,7 +98,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] competition proxy
   - [x] fit with LAEA’s existing graph
   - [x] ability to support internal linking
-  - [ ] experiment capacity
+  - [x] experiment capacity
 - [x] Cap the weekly intake so discovery does not overwhelm the backlog
 
 ### 5. Admin portfolio UI

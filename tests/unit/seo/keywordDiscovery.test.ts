@@ -7,6 +7,8 @@ const mockKeywordFindUnique = jest.fn();
 const mockKeywordUpsert = jest.fn();
 const mockKeywordUpdate = jest.fn();
 const mockKeywordUpdateMany = jest.fn();
+const mockSeoProposalCount = jest.fn();
+const mockSeoExperimentCount = jest.fn();
 const mockListClusters = jest.fn();
 const mockGetClusterDetail = jest.fn();
 const mockBuildTopicPodFromCluster = jest.fn();
@@ -21,6 +23,12 @@ jest.mock('../../../server/src/db', () => ({
       upsert: mockKeywordUpsert,
       update: mockKeywordUpdate,
       updateMany: mockKeywordUpdateMany,
+    },
+    seoProposal: {
+      count: mockSeoProposalCount,
+    },
+    seoExperiment: {
+      count: mockSeoExperimentCount,
     },
   },
 }));
@@ -88,6 +96,8 @@ describe('keywordDiscovery', () => {
     mockKeywordUpsert.mockResolvedValue({});
     mockKeywordUpdate.mockResolvedValue({});
     mockKeywordUpdateMany.mockResolvedValue({ count: 0 });
+    mockSeoProposalCount.mockResolvedValue(0);
+    mockSeoExperimentCount.mockResolvedValue(0);
 
     mockListClusters.mockImplementation(async ({ horizon, bucket }: { horizon: string; bucket: string }) => {
       if (horizon === '90d' && bucket === 'cluster_topic_theme') {
@@ -203,6 +213,21 @@ describe('keywordDiscovery', () => {
         status: 'scored',
       }),
     }));
+    expect(mockSeoProposalCount).toHaveBeenCalledWith({
+      where: {
+        proposalType: 'blog_post',
+        status: {
+          in: ['pending', 'drafting', 'approved'],
+        },
+      },
+    });
+    expect(mockSeoExperimentCount).toHaveBeenCalledWith({
+      where: {
+        status: {
+          in: ['planned', 'running'],
+        },
+      },
+    });
     expect(mockKeywordUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
         sourceType: 'gsc_cluster',
@@ -217,6 +242,24 @@ describe('keywordDiscovery', () => {
       candidateCount: 1,
       sourcesUsed: ['gsc_cluster'],
     });
+  });
+
+  it('penalizes discovery scores when proposal and experiment capacity is already busy', async () => {
+    mockKeywordFindMany.mockResolvedValueOnce([]);
+    mockKeywordCount.mockResolvedValueOnce(1);
+    mockSeoProposalCount.mockResolvedValueOnce(5);
+    mockSeoExperimentCount.mockResolvedValueOnce(3);
+
+    await rebuildKeywordPortfolio();
+
+    expect(mockKeywordUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        overallScore: 75.7,
+      }),
+      update: expect.objectContaining({
+        overallScore: 75.7,
+      }),
+    }));
   });
 
   it('lists and loads stored keyword opportunities', async () => {

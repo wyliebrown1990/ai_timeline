@@ -138,6 +138,8 @@ interface StoredKeywordOpportunityRow {
   updatedAt: Date;
 }
 
+type DiscoveryCapacityBand = 100 | 75 | 55 | 40;
+
 function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -267,6 +269,42 @@ function scoreLaeaFit(plan: SeoTopicPodPlan): number {
   );
 }
 
+async function loadDiscoveryCapacityScore(): Promise<DiscoveryCapacityBand> {
+  const [openBlogProposalCount, activeExperimentCount] = await Promise.all([
+    prisma.seoProposal.count({
+      where: {
+        proposalType: 'blog_post',
+        status: {
+          in: ['pending', 'drafting', 'approved'],
+        },
+      },
+    }),
+    prisma.seoExperiment.count({
+      where: {
+        status: {
+          in: ['planned', 'running'],
+        },
+      },
+    }),
+  ]);
+
+  const openWorkload = openBlogProposalCount + activeExperimentCount;
+
+  if (openWorkload >= 10) {
+    return 40;
+  }
+
+  if (openWorkload >= 7) {
+    return 55;
+  }
+
+  if (openWorkload >= 4) {
+    return 75;
+  }
+
+  return 100;
+}
+
 function buildRationale(cluster: ClusterOpportunityDetail, plan: SeoTopicPodPlan): string {
   const canonicalLabel = plan.canonicalDestination.path === plan.primaryPage
     ? 'the current page'
@@ -388,14 +426,22 @@ async function buildCandidate(cluster: ClusterOpportunityDetail): Promise<Keywor
   };
 }
 
-function buildOverallScore(demandProxy: number, laeaFitScore: number, competitionProxy: number): number {
-  return Number((0.45 * demandProxy + 0.35 * laeaFitScore + 0.20 * (100 - competitionProxy)).toFixed(1));
+function buildOverallScore(
+  demandProxy: number,
+  laeaFitScore: number,
+  competitionProxy: number,
+  capacityScore: DiscoveryCapacityBand = 100,
+): number {
+  const baseline = 0.45 * demandProxy + 0.35 * laeaFitScore + 0.20 * (100 - competitionProxy);
+  const capacityPenalty = ((100 - capacityScore) / 100) * 15;
+  return Number(Math.max(0, baseline - capacityPenalty).toFixed(1));
 }
 
 export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuildResult> {
   const details = await loadClusterDetails();
   const candidateResults = await Promise.all(details.map((detail) => buildCandidate(detail)));
   const candidates = candidateResults.filter((candidate): candidate is KeywordOpportunityCandidate => candidate !== null);
+  const capacityScore = await loadDiscoveryCapacityScore();
   const deduped = new Map<string, KeywordOpportunityCandidate>();
 
   for (const candidate of candidates) {
@@ -421,7 +467,12 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
 
   for (const candidate of uniqueCandidates) {
     const demandProxy = clampScore((candidate.rawDemand / maxDemand) * 100);
-    const overallScore = buildOverallScore(demandProxy, candidate.laeaFitScore, candidate.competitionProxy);
+    const overallScore = buildOverallScore(
+      demandProxy,
+      candidate.laeaFitScore,
+      candidate.competitionProxy,
+      capacityScore,
+    );
 
     await prisma.keywordOpportunity.upsert({
       where: {
