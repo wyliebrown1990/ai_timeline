@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import Parser from 'rss-parser';
 import { prisma } from '../../db';
 import {
   getClusterDetail,
@@ -20,6 +21,45 @@ const PORTFOLIO_BUCKET_PRIORITY: Array<{ horizon: ClusterHorizon; bucket: Cluste
   { horizon: '28d', bucket: 'cluster_near_win', limit: 6 },
 ];
 const SITE_ORIGIN = 'https://letaiexplainai.com';
+const GOOGLE_TRENDS_FEED_URL = 'https://trends.google.com/trending/rss?geo=US';
+const GOOGLE_TRENDS_PRIMARY_PAGE = `${SITE_ORIGIN}/news`;
+const GOOGLE_TRENDS_AI_KEYWORDS = [
+  'ai',
+  'artificial intelligence',
+  'openai',
+  'anthropic',
+  'chatgpt',
+  'gpt',
+  'claude',
+  'gemini',
+  'copilot',
+  'mcp',
+  'model context protocol',
+  'llm',
+  'large language model',
+  'agent',
+  'agents',
+  'transformer',
+  'rlhf',
+  'alignment',
+  'deep learning',
+  'machine learning',
+  'neural',
+  'sora',
+  'midjourney',
+  'stable diffusion',
+  'perplexity',
+  'grok',
+  'mixture of experts',
+  'moe',
+] as const;
+
+const googleTrendsParser = new Parser({
+  customFields: {
+    item: ['ht:approx_traffic'],
+  },
+  timeout: 30000,
+});
 
 export type KeywordOpportunitySourceType = typeof _PORTFOLIO_SOURCE_TYPES[number];
 export type KeywordOpportunityStatus = typeof _PORTFOLIO_STATUS_VALUES[number];
@@ -113,7 +153,7 @@ interface KeywordOpportunityCandidate {
   pageTypeRecommendation: string;
   targetUrl: string | null;
   rationale: string;
-  sourceRef: KeywordOpportunitySourceRef;
+  sourceRef: KeywordOpportunitySourceRef | null;
 }
 
 interface StoredKeywordOpportunityRow {
@@ -181,6 +221,10 @@ function buildKeySegment(value: string): string {
     .slice(0, 120) || 'na';
 }
 
+function normalizeTrendQuery(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
 function normalizeTargetUrlInput(value: string | null | undefined): string | null {
   const trimmed = trimToNull(value);
   if (!trimmed) {
@@ -232,6 +276,11 @@ function deriveTargetIntent(query: string, targetPath: string | null): string {
   }
 
   return 'topic_theme';
+}
+
+function isAiTrendQuery(query: string): boolean {
+  const normalized = query.toLowerCase();
+  return GOOGLE_TRENDS_AI_KEYWORDS.some((keyword) => normalized.includes(keyword));
 }
 
 function derivePageTypeRecommendation(plan: SeoTopicPodPlan): string {
@@ -397,6 +446,63 @@ async function loadClusterDetails(): Promise<ClusterOpportunityDetail[]> {
   return details.filter((detail): detail is ClusterOpportunityDetail => detail !== null);
 }
 
+interface GoogleTrendsFeedItem extends Parser.Item {
+  'ht:approx_traffic'?: string;
+}
+
+function parseApproxTraffic(value: string | undefined): number {
+  if (!value) {
+    return 0;
+  }
+
+  const numeric = Number.parseInt(value.replace(/[^0-9]/g, ''), 10);
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function buildGoogleTrendSyntheticCluster(query: string, approxTraffic: number, publishedAt: string): ClusterOpportunityDetail {
+  const publishedDate = new Date(publishedAt || Date.now());
+  const isoDate = Number.isNaN(publishedDate.getTime())
+    ? new Date().toISOString().slice(0, 10)
+    : publishedDate.toISOString().slice(0, 10);
+
+  return {
+    id: `google_trends:${buildKeySegment(query)}:${isoDate}`,
+    horizon: '28d',
+    windowStart: isoDate,
+    windowEnd: isoDate,
+    bucket: 'cluster_topic_theme',
+    status: 'open',
+    clusterKey: buildKeySegment(query),
+    representativeQuery: query,
+    primaryPage: GOOGLE_TRENDS_PRIMARY_PAGE,
+    currentMetrics: {
+      clicks: 0,
+      impressions: Math.max(approxTraffic, 1),
+      ctr: 0,
+      position: 30,
+    },
+    memberQueryCount: 1,
+    memberPageCount: 1,
+    score: approxTraffic,
+    evidence: 'Google Trends daily feed',
+    suggestedAction: 'Validate as a discovery candidate',
+    memberQueries: [],
+    memberPages: [],
+  };
+}
+
+async function loadGoogleTrendItems(): Promise<GoogleTrendsFeedItem[]> {
+  try {
+    const feed = await googleTrendsParser.parseURL(GOOGLE_TRENDS_FEED_URL);
+    return (feed.items as GoogleTrendsFeedItem[])
+      .filter((item) => normalizeTrendQuery(item.title ?? '').length > 0)
+      .slice(0, 25);
+  } catch (error) {
+    console.warn('[keywordDiscovery] Failed to load Google Trends feed', error);
+    return [];
+  }
+}
+
 async function buildCandidate(cluster: ClusterOpportunityDetail): Promise<KeywordOpportunityCandidate | null> {
   const plan = await buildTopicPodFromCluster(cluster);
   if (!isDiscoveryGapPlan(plan)) {
@@ -426,6 +532,40 @@ async function buildCandidate(cluster: ClusterOpportunityDetail): Promise<Keywor
   };
 }
 
+async function buildGoogleTrendCandidate(item: GoogleTrendsFeedItem): Promise<KeywordOpportunityCandidate | null> {
+  const seedQuery = normalizeTrendQuery(item.title ?? '');
+  if (!seedQuery || !isAiTrendQuery(seedQuery)) {
+    return null;
+  }
+
+  const approxTraffic = parseApproxTraffic(item['ht:approx_traffic']);
+  const syntheticCluster = buildGoogleTrendSyntheticCluster(seedQuery, approxTraffic, item.pubDate ?? item.isoDate ?? '');
+  const plan = await buildTopicPodFromCluster(syntheticCluster);
+  if (!isDiscoveryGapPlan(plan)) {
+    return null;
+  }
+
+  const pageTypeRecommendation = derivePageTypeRecommendation(plan);
+  const targetUrl = getAbsoluteUrl(plan.canonicalDestination.path);
+  const trafficLabel = item['ht:approx_traffic']?.trim() || 'recent';
+
+  return {
+    sourceType: 'google_trends',
+    dedupeKey: `google_trends:${buildKeySegment(seedQuery)}:${pageTypeRecommendation}:${plan.canonicalDestination.path}`,
+    seedQuery,
+    clusterKey: null,
+    clusterSnapshotId: null,
+    targetIntent: deriveTargetIntent(seedQuery, plan.canonicalDestination.path),
+    rawDemand: Math.max(approxTraffic, 1),
+    competitionProxy: 58,
+    laeaFitScore: scoreLaeaFit(plan),
+    pageTypeRecommendation,
+    targetUrl,
+    rationale: `${seedQuery} is currently trending in Google Trends US at approximately ${trafficLabel} searches. LAEA's best next move is ${plan.moveType.replace(/_/g, ' ')} toward ${plan.canonicalDestination.path}.`,
+    sourceRef: null,
+  };
+}
+
 function buildOverallScore(
   demandProxy: number,
   laeaFitScore: number,
@@ -438,9 +578,16 @@ function buildOverallScore(
 }
 
 export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuildResult> {
-  const details = await loadClusterDetails();
-  const candidateResults = await Promise.all(details.map((detail) => buildCandidate(detail)));
-  const candidates = candidateResults.filter((candidate): candidate is KeywordOpportunityCandidate => candidate !== null);
+  const [details, googleTrendItems] = await Promise.all([
+    loadClusterDetails(),
+    loadGoogleTrendItems(),
+  ]);
+  const [clusterCandidateResults, googleTrendCandidateResults] = await Promise.all([
+    Promise.all(details.map((detail) => buildCandidate(detail))),
+    Promise.all(googleTrendItems.map((item) => buildGoogleTrendCandidate(item))),
+  ]);
+  const candidates = [...clusterCandidateResults, ...googleTrendCandidateResults]
+    .filter((candidate): candidate is KeywordOpportunityCandidate => candidate !== null);
   const capacityScore = await loadDiscoveryCapacityScore();
   const deduped = new Map<string, KeywordOpportunityCandidate>();
 
@@ -542,7 +689,7 @@ export async function rebuildKeywordPortfolio(): Promise<KeywordPortfolioRebuild
     archived: archiveResult.count,
     totalActive,
     candidateCount: uniqueCandidates.length,
-    sourcesUsed: ['gsc_cluster'],
+    sourcesUsed: Array.from(new Set(uniqueCandidates.map((candidate) => candidate.sourceType))),
   };
 }
 

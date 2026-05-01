@@ -12,6 +12,7 @@ const mockSeoExperimentCount = jest.fn();
 const mockListClusters = jest.fn();
 const mockGetClusterDetail = jest.fn();
 const mockBuildTopicPodFromCluster = jest.fn();
+const mockGoogleTrendsParseURL = jest.fn();
 
 jest.mock('../../../server/src/db', () => ({
   prisma: {
@@ -41,6 +42,12 @@ jest.mock('../../../server/src/services/gsc/queryClusterer', () => ({
 jest.mock('../../../server/src/services/seo/topicPodPlanner', () => ({
   buildTopicPodFromCluster: mockBuildTopicPodFromCluster,
 }));
+
+jest.mock('rss-parser', () => {
+  return jest.fn().mockImplementation(() => ({
+    parseURL: mockGoogleTrendsParseURL,
+  }));
+});
 
 import {
   createEditorialKeywordOpportunity,
@@ -98,6 +105,7 @@ describe('keywordDiscovery', () => {
     mockKeywordUpdateMany.mockResolvedValue({ count: 0 });
     mockSeoProposalCount.mockResolvedValue(0);
     mockSeoExperimentCount.mockResolvedValue(0);
+    mockGoogleTrendsParseURL.mockResolvedValue({ items: [] });
 
     mockListClusters.mockImplementation(async ({ horizon, bucket }: { horizon: string; bucket: string }) => {
       if (horizon === '90d' && bucket === 'cluster_topic_theme') {
@@ -260,6 +268,67 @@ describe('keywordDiscovery', () => {
         overallScore: 75.7,
       }),
     }));
+  });
+
+  it('adds AI-relevant Google Trends rows to the portfolio without paid providers', async () => {
+    mockListClusters.mockResolvedValue({
+      data: [],
+      pagination: { page: 1, limit: 10, total: 0, totalPages: 1 },
+      meta: { horizon: '28d', windowStart: null, windowEnd: null, counts: {} },
+    });
+    mockGoogleTrendsParseURL.mockResolvedValueOnce({
+      items: [
+        {
+          title: 'Claude AI coding',
+          pubDate: 'Fri, 1 May 2026 11:20:00 -0700',
+          'ht:approx_traffic': '5000+',
+        },
+        {
+          title: 'zverev',
+          pubDate: 'Fri, 1 May 2026 11:20:00 -0700',
+          'ht:approx_traffic': '2000+',
+        },
+      ],
+    });
+    mockKeywordFindMany.mockResolvedValueOnce([]);
+    mockKeywordCount.mockResolvedValueOnce(1);
+    mockBuildTopicPodFromCluster.mockResolvedValueOnce({
+      keyword: 'Claude AI coding',
+      sourceType: 'cluster_snapshot',
+      sourceId: 'trend_plan',
+      sourceLabel: 'Google Trends',
+      primaryPage: 'https://letaiexplainai.com/news',
+      moveType: 'create_new',
+      hypothesis: 'Create a focused page',
+      canonicalDestination: {
+        type: 'new_blog_post',
+        label: 'Claude AI Coding',
+        path: '/blog/claude-ai-coding',
+        exists: false,
+        reason: 'LAEA does not have a dedicated canonical page for this trend yet.',
+      },
+      companionAssets: [],
+      internalLinkOpportunities: [],
+    });
+
+    const result = await rebuildKeywordPortfolio();
+
+    expect(mockGoogleTrendsParseURL).toHaveBeenCalledWith('https://trends.google.com/trending/rss?geo=US');
+    expect(mockKeywordUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceType: 'google_trends',
+        seedQuery: 'Claude AI coding',
+        targetUrl: 'https://letaiexplainai.com/blog/claude-ai-coding',
+      }),
+    }));
+    expect(result).toEqual({
+      created: 1,
+      updated: 0,
+      archived: 0,
+      totalActive: 1,
+      candidateCount: 1,
+      sourcesUsed: ['google_trends'],
+    });
   });
 
   it('lists and loads stored keyword opportunities', async () => {

@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (content-graph filtering + weekly cap + capacity-aware scoring live)
+> Last updated: 2026-05-01 by Codex (content-graph filtering + weekly cap + capacity-aware scoring + Google Trends input live)
 
 ---
 
@@ -86,7 +86,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] Create `server/src/services/seo/keywordDiscovery.ts`
 - [ ] Implement a public-data discovery flow:
   - [x] GSC clusters that imply adjacent unmet demand
-  - [ ] Google Trends or equivalent lightweight trend input
+  - [x] Google Trends or equivalent lightweight trend input
   - [ ] SERP sampling that inspects result mix and crude competition proxies
   - [x] content-graph gap checks so LAEA does not “discover” what it already owns
 - [x] Keep competition scoring lightweight and explainable in v1
