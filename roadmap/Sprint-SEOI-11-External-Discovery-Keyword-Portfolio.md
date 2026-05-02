@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (Serper page-one enforcement, full request-tuple dedupe, and prior portfolio UX slices shipped)
+> Last updated: 2026-05-02 by Codex (first live weekly digest run, drawer a11y hardening, and Serper provider/browser validation reconciled)
 
 ---
 
@@ -39,14 +39,15 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ---
 
-## Serper Notes (captured 2026-05-01 from live browser inspection)
+## Serper Notes (captured 2026-05-02 from live browser inspection)
 
 - Live playground confirms the v1 query surface we care about: `Search` type with `q`, `gl`, `hl`, `tbs`, `page`, plus an optional mini-batch mode.
 - The generated code sample in the playground uses `POST https://google.serper.dev/search`.
+- The generated playground code sample inlines the current API key, so treat that screen as secret-bearing during QA and avoid screenshots or logs that expose the key.
 - Live Billing shows top-up pricing rather than a monthly subscription.
 - Current starter pack surfaced in Billing: `50,000 credits / $50` (`$1.00 / 1k`), credits valid for `6 months`.
 - Auto top-ups exist as a provider-side setting and should remain disabled in v1.
-- The inspected account currently shows `0` balance and no payment history, which is good: the plan can assume a clean first paid setup rather than inheriting unknown vendor drift.
+- The inspected account now shows `2,496` remaining credits with one starter-pack payment on `2026-05-01`, which matches LAEA's tracked balance after the first paid samples.
 
 ---
 
@@ -78,16 +79,16 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [ ] Run the relevant `aws [service] list-*` checks first
   - [ ] Estimate costs
   - [ ] Get team approval for billable changes above the default Starter pack or for enabling auto top-ups
-- [ ] Lock Serper v1 scope to:
-  - [ ] `POST https://google.serper.dev/search` only
-  - [ ] request params limited to `q`, `gl`, `hl`, `tbs`, and `page`
-  - [ ] `page=1` by default; page 2 only for explicit operator-triggered refresh
-  - [ ] no `images`, `news`, `maps`, `places`, `videos`, `shopping`, `scholar`, `patents`, or `autocomplete` endpoints in v1
-  - [ ] no proxy layer, no scraping fallback, and no second provider
-- [ ] Lock Serper cost controls to:
-  - [ ] auto top-ups disabled in Serper Billing
-  - [ ] initial pack defaults to Starter `50,000 credits / $50`, valid for 6 months
-  - [ ] configurable caps for `maxQueriesPerRun`, `maxQueriesPerDay`, `maxQueriesPerWeek`, and `monthlyCreditBudget`
+- [x] Lock Serper v1 scope to:
+  - [x] `POST https://google.serper.dev/search` only
+  - [x] request params limited to `q`, `gl`, `hl`, `tbs`, and `page`
+  - [x] `page=1` by default; page 2 only for explicit operator-triggered refresh
+  - [x] no `images`, `news`, `maps`, `places`, `videos`, `shopping`, `scholar`, `patents`, or `autocomplete` endpoints in v1
+  - [x] no proxy layer, no scraping fallback, and no second provider
+- [x] Lock Serper cost controls to:
+  - [x] auto top-ups disabled in Serper Billing
+  - [x] initial pack defaults to Starter `50,000 credits / $50`, valid for 6 months
+  - [x] configurable caps for `maxQueriesPerRun`, `maxQueriesPerDay`, `maxQueriesPerWeek`, and `monthlyCreditBudget`
   - [x] provider-specific `serperEnabled` flag composes with the existing SEO pause switch
 - [x] Record the pricing basis used for internal spend math in config (`$1.00 / 1k queries` on Starter unless Wylie later approves a different tier)
 
@@ -125,12 +126,12 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 ### 3. Discovery services
 
 - [x] Create `server/src/services/seo/keywordDiscovery.ts`
-- [ ] Implement the discovery flow:
+- [x] Implement the discovery flow:
   - [x] GSC clusters that imply adjacent unmet demand
   - [x] Google Trends or equivalent lightweight trend input
   - [x] Serper `search` sampling that inspects result mix and crude competition proxies
   - [x] content-graph gap checks so LAEA does not “discover” what it already owns
-- [ ] Use Serper only after cheaper signals have already shortlisted a candidate:
+- [x] Use Serper only after cheaper signals have already shortlisted a candidate:
   - [x] sample only `gsc_cluster`, `google_trends`, or `editorial_seed` rows that already clear a base score threshold
   - [x] dedupe by normalized `(q, gl, hl, tbs, page)` key
   - [x] cache automatic samples for `28` days; manual refresh can bypass only after `7` days
@@ -145,7 +146,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] fit with LAEA’s existing graph
   - [x] ability to support internal linking
   - [x] experiment capacity
-- [ ] Make Serper a refinement layer, not the primary ranking signal:
+- [x] Make Serper a refinement layer, not the primary ranking signal:
   - [x] use Serper to refine `competitionProxy` and page-type recommendation
     - Current implementation keeps canonical target URLs authoritative, but uses live first-page intent to refine page type for unlocked opportunities such as editorial seeds with no fixed destination yet.
   - [x] if Serper is paused, over budget, or cache-hit only, keep the non-Serper score path working
@@ -188,6 +189,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] Frontend tests for the portfolio UI
 - [x] `npm run typecheck` — zero errors
 - [ ] `npm run lint` — zero errors
+  - Repo-wide lint no longer OOMs with `NODE_OPTIONS=--max-old-space-size=8192`, but it still fails on inherited repo debt: `131` errors and `927` warnings outside the SEOI-11 surface. Focused lint on touched SEO files is clean.
 - [x] Focused tests pass
 
 ### 8. Deploy
@@ -213,9 +215,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 ### 10. Browser Validation (agent-browser CLI)
 
-- [ ] Open Serper playground: `agent-browser open https://serper.dev/playground`
-- [ ] Open Serper billing: `agent-browser open https://serper.dev/billing`
-- [ ] Verify the provider settings we rely on are visible: search endpoint flow, Starter pricing, auto-top-up state
+- [x] Open Serper playground: `agent-browser open https://serper.dev/playground`
+- [x] Open Serper billing: `agent-browser open https://serper.dev/billing`
+- [x] Verify the provider settings we rely on are visible: search endpoint flow, Starter pricing, auto-top-up state
 - [x] Open the portfolio page: `agent-browser open https://letaiexplainai.com/admin/seo-insights/portfolio`
 - [x] Take initial screenshot: `agent-browser screenshot`
 - [x] Get refs: `agent-browser snapshot -i`
@@ -235,8 +237,10 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] At least 3 opportunities can feed into the existing proposal/experiment flow
 - [x] Serper auto-top-up remains disabled and documented
 - [x] Serper spend is visible in the admin and included in the weekly digest
-- [ ] Wylie receives automated Serper spend updates without checking Serper manually
+- [x] Wylie receives automated Serper spend updates without checking Serper manually
+  - MVP delivery is the active weekly cron plus persisted run-status/admin banner. Wylie no longer needs to open Serper Billing to see spend state.
 - [ ] Tests, typecheck, and lint are clean
+  - `npm run typecheck` is clean and focused tests/lint for the shipped SEO surfaces are clean. Repo-wide `npm run lint` still fails on inherited non-SEO debt.
 - [x] CloudWatch and browser validation are clean
   - The only live non-200 responses in the manual digest were expected `409` duplicate-proposal guards for already-queued packaging fixes.
 - [x] Sprint file timestamp updated
@@ -290,7 +294,7 @@ After SEOI-11 lands the tab nav holds **7 tabs**: Insights · Actions · Proposa
 
 - [x] **Mobile (<`md`)**: 7 tabs in a horizontal scroll strip is borderline usable. Shared `SeoInsightsSectionNav` now collapses to a `<select>` dropdown on mobile and was prod-validated at `375px`, including live navigation from `Portfolio` to `Packaging`.
 - [x] **Desktop**: 7 tabs at full viewport (1280px+) fit on a single row. At `md` (768px) the labels start truncating. Use shorter labels with a compact active-tab count chip: `Portfolio 10` rather than `Keyword Portfolio (10 keywords)`.
-- [ ] **Tab content lazy-loads** via React.lazy so 7 tab components don't all bundle on the initial admin shell load.
+- [x] **Tab content lazy-loads** via React.lazy so 7 tab components don't all bundle on the initial admin shell load.
 
 #### 2. Portfolio table — sortable, filterable, dense (Task 5)
 
@@ -343,7 +347,7 @@ Each portfolio row opens a drawer showing the rationale for its scoring. Operato
   - [x] Middle, collapsible: "Why these scores" — plain English explanation, e.g. "Demand: 78. Source `google_trends` shows steady 30-day uplift. Competition: 42. Top SERP results are 3 articles, 1 video, 2 forum posts (mixed quality). LAEA Fit: 84. The atlas already has `mixture of experts` glossary entry + 2 milestones — strong internal-link foundation."
   - [x] Middle, collapsible: linked entities from LAEA's content graph (which persons/orgs/glossary/milestones are most relevant)
   - [x] Bottom: rationale (1-2 paragraphs from the LLM) + action buttons (Promote · Archive)
-- [ ] **Mobile**: full-screen modal sheet per the shared `<Drawer>` mobile spec.
+- [x] **Mobile**: full-screen modal sheet per the shared `<Drawer>` mobile spec.
 
 #### 7. Reuse pilot primitives
 
@@ -412,7 +416,8 @@ The `editorial_seed` source type is human input — Wylie typing in keywords he 
 - [x] Mobile tab strip fallback decision (dropdown vs scroll) consistent with SEOI-10's call
 - [ ] Lighthouse Accessibility ≥95 with table + drawer + form rendered
 - [x] Inline bars communicate via length + numeric value + tier label, not color alone
-- [ ] Serper spend card is visible and understandable on desktop + mobile
+- [x] Serper spend card is visible and understandable on desktop + mobile
+  - Desktop live validation passed on `2026-05-02`, and the earlier portfolio mobile viewport pass confirmed the card remains legible in the narrow layout.
 
 ### What's correct already
 
