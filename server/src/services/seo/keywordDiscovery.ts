@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import Parser from 'rss-parser';
 import { prisma } from '../../db';
+import { ApiError } from '../../middleware/error';
 import {
   getClusterDetail,
   listClusters,
@@ -8,10 +9,15 @@ import {
   type ClusterHorizon,
   type ClusterOpportunityDetail,
 } from '../gsc/queryClusterer';
-import { buildTopicPodFromCluster, type SeoTopicPodPlan } from './topicPodPlanner';
+import {
+  buildTopicPodFromCluster,
+  type SeoTopicPodLinkOpportunity,
+  type SeoTopicPodPlan,
+} from './topicPodPlanner';
 import {
   buildSerperKeywordOpportunityCandidates,
   getSerperUsageSummary,
+  refreshSerperKeywordOpportunitySample,
   type SerperKeywordOpportunityCandidate,
   type SerperKeywordOpportunityInput,
   type SerperKeywordSourceRef,
@@ -93,6 +99,7 @@ export interface KeywordOpportunityClusterSourceRef {
   memberQueryCount: number;
   memberPageCount: number;
   internalLinkCount: number;
+  internalLinkOpportunities?: SeoTopicPodLinkOpportunity[];
 }
 
 export type KeywordOpportunitySourceRef = KeywordOpportunityClusterSourceRef | SerperKeywordSourceRef;
@@ -409,6 +416,7 @@ function buildSourceRef(cluster: ClusterOpportunityDetail, plan: SeoTopicPodPlan
     memberQueryCount: cluster.memberQueryCount,
     memberPageCount: cluster.memberPageCount,
     internalLinkCount: plan.internalLinkOpportunities.length,
+    internalLinkOpportunities: plan.internalLinkOpportunities,
   };
 }
 
@@ -418,6 +426,12 @@ function parseSourceRef(value: Prisma.JsonValue | null): KeywordOpportunitySourc
   }
 
   return value as unknown as KeywordOpportunitySourceRef;
+}
+
+function isSerperSourceRef(
+  value: KeywordOpportunitySourceRef | null,
+): value is SerperKeywordSourceRef {
+  return Boolean(value && 'vendor' in value && value.vendor === 'serper');
 }
 
 function serializeRow(row: StoredKeywordOpportunityRow): KeywordOpportunityRecord {
@@ -989,6 +1003,80 @@ export async function getKeywordOpportunity(opportunityId: string): Promise<Keyw
   return row ? serializeRow(row as StoredKeywordOpportunityRow) : null;
 }
 
+function buildSerperRefreshInput(
+  row: StoredKeywordOpportunityRow,
+  sourceRef: SerperKeywordSourceRef,
+): SerperKeywordOpportunityInput {
+  return {
+    id: sourceRef.originOpportunityId,
+    sourceType: sourceRef.originSourceType,
+    dedupeKey: sourceRef.originDedupeKey,
+    seedQuery: row.seedQuery,
+    clusterKey: row.clusterKey,
+    clusterSnapshotId: row.clusterSnapshotId,
+    targetIntent: row.targetIntent,
+    demandProxy: row.demandProxy,
+    competitionProxy: row.competitionProxy,
+    laeaFitScore: row.laeaFitScore,
+    pageTypeRecommendation: row.pageTypeRecommendation,
+    targetUrl: row.targetUrl,
+    rationale: row.rationale,
+    status: row.status,
+  };
+}
+
+export async function refreshKeywordOpportunitySerp(
+  opportunityId: string,
+): Promise<KeywordOpportunityRecord> {
+  const row = await prisma.keywordOpportunity.findUnique({
+    where: {
+      id: opportunityId,
+    },
+  });
+
+  if (!row) {
+    throw ApiError.notFound('SEO keyword opportunity not found');
+  }
+
+  const typedRow = row as StoredKeywordOpportunityRow;
+  if (typedRow.sourceType !== 'serp_sample') {
+    throw new ApiError(409, 'Only SERP-sampled keyword opportunities can refresh live Serper evidence');
+  }
+
+  const sourceRef = parseSourceRef(typedRow.sourceRefJson);
+  if (!isSerperSourceRef(sourceRef)) {
+    throw new ApiError(409, 'This keyword opportunity is missing its Serper source metadata');
+  }
+
+  const capacityScore = await loadDiscoveryCapacityScore();
+  const refreshed = await refreshSerperKeywordOpportunitySample(
+    buildSerperRefreshInput(typedRow, sourceRef),
+    {
+      lastSampledAt: sourceRef.sampledAt,
+    },
+  );
+  const overallScore = buildOverallScore(
+    typedRow.demandProxy,
+    typedRow.laeaFitScore,
+    refreshed.summary.competitionProxy,
+    capacityScore,
+  );
+
+  const updatedRow = await prisma.keywordOpportunity.update({
+    where: {
+      id: opportunityId,
+    },
+    data: {
+      competitionProxy: refreshed.summary.competitionProxy,
+      overallScore,
+      rationale: refreshed.rationale,
+      sourceRefJson: refreshed.sourceRef as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  return serializeRow(updatedRow as StoredKeywordOpportunityRow);
+}
+
 export async function markKeywordOpportunityPromoted(opportunityId: string): Promise<KeywordOpportunityRecord> {
   const row = await prisma.keywordOpportunity.update({
     where: {
@@ -996,6 +1084,19 @@ export async function markKeywordOpportunityPromoted(opportunityId: string): Pro
     },
     data: {
       status: 'promoted',
+    },
+  });
+
+  return serializeRow(row as StoredKeywordOpportunityRow);
+}
+
+export async function archiveKeywordOpportunity(opportunityId: string): Promise<KeywordOpportunityRecord> {
+  const row = await prisma.keywordOpportunity.update({
+    where: {
+      id: opportunityId,
+    },
+    data: {
+      status: 'archived',
     },
   });
 

@@ -15,6 +15,7 @@ const mockBuildTopicPodFromCluster = jest.fn();
 const mockGoogleTrendsParseURL = jest.fn();
 const mockBuildSerperKeywordOpportunityCandidates = jest.fn();
 const mockGetSerperUsageSummary = jest.fn();
+const mockRefreshSerperKeywordOpportunitySample = jest.fn();
 
 jest.mock('../../../server/src/db', () => ({
   prisma: {
@@ -48,6 +49,7 @@ jest.mock('../../../server/src/services/seo/topicPodPlanner', () => ({
 jest.mock('../../../server/src/services/seo/serperClient', () => ({
   buildSerperKeywordOpportunityCandidates: mockBuildSerperKeywordOpportunityCandidates,
   getSerperUsageSummary: mockGetSerperUsageSummary,
+  refreshSerperKeywordOpportunitySample: mockRefreshSerperKeywordOpportunitySample,
 }));
 
 jest.mock('rss-parser', () => {
@@ -57,10 +59,12 @@ jest.mock('rss-parser', () => {
 });
 
 import {
+  archiveKeywordOpportunity,
   createEditorialKeywordOpportunity,
   getKeywordOpportunity,
   listKeywordOpportunities,
   markKeywordOpportunityPromoted,
+  refreshKeywordOpportunitySerp,
   rebuildKeywordPortfolio,
 } from '../../../server/src/services/seo/keywordDiscovery';
 
@@ -122,6 +126,8 @@ describe('keywordDiscovery', () => {
       usage: {
         configured: false,
         enabled: false,
+        pricingEnabled: false,
+        pausedBySeoAgent: false,
         autoTopupEnabled: false,
         tierLabel: null,
         purchasedCredits: null,
@@ -143,6 +149,8 @@ describe('keywordDiscovery', () => {
     mockGetSerperUsageSummary.mockResolvedValue({
       configured: false,
       enabled: false,
+      pricingEnabled: false,
+      pausedBySeoAgent: false,
       autoTopupEnabled: false,
       tierLabel: null,
       purchasedCredits: null,
@@ -159,6 +167,75 @@ describe('keywordDiscovery', () => {
       projectedDepletionDate: null,
       lastSampledAt: null,
       warningLevel: 'ok',
+    });
+    mockRefreshSerperKeywordOpportunitySample.mockResolvedValue({
+      summary: {
+        requestKey: 'us:en:qdr:m:1:ai timeline',
+        query: 'ai timeline',
+        country: 'us',
+        language: 'en',
+        dateRange: 'qdr:m',
+        page: 1,
+        sampledAt: '2026-05-01T12:00:00.000Z',
+        expiresAt: '2026-05-29T12:00:00.000Z',
+        organicCount: 10,
+        peopleAlsoAskCount: 2,
+        relatedSearchCount: 5,
+        topDomains: ['wikipedia.org'],
+        strongDomainCount: 1,
+        forumDomainCount: 0,
+        videoDomainCount: 0,
+        competitionProxy: 28,
+        competitionReason: 'Top results include wikipedia.org',
+        effectiveCostUsd: 0.001,
+      },
+      sourceRef: {
+        vendor: 'serper',
+        requestKey: 'us:en:qdr:m:1:ai timeline',
+        originSourceType: 'gsc_cluster',
+        originOpportunityId: 'kw_gap_1',
+        originDedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+        query: 'ai timeline',
+        country: 'us',
+        language: 'en',
+        dateRange: 'qdr:m',
+        page: 1,
+        sampledAt: '2026-05-01T12:00:00.000Z',
+        expiresAt: '2026-05-29T12:00:00.000Z',
+        organicCount: 10,
+        peopleAlsoAskCount: 2,
+        relatedSearchCount: 5,
+        topDomains: ['wikipedia.org'],
+        strongDomainCount: 1,
+        forumDomainCount: 0,
+        videoDomainCount: 0,
+        competitionProxy: 28,
+        competitionReason: 'Top results include wikipedia.org',
+        effectiveCostUsd: 0.001,
+      },
+      rationale: 'Updated SERP rationale',
+      usage: {
+        configured: true,
+        enabled: true,
+        pricingEnabled: true,
+        pausedBySeoAgent: false,
+        autoTopupEnabled: false,
+        tierLabel: 'starter',
+        purchasedCredits: 50_000,
+        monthlyCreditBudget: 2_500,
+        creditsUsedToday: 1,
+        creditsUsedWeek: 1,
+        creditsUsedMonth: 1,
+        creditsUsedTotal: 1,
+        effectiveSpendTodayUsd: 0.001,
+        effectiveSpendWeekUsd: 0.001,
+        effectiveSpendMonthUsd: 0.001,
+        effectiveSpendTotalUsd: 0.001,
+        remainingCredits: 49_999,
+        projectedDepletionDate: null,
+        lastSampledAt: '2026-05-01T12:00:00.000Z',
+        warningLevel: 'ok',
+      },
     });
 
     mockListClusters.mockImplementation(async ({ horizon, bucket }: { horizon: string; bucket: string }) => {
@@ -433,6 +510,14 @@ describe('keywordDiscovery', () => {
         memberQueryCount: 4,
         memberPageCount: 1,
         internalLinkCount: 1,
+        internalLinkOpportunities: [
+          {
+            entityType: 'glossary_term',
+            label: 'Transformer',
+            path: '/glossary/transformer',
+            reason: 'Support link',
+          },
+        ],
       },
       targetIntent: 'definition',
       demandProxy: 100,
@@ -499,7 +584,48 @@ describe('keywordDiscovery', () => {
     }));
     expect(listResult.meta.serper).toEqual(expect.objectContaining({
       configured: false,
+      pricingEnabled: false,
+      pausedBySeoAgent: false,
       warningLevel: 'ok',
+    }));
+  });
+
+  it('archives an active keyword opportunity in place', async () => {
+    mockKeywordUpdate.mockResolvedValueOnce({
+      id: 'kw_1',
+      sourceType: 'gsc_cluster',
+      dedupeKey: 'gsc_cluster:mixture expert:explainer_page:/explained/mixture-of-experts-moe',
+      seedQuery: 'mixture of experts',
+      clusterKey: 'mixture expert',
+      clusterSnapshotId: 'cluster_topic_1',
+      sourceRefJson: null,
+      targetIntent: 'definition',
+      demandProxy: 78,
+      competitionProxy: 23,
+      laeaFitScore: 94,
+      overallScore: 84.2,
+      pageTypeRecommendation: 'explainer_page',
+      targetUrl: 'https://letaiexplainai.com/explained/mixture-of-experts-moe',
+      rationale: 'Rationale',
+      status: 'archived',
+      linkedExperimentId: null,
+      createdAt: new Date('2026-05-01T12:00:00.000Z'),
+      updatedAt: new Date('2026-05-02T12:00:00.000Z'),
+    });
+
+    const result = await archiveKeywordOpportunity('kw_1');
+
+    expect(mockKeywordUpdate).toHaveBeenCalledWith({
+      where: {
+        id: 'kw_1',
+      },
+      data: {
+        status: 'archived',
+      },
+    });
+    expect(result).toEqual(expect.objectContaining({
+      id: 'kw_1',
+      status: 'archived',
     }));
   });
 
@@ -579,6 +705,8 @@ describe('keywordDiscovery', () => {
       usage: {
         configured: true,
         enabled: true,
+        pricingEnabled: true,
+        pausedBySeoAgent: false,
         autoTopupEnabled: false,
         tierLabel: 'starter',
         purchasedCredits: 50_000,
@@ -652,6 +780,129 @@ describe('keywordDiscovery', () => {
 
     expect(mockKeywordFindMany).toHaveBeenCalledWith(expect.objectContaining({
       where: {},
+    }));
+  });
+
+  it('refreshes a SERP-sampled keyword opportunity with the original source lineage intact', async () => {
+    mockKeywordFindUnique.mockResolvedValueOnce({
+      id: 'kw_serp_1',
+      sourceType: 'serp_sample',
+      dedupeKey: 'serp_sample:ai-timeline:blog-post:https-letaiexplainai-com-blog-ai-timeline',
+      seedQuery: 'ai timeline',
+      clusterKey: 'ai timeline',
+      clusterSnapshotId: 'cluster_gap_1',
+      sourceRefJson: {
+        vendor: 'serper',
+        requestKey: 'us:en:qdr:m:1:ai timeline',
+        originSourceType: 'gsc_cluster',
+        originOpportunityId: 'kw_gap_1',
+        originDedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+        query: 'ai timeline',
+        country: 'us',
+        language: 'en',
+        dateRange: 'qdr:m',
+        page: 1,
+        sampledAt: '2026-04-20T12:00:00.000Z',
+        expiresAt: '2026-05-18T12:00:00.000Z',
+        organicCount: 10,
+        peopleAlsoAskCount: 3,
+        relatedSearchCount: 8,
+        topDomains: ['wikipedia.org'],
+        strongDomainCount: 1,
+        forumDomainCount: 0,
+        videoDomainCount: 0,
+        competitionProxy: 31,
+        competitionReason: 'Top results include wikipedia.org',
+        effectiveCostUsd: 0.001,
+      },
+      targetIntent: 'timeline',
+      demandProxy: 80,
+      competitionProxy: 31,
+      laeaFitScore: 84,
+      overallScore: 78.4,
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+      rationale: 'Prior SERP rationale',
+      status: 'scored',
+      linkedExperimentId: null,
+      createdAt: new Date('2026-04-20T12:00:00.000Z'),
+      updatedAt: new Date('2026-04-20T12:00:00.000Z'),
+    });
+    mockKeywordUpdate.mockResolvedValueOnce({
+      id: 'kw_serp_1',
+      sourceType: 'serp_sample',
+      dedupeKey: 'serp_sample:ai-timeline:blog-post:https-letaiexplainai-com-blog-ai-timeline',
+      seedQuery: 'ai timeline',
+      clusterKey: 'ai timeline',
+      clusterSnapshotId: 'cluster_gap_1',
+      sourceRefJson: {
+        vendor: 'serper',
+        requestKey: 'us:en:qdr:m:1:ai timeline',
+        originSourceType: 'gsc_cluster',
+        originOpportunityId: 'kw_gap_1',
+        originDedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+        query: 'ai timeline',
+        country: 'us',
+        language: 'en',
+        dateRange: 'qdr:m',
+        page: 1,
+        sampledAt: '2026-05-01T12:00:00.000Z',
+        expiresAt: '2026-05-29T12:00:00.000Z',
+        organicCount: 10,
+        peopleAlsoAskCount: 2,
+        relatedSearchCount: 5,
+        topDomains: ['wikipedia.org'],
+        strongDomainCount: 1,
+        forumDomainCount: 0,
+        videoDomainCount: 0,
+        competitionProxy: 28,
+        competitionReason: 'Top results include wikipedia.org',
+        effectiveCostUsd: 0.001,
+      },
+      targetIntent: 'timeline',
+      demandProxy: 80,
+      competitionProxy: 28,
+      laeaFitScore: 84,
+      overallScore: 79.8,
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+      rationale: 'Updated SERP rationale',
+      status: 'scored',
+      linkedExperimentId: null,
+      createdAt: new Date('2026-04-20T12:00:00.000Z'),
+      updatedAt: new Date('2026-05-01T12:00:00.000Z'),
+    });
+
+    const result = await refreshKeywordOpportunitySerp('kw_serp_1');
+
+    expect(mockRefreshSerperKeywordOpportunitySample).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'kw_gap_1',
+        sourceType: 'gsc_cluster',
+        dedupeKey: 'gsc_cluster:ai timeline:blog_post:/blog/ai-timeline',
+        seedQuery: 'ai timeline',
+      }),
+      expect.objectContaining({
+        lastSampledAt: '2026-04-20T12:00:00.000Z',
+      }),
+    );
+    expect(mockKeywordUpdate).toHaveBeenCalledWith({
+      where: { id: 'kw_serp_1' },
+      data: expect.objectContaining({
+        competitionProxy: 28,
+        overallScore: 79.8,
+        rationale: 'Updated SERP rationale',
+        sourceRefJson: expect.objectContaining({
+          sampledAt: '2026-05-01T12:00:00.000Z',
+          originOpportunityId: 'kw_gap_1',
+        }),
+      }),
+    });
+    expect(result).toEqual(expect.objectContaining({
+      id: 'kw_serp_1',
+      sourceType: 'serp_sample',
+      competitionProxy: 28,
+      overallScore: 79.8,
     }));
   });
 

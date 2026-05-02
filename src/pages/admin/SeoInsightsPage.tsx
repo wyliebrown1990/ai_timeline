@@ -110,11 +110,12 @@ function formatTimestamp(value: string | null): string {
 }
 
 function formatUsd(value: number): string {
+  const fractionalDigits = value > 0 && value < 0.01 ? 4 : 2;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: fractionalDigits,
+    maximumFractionDigits: fractionalDigits,
   }).format(value);
 }
 
@@ -177,7 +178,11 @@ function getSerperSummaryText(serper: SeoSerperUsageSummary): string {
     return 'Serper is not configured yet, so paid SERP sampling is unavailable.';
   }
 
-  if (!serper.enabled) {
+  if (serper.pausedBySeoAgent) {
+    return 'Serper is configured, but the global SEO pause switch is on, so paid discovery sampling is temporarily read-only.';
+  }
+
+  if (!serper.pricingEnabled) {
     return 'Serper is configured but disabled in pricing policy, so the discovery lane is staying read-only.';
   }
 
@@ -556,7 +561,7 @@ export default function SeoInsightsPage() {
         )}
       </section>
 
-      <SeoInsightsSectionNav />
+      <SeoInsightsSectionNav activeCount={result?.pagination.total ?? 0} />
 
       <section className="rounded-[28px] border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="border-b border-gray-200 px-5 pt-5 dark:border-gray-800">

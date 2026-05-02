@@ -37,6 +37,8 @@ router.get('/portfolio', requireAdmin, seoAdminController.portfolio);
 router.post('/portfolio/editorial-seeds', requireAdmin, seoAdminController.createPortfolioEditorialSeed);
 router.get('/portfolio/:id', requireAdmin, seoAdminController.portfolioDetail);
 router.post('/portfolio/:id/promote', requireAdmin, seoAdminController.promotePortfolioOpportunity);
+router.post('/portfolio/:id/archive', requireAdmin, seoAdminController.archivePortfolioOpportunity);
+router.post('/portfolio/:id/refresh-serp', requireAdmin, seoAdminController.refreshPortfolioOpportunitySerp);
 router.post('/portfolio/rebuild', requireAdmin, seoAdminController.rebuildPortfolio);
 router.put('/pause', requireAdmin, seoAdminController.pause);
 router.put('/run-status', requireAdmin, seoAdminController.updateRunStatus);

@@ -6227,9 +6227,24 @@ export type SeoKeywordOpportunitySourceFilter = 'all' | SeoKeywordOpportunitySou
 
 export type SeoSerperUsageWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
 
+export interface SeoSerperUsagePolicy {
+  endpoint: 'search';
+  usdPerThousandQueries: number;
+  maxQueriesPerRun: number;
+  maxQueriesPerDay: number;
+  maxQueriesPerWeek: number;
+  cacheTtlDays: number;
+  country: string;
+  language: string;
+  dateRange: string;
+  page: number;
+}
+
 export interface SeoSerperUsageSummary {
   configured: boolean;
   enabled: boolean;
+  pricingEnabled: boolean;
+  pausedBySeoAgent: boolean;
   autoTopupEnabled: boolean;
   tierLabel: string | null;
   purchasedCredits: number | null;
@@ -6246,6 +6261,7 @@ export interface SeoSerperUsageSummary {
   projectedDepletionDate: string | null;
   lastSampledAt: string | null;
   warningLevel: SeoSerperUsageWarningLevel;
+  policy: SeoSerperUsagePolicy | null;
 }
 
 export interface SeoKeywordOpportunityClusterSourceRef {
@@ -6265,6 +6281,12 @@ export interface SeoKeywordOpportunityClusterSourceRef {
   memberQueryCount: number;
   memberPageCount: number;
   internalLinkCount: number;
+  internalLinkOpportunities?: Array<{
+    entityType: string;
+    label: string;
+    path: string;
+    reason: string;
+  }>;
 }
 
 export interface SeoKeywordOpportunitySerperSourceRef {
@@ -6329,6 +6351,14 @@ export interface SeoKeywordOpportunityListResult extends PaginatedResponse<SeoKe
 export interface SeoKeywordOpportunityPromotionResult {
   opportunity: SeoKeywordOpportunityRecord;
   proposal: SeoProposalRecord;
+}
+
+export interface SeoKeywordOpportunityRefreshResult {
+  opportunity: SeoKeywordOpportunityRecord;
+}
+
+export interface SeoKeywordOpportunityArchiveResult {
+  opportunity: SeoKeywordOpportunityRecord;
 }
 
 export interface SeoKeywordPortfolioRebuildResult {
@@ -6639,6 +6669,20 @@ export const seoInsightsApi = {
 
   async promoteKeywordOpportunity(id: string): Promise<SeoKeywordOpportunityPromotionResult> {
     return fetchJson<SeoKeywordOpportunityPromotionResult>(`${API_BASE}/admin/seo/portfolio/${id}/promote`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async archiveKeywordOpportunity(id: string): Promise<SeoKeywordOpportunityArchiveResult> {
+    return fetchJson<SeoKeywordOpportunityArchiveResult>(`${API_BASE}/admin/seo/portfolio/${id}/archive`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+  },
+
+  async refreshKeywordOpportunitySerp(id: string): Promise<SeoKeywordOpportunityRefreshResult> {
+    return fetchJson<SeoKeywordOpportunityRefreshResult>(`${API_BASE}/admin/seo/portfolio/${id}/refresh-serp`, {
       method: 'POST',
       headers: getAuthHeaders(),
     });

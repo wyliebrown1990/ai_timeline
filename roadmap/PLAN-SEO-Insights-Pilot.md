@@ -371,15 +371,13 @@ All seven primitives the 2026-04-30 UX review depended on are exported from `src
 After the post-pilot track ships, the in-page tab nav at `/admin/seo-insights` will hold seven tabs:
 `Insights · Actions · Proposals · Clusters · Experiments · Packaging · Portfolio`.
 
-This crosses a usability threshold on mobile. **Decision needed before SEOI-8 implementation** (since the choice affects every subsequent sprint):
+This crossed a usability threshold on mobile, and the shared decision is now landed in prod:
 
 - **Option A:** Keep horizontal scroll-with-snap on mobile (per SEOI-2 UX-2 spec). Operators scroll the tab strip on 375px screens; auto-scroll-active-tab on mount. Survives 7 tabs but starts to feel cramped.
 - **Option B:** Collapse tab strip to a `<select>` dropdown on mobile when tab count >5. Single-row dropdown with active label; tap to open the full list. Shipped widely as a tab-overflow pattern. Recommended.
 - **Option C:** Group SEO admin tabs into two rows. Adds vertical real estate but feels less polished than A or B.
 
-**Recommendation:** Option B. Land the dropdown variant in the shared `<Tabs>` primitive in SEOI-8 (since it's the first post-pilot sprint to push tab count past 5) so all subsequent sprints inherit it.
-
-Add a sub-task to SEOI-8 Task 6: "Extend `<Tabs>` primitive with a `mobileVariant: 'scroll' | 'dropdown'` prop; default to `dropdown` when tab count >5."
+**Shipped outcome:** Option B. The shared `SeoInsightsSectionNav` now renders a mobile `<select>` dropdown when the SEO Insights section count exceeds 5, and this was prod-validated at `375px` on May 1, 2026.
 
 #### CC-UX-2. Color-blind safety as a uniform DoD bar
 
@@ -418,7 +416,7 @@ If SEOI-7 polish or SEOI-10 SERP-packaging later add similar "drift-clean" or "a
 **UX-ready after the per-sprint additions are absorbed.** No structural rework needed. The shared `ui/` primitive set delivered by the pilot is the right foundation for all four post-pilot sprints to compose against.
 
 The two cross-cutting decisions worth making upfront:
-1. **CC-UX-1 mobile tab fallback** — recommend Option B (dropdown when tab count >5), implemented as a `<Tabs>` variant in SEOI-8 so it propagates.
+1. **CC-UX-1 mobile tab fallback** — closed. Option B (dropdown when tab count >5) shipped in the shared `SeoInsightsSectionNav` and now propagates across Insights, Clusters, Actions, Proposals, Experiments, Packaging, and Portfolio.
 2. **CC-UX-2 color-blind safety as DoD** — folded into each per-sprint UX section explicitly.
 
 The single UX risk (CC-UX-RISK-1, the editorial-seed form being the first form pattern in the SEO admin) is a documentation fix, not architectural.

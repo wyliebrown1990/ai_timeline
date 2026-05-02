@@ -58,10 +58,12 @@ import {
   type SeoAgentRunStatusRecord,
 } from '../services/seo/agentRunStatus';
 import {
+  archiveKeywordOpportunity,
   createEditorialKeywordOpportunity,
   getKeywordOpportunity,
   listKeywordOpportunities,
   markKeywordOpportunityPromoted,
+  refreshKeywordOpportunitySerp,
   rebuildKeywordPortfolio,
   type KeywordOpportunitySourceFilter,
   type KeywordOpportunityStatusFilter,
@@ -693,6 +695,42 @@ export async function promotePortfolioOpportunity(req: Request, res: Response, n
       opportunity: updatedOpportunity,
       proposal,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function refreshPortfolioOpportunitySerp(req: Request, res: Response, next: NextFunction) {
+  try {
+    const opportunity = await refreshKeywordOpportunitySerp(req.params.id);
+    res.json({ opportunity });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function archivePortfolioOpportunity(req: Request, res: Response, next: NextFunction) {
+  try {
+    const opportunity = await getKeywordOpportunity(req.params.id);
+    if (!opportunity) {
+      res.status(404).json({ error: 'SEO keyword opportunity not found' });
+      return;
+    }
+
+    if (opportunity.status === 'archived') {
+      res.status(409).json({ error: 'This keyword opportunity is already archived' });
+      return;
+    }
+
+    if (opportunity.status === 'promoted') {
+      res.status(409).json({
+        error: 'Promoted keyword opportunities stay attached to the proposal lane and cannot be archived here',
+      });
+      return;
+    }
+
+    const updatedOpportunity = await archiveKeywordOpportunity(opportunity.id);
+    res.json({ opportunity: updatedOpportunity });
   } catch (error) {
     next(error);
   }

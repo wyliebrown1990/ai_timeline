@@ -1,6 +1,8 @@
 import type { Prisma } from '@prisma/client';
 import { GetParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { prisma } from '../../db';
+import { ApiError } from '../../middleware/error';
+import { isPaused, resetAgentControlCacheForTests } from './agentControl';
 
 const AWS_REGION = process.env.AWS_REGION ?? 'us-east-1';
 const SERPER_API_KEY_PARAM =
@@ -10,6 +12,8 @@ const SERPER_PRICING_PARAM =
 const SERPER_SEARCH_URL = 'https://google.serper.dev/search';
 const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
+export const MANUAL_SERPER_REFRESH_MIN_DAYS = 7;
+const SERPER_AUTOMATIC_PAGE = 1;
 
 const STRONG_DOMAIN_PATTERNS = [
   'wikipedia.org',
@@ -69,6 +73,8 @@ export type SerperUsageWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
 export interface SerperUsageSummary {
   configured: boolean;
   enabled: boolean;
+  pricingEnabled: boolean;
+  pausedBySeoAgent: boolean;
   autoTopupEnabled: boolean;
   tierLabel: string | null;
   purchasedCredits: number | null;
@@ -85,6 +91,20 @@ export interface SerperUsageSummary {
   projectedDepletionDate: string | null;
   lastSampledAt: string | null;
   warningLevel: SerperUsageWarningLevel;
+  policy: SerperUsagePolicy | null;
+}
+
+export interface SerperUsagePolicy {
+  endpoint: 'search';
+  usdPerThousandQueries: number;
+  maxQueriesPerRun: number;
+  maxQueriesPerDay: number;
+  maxQueriesPerWeek: number;
+  cacheTtlDays: number;
+  country: string;
+  language: string;
+  dateRange: string;
+  page: number;
 }
 
 export interface SerperKeywordOpportunityInput {
@@ -144,6 +164,13 @@ export interface SerperKeywordOpportunityCandidate {
   targetUrl: string | null;
   rationale: string;
   sourceRef: SerperKeywordSourceRef;
+}
+
+export interface SerperKeywordRefreshResult {
+  summary: SerperStoredSummary;
+  sourceRef: SerperKeywordSourceRef;
+  rationale: string;
+  usage: SerperUsageSummary;
 }
 
 interface SerperSearchOrganicResult {
@@ -568,8 +595,24 @@ function deriveWarningLevel(
   return 'ok';
 }
 
+function buildUsagePolicy(pricing: SerperPricingConfig): SerperUsagePolicy {
+  return {
+    endpoint: 'search',
+    usdPerThousandQueries: pricing.usdPerThousandQueries,
+    maxQueriesPerRun: pricing.maxQueriesPerRun,
+    maxQueriesPerDay: pricing.maxQueriesPerDay,
+    maxQueriesPerWeek: pricing.maxQueriesPerWeek,
+    cacheTtlDays: pricing.cacheTtlDays,
+    country: pricing.country,
+    language: pricing.language,
+    dateRange: pricing.dateRange,
+    page: SERPER_AUTOMATIC_PAGE,
+  };
+}
+
 export async function getSerperUsageSummary(now: Date = new Date()): Promise<SerperUsageSummary> {
   const runtimeConfig = await getRuntimeConfig(now.getTime());
+  const pausedBySeoAgent = await isPaused(now.getTime());
   const startToday = startOfUtcDay(now);
   const startWeek = startOfRollingWindow(now, 7);
   const startMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -599,7 +642,9 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
 
   return {
     configured: runtimeConfig.configured,
-    enabled: runtimeConfig.pricing.enabled,
+    enabled: runtimeConfig.configured && runtimeConfig.pricing.enabled && !pausedBySeoAgent,
+    pricingEnabled: runtimeConfig.pricing.enabled,
+    pausedBySeoAgent,
     autoTopupEnabled: runtimeConfig.pricing.autoTopupEnabled,
     tierLabel: runtimeConfig.configured ? runtimeConfig.pricing.tierLabel : null,
     purchasedCredits: runtimeConfig.configured ? runtimeConfig.pricing.purchasedCredits : null,
@@ -621,11 +666,12 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
       projectedDepletionDate,
       now
     ),
+    policy: runtimeConfig.configured ? buildUsagePolicy(runtimeConfig.pricing) : null,
   };
 }
 
 function canSpendOneCredit(usage: SerperUsageSummary, pricing: SerperPricingConfig): boolean {
-  if (!pricing.enabled) {
+  if (!usage.enabled || !pricing.enabled) {
     return false;
   }
 
@@ -646,6 +692,37 @@ function canSpendOneCredit(usage: SerperUsageSummary, pricing: SerperPricingConf
   }
 
   return true;
+}
+
+function getSpendBlockedReason(
+  usage: SerperUsageSummary,
+  pricing: SerperPricingConfig,
+): string | null {
+  if (usage.pausedBySeoAgent) {
+    return 'Serper sampling is paused because the global SEO pause switch is on';
+  }
+
+  if (!pricing.enabled) {
+    return 'Serper sampling is currently paused in pricing config';
+  }
+
+  if (pricing.purchasedCredits !== null && usage.remainingCredits !== null && usage.remainingCredits <= 0) {
+    return 'Serper credit balance is exhausted';
+  }
+
+  if (usage.creditsUsedToday >= pricing.maxQueriesPerDay) {
+    return 'Serper daily query cap is already exhausted today';
+  }
+
+  if (usage.creditsUsedWeek >= pricing.maxQueriesPerWeek) {
+    return 'Serper weekly query cap is already exhausted this week';
+  }
+
+  if (pricing.monthlyCreditBudget !== null && usage.creditsUsedMonth >= pricing.monthlyCreditBudget) {
+    return 'Serper monthly budget cap is already exhausted this month';
+  }
+
+  return null;
 }
 
 function buildSerperSourceRef(
@@ -686,6 +763,23 @@ function buildSerperRationale(
   return `${input.seedQuery} was validated against a live Serper first-page search. ${summary.competitionReason}. LAEA's current target remains ${targetLabel}, and the refreshed competition score is ${summary.competitionProxy}/100.`;
 }
 
+function parseSampleDate(value: string | Date | null | undefined): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatIsoDate(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
 async function loadCachedSample(
   requestKey: string,
   now: Date,
@@ -720,7 +814,7 @@ async function fetchFreshSample(
     gl: pricing.country,
     hl: pricing.language,
     tbs: pricing.dateRange,
-    page: pricing.page,
+    page: SERPER_AUTOMATIC_PAGE,
   };
 
   const response = await fetch(SERPER_SEARCH_URL, {
@@ -749,7 +843,7 @@ async function fetchFreshSample(
     pricing.country,
     pricing.language,
     pricing.dateRange,
-    pricing.page,
+    SERPER_AUTOMATIC_PAGE,
   );
 
   await prisma.serpSample.create({
@@ -757,12 +851,12 @@ async function fetchFreshSample(
       vendor: 'serper',
       sourceOpportunityId: input.id,
       requestKey,
-      normalizedQueryKey: normalizeQuery(input.seedQuery),
+      normalizedQueryKey: requestKey,
       query: input.seedQuery,
       country: pricing.country,
       language: pricing.language,
       dateRange: pricing.dateRange,
-      page: pricing.page,
+      page: SERPER_AUTOMATIC_PAGE,
       creditsUsed: 1,
       effectiveCostUsd,
       competitionProxy: summary.competitionProxy,
@@ -790,7 +884,7 @@ export async function buildSerperKeywordOpportunityCandidates(
   const runtimeConfig = await getRuntimeConfig(now.getTime());
   let usage = await getSerperUsageSummary(now);
 
-  if (!runtimeConfig.configured || !runtimeConfig.pricing.enabled || !runtimeConfig.apiKey) {
+  if (!runtimeConfig.configured || !usage.enabled || !runtimeConfig.apiKey) {
     return {
       candidates: [],
       supersededOpportunityIds: [],
@@ -818,7 +912,7 @@ export async function buildSerperKeywordOpportunityCandidates(
       runtimeConfig.pricing.country,
       runtimeConfig.pricing.language,
       runtimeConfig.pricing.dateRange,
-      runtimeConfig.pricing.page,
+      SERPER_AUTOMATIC_PAGE,
     );
 
     let summary = await loadCachedSample(requestKey, now);
@@ -873,7 +967,57 @@ export async function buildSerperKeywordOpportunityCandidates(
   };
 }
 
+export async function refreshSerperKeywordOpportunitySample(
+  input: SerperKeywordOpportunityInput,
+  options?: {
+    now?: Date;
+    lastSampledAt?: string | Date | null;
+  },
+): Promise<SerperKeywordRefreshResult> {
+  const now = options?.now ?? new Date();
+  const runtimeConfig = await getRuntimeConfig(now.getTime());
+
+  if (!runtimeConfig.configured || !runtimeConfig.apiKey) {
+    throw new ApiError(409, 'Serper sampling is not configured for this environment');
+  }
+
+  const lastSampledAt = parseSampleDate(options?.lastSampledAt ?? null);
+  if (lastSampledAt) {
+    const nextEligibleAt = new Date(lastSampledAt.getTime() + (MANUAL_SERPER_REFRESH_MIN_DAYS * DAY_MS));
+    if (now.getTime() < nextEligibleAt.getTime()) {
+      throw new ApiError(
+        409,
+        `Manual SERP refresh is locked until ${formatIsoDate(nextEligibleAt)} to enforce the 7-day cooldown`,
+      );
+    }
+  }
+
+  let usage = await getSerperUsageSummary(now);
+  const spendBlockedReason = getSpendBlockedReason(usage, runtimeConfig.pricing);
+  if (spendBlockedReason) {
+    throw new ApiError(409, spendBlockedReason);
+  }
+
+  const requestKey = buildRequestKey(
+    input.seedQuery,
+    runtimeConfig.pricing.country,
+    runtimeConfig.pricing.language,
+    runtimeConfig.pricing.dateRange,
+    SERPER_AUTOMATIC_PAGE,
+  );
+  const summary = await fetchFreshSample(input, runtimeConfig.apiKey, runtimeConfig.pricing, requestKey, now);
+  usage = await getSerperUsageSummary(now);
+
+  return {
+    summary,
+    sourceRef: buildSerperSourceRef(input, summary),
+    rationale: buildSerperRationale(input, summary),
+    usage,
+  };
+}
+
 export function resetSerperClientCacheForTests() {
   ssmClient = null;
   runtimeConfigCache = null;
+  resetAgentControlCacheForTests();
 }

@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-01 by Codex (Serper shortlist guardrails tightened + cache telemetry shipped)
+> Last updated: 2026-05-01 by Codex (Serper page-one enforcement, full request-tuple dedupe, and prior portfolio UX slices shipped)
 
 ---
 
@@ -88,8 +88,8 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [ ] auto top-ups disabled in Serper Billing
   - [ ] initial pack defaults to Starter `50,000 credits / $50`, valid for 6 months
   - [ ] configurable caps for `maxQueriesPerRun`, `maxQueriesPerDay`, `maxQueriesPerWeek`, and `monthlyCreditBudget`
-  - [ ] provider-specific `serperEnabled` flag composes with the existing SEO pause switch
-- [ ] Record the pricing basis used for internal spend math in config (`$1.00 / 1k queries` on Starter unless Wylie later approves a different tier)
+  - [x] provider-specific `serperEnabled` flag composes with the existing SEO pause switch
+- [x] Record the pricing basis used for internal spend math in config (`$1.00 / 1k queries` on Starter unless Wylie later approves a different tier)
 
 ### 2. Data model
 
@@ -132,9 +132,9 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] content-graph gap checks so LAEA does not “discover” what it already owns
 - [ ] Use Serper only after cheaper signals have already shortlisted a candidate:
   - [x] sample only `gsc_cluster`, `google_trends`, or `editorial_seed` rows that already clear a base score threshold
-  - [ ] dedupe by normalized `(q, gl, hl, tbs, page)` key
-  - [ ] cache automatic samples for `28` days; manual refresh can bypass only after `7` days
-  - [ ] never sample more than one page of results in automatic flows
+  - [x] dedupe by normalized `(q, gl, hl, tbs, page)` key
+  - [x] cache automatic samples for `28` days; manual refresh can bypass only after `7` days
+  - [x] never sample more than one page of results in automatic flows
 - [x] Keep competition scoring lightweight and explainable in v1
 
 ### 4. Editorial scoring
@@ -147,7 +147,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] experiment capacity
 - [ ] Make Serper a refinement layer, not the primary ranking signal:
   - [ ] use Serper to refine `competitionProxy` and page-type recommendation
-  - [ ] if Serper is paused, over budget, or cache-hit only, keep the non-Serper score path working
+  - [x] if Serper is paused, over budget, or cache-hit only, keep the non-Serper score path working
 - [x] Cap the weekly intake so discovery does not overwhelm the backlog
 
 ### 5. Admin portfolio UI
@@ -168,6 +168,7 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] remaining purchased balance and projected depletion date
   - [x] auto-top-up state (`off` is the default and expected state)
   - [x] row-level sample freshness (`last sampled`, `cache expires`)
+  - [x] enforced request scope, query caps, cache TTL, and pricing basis are visible to operators in prod
 
 ### 6. Weekly automation
 
@@ -284,98 +285,100 @@ Admin CMS only.
 
 After SEOI-11 lands the tab nav holds **7 tabs**: Insights · Actions · Proposals · Clusters · Experiments · Packaging · Portfolio. This crosses a usability threshold.
 
-- [ ] **Mobile (<`md`)**: 7 tabs in a horizontal scroll strip is borderline usable. **Recommendation: collapse to a `<select>` dropdown on mobile** (cross-references SEOI-10 #1 — same decision, ideally made together in SEOI-8 implementation so all later sprints inherit). Alternative: 2-row tab grid at mobile, but that fights vertical real estate.
-- [ ] **Desktop**: 7 tabs at full viewport (1280px+) fit on a single row. At `md` (768px) the labels start truncating. Use shorter labels with count chips: `Portfolio (10)` rather than `Keyword Portfolio (10 keywords)`.
+- [x] **Mobile (<`md`)**: 7 tabs in a horizontal scroll strip is borderline usable. Shared `SeoInsightsSectionNav` now collapses to a `<select>` dropdown on mobile and was prod-validated at `375px`, including live navigation from `Portfolio` to `Packaging`.
+- [x] **Desktop**: 7 tabs at full viewport (1280px+) fit on a single row. At `md` (768px) the labels start truncating. Use shorter labels with a compact active-tab count chip: `Portfolio 10` rather than `Keyword Portfolio (10 keywords)`.
 - [ ] **Tab content lazy-loads** via React.lazy so 7 tab components don't all bundle on the initial admin shell load.
 
 #### 2. Portfolio table — sortable, filterable, dense (Task 5)
 
 This is the most table-density-friendly surface in the initiative. Operators will scan many rows.
 
-- [ ] **Columns**: `Keyword · Source · Demand · Competition · Page Type · LAEA Fit · Status · Actions`. Demand and competition are the two scoring dimensions — both must be sortable.
-- [ ] **Sort indicators**: visible `▲` / `▼` icons in column headers. Active sort column gets bolder weight + the orange-600 active-state color.
-- [ ] **Default sort**: by `LAEA Fit` descending — show operators their best-fit opportunities first, not raw demand (which would surface huge unwinnable terms).
-- [ ] **Filter chip row above table**: `All sources` / `gsc_cluster` / `google_trends` / `serp_sample` / `editorial_seed` (per the source-type taxonomy from Task 1). Reuse SEOI-2 filter pattern.
-- [ ] **Status filter chips** (separate row or right-aligned inline): `discovered` / `scored` / `promoted` / `archived`. Two filter dimensions = two filter rows; don't squash them into one.
+- [x] **Columns**: `Keyword · Source · Demand · Competition · Page Type · LAEA Fit · Status · Actions`. Demand and competition are the two scoring dimensions — both must be sortable.
+- [x] **Sort indicators**: visible `▲` / `▼` icons in column headers. Active sort column gets bolder weight + the orange-600 active-state color.
+- [x] **Default sort**: by `LAEA Fit` descending — show operators their best-fit opportunities first, not raw demand (which would surface huge unwinnable terms).
+- [x] **Filter chip row above table**: `All sources` / `gsc_cluster` / `google_trends` / `serp_sample` / `editorial_seed` (per the source-type taxonomy from Task 1). Reuse SEOI-2 filter pattern.
+- [x] **Status filter chips** (separate row or right-aligned inline): `discovered` / `scored` / `promoted` / `archived`. Two filter dimensions = two filter rows; don't squash them into one.
 
 #### 3. Source-attribution chips (Task 5)
 
 Operators MUST see "where did this signal come from" because trust in keyword discovery scales with source clarity.
 
-- [ ] **Source pill** in the Source column with icon + text + color:
+- [x] **Source pill** in the Source column with icon + text + color:
   - `gsc_cluster` → 📊 chart icon, "GSC cluster", `bg-blue-50 text-blue-700`
   - `google_trends` → 📈 trend icon, "Google Trends", `bg-purple-50 text-purple-700`
   - `serp_sample` → 🔍 search icon, "SERP sample", `bg-amber-50 text-amber-700`
   - `editorial_seed` → ✍️ pen icon, "Editorial seed", `bg-gray-50 text-gray-700`
-- [ ] **Source provenance link**: hovering the pill shows a tooltip with the actual source URL or query that triggered the discovery (per `frontend.md` Portal-tooltip pattern). For `gsc_cluster`, the tooltip links to the cluster detail in the Clusters tab (SEOI-8 cross-link).
-- [ ] **Dark-mode variants** for each color spec'd above.
+- [x] **Source provenance link**: hovering the pill shows a tooltip with the actual source URL or query that triggered the discovery (per `frontend.md` Portal-tooltip pattern). For `gsc_cluster`, the tooltip links to the cluster detail in the Clusters tab (SEOI-8 cross-link).
+- [x] **Dark-mode variants** for each color spec'd above.
 
 #### 4. Demand × competition visualization (Task 4 scoring rubric)
 
 Two scoring dimensions, both numeric. Operators want to see the relationship at a glance.
 
-- [ ] **Inline mini-bar in each column**: render demand as a horizontal bar filling 0-100% of column width, color-tinted by tier (green = high, amber = mid, gray = low). Same for competition (but competition is *inverse*-good — low competition = green, high = red). Side-by-side bars give the "high demand + low competition" pairing instant visibility.
-- [ ] **Numeric value next to bar** (e.g. `78`, not just the bar) — so power users can sort and reason about exact scores.
-- [ ] **Color blindness**: tier chips next to bars — `H` / `M` / `L` text labels. Bar length carries the visual signal; color is supplementary.
+- [x] **Inline mini-bar in each column**: render demand as a horizontal bar filling 0-100% of column width, color-tinted by tier (green = high, amber = mid, gray = low). Same for competition (but competition is *inverse*-good — low competition = green, high = red). Side-by-side bars give the "high demand + low competition" pairing instant visibility.
+- [x] **Numeric value next to bar** (e.g. `78`, not just the bar) — so power users can sort and reason about exact scores.
+- [x] **Color blindness**: tier chips next to bars — `H` / `M` / `L` text labels. Bar length carries the visual signal; color is supplementary.
 
-#### 5. Promote-to-experiment affordance (Task 5)
+#### 5. Promote-to-proposal affordance (Task 5)
 
-The promotion flow hands off to SEOI-9. UX must communicate "this becomes an experiment" without re-deriving the proposal-drawer pattern.
+The promotion flow hands off to the proposal lane first. UX should make it explicit that operators are queuing a human-reviewed SEO proposal, not directly spawning an experiment.
 
-- [ ] **Promote button** on each portfolio row: primary outline button, label `Promote to experiment`. Click opens a confirmation dialog (`<ConfirmDialog>`) showing:
+- [x] **Queue proposal button** on each portfolio row: primary action button opens a confirmation dialog (`<ConfirmDialog>`) showing:
   - The keyword + scoring summary
   - The recommended page type + URL (from `pageTypeRecommendation` field)
-  - "This will create a `SeoExperiment` with the standard D+14/D+28/D+56 review schedule. Continue?"
-- [ ] **After promotion**: `react-hot-toast` success toast: "Promoted: `mixture of experts` — experiment scheduled. Open in [Experiments tab]." Toast contains a clickable link to the new experiment.
-- [ ] **Status flips to `promoted`** instantly on the portfolio row + the row gets a muted treatment so operators don't double-promote. After 7 days, archived candidates can be filtered out by default.
+  - "This will queue a human-reviewed SEO proposal and mark the opportunity as promoted. Continue?"
+- [x] **After promotion**: `react-hot-toast` success toast should point operators toward the proposal lane rather than implying a direct experiment handoff.
+- [x] **Status flips to `promoted`** instantly on the portfolio row + the row gets a muted treatment so operators don't double-promote. After 7 days, archived candidates can be filtered out by default.
 
 #### 6. Detail drawer — keyword scoring rationale (Task 5)
 
 Each portfolio row opens a drawer showing the rationale for its scoring. Operators need to understand WHY a keyword scored high/low so they can trust and tune the signal.
 
-- [ ] **Reuse `<Drawer>` primitive**.
+- [x] **Reuse `<Drawer>` primitive**.
 - [ ] **Drawer content**:
   - Top: keyword (large), source pill, demand/competition bars (large), LAEA Fit (large)
-  - Middle, collapsible: "Why these scores" — plain English explanation, e.g. "Demand: 78. Source `google_trends` shows steady 30-day uplift. Competition: 42. Top SERP results are 3 articles, 1 video, 2 forum posts (mixed quality). LAEA Fit: 84. The atlas already has `mixture of experts` glossary entry + 2 milestones — strong internal-link foundation."
-  - Middle, collapsible: linked entities from LAEA's content graph (which persons/orgs/glossary/milestones are most relevant)
-  - Bottom: rationale (1-2 paragraphs from the LLM) + action buttons (Promote · Archive)
+  - [x] Middle, collapsible: "Why these scores" — plain English explanation, e.g. "Demand: 78. Source `google_trends` shows steady 30-day uplift. Competition: 42. Top SERP results are 3 articles, 1 video, 2 forum posts (mixed quality). LAEA Fit: 84. The atlas already has `mixture of experts` glossary entry + 2 milestones — strong internal-link foundation."
+  - [x] Middle, collapsible: linked entities from LAEA's content graph (which persons/orgs/glossary/milestones are most relevant)
+  - [x] Bottom: rationale (1-2 paragraphs from the LLM) + action buttons (Promote · Archive)
 - [ ] **Mobile**: full-screen modal sheet per the shared `<Drawer>` mobile spec.
 
 #### 7. Reuse pilot primitives
 
 - [ ] **`<Tabs>`** for outer tab nav (seventh tab).
-- [ ] **`<Drawer>`** for portfolio detail.
-- [ ] **`<EmptyState>`** for "No portfolio entries yet" / "No `editorial_seed` entries — add via the Add Keyword button".
-- [ ] **`<ErrorState onRetry={refetch}>`**.
-- [ ] **`<LoadingSkeleton lines={8}>`** matching portfolio-row height (taller than other tables due to the inline bars).
-- [ ] **`<ConfirmDialog>`** for promote-to-experiment confirmation.
+- [x] **`<Drawer>`** for portfolio detail.
+- [x] **`<EmptyState>`** for "No portfolio entries yet" / "No `editorial_seed` entries — add via the Add Keyword button".
+- [x] **`<ErrorState onRetry={refetch}>`**.
+- [x] **`<LoadingSkeleton lines={8}>`** matching portfolio-row height (taller than other tables due to the inline bars).
+- [x] **`<ConfirmDialog>`** for proposal confirmation.
 
 #### 8. State completeness
 
-- [ ] **Loading**: skeleton matching portfolio-row height.
-- [ ] **Empty (no portfolio entries)**: `<EmptyState>` with copy and a CTA: "Discovery hasn't run yet — the next weekly agent run will populate the portfolio. Or add an editorial seed manually." CTA button: `Add editorial seed` (opens a form in a drawer for manual entry).
-- [ ] **Empty (per-source filter)**: source-aware copy: "No `serp_sample` entries — the SERP sampling source may have failed or returned no qualifying signals."
-- [ ] **Error**: `<ErrorState onRetry={refetch}>`.
-- [ ] **Degraded**: portfolio entry whose source no longer exists (cluster archived, trend data expired) — show "Source unavailable" muted but keep the entry.
-- [ ] **First-time** (no entries ever): one-time helper banner: "Discovery runs weekly. The next run is Monday 13:00 UTC. Force-run via Operations banner if needed."
+- [x] **Loading**: skeleton matching portfolio-row height.
+- [x] **Empty (no portfolio entries)**: `<EmptyState>` with copy and a CTA: "Discovery hasn't run yet — the next weekly agent run will populate the portfolio. Or add an editorial seed manually." CTA button: `Add editorial seed` (opens a form in a drawer for manual entry).
+- [x] **Empty (per-source filter)**: source-aware copy: "No `serp_sample` entries — the SERP sampling source may have failed or returned no qualifying signals."
+- [x] **Error**: `<ErrorState onRetry={refetch}>`.
+- [x] **Degraded**: portfolio entry whose source no longer exists (cluster archived, trend data expired) — show "Source unavailable" muted but keep the entry.
+- [x] **First-time** (no entries ever): one-time helper banner: "Discovery runs weekly. The next run is Monday 13:00 UTC. Use `Rebuild portfolio` above if you need candidates before the scheduled run."
 
 #### 9. Add-editorial-seed flow
 
 The `editorial_seed` source type is human input — Wylie typing in keywords he wants the system to track.
 
-- [ ] **`Add seed` button** in the page header (top-right, near the filter chips).
-- [ ] Click opens a `<Drawer>` (right-side, same as detail) with a small form:
+- [x] **`Add seed` button** in the page header (top-right, near the filter chips).
+- [x] Click opens a `<Drawer>` (right-side, same as detail) with a compact manual-seed form:
   - Keyword (text input, 1-100 chars)
-  - Target intent (select: `informational` / `commercial` / `navigational` — match the typed intent enum if Task 2's spec includes one)
-  - Notes (textarea, optional)
+  - Recommended page type
+  - Target URL (optional)
+  - Seeded `demand`, `competition`, and `LAEA fit` scores
+  - Rationale textarea
   - Submit → POST creates the row with `sourceType: editorial_seed`, `status: scored` (skip discovery, go straight to scoring queue).
-- [ ] Form uses controlled inputs + inline validation. Submit disabled while pending.
+- [x] Form uses controlled inputs + inline validation. Submit is disabled while invalid or pending.
 
 #### 10. Color-blind safety
 
-- [ ] All status pills use icon + text + color (never color alone).
-- [ ] Demand/competition bars include numeric values + tier labels (not bar-color-only signal).
-- [ ] Source pills include both icon + text label.
+- [x] All status pills use icon + text + color (never color alone).
+- [x] Demand/competition bars include numeric values + tier labels (not bar-color-only signal).
+- [x] Source pills include both icon + text label.
 
 #### 11. Dark mode decision
 
@@ -383,28 +386,28 @@ The `editorial_seed` source type is human input — Wylie typing in keywords he 
 
 #### 12. Keyboard + a11y
 
-- [ ] Sortable column headers: each is a `<button>` with `aria-sort` attribute reflecting current sort state.
-- [ ] Filter chip rows: arrow keys cycle, Enter activates (per WAI-ARIA toggle-button-group pattern).
-- [ ] Promote button: keyboard-reachable; `<ConfirmDialog>` traps focus.
-- [ ] Add-seed form: full keyboard flow with Tab; Escape dismisses the drawer.
-- [ ] Inline demand/competition bars include `aria-label` summarizing the value (e.g. `aria-label="Demand: 78 of 100, high"`).
+- [x] Sortable column headers: each is a `<button>` with `aria-sort` attribute reflecting current sort state.
+- [x] Filter chip rows: arrow keys cycle, Enter activates (per WAI-ARIA toggle-button-group pattern).
+- [x] Promote button: keyboard-reachable; `<ConfirmDialog>` traps focus.
+- [x] Add-seed form: full keyboard flow with Tab; Escape dismisses the drawer.
+- [x] Inline demand/competition bars include `aria-label` summarizing the value (e.g. `aria-label="Demand: 78 of 100, high"`).
 
 #### 13. Serper spend visibility
 
 - [ ] Add a compact ops card above the portfolio table showing: `credits used this week`, `effective spend`, `remaining purchased balance`, `projected depletion date`, and `auto-top-up: off`.
-- [ ] The same spend summary appears in the row/detail context when a keyword has a fresh `serp_sample`, so operators can see that the paid enrichment is cached and already paid for.
-- [ ] Threshold states (`25%`, `50%`, `75%`, `90%` credit burn) use icon + text + color, not color alone.
+- [x] The same spend summary appears in the row/detail context when a keyword has a fresh `serp_sample`, so operators can see that the paid enrichment is cached and already paid for.
+- [x] Threshold states (`25%`, `50%`, `75%`, `90%` credit burn) use icon + text + color, not color alone.
 
 ### Definition of Done additions
 
 - [ ] Portfolio tab + table render correctly at 375px / 768px / 1280px
-- [ ] Sortable columns with visible sort indicators
-- [ ] All 4 source types have icon + text + color pills (color-blind safe)
-- [ ] Promote-to-experiment confirmation flow works end-to-end with toast feedback
-- [ ] Add-editorial-seed drawer-form works; new entries appear in the portfolio at status `scored`
-- [ ] Mobile tab strip fallback decision (dropdown vs scroll) consistent with SEOI-10's call
+- [x] Sortable columns with visible sort indicators
+- [x] All 4 source types have icon + text + color pills (color-blind safe)
+- [x] Promote-to-proposal confirmation flow works end-to-end with toast feedback
+- [x] Add-editorial-seed drawer-form works; new entries appear in the portfolio at status `scored`
+- [x] Mobile tab strip fallback decision (dropdown vs scroll) consistent with SEOI-10's call
 - [ ] Lighthouse Accessibility ≥95 with table + drawer + form rendered
-- [ ] Inline bars communicate via length + numeric value + tier label, not color alone
+- [x] Inline bars communicate via length + numeric value + tier label, not color alone
 - [ ] Serper spend card is visible and understandable on desktop + mobile
 
 ### What's correct already

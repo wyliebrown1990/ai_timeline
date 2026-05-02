@@ -179,7 +179,7 @@ export default function SeoClustersPage() {
         </div>
       </header>
 
-      <SeoInsightsSectionNav />
+      <SeoInsightsSectionNav activeCount={result?.pagination.total ?? 0} />
 
       <section className="rounded-[28px] border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
         <div className="border-b border-gray-200 px-5 py-5 dark:border-gray-800">

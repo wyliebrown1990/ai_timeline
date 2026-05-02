@@ -37,6 +37,7 @@ export function ConfirmDialog({
   isLoading = false,
 }: ConfirmDialogProps) {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Handle escape key and focus management
   useEffect(() => {
@@ -45,6 +46,39 @@ export function ConfirmDialog({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onCancel();
+        return;
+      }
+
+      if (e.key !== 'Tab') {
+        return;
+      }
+
+      const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+
+      if (!focusableElements || focusableElements.length === 0) {
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (!firstElement || !lastElement) {
+        return;
+      }
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+        return;
+      }
+
+      if (document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
       }
     };
 
@@ -71,6 +105,7 @@ export function ConfirmDialog({
 
       {/* Dialog */}
       <div
+        ref={dialogRef}
         data-testid="confirm-dialog"
         className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden"
       >
@@ -92,6 +127,7 @@ export function ConfirmDialog({
           </div>
           <button
             onClick={onCancel}
+            aria-label="Close dialog"
             className="flex-shrink-0 text-gray-400 hover:text-gray-500"
           >
             <X className="h-5 w-5" />

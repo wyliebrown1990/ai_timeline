@@ -207,7 +207,7 @@ Admin CMS only.
 
 - [ ] **Tab inside `/admin/seo-insights`** at position 6 (after Insights · Actions · Proposals · Clusters · Experiments). Same flat-nav constraint as SEOI-8/9.
 - [ ] **Tab label includes count**: `Packaging (12 pages with issues, 3 critical)`. Surface the critical count separately — packaging issues vary widely in severity and the operator should see "this is critical" without opening the tab.
-- [ ] **Mobile**: 6 tabs at 375px will scroll heavily. Consider collapsing the tab strip into a `<select>` dropdown on mobile (single-row dropdown with active label) once tabs exceed 5. Alternative: keep horizontal scroll-with-snap and accept that mobile users will scroll. **Decision needed in Task 5** — pick before implementing.
+- [x] **Mobile**: shared `SeoInsightsSectionNav` now collapses the 6+ section tab bar into a `<select>` dropdown on mobile. Prod validation at `375px` confirmed the control renders on `/admin/seo-insights/packaging` and navigates correctly from the portfolio page.
 
 #### 2. Packaging audit findings table (Task 5)
 
@@ -291,7 +291,7 @@ The plan says H1 / schema / canonical / internal-link changes stay human-only. V
 - [ ] Severity pills are color-blind safe (icon + text + color, never color alone)
 - [ ] Routing-change diff panel reuses or extends `<SeoDiffPanel>` from SEOI-4
 - [ ] Human-only action buttons visually distinct from auto-ship buttons (no confusion possible)
-- [ ] Mobile fallback for tab strip decided (Task 5 sub-decision before implementing)
+- [x] Mobile fallback for tab strip decided (Task 5 sub-decision before implementing)
 - [ ] Lighthouse Accessibility ≥95 with audit table + diff panel rendered
 - [ ] Detection scope footer line visible on the tab so operators see what's audited
 

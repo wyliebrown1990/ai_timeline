@@ -98,6 +98,8 @@ function buildHealthResult(overrides: Partial<Awaited<ReturnType<typeof seoInsig
     serper: {
       configured: true,
       enabled: true,
+      pricingEnabled: true,
+      pausedBySeoAgent: false,
       autoTopupEnabled: false,
       tierLabel: 'starter',
       purchasedCredits: 50_000,
@@ -376,6 +378,7 @@ describe('SeoInsightsPage', () => {
     expect(await screen.findByText(/weekly digest is not live yet/i)).toBeInTheDocument();
     expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('Serper spend');
     expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('4 queries');
+    expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('$0.0040');
     expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('Auto top-up off');
     expect(screen.getByRole('button', { name: /pause auto-ship/i })).toHaveAttribute('aria-pressed', 'false');
   });
@@ -386,6 +389,8 @@ describe('SeoInsightsPage', () => {
       serper: {
         configured: true,
         enabled: true,
+        pricingEnabled: true,
+        pausedBySeoAgent: false,
         autoTopupEnabled: false,
         tierLabel: 'starter',
         purchasedCredits: 50_000,

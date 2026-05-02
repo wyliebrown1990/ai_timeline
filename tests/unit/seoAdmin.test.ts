@@ -38,7 +38,9 @@ const mockGetSeoPackagingAudit = jest.fn();
 const mockListKeywordOpportunities = jest.fn();
 const mockCreateEditorialKeywordOpportunity = jest.fn();
 const mockGetKeywordOpportunity = jest.fn();
+const mockArchiveKeywordOpportunity = jest.fn();
 const mockMarkKeywordOpportunityPromoted = jest.fn();
+const mockRefreshKeywordOpportunitySerp = jest.fn();
 const mockRebuildKeywordPortfolio = jest.fn();
 const mockGetSerperUsageSummary = jest.fn();
 
@@ -108,7 +110,9 @@ jest.mock('../../server/src/services/seo/keywordDiscovery', () => ({
   listKeywordOpportunities: mockListKeywordOpportunities,
   createEditorialKeywordOpportunity: mockCreateEditorialKeywordOpportunity,
   getKeywordOpportunity: mockGetKeywordOpportunity,
+  archiveKeywordOpportunity: mockArchiveKeywordOpportunity,
   markKeywordOpportunityPromoted: mockMarkKeywordOpportunityPromoted,
+  refreshKeywordOpportunitySerp: mockRefreshKeywordOpportunitySerp,
   rebuildKeywordPortfolio: mockRebuildKeywordPortfolio,
 }));
 
@@ -148,10 +152,12 @@ import {
   pause,
   pendingFeedback,
   promotePortfolioOpportunity,
+  refreshPortfolioOpportunitySerp,
   rebuildPortfolio,
   proposals,
   proposeInsightRewrite,
   approveProposal,
+  archivePortfolioOpportunity,
   generateProposalFromInsight,
   rejectProposal,
   reviewExperiment,
@@ -186,6 +192,8 @@ describe('seoAdmin controller', () => {
     mockGetSerperUsageSummary.mockResolvedValue({
       configured: false,
       enabled: false,
+      pricingEnabled: false,
+      pausedBySeoAgent: false,
       autoTopupEnabled: false,
       tierLabel: null,
       purchasedCredits: null,
@@ -371,6 +379,8 @@ describe('seoAdmin controller', () => {
       serper: {
         configured: false,
         enabled: false,
+        pricingEnabled: false,
+        pausedBySeoAgent: false,
         autoTopupEnabled: false,
         tierLabel: null,
         purchasedCredits: null,
@@ -1076,6 +1086,60 @@ describe('seoAdmin controller', () => {
     expect(res.json).toHaveBeenCalledWith({
       opportunity: expect.objectContaining({ id: 'kw_serp_1', status: 'promoted' }),
       proposal: expect.objectContaining({ id: 'proposal_serp_1', targetKeyword: 'ai timeline' }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a SERP-sampled keyword opportunity in place', async () => {
+    mockRefreshKeywordOpportunitySerp.mockResolvedValue({
+      id: 'kw_serp_1',
+      sourceType: 'serp_sample',
+      seedQuery: 'ai timeline',
+      status: 'scored',
+      competitionProxy: 28,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await refreshPortfolioOpportunitySerp(createRequest({ params: { id: 'kw_serp_1' } }), res, next);
+
+    expect(mockRefreshKeywordOpportunitySerp).toHaveBeenCalledWith('kw_serp_1');
+    expect(res.json).toHaveBeenCalledWith({
+      opportunity: expect.objectContaining({
+        id: 'kw_serp_1',
+        sourceType: 'serp_sample',
+        competitionProxy: 28,
+      }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('archives an active keyword opportunity', async () => {
+    mockGetKeywordOpportunity.mockResolvedValue({
+      id: 'kw_1',
+      sourceType: 'gsc_cluster',
+      seedQuery: 'mixture of experts',
+      status: 'scored',
+      pageTypeRecommendation: 'explainer_page',
+      clusterSnapshotId: 'cluster_1',
+      targetUrl: 'https://letaiexplainai.com/explained/mixture-of-experts-moe',
+    });
+    mockArchiveKeywordOpportunity.mockResolvedValue({
+      id: 'kw_1',
+      seedQuery: 'mixture of experts',
+      status: 'archived',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await archivePortfolioOpportunity(createRequest({ params: { id: 'kw_1' } }), res, next);
+
+    expect(mockGetKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    expect(mockArchiveKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    expect(res.json).toHaveBeenCalledWith({
+      opportunity: expect.objectContaining({ id: 'kw_1', status: 'archived' }),
     });
     expect(next).not.toHaveBeenCalled();
   });
