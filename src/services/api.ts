@@ -6258,6 +6258,8 @@ export interface SeoSerperUsageSummary {
   effectiveSpendMonthUsd: number;
   effectiveSpendTotalUsd: number;
   remainingCredits: number | null;
+  remainingCreditsSource?: 'unavailable' | 'policy_derived' | 'vendor_observed_adjusted';
+  remainingCreditsObservedAt?: string | null;
   projectedDepletionDate: string | null;
   lastSampledAt: string | null;
   warningLevel: SeoSerperUsageWarningLevel;

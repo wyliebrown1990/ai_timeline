@@ -57,6 +57,8 @@ const EMPTY_SERPER_SUMMARY: SeoSerperUsageSummary = {
   effectiveSpendMonthUsd: 0,
   effectiveSpendTotalUsd: 0,
   remainingCredits: null,
+  remainingCreditsSource: 'unavailable',
+  remainingCreditsObservedAt: null,
   projectedDepletionDate: null,
   lastSampledAt: null,
   warningLevel: 'ok',
@@ -242,9 +244,12 @@ function formatDateTime(value: string | null): string {
     return 'Not sampled yet';
   }
 
+  const includeYear = parsed.getFullYear() !== new Date().getFullYear();
+
   return parsed.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
+    ...(includeYear ? { year: 'numeric' as const } : {}),
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -440,6 +445,28 @@ function getSerperStatusIcon(serper: SeoSerperUsageSummary) {
   }
 }
 
+function getSerperBalanceLabel(serper: SeoSerperUsageSummary): string {
+  if (serper.remainingCreditsSource === 'vendor_observed_adjusted') {
+    return 'Tracked Vendor Balance';
+  }
+
+  return 'Tracked Credits';
+}
+
+function getSerperBalanceDetail(serper: SeoSerperUsageSummary): string {
+  if (serper.remainingCreditsSource === 'vendor_observed_adjusted') {
+    return serper.remainingCreditsObservedAt
+      ? `Observed ${formatDateTime(serper.remainingCreditsObservedAt)} and adjusted by LAEA-tracked queries since then`
+      : 'Observed in Serper billing and adjusted by LAEA-tracked queries since then';
+  }
+
+  if (serper.remainingCreditsSource === 'policy_derived') {
+    return `Policy baseline only · Pack ${formatCount(serper.purchasedCredits)}`;
+  }
+
+  return `Tier ${serper.tierLabel ?? 'custom'}`;
+}
+
 function getSerperBurnState(serper: SeoSerperUsageSummary): {
   label: string;
   detail: string;
@@ -468,7 +495,7 @@ function getSerperBurnState(serper: SeoSerperUsageSummary): {
     };
   }
 
-  if (serper.purchasedCredits && serper.remainingCredits !== null) {
+  if (serper.remainingCreditsSource === 'policy_derived' && serper.purchasedCredits && serper.remainingCredits !== null) {
     const burnedRatio = (serper.purchasedCredits - serper.remainingCredits) / serper.purchasedCredits;
     if (burnedRatio >= 0.9) {
       return {
@@ -508,9 +535,20 @@ function getSerperBurnState(serper: SeoSerperUsageSummary): {
 
     return {
       label: 'Under 25% used',
-      detail: 'Healthy runway remains on the current purchased credit pack.',
+      detail: 'Healthy runway remains on the configured credit-pack baseline.',
       className: 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-200',
       icon: CircleCheck,
+    };
+  }
+
+  if (serper.remainingCreditsSource === 'vendor_observed_adjusted') {
+    return {
+      label: 'Vendor balance tracked',
+      detail: serper.remainingCreditsObservedAt
+        ? `Balance is anchored to a Serper billing observation from ${formatDateTime(serper.remainingCreditsObservedAt)} and decremented by LAEA-tracked queries after that point.`
+        : 'Balance is anchored to a Serper billing observation and decremented by LAEA-tracked queries after that point.',
+      className: 'border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-900/50 dark:bg-sky-950/30 dark:text-sky-200',
+      icon: TrendingUp,
     };
   }
 
@@ -542,7 +580,7 @@ function getSerperBurnState(serper: SeoSerperUsageSummary): {
 
 function getSerperOpsSummary(serper: SeoSerperUsageSummary): string {
   if (!serper.configured) {
-    return 'Serper is not configured yet. Once the API key and pricing JSON are in SSM, this card will show live usage and policy details.';
+    return 'Serper is not configured yet. Once the API key and pricing JSON are in SSM, this card will show tracked usage and policy details.';
   }
 
   if (serper.pausedBySeoAgent) {
@@ -553,7 +591,11 @@ function getSerperOpsSummary(serper: SeoSerperUsageSummary): string {
     return 'Pricing policy currently disables Serper, so this discovery lane is intentionally read-only.';
   }
 
-  return 'Serper is only used to refine shortlisted opportunities. Cache-first sampling and query caps keep this lane useful without becoming a quiet cost leak.';
+  if (serper.remainingCreditsSource === 'vendor_observed_adjusted') {
+    return 'Serper is only used to refine shortlisted opportunities. Query caps and cache reuse keep spend intentional, and the balance card is anchored to the last vendor billing observation rather than guessed from a static pack size.';
+  }
+
+  return 'Serper is only used to refine shortlisted opportunities. Cache-first sampling and query caps keep this lane useful without becoming a quiet cost leak, and balance is tracked against the configured policy baseline.';
 }
 
 function buildRebuildToastMessage(rebuild: SeoKeywordPortfolioRebuildResult): string {
@@ -1177,7 +1219,7 @@ export default function SeoKeywordPortfolioPage() {
 
         {!serper.configured ? (
           <div className="mt-4 rounded-2xl border border-dashed border-amber-300 bg-white/70 px-4 py-4 text-sm text-slate-700 dark:border-amber-900/60 dark:bg-slate-950/50 dark:text-slate-300">
-            Serper is not configured yet. Once the API key and pricing JSON are in SSM, this page will start showing live credits, spend, and the last sampled SERP timestamp.
+            Serper is not configured yet. Once the API key and pricing JSON are in SSM, this page will start showing tracked credits, modeled spend, and the last sampled SERP timestamp.
           </div>
         ) : (
           <>
@@ -1187,10 +1229,10 @@ export default function SeoKeywordPortfolioPage() {
                 <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
                   {serper.creditsUsedWeek.toLocaleString()} queries
                 </p>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{formatUsd(serper.effectiveSpendWeekUsd)} spent</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{formatUsd(serper.effectiveSpendWeekUsd)} modeled spend</p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">This Month</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Modeled Month</p>
                 <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
                   {formatUsd(serper.effectiveSpendMonthUsd)}
                 </p>
@@ -1199,12 +1241,12 @@ export default function SeoKeywordPortfolioPage() {
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Remaining Credits</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{getSerperBalanceLabel(serper)}</p>
                 <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
                   {formatCount(serper.remainingCredits)}
                 </p>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Tier {serper.tierLabel ?? 'custom'} · Purchased {formatCount(serper.purchasedCredits)}
+                  {getSerperBalanceDetail(serper)}
                 </p>
               </div>
               <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/70">

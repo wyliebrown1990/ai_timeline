@@ -129,6 +129,8 @@ function buildListResult() {
         effectiveSpendMonthUsd: 0.005,
         effectiveSpendTotalUsd: 0.005,
         remainingCredits: 49995,
+        remainingCreditsSource: 'policy_derived' as const,
+        remainingCreditsObservedAt: null,
         projectedDepletionDate: null,
         lastSampledAt: '2026-05-01T12:00:00.000Z',
         warningLevel: 'ok' as const,
@@ -203,8 +205,10 @@ describe('SeoKeywordPortfolioPage', () => {
     expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('Auto top-up off');
     expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('Google search · US/EN · qdr:m · page 1');
     expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('3/run · 10/day · 25/week');
-    expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('$0.0030 spent');
+    expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('$0.0030 modeled spend');
     expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('$0.0050');
+    expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('Tracked Credits');
+    expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('Policy baseline only');
     expect(screen.getByTestId('seo-serper-ops-card')).toHaveTextContent('$1.00 / 1k queries');
     expect(screen.getByTestId('seo-serper-burn-state')).toHaveTextContent('Under 25% used');
     expect(screen.getByTestId('seo-serper-burn-state')).toHaveTextContent('Healthy runway remains');

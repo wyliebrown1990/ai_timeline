@@ -50,6 +50,8 @@ export interface SerperPricingConfig {
   tierLabel: string;
   usdPerThousandQueries: number;
   purchasedCredits: number | null;
+  observedRemainingCredits: number | null;
+  observedRemainingCreditsAt: string | null;
   monthlyCreditBudget: number | null;
   maxQueriesPerRun: number;
   maxQueriesPerDay: number;
@@ -69,6 +71,7 @@ interface SerperRuntimeConfig {
 }
 
 export type SerperUsageWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
+export type SerperRemainingCreditsSource = 'unavailable' | 'policy_derived' | 'vendor_observed_adjusted';
 
 export interface SerperUsageSummary {
   configured: boolean;
@@ -88,6 +91,8 @@ export interface SerperUsageSummary {
   effectiveSpendMonthUsd: number;
   effectiveSpendTotalUsd: number;
   remainingCredits: number | null;
+  remainingCreditsSource: SerperRemainingCreditsSource;
+  remainingCreditsObservedAt: string | null;
   projectedDepletionDate: string | null;
   lastSampledAt: string | null;
   warningLevel: SerperUsageWarningLevel;
@@ -274,12 +279,23 @@ function toNullablePositiveInteger(value: unknown): number | null {
   return Math.round(parsed);
 }
 
+function toNullableNonNegativeInteger(value: unknown): number | null {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return Math.round(parsed);
+}
+
 function buildDefaultPricingConfig(): SerperPricingConfig {
   return {
     enabled: false,
     tierLabel: 'starter',
     usdPerThousandQueries: 1,
     purchasedCredits: 50_000,
+    observedRemainingCredits: null,
+    observedRemainingCreditsAt: null,
     monthlyCreditBudget: 2_500,
     maxQueriesPerRun: 3,
     maxQueriesPerDay: 10,
@@ -308,6 +324,10 @@ function parsePricingConfig(rawValue: string | null): SerperPricingConfig {
         : defaults.tierLabel,
       usdPerThousandQueries: Math.max(0, toFiniteNumber(parsed.usdPerThousandQueries, defaults.usdPerThousandQueries)),
       purchasedCredits: toNullablePositiveInteger(parsed.purchasedCredits) ?? defaults.purchasedCredits,
+      observedRemainingCredits: toNullableNonNegativeInteger(parsed.observedRemainingCredits),
+      observedRemainingCreditsAt: typeof parsed.observedRemainingCreditsAt === 'string' && parsed.observedRemainingCreditsAt.trim().length > 0
+        ? parsed.observedRemainingCreditsAt.trim()
+        : null,
       monthlyCreditBudget: toNullablePositiveInteger(parsed.monthlyCreditBudget) ?? defaults.monthlyCreditBudget,
       maxQueriesPerRun: Math.max(1, Math.round(toFiniteNumber(parsed.maxQueriesPerRun, defaults.maxQueriesPerRun))),
       maxQueriesPerDay: Math.max(1, Math.round(toFiniteNumber(parsed.maxQueriesPerDay, defaults.maxQueriesPerDay))),
@@ -526,7 +546,7 @@ function startOfRollingWindow(date: Date, days: number): Date {
   return new Date(date.getTime() - (days * DAY_MS));
 }
 
-async function loadAggregateUsage(where: { sampledAt?: { gte: Date } }): Promise<AggregateUsageRow> {
+async function loadAggregateUsage(where: Prisma.SerpSampleWhereInput): Promise<AggregateUsageRow> {
   return prisma.serpSample.aggregate({
     where,
     _sum: {
@@ -534,6 +554,15 @@ async function loadAggregateUsage(where: { sampledAt?: { gte: Date } }): Promise
       effectiveCostUsd: true,
     },
   });
+}
+
+function parseOptionalIsoDate(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function deriveProjectedDepletionDate(remainingCredits: number | null, creditsUsedWeek: number, now: Date): string | null {
@@ -570,11 +599,16 @@ function getDaysUntilDate(isoValue: string | null, now: Date): number | null {
 function deriveWarningLevel(
   purchasedCredits: number | null,
   remainingCredits: number | null,
+  remainingCreditsSource: SerperRemainingCreditsSource,
   projectedDepletionDate: string | null,
   now: Date
 ): SerperUsageWarningLevel {
   const daysUntilDepletion = getDaysUntilDate(projectedDepletionDate, now);
-  if (!purchasedCredits || remainingCredits === null) {
+  if (remainingCredits !== null && remainingCredits <= 0) {
+    return 'critical';
+  }
+
+  if (remainingCreditsSource !== 'policy_derived' || !purchasedCredits || remainingCredits === null) {
     if (daysUntilDepletion !== null && daysUntilDepletion <= 14) {
       return 'critical';
     }
@@ -616,8 +650,9 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
   const startToday = startOfUtcDay(now);
   const startWeek = startOfRollingWindow(now, 7);
   const startMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const observedRemainingCreditsAt = parseOptionalIsoDate(runtimeConfig.pricing.observedRemainingCreditsAt);
 
-  const [today, week, month, total, latest] = await Promise.all([
+  const [today, week, month, total, latest, usageSinceObserved] = await Promise.all([
     loadAggregateUsage({ sampledAt: { gte: startToday } }),
     loadAggregateUsage({ sampledAt: { gte: startWeek } }),
     loadAggregateUsage({ sampledAt: { gte: startMonth } }),
@@ -630,14 +665,30 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
         sampledAt: true,
       },
     }),
+    observedRemainingCreditsAt
+      ? loadAggregateUsage({
+        sampledAt: {
+          gt: observedRemainingCreditsAt,
+        },
+      })
+      : Promise.resolve(null),
   ]);
 
   const creditsUsedTotal = total._sum.creditsUsed ?? 0;
-  const remainingCredits = !runtimeConfig.configured
-    ? null
-    : runtimeConfig.pricing.purchasedCredits === null
-    ? null
-    : Math.max(0, runtimeConfig.pricing.purchasedCredits - creditsUsedTotal);
+  let remainingCredits: number | null = null;
+  let remainingCreditsSource: SerperRemainingCreditsSource = 'unavailable';
+
+  if (runtimeConfig.configured && observedRemainingCreditsAt && runtimeConfig.pricing.observedRemainingCredits !== null) {
+    remainingCredits = Math.max(
+      0,
+      runtimeConfig.pricing.observedRemainingCredits - (usageSinceObserved?._sum.creditsUsed ?? 0),
+    );
+    remainingCreditsSource = 'vendor_observed_adjusted';
+  } else if (runtimeConfig.configured && runtimeConfig.pricing.purchasedCredits !== null) {
+    remainingCredits = Math.max(0, runtimeConfig.pricing.purchasedCredits - creditsUsedTotal);
+    remainingCreditsSource = 'policy_derived';
+  }
+
   const projectedDepletionDate = deriveProjectedDepletionDate(remainingCredits, week._sum.creditsUsed ?? 0, now);
 
   return {
@@ -658,11 +709,16 @@ export async function getSerperUsageSummary(now: Date = new Date()): Promise<Ser
     effectiveSpendMonthUsd: Number((month._sum.effectiveCostUsd ?? 0).toFixed(4)),
     effectiveSpendTotalUsd: Number((total._sum.effectiveCostUsd ?? 0).toFixed(4)),
     remainingCredits,
+    remainingCreditsSource,
+    remainingCreditsObservedAt: remainingCreditsSource === 'vendor_observed_adjusted'
+      ? observedRemainingCreditsAt?.toISOString() ?? null
+      : null,
     projectedDepletionDate,
     lastSampledAt: latest?.sampledAt?.toISOString() ?? null,
     warningLevel: deriveWarningLevel(
       runtimeConfig.pricing.purchasedCredits,
       remainingCredits,
+      remainingCreditsSource,
       projectedDepletionDate,
       now
     ),

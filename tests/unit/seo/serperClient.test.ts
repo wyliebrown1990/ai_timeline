@@ -84,6 +84,8 @@ describe('serperClient', () => {
       purchasedCredits: null,
       monthlyCreditBudget: null,
       remainingCredits: null,
+      remainingCreditsSource: 'unavailable',
+      remainingCreditsObservedAt: null,
       warningLevel: 'ok',
       policy: null,
     }));
@@ -153,6 +155,7 @@ describe('serperClient', () => {
     const summary = await getSerperUsageSummary(new Date('2026-05-01T21:00:00.000Z'));
 
     expect(summary.remainingCredits).toBe(22_000);
+    expect(summary.remainingCreditsSource).toBe('policy_derived');
     expect(summary.projectedDepletionDate).not.toBeNull();
     expect(summary.warningLevel).toBe('warning');
     expect(summary.policy).toEqual({
@@ -526,5 +529,82 @@ describe('serperClient', () => {
     expect(candidateResult.usage.pausedBySeoAgent).toBe(true);
     expect(global.fetch).not.toHaveBeenCalled();
     expect(mockSerpSampleCreate).not.toHaveBeenCalled();
+  });
+
+  it('prefers a vendor-observed balance baseline and only decrements post-observation usage', async () => {
+    mockSend.mockImplementation(async (command: { Name: string }) => {
+      if (command.Name?.includes('serper-api-key')) {
+        return {
+          Parameter: {
+            Value: 'test-serper-key',
+          },
+        };
+      }
+
+      return {
+        Parameter: {
+          Value: JSON.stringify({
+            enabled: true,
+            tierLabel: 'starter',
+            purchasedCredits: 50_000,
+            observedRemainingCredits: 2_496,
+            observedRemainingCreditsAt: '2026-05-01T21:30:00.000Z',
+            monthlyCreditBudget: 2_500,
+            usdPerThousandQueries: 1,
+            maxQueriesPerRun: 3,
+            maxQueriesPerDay: 10,
+            maxQueriesPerWeek: 25,
+            cacheTtlDays: 28,
+            country: 'us',
+            language: 'en',
+            dateRange: 'qdr:m',
+            page: 1,
+            autoTopupEnabled: false,
+          }),
+        },
+      };
+    });
+
+    mockSerpSampleAggregate
+      .mockResolvedValueOnce({
+        _sum: {
+          creditsUsed: 0,
+          effectiveCostUsd: 0,
+        },
+      })
+      .mockResolvedValueOnce({
+        _sum: {
+          creditsUsed: 2,
+          effectiveCostUsd: 0.002,
+        },
+      })
+      .mockResolvedValueOnce({
+        _sum: {
+          creditsUsed: 4,
+          effectiveCostUsd: 0.004,
+        },
+      })
+      .mockResolvedValueOnce({
+        _sum: {
+          creditsUsed: 4,
+          effectiveCostUsd: 0.004,
+        },
+      })
+      .mockResolvedValueOnce({
+        _sum: {
+          creditsUsed: 2,
+          effectiveCostUsd: 0.002,
+        },
+      });
+    mockSerpSampleFindFirst.mockResolvedValue({
+      sampledAt: new Date('2026-05-01T21:45:00.000Z'),
+    });
+
+    const summary = await getSerperUsageSummary(new Date('2026-05-01T22:00:00.000Z'));
+
+    expect(summary.remainingCredits).toBe(2_494);
+    expect(summary.remainingCreditsSource).toBe('vendor_observed_adjusted');
+    expect(summary.remainingCreditsObservedAt).toBe('2026-05-01T21:30:00.000Z');
+    expect(summary.warningLevel).toBe('ok');
   });
 });

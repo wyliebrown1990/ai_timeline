@@ -137,9 +137,12 @@ function formatDateTime(value: string | null): string {
     return 'Not sampled yet';
   }
 
+  const includeYear = parsed.getFullYear() !== new Date().getFullYear();
+
   return parsed.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
+    ...(includeYear ? { year: 'numeric' as const } : {}),
     hour: 'numeric',
     minute: '2-digit',
   });
@@ -184,6 +187,12 @@ function getSerperSummaryText(serper: SeoSerperUsageSummary): string {
 
   if (!serper.pricingEnabled) {
     return 'Serper is configured but disabled in pricing policy, so the discovery lane is staying read-only.';
+  }
+
+  if (serper.remainingCreditsSource === 'vendor_observed_adjusted') {
+    return serper.lastSampledAt
+      ? `Serper sampling is healthy. Balance is anchored to the last vendor billing observation, and the most recent paid sample ran ${formatRelativeTime(serper.lastSampledAt)}.`
+      : 'Serper sampling is healthy. Balance is anchored to the last vendor billing observation and will keep stepping down as LAEA records new paid samples.';
   }
 
   if (serper.warningLevel === 'critical') {
@@ -488,21 +497,29 @@ export default function SeoInsightsPage() {
                         <p className="mt-1 text-base font-semibold text-slate-900">
                           {serper.creditsUsedWeek.toLocaleString()} queries
                         </p>
-                        <p className="text-slate-600">{formatUsd(serper.effectiveSpendWeekUsd)}</p>
+                        <p className="text-slate-600">{formatUsd(serper.effectiveSpendWeekUsd)} modeled</p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Month to date</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Modeled month</p>
                         <p className="mt-1 text-base font-semibold text-slate-900">
                           {formatUsd(serper.effectiveSpendMonthUsd)}
                         </p>
                         <p className="text-slate-600">Budget {formatCount(serper.monthlyCreditBudget)} credits</p>
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Credits left</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                          {serper.remainingCreditsSource === 'vendor_observed_adjusted' ? 'Tracked vendor balance' : 'Tracked credits'}
+                        </p>
                         <p className="mt-1 text-base font-semibold text-slate-900">
                           {formatCount(serper.remainingCredits)}
                         </p>
-                        <p className="text-slate-600">Tier {serper.tierLabel ?? 'custom'}</p>
+                        <p className="text-slate-600">
+                          {serper.remainingCreditsSource === 'vendor_observed_adjusted'
+                            ? serper.remainingCreditsObservedAt
+                              ? `Observed ${formatDateTime(serper.remainingCreditsObservedAt)}`
+                              : 'Observed in vendor billing'
+                            : `Tier ${serper.tierLabel ?? 'custom'} · Policy basis`}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Sampling activity</p>
