@@ -842,6 +842,93 @@ describe('SeoKeywordPortfolioPage', () => {
     toastRender.unmount();
   });
 
+  it('links rejected keyword-opportunity proposals straight to the rejected queue', async () => {
+    const eligibleOpportunity = buildOpportunity({
+      dedupeKey: 'gsc_cluster:in-context-learning:blog_post:/explained/in-context-learning',
+      seedQuery: 'in context learning',
+      pageTypeRecommendation: 'blog_post',
+      targetUrl: 'https://letaiexplainai.com/explained/in-context-learning',
+    });
+
+    mockSeoInsightsApi.listKeywordPortfolio
+      .mockResolvedValueOnce({
+        ...buildListResult(),
+        data: [eligibleOpportunity],
+      })
+      .mockResolvedValueOnce({
+        ...buildListResult(),
+        data: [
+          {
+            ...eligibleOpportunity,
+            status: 'promoted',
+          },
+        ],
+      });
+    mockSeoInsightsApi.promoteKeywordOpportunity.mockResolvedValue({
+      opportunity: {
+        ...eligibleOpportunity,
+        status: 'promoted',
+      },
+      proposal: {
+        id: 'proposal_rejected_1',
+        sourceType: 'keyword_opportunity',
+        sourceId: 'kw_1',
+        proposalType: 'blog_post',
+        sourceBucket: 'gsc_cluster',
+        sourcePage: 'https://letaiexplainai.com/explained/in-context-learning',
+        sourceQuery: 'in context learning',
+        sourceWindowStart: '2026-05-01',
+        sourceWindowEnd: null,
+        targetKeyword: 'in context learning',
+        suggestedAngle: 'Why in-context learning became the most surprising emergent behavior in large models.',
+        rationale: 'Clustered demand with a strong LAEA fit.',
+        linkInventory: [],
+        newsHooks: [],
+        confidence: 0.83,
+        status: 'rejected',
+        draftPost: null,
+        actedAt: null,
+        rejectedReason: 'Too close to an existing explainer destination.',
+        hypothesis: 'Clustered demand with a strong LAEA fit.',
+        createdAt: '2026-05-02T13:48:24.000Z',
+        topicPod: null,
+        routingPlan: null,
+        packagingFixPlan: null,
+        handoff: {
+          mode: 'blog_draft',
+          command: '/AIBlogDraft topic: "Why in-context learning became the most surprising emergent behavior in large models."',
+          label: 'Send to /AIBlogDraft',
+          topic: 'Why in-context learning became the most surprising emergent behavior in large models.',
+          keyword: 'in context learning',
+          newsUrl: null,
+          proposalPath: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+          guidance: 'Approving this proposal keeps a human in the loop and prepares a structured /AIBlogDraft handoff.',
+        },
+      },
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('in context learning')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /queue proposal/i }));
+    const confirmDialog = await screen.findByTestId('confirm-dialog');
+    await user.click(within(confirmDialog).getByRole('button', { name: /^queue proposal$/i }));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.promoteKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    });
+
+    expect(mockToast.error).toHaveBeenCalled();
+    const toastContent = mockToast.error.mock.calls.at(-1)?.[0];
+    const toastRender = render(<>{toastContent as ReactNode}</>);
+    expect(toastRender.getByRole('link', { name: /open rejected proposals/i })).toHaveAttribute(
+      'href',
+      'https://letaiexplainai.com/admin/seo-insights/proposals?status=rejected',
+    );
+    toastRender.unmount();
+  });
+
   it('refreshes an eligible SERP sample from the detail drawer', async () => {
     const serpOpportunity = buildOpportunity({
       id: 'kw_serp_1',

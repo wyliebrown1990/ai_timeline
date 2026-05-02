@@ -427,6 +427,59 @@ describe('SeoInsightsPage', () => {
     expect(screen.getByTestId('seo-digest-serper-snapshot')).toHaveTextContent('tracked vendor balance 2,496');
   });
 
+  it('opens an in-page digest summary when the persisted digest URL loops back to seo insights', async () => {
+    mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
+    mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({
+      agentRun: {
+        status: 'success',
+        startedAt: '2026-05-05T13:00:00.000Z',
+        completedAt: '2026-05-05T13:03:00.000Z',
+        weekStart: '2026-04-28T00:00:00.000Z',
+        shippedCount: 2,
+        proposalCount: 1,
+        humanOnlyCount: 3,
+        measuredCount: 1,
+        digestUrl: '/admin/seo-insights',
+        errorMessage: null,
+        serperSnapshot: {
+          capturedAt: '2026-05-05T13:03:00.000Z',
+          configured: true,
+          enabled: true,
+          autoTopupEnabled: false,
+          creditsUsedWeek: 4,
+          creditsUsedMonth: 4,
+          effectiveSpendWeekUsd: 0.004,
+          effectiveSpendMonthUsd: 0.004,
+          remainingCredits: 2_496,
+          remainingCreditsSource: 'vendor_observed_adjusted' as const,
+          remainingCreditsObservedAt: '2026-05-01T23:51:30.000Z',
+          projectedDepletionDate: '2038-04-16T03:55:00.000Z',
+          lastSampledAt: '2026-05-01T20:53:00.000Z',
+          warningLevel: 'ok' as const,
+        },
+      },
+    }));
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText('turing award multiple winners quiz');
+
+    await user.click(screen.getByTestId('view-digest-summary'));
+
+    expect(await screen.findByTestId('seo-digest-summary-drawer')).toBeInTheDocument();
+    expect(screen.getByText(/last digest run completed/i)).toBeInTheDocument();
+    expect(screen.getByText(/run totals/i)).toBeInTheDocument();
+    expect(screen.getByText(/queued proposals/i)).toBeInTheDocument();
+    expect(screen.getByText(/human-only findings/i)).toBeInTheDocument();
+    expect(screen.getByText(/paid discovery snapshot/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /review proposals/i })).toHaveAttribute(
+      'href',
+      '/admin/seo-insights/proposals'
+    );
+    expect(screen.queryByRole('link', { name: /open linked digest/i })).not.toBeInTheDocument();
+  });
+
   it('elevates Serper warnings on the SEO ops banner when burn looks risky', async () => {
     mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
     mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({

@@ -6208,6 +6208,12 @@ export interface SeoPackagingEvergreenRecommendation {
   rationale: string;
 }
 
+export interface SeoPackagingExistingProposalSummary {
+  id: string;
+  status: 'pending' | 'drafting' | 'approved' | 'shipped';
+  createdAt: string;
+}
+
 export interface SeoPackagingAuditRecord {
   id: string;
   windowStart: string;
@@ -6230,6 +6236,7 @@ export interface SeoPackagingAuditRecord {
   issues: SeoPackagingIssueRecord[];
   structuredDataTypes: string[];
   evergreenRecommendation: SeoPackagingEvergreenRecommendation | null;
+  existingPackagingFixProposal: SeoPackagingExistingProposalSummary | null;
 }
 
 export interface SeoPackagingAuditListResult extends PaginatedResponse<SeoPackagingAuditRecord> {

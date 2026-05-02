@@ -689,7 +689,9 @@ export async function promotePortfolioOpportunity(req: Request, res: Response, n
     )
       ? await generateProposalFromCluster(opportunity.clusterSnapshotId)
       : await generateProposalFromKeywordOpportunity(opportunity.id);
-    const updatedOpportunity = await markKeywordOpportunityPromoted(opportunity.id);
+    const updatedOpportunity = proposal.status === 'rejected'
+      ? opportunity
+      : await markKeywordOpportunityPromoted(opportunity.id);
 
     res.json({
       opportunity: updatedOpportunity,

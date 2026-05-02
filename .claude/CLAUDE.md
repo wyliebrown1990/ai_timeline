@@ -52,6 +52,13 @@ npx prisma migrate deploy
 - `/AIBlogDraft` — create and publish SEO-aware blog drafts
 - `/SEOAuditAgent` — review `/admin/seo-insights`, classify findings into action lanes, and prepare metadata or brief artifacts without publishing slop
 
+## SEO Insights
+
+The SEO system is now a real operator surface, not just a plan. Keep this file concise and use the dedicated reference instead of duplicating route-by-route or workflow-by-workflow details here:
+
+- `.claude/reference/seo-insights.md`
+- `.claude/schedules/seo-weekly.md`
+
 ## Project Structure
 ```
 src/

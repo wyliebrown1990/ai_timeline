@@ -1,9 +1,10 @@
 import { FileText, RefreshCw, Sparkles } from 'lucide-react';
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'react-router-dom';
 import { SeoProposalDrawer } from '../../components/admin/SeoProposalDrawer';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
-import { EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
+import { EmptyState, ErrorState, HelpTooltip, LoadingSkeleton, Tabs } from '../../components/ui';
 import {
   seoInsightsApi,
   type SeoProposalListResult,
@@ -17,6 +18,14 @@ const STATUS_TABS: Array<{ id: Exclude<SeoProposalStatusFilter, 'all'>; label: s
   { id: 'approved', label: 'Approved' },
   { id: 'rejected', label: 'Rejected' },
 ];
+
+function parseProposalStatusParam(value: string | null): Exclude<SeoProposalStatusFilter, 'all'> {
+  if (value === 'drafting' || value === 'approved' || value === 'rejected' || value === 'pending') {
+    return value;
+  }
+
+  return 'pending';
+}
 
 function formatDateTime(value: string): string {
   return new Date(value).toLocaleString();
@@ -62,6 +71,14 @@ function getProposalTypeLabel(type: SeoProposalRecord['proposalType']): string {
   }
 }
 
+function getSourcePageCaption(proposal: SeoProposalRecord): string {
+  if (proposal.sourceType === 'keyword_opportunity') {
+    return `Planned destination ${proposal.sourcePage}`;
+  }
+
+  return proposal.sourcePage;
+}
+
 function getApproveLabel(proposal: SeoProposalRecord): string {
   if (proposal.handoff.mode === 'manual_routing_review') {
     return 'Approve routing plan';
@@ -101,7 +118,7 @@ function getEmptyStateCopy(status: Exclude<SeoProposalStatusFilter, 'all'>): { t
 }
 
 export default function SeoProposalsPage() {
-  const [status, setStatus] = useState<Exclude<SeoProposalStatusFilter, 'all'>>('pending');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<SeoProposalListResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,6 +129,7 @@ export default function SeoProposalsPage() {
   const [rejectTarget, setRejectTarget] = useState<SeoProposalRecord | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectPendingId, setRejectPendingId] = useState<string | null>(null);
+  const status = parseProposalStatusParam(searchParams.get('status'));
 
   const loadProposals = useCallback(async () => {
     setLoading(true);
@@ -217,7 +235,15 @@ export default function SeoProposalsPage() {
               <FileText className="h-3.5 w-3.5" />
               SEO Proposals
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Turn search gaps into deliberate editorial handoffs.</h1>
+            <div className="mt-4 flex items-start gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight">Turn search gaps into deliberate editorial handoffs.</h1>
+              <HelpTooltip
+                title="How to use Proposals"
+                description="This is the human review queue. Approve strong blog handoffs, approve routing or packaging plans, reject weak ideas with a reason, and link the real blog post after AIBlogDraft creates or publishes it."
+                buttonLabel="How to use SEO Proposals"
+                className="mt-1 border-white/15 bg-white/10 text-amber-100 hover:border-white/30 hover:bg-white/15 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-amber-100"
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-amber-100/85">
               Queue thesis-shaped blog ideas, evergreen-routing plans, and manual packaging fixes from live search demand, then move each one through the right human-reviewed workflow.
             </p>
@@ -269,7 +295,11 @@ export default function SeoProposalsPage() {
               activeId={status}
               onChange={(nextTabId) => {
                 startTransition(() => {
-                  setStatus(nextTabId as Exclude<SeoProposalStatusFilter, 'all'>);
+                  setSearchParams((currentParams) => {
+                    const nextParams = new URLSearchParams(currentParams);
+                    nextParams.set('status', nextTabId);
+                    return nextParams;
+                  });
                   setPage(1);
                 });
               }}
@@ -337,7 +367,7 @@ export default function SeoProposalsPage() {
                           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getProposalTypeBadgeClasses(proposal.proposalType)}`}>
                             {getProposalTypeLabel(proposal.proposalType)}
                           </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">{proposal.sourcePage}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">{getSourcePageCaption(proposal)}</span>
                         </div>
                       </td>
                       <td className="px-4 py-4">

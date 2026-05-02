@@ -1,13 +1,16 @@
 import { RefreshCw, Sparkles, TriangleAlert, Wrench } from 'lucide-react';
 import { startTransition, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { SeoPackagingDrawer } from '../../components/admin/SeoPackagingDrawer';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
-import { EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
+import { EmptyState, ErrorState, HelpTooltip, LoadingSkeleton, Tabs } from '../../components/ui';
 import {
+  ApiError,
   seoInsightsApi,
   type SeoPackagingAuditListResult,
   type SeoPackagingAuditRecord,
+  type SeoPackagingExistingProposalSummary,
 } from '../../services/api';
 
 type PackagingFilter = 'all' | 'critical' | 'warning' | 'info';
@@ -49,7 +52,60 @@ function hasPackagingFixOpportunity(audit: SeoPackagingAuditRecord): boolean {
   return audit.issues.some((issue) => issue.type !== 'evergreen_routing');
 }
 
+function getExistingPackagingProposalLabel(proposal: SeoPackagingExistingProposalSummary): string {
+  switch (proposal.status) {
+    case 'approved':
+      return 'View approved proposal';
+    case 'drafting':
+      return 'View drafting proposal';
+    case 'shipped':
+      return 'View shipped proposal';
+    case 'pending':
+    default:
+      return 'View queued proposal';
+  }
+}
+
+function getProposalStatusQueryParam(status: SeoPackagingExistingProposalSummary['status']): 'pending' | 'drafting' | 'approved' {
+  if (status === 'drafting' || status === 'approved') {
+    return status;
+  }
+
+  return 'pending';
+}
+
+function normalizeExistingPackagingProposalStatus(value: unknown): SeoPackagingExistingProposalSummary['status'] | null {
+  if (value === 'pending' || value === 'drafting' || value === 'approved' || value === 'shipped') {
+    return value;
+  }
+
+  return null;
+}
+
+function getDuplicatePackagingProposal(error: unknown): SeoPackagingExistingProposalSummary | null {
+  if (!(error instanceof ApiError) || error.statusCode !== 409 || !error.details || typeof error.details !== 'object') {
+    return null;
+  }
+
+  const details = error.details as { existingId?: unknown; existingStatus?: unknown; proposalType?: unknown };
+  if (details.proposalType !== 'packaging_fix' || typeof details.existingId !== 'string') {
+    return null;
+  }
+
+  const status = normalizeExistingPackagingProposalStatus(details.existingStatus);
+  if (!status) {
+    return null;
+  }
+
+  return {
+    id: details.existingId,
+    status,
+    createdAt: '',
+  };
+}
+
 export default function SeoPackagingPage() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<PackagingFilter>('all');
   const [result, setResult] = useState<SeoPackagingAuditListResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,6 +154,32 @@ export default function SeoPackagingPage() {
     info: 0,
   };
 
+  function handleViewExistingPackagingProposal(proposal: SeoPackagingExistingProposalSummary) {
+    navigate(`/admin/seo-insights/proposals?status=${getProposalStatusQueryParam(proposal.status)}`);
+  }
+
+  function applyExistingPackagingProposal(auditId: string, proposal: SeoPackagingExistingProposalSummary) {
+    setResult((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        data: current.data.map((audit) => (
+          audit.id === auditId
+            ? { ...audit, existingPackagingFixProposal: proposal }
+            : audit
+        )),
+      };
+    });
+    setSelectedAudit((current) => (
+      current && current.id === auditId
+        ? { ...current, existingPackagingFixProposal: proposal }
+        : current
+    ));
+  }
+
   async function handleProposeEvergreen(audit: SeoPackagingAuditRecord) {
     if (!audit.evergreenRecommendation) {
       toast.error('This audit does not have an evergreen routing recommendation');
@@ -126,12 +208,35 @@ export default function SeoPackagingPage() {
       return;
     }
 
+    const existingProposal = audit.existingPackagingFixProposal;
+    if (existingProposal) {
+      toast.error(
+        existingProposal.status === 'pending'
+          ? `A packaging-fix proposal is already queued for ${audit.pagePath}`
+          : `A packaging-fix proposal already exists for ${audit.pagePath}`
+      );
+      handleViewExistingPackagingProposal(existingProposal);
+      return;
+    }
+
     setPendingFixAuditId(audit.id);
     try {
       const proposal = await seoInsightsApi.proposePackagingFix(audit.id);
       toast.success(`Packaging fix proposal queued for ${proposal.targetKeyword}`);
       await loadPackaging();
     } catch (nextError) {
+      const duplicateProposal = getDuplicatePackagingProposal(nextError);
+      if (duplicateProposal) {
+        applyExistingPackagingProposal(audit.id, duplicateProposal);
+        toast.error(
+          duplicateProposal.status === 'pending'
+            ? `A packaging-fix proposal is already queued for ${audit.pagePath}`
+            : `A packaging-fix proposal already exists for ${audit.pagePath}`
+        );
+        handleViewExistingPackagingProposal(duplicateProposal);
+        return;
+      }
+
       toast.error(nextError instanceof Error ? nextError.message : 'Failed to queue packaging fix proposal');
     } finally {
       setPendingFixAuditId(null);
@@ -147,7 +252,15 @@ export default function SeoPackagingPage() {
               <Wrench className="h-3.5 w-3.5" />
               SERP Packaging
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Audit the pages Google already tests, then route demand somewhere stronger.</h1>
+            <div className="mt-4 flex items-start gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight">Audit the pages Google already tests, then route demand somewhere stronger.</h1>
+              <HelpTooltip
+                title="How to use Packaging"
+                description="Use this tab when Google already tests a page but the presentation is weak. Queue packaging fixes for title, metadata, breadcrumb, or schema issues, and queue evergreen routing when a news or archive page should hand demand to a stronger canonical destination."
+                buttonLabel="How to use SEO Packaging"
+                className="mt-1 border-white/15 bg-white/10 text-amber-100 hover:border-white/30 hover:bg-white/15 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-amber-100"
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-amber-100/85">
               Read-only audit of impression-bearing pages for title-link risk, metadata thinness, breadcrumb gaps, and news-to-evergreen routing opportunities.
             </p>
@@ -254,6 +367,7 @@ export default function SeoPackagingPage() {
                   {visibleAudits.map((audit) => {
                     const severity = getSeverityLabel(audit);
                     const primaryIssue = audit.issues[0];
+                    const existingPackagingProposal = audit.existingPackagingFixProposal;
                     return (
                       <tr key={audit.id} className="align-top hover:bg-gray-50/70 dark:hover:bg-gray-950/60">
                         <td className="px-4 py-4">
@@ -290,7 +404,15 @@ export default function SeoPackagingPage() {
                                 {pendingProposalAuditId === audit.id ? 'Queueing…' : 'Queue routing proposal'}
                               </button>
                             )}
-                            {hasPackagingFixOpportunity(audit) && (
+                            {hasPackagingFixOpportunity(audit) && existingPackagingProposal ? (
+                              <button
+                                type="button"
+                                onClick={() => handleViewExistingPackagingProposal(existingPackagingProposal)}
+                                className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200 dark:hover:bg-slate-800"
+                              >
+                                {getExistingPackagingProposalLabel(existingPackagingProposal)}
+                              </button>
+                            ) : hasPackagingFixOpportunity(audit) ? (
                               <button
                                 type="button"
                                 onClick={() => void handleProposeFix(audit)}
@@ -299,7 +421,7 @@ export default function SeoPackagingPage() {
                               >
                                 {pendingFixAuditId === audit.id ? 'Queueing…' : 'Queue packaging fix'}
                               </button>
-                            )}
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -318,6 +440,7 @@ export default function SeoPackagingPage() {
         onClose={() => setSelectedAudit(null)}
         onProposeEvergreen={handleProposeEvergreen}
         onProposeFix={handleProposeFix}
+        onViewExistingPackagingProposal={handleViewExistingPackagingProposal}
         proposePendingId={pendingProposalAuditId}
         proposeFixPendingId={pendingFixAuditId}
       />

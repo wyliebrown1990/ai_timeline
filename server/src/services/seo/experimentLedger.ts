@@ -146,6 +146,20 @@ interface ActionExperimentInput {
   anchorDate: Date;
 }
 
+function readJsonStringField(
+  value: Prisma.JsonValue | null | undefined,
+  field: string
+): string | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const candidate = (value as Record<string, unknown>)[field];
+  return typeof candidate === 'string' && candidate.trim().length > 0
+    ? candidate.trim()
+    : null;
+}
+
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }
@@ -729,7 +743,13 @@ export async function ensureExperimentForProposalLink(proposalId: string): Promi
     throw new ApiError(409, 'A linked draft post is required before an experiment can be created');
   }
 
-  const sourceId = proposal.clusterSnapshotId ?? proposal.snapshotId;
+  const sourceId = (
+    proposal.clusterSnapshotId
+    ?? proposal.snapshotId
+    ?? readJsonStringField(proposal.sourceRefJson as Prisma.JsonValue | null, 'opportunityId')
+    ?? readJsonStringField(proposal.sourceRefJson as Prisma.JsonValue | null, 'auditId')
+    ?? readJsonStringField(proposal.sourceRefJson as Prisma.JsonValue | null, 'sourceId')
+  );
   if (!sourceId) {
     throw ApiError.internal('Proposal source is missing');
   }

@@ -61,6 +61,29 @@ function buildProposal() {
   };
 }
 
+function buildKeywordOpportunityProposal() {
+  return {
+    ...buildProposal(),
+    sourceType: 'keyword_opportunity',
+    clusterSnapshotId: null,
+    snapshotId: null,
+    targetKeyword: 'ai agent memory',
+    sourceRefJson: {
+      opportunityId: 'kw_1',
+      opportunitySourceType: 'serp_sample',
+      sourceBucket: 'serp_sample',
+      sourceQuery: 'ai agent memory',
+      pageUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+    },
+    draftPost: {
+      slug: 'ai-agent-memory',
+      status: 'published',
+      publishedAt: new Date('2026-05-02T16:30:58.766Z'),
+      scheduledFor: null,
+    },
+  };
+}
+
 function buildExperimentRow() {
   return {
     id: 'experiment_1',
@@ -155,6 +178,30 @@ describe('experimentLedger', () => {
     expect(result.targetUrl).toBe('https://letaiexplainai.com/blog/ai-timeline');
     expect(result.checkpoints).toHaveLength(3);
     expect(result.checkpoints[0].label).toBe('D+14');
+  });
+
+  it('uses the keyword-opportunity sourceRef when a proposal does not have snapshot ids', async () => {
+    mockSeoProposalFindUnique.mockResolvedValue(buildKeywordOpportunityProposal());
+    mockSeoExperimentUpsert.mockResolvedValue({
+      ...buildExperimentRow(),
+      sourceType: 'keyword_opportunity',
+      sourceId: 'kw_1',
+      targetKeyword: 'ai agent memory',
+      targetUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+    });
+
+    const result = await ensureExperimentForProposalLink('proposal_1');
+
+    expect(mockSeoExperimentUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      create: expect.objectContaining({
+        sourceType: 'keyword_opportunity',
+        sourceId: 'kw_1',
+        targetKeyword: 'ai agent memory',
+        targetUrl: 'https://letaiexplainai.com/blog/ai-agent-memory',
+      }),
+    }));
+    expect(result.sourceId).toBe('kw_1');
+    expect(result.targetUrl).toBe('https://letaiexplainai.com/blog/ai-agent-memory');
   });
 
   it('reviews the next due checkpoint and advances the experiment', async () => {

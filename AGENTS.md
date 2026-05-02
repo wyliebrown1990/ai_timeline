@@ -59,7 +59,9 @@ src/
 server/
 ├── controllers/     # Route handlers
 ├── services/        # Business logic
-│   └── ingestion/   # News pipeline (fetchers, analysis, entity extraction)
+│   ├── ingestion/   # News pipeline (fetchers, analysis, entity extraction)
+│   ├── gsc/         # Search Console ingest + bucketing + clustering
+│   └── seo/         # Proposals, packaging, experiments, portfolio discovery
 └── routes/          # Express routes
 ```
 
@@ -79,6 +81,13 @@ server/
 - `/admin/articles` - Ingested articles
 - `/admin/key-figures` - Key figures (legacy)
 - `/admin/person-drafts` - AI-detected person review
+- `/admin/seo-insights` - SEO dashboard, digest, pause switch
+- `/admin/seo-insights/clusters` - 28d / 90d clustered demand
+- `/admin/seo-insights/actions` - rewrite audit log
+- `/admin/seo-insights/proposals` - blog / routing / packaging queue
+- `/admin/seo-insights/experiments` - scheduled measurement ledger
+- `/admin/seo-insights/packaging` - SERP packaging audit lane
+- `/admin/seo-insights/portfolio` - keyword discovery backlog + Serper guardrails
 
 ## Code Patterns
 - **Modals**: Fixed overlay + backdrop blur + escape key dismiss
@@ -94,6 +103,19 @@ server/
 - `build-and-deploy-security.md` - **No sourcemaps, no secrets in frontend bundle, no env leaks. Read before touching build or deploy.**
 - `spam-protection.md` - Rate limiting, trust system, moderation
 - `frontend.md` - React + Vite patterns
+
+## SEO Insights
+
+The SEO operating system is live and spans GSC ingest, clustered mining, proposal queues, metadata rewrite auto-ship, experiments, and Serper-backed portfolio discovery. Keep this file short and use the canonical reference for operational detail:
+
+- `.claude/reference/seo-insights.md`
+- `.claude/schedules/seo-weekly.md`
+
+Important behavior notes:
+
+- auto-ship is intentionally narrow and currently limited to guarded metadata rewrites
+- proposals do not create experiments until a real post is linked or a rewrite ships
+- Serper is paid and must stay behind cache + spend caps + visible usage reporting
 
 ## Codex Skills
 

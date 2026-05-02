@@ -1094,6 +1094,40 @@ describe('seoAdmin controller', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it('does not mark a keyword opportunity promoted when proposal generation is auto-rejected', async () => {
+    mockGetKeywordOpportunity.mockResolvedValue({
+      id: 'kw_1',
+      sourceType: 'gsc_cluster',
+      seedQuery: 'in context learning',
+      status: 'scored',
+      pageTypeRecommendation: 'blog_post',
+      clusterSnapshotId: 'cluster_1',
+      targetUrl: 'https://letaiexplainai.com/explained/in-context-learning',
+      rationale: 'Clustered demand exists, but the canonical destination may already be covered.',
+    });
+    mockGenerateProposalFromCluster.mockResolvedValue({
+      id: 'proposal_rejected_1',
+      targetKeyword: 'in context learning',
+      status: 'rejected',
+      proposalType: 'blog_post',
+      rejectedReason: 'Keyword already maps to existing glossary page /glossary/in-context-learning',
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await promotePortfolioOpportunity(createRequest({ params: { id: 'kw_1' } }), res, next);
+
+    expect(mockGetKeywordOpportunity).toHaveBeenCalledWith('kw_1');
+    expect(mockGenerateProposalFromCluster).toHaveBeenCalledWith('cluster_1');
+    expect(mockMarkKeywordOpportunityPromoted).not.toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith({
+      opportunity: expect.objectContaining({ id: 'kw_1', status: 'scored' }),
+      proposal: expect.objectContaining({ id: 'proposal_rejected_1', status: 'rejected' }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('refreshes a SERP-sampled keyword opportunity in place', async () => {
     mockRefreshKeywordOpportunitySerp.mockResolvedValue({
       id: 'kw_serp_1',

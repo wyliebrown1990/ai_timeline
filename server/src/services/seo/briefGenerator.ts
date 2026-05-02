@@ -348,6 +348,93 @@ function normalizePathname(pageUrl: string): string {
   }
 }
 
+function tryParseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function extractBlogPostLookup(value: string): { id?: string; slug?: string } {
+  const normalized = trimToNull(value) ?? '';
+  const parsedUrl = tryParseUrl(normalized);
+  const rawPath = parsedUrl?.pathname ?? normalized;
+  const pathname = normalizePathname(rawPath);
+  const segments = pathname.split('/').filter(Boolean);
+
+  if (segments.length >= 4 && segments[0] === 'admin' && segments[1] === 'blog' && segments[3] === 'edit') {
+    return { id: segments[2] };
+  }
+
+  if (segments.length >= 2 && segments[0] === 'blog') {
+    return { slug: segments[1] };
+  }
+
+  return {};
+}
+
+async function findBlogPostByReference(reference: string) {
+  const directLookup = extractBlogPostLookup(reference);
+
+  if (directLookup.id) {
+    const byId = await prisma.blogPost.findUnique({
+      where: { id: directLookup.id },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        status: true,
+        publishedAt: true,
+      },
+    });
+    if (byId) {
+      return byId;
+    }
+  }
+
+  if (directLookup.slug) {
+    const bySlug = await prisma.blogPost.findUnique({
+      where: { slug: directLookup.slug },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        status: true,
+        publishedAt: true,
+      },
+    });
+    if (bySlug) {
+      return bySlug;
+    }
+  }
+
+  const byId = await prisma.blogPost.findUnique({
+    where: { id: reference },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      status: true,
+      publishedAt: true,
+    },
+  });
+  if (byId) {
+    return byId;
+  }
+
+  return prisma.blogPost.findUnique({
+    where: { slug: reference },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      status: true,
+      publishedAt: true,
+    },
+  });
+}
+
 function buildRoutingPlan(proposal: {
   proposalType: SeoProposalType;
   sourcePage: string;
@@ -1536,6 +1623,18 @@ async function loadKeywordOpportunitySource(
   return opportunity;
 }
 
+function buildDuplicateProposalMessage(target: string, proposalType: SeoProposalType): string {
+  if (proposalType === PACKAGING_FIX_PROPOSAL_TYPE) {
+    return `A recent packaging-fix proposal already exists for ${target}. Check Proposals > Pending.`;
+  }
+
+  if (proposalType === EVERGREEN_ROUTING_PROPOSAL_TYPE) {
+    return `A recent evergreen-routing proposal already exists for ${target}. Check Proposals > Pending.`;
+  }
+
+  return 'A recent proposal already exists for this keyword';
+}
+
 async function ensureNoRecentDuplicate(keyword: string, proposalType: SeoProposalType): Promise<void> {
   const duplicateWindowStart = subtractDays(DUPLICATE_WINDOW_DAYS);
   const existing = await prisma.seoProposal.findFirst({
@@ -1551,11 +1650,17 @@ async function ensureNoRecentDuplicate(keyword: string, proposalType: SeoProposa
     },
     select: {
       id: true,
+      status: true,
     },
   });
 
   if (existing) {
-    throw new ApiError(409, 'A recent proposal already exists for this keyword');
+    throw new ApiError(409, buildDuplicateProposalMessage(keyword, proposalType), {
+      existingId: existing.id,
+      existingStatus: existing.status,
+      proposalType,
+      target: keyword,
+    });
   }
 }
 
@@ -1853,19 +1958,28 @@ async function createProposalRow(snapshot: SnapshotRecord): Promise<ProposalRow>
       },
     });
 
-    await tx.gscWeeklySnapshot.update({
-      where: { id: snapshot.id },
-      data: {
-        status: 'actioned',
-      },
-    });
+    if (nextStatus !== 'rejected') {
+      await tx.gscWeeklySnapshot.update({
+        where: { id: snapshot.id },
+        data: {
+          status: 'actioned',
+        },
+      });
+    }
 
     return created;
   });
 }
 
-async function createClusterProposalRow(cluster: ClusterSourceRecord): Promise<ProposalRow> {
-  const topicPod = await planTopicPodForCluster(cluster.id);
+function shouldRouteClusterToEvergreen(topicPod: SeoExperimentTopicPod): boolean {
+  return topicPod.moveType !== 'create_new';
+}
+
+async function createClusterProposalRow(
+  cluster: ClusterSourceRecord,
+  topicPodOverride?: SeoExperimentTopicPod,
+): Promise<ProposalRow> {
+  const topicPod = topicPodOverride ?? await planTopicPodForCluster(cluster.id);
   const keyword = topicPod.keyword;
 
   await ensureNoRecentDuplicate(keyword, BLOG_PROPOSAL_TYPE);
@@ -1958,12 +2072,14 @@ async function createClusterProposalRow(cluster: ClusterSourceRecord): Promise<P
       },
     });
 
-    await tx.gscClusterSnapshot.update({
-      where: { id: cluster.id },
-      data: {
-        status: 'actioned',
-      },
-    });
+    if (nextStatus !== 'rejected') {
+      await tx.gscClusterSnapshot.update({
+        where: { id: cluster.id },
+        data: {
+          status: 'actioned',
+        },
+      });
+    }
 
     return created;
   });
@@ -2084,8 +2200,11 @@ async function createKeywordOpportunityProposalRow(
   });
 }
 
-async function createEvergreenRoutingProposalRow(cluster: ClusterSourceRecord): Promise<ProposalRow> {
-  const topicPod = await planTopicPodForCluster(cluster.id);
+async function createEvergreenRoutingProposalRow(
+  cluster: ClusterSourceRecord,
+  topicPodOverride?: SeoExperimentTopicPod,
+): Promise<ProposalRow> {
+  const topicPod = topicPodOverride ?? await planTopicPodForCluster(cluster.id);
   const keyword = topicPod.keyword;
 
   await ensureNoRecentDuplicate(keyword, EVERGREEN_ROUTING_PROPOSAL_TYPE);
@@ -2322,7 +2441,10 @@ export async function generateProposal(snapshotId: string): Promise<SeoProposalR
 
 export async function generateProposalFromCluster(clusterId: string): Promise<SeoProposalRecord> {
   const cluster = await loadClusterSource(clusterId);
-  const created = await createClusterProposalRow(cluster);
+  const topicPod = await planTopicPodForCluster(cluster.id);
+  const created = shouldRouteClusterToEvergreen(topicPod)
+    ? await createEvergreenRoutingProposalRow(cluster, topicPod)
+    : await createClusterProposalRow(cluster, topicPod);
   return serializeProposal(created);
 }
 
@@ -2513,20 +2635,13 @@ export async function linkProposalDraft(proposalId: string, draftPostId: string)
 
   const [proposal, draftPost] = await Promise.all([
     getProposalById(proposalId),
-    prisma.blogPost.findUnique({
-      where: { id: nextDraftPostId },
-      select: {
-        id: true,
-        slug: true,
-        title: true,
-        status: true,
-        publishedAt: true,
-      },
-    }),
+    findBlogPostByReference(nextDraftPostId),
   ]);
 
   if (!draftPost) {
-    throw ApiError.notFound('Blog post draft not found');
+    throw ApiError.notFound(
+      `No blog post exists for "${nextDraftPostId}" yet. Planned destinations like /blog/chip-gaines do not count until /AIBlogDraft creates a real post in Blog CMS.`
+    );
   }
 
   const serializedProposal = serializeProposal(proposal);
@@ -2534,7 +2649,8 @@ export async function linkProposalDraft(proposalId: string, draftPostId: string)
     throw new ApiError(409, 'This proposal does not use the blog-draft handoff flow');
   }
 
-  if (proposal.status !== 'drafting' && proposal.status !== 'approved') {
+  const isRetryForAlreadyLinkedPost = proposal.status === 'shipped' && proposal.draftPostId === draftPost.id;
+  if (proposal.status !== 'drafting' && proposal.status !== 'approved' && !isRetryForAlreadyLinkedPost) {
     throw new ApiError(409, 'Only drafting or approved proposals can link a draft post');
   }
 

@@ -2,7 +2,7 @@ import { Copy, ExternalLink, Link2, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import type { SeoProposalRecord } from '../../services/api';
-import { Drawer } from '../ui';
+import { Drawer, HelpTooltip } from '../ui';
 
 interface SeoProposalDrawerProps {
   proposal: SeoProposalRecord | null;
@@ -81,6 +81,26 @@ function getIssueSeverityClasses(severity: 'critical' | 'warning' | 'info'): str
   }
 }
 
+function getSourcePageLabel(proposal: SeoProposalRecord): string {
+  return proposal.sourceType === 'keyword_opportunity' ? 'Planned destination' : 'Source page';
+}
+
+function getSourcePageHelp(proposal: SeoProposalRecord): string | null {
+  if (proposal.sourceType !== 'keyword_opportunity') {
+    return null;
+  }
+
+  return 'This is the intended public URL if /AIBlogDraft creates the post. It does not mean a blog draft already exists yet.';
+}
+
+function getLinkDraftHelp(proposal: SeoProposalRecord): string {
+  if (proposal.sourceType === 'keyword_opportunity') {
+    return 'After /AIBlogDraft creates the post in Blog CMS, paste the blog post ID, slug, public /blog/... URL, or /admin/blog/.../edit URL here. Planned destinations like /blog/chip-gaines do not count until a real post exists.';
+  }
+
+  return 'After you run /AIBlogDraft, paste the resulting blog post ID, slug, public /blog/... URL, or /admin/blog/.../edit URL here to connect the proposal to the draft. Published posts will move to shipped automatically when linked.';
+}
+
 async function copyCommand(command: string) {
   if (!navigator.clipboard) {
     throw new Error('Clipboard is not available in this browser');
@@ -157,8 +177,13 @@ export function SeoProposalDrawer({
               <dd className="mt-1 font-medium text-slate-900 dark:text-white">{formatDateTime(proposal.createdAt)}</dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-slate-500 dark:text-slate-400">Source page</dt>
+              <dt className="text-slate-500 dark:text-slate-400">{getSourcePageLabel(proposal)}</dt>
               <dd className="mt-1 break-all font-medium text-slate-900 dark:text-white">{proposal.sourcePage}</dd>
+              {getSourcePageHelp(proposal) && (
+                <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {getSourcePageHelp(proposal)}
+                </p>
+              )}
             </div>
             {proposal.sourceQuery && (
               <div className="sm:col-span-2">
@@ -386,15 +411,21 @@ export function SeoProposalDrawer({
             <div className="flex items-center gap-2 text-sm font-medium text-blue-900 dark:text-blue-100">
               <Link2 className="h-4 w-4" />
               Link created draft
+              <HelpTooltip
+                title="Linking a draft"
+                description="Paste the real post ID, slug, public /blog/... URL, or /admin/blog/.../edit URL after AIBlogDraft creates the post in Blog CMS. Linking the real post moves the proposal forward and creates its experiment row."
+                buttonLabel="Explain how to link a created draft"
+                className="h-5 w-5 border-blue-200 bg-white/80 text-blue-500 shadow-none hover:border-blue-300 hover:bg-white dark:border-blue-800 dark:bg-slate-950 dark:text-blue-300"
+              />
             </div>
             <p className="mt-2 text-sm leading-6 text-blue-900/80 dark:text-blue-100/80">
-              After you run `/AIBlogDraft`, paste the resulting blog post ID here to connect the proposal to the draft. Published posts will move to `shipped` automatically when linked.
+              {getLinkDraftHelp(proposal)}
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
               <input
                 value={draftPostId}
                 onChange={(event) => setDraftPostId(event.target.value)}
-                placeholder="post_123 or cuid"
+                placeholder="post ID, slug, /blog/... URL, or /admin/blog/.../edit"
                 data-testid="proposal-draft-post-id"
                 className="flex-1 rounded-2xl border border-blue-200 bg-white px-4 py-2 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 dark:border-blue-900/50 dark:bg-slate-950 dark:text-slate-100"
               />
@@ -406,6 +437,17 @@ export function SeoProposalDrawer({
               >
                 {linkPendingId === proposal.id ? 'Linking…' : 'Link draft'}
               </button>
+            </div>
+            <div className="mt-3">
+              <a
+                href="/admin/blog"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-medium text-blue-800 underline-offset-4 hover:underline dark:text-blue-200"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open Blog CMS
+              </a>
             </div>
           </section>
         )}

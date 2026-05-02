@@ -46,6 +46,12 @@ export interface SeoPackagingEvergreenRecommendation {
   rationale: string;
 }
 
+export interface SeoPackagingExistingProposalSummary {
+  id: string;
+  status: 'pending' | 'drafting' | 'approved' | 'shipped';
+  createdAt: string;
+}
+
 export interface SeoPackagingAuditRecord {
   id: string;
   windowStart: string;
@@ -68,6 +74,7 @@ export interface SeoPackagingAuditRecord {
   issues: SeoPackagingIssueRecord[];
   structuredDataTypes: string[];
   evergreenRecommendation: SeoPackagingEvergreenRecommendation | null;
+  existingPackagingFixProposal: SeoPackagingExistingProposalSummary | null;
 }
 
 export interface SeoPackagingAuditListResult {
@@ -124,6 +131,11 @@ interface PageAuditContext {
   expectedStructuredDataTypes: string[];
 }
 
+interface PackagingProposalSourceRef {
+  pageUrl?: unknown;
+  pagePath?: unknown;
+}
+
 function clampLimit(limit: number | undefined): number {
   if (!Number.isFinite(limit) || !limit || limit < 1) {
     return DEFAULT_LIMIT;
@@ -152,6 +164,30 @@ function decodeAuditId(id: string): string | null {
   } catch {
     return null;
   }
+}
+
+function normalizeProposalStatus(value: string): SeoPackagingExistingProposalSummary['status'] | null {
+  if (value === 'pending' || value === 'drafting' || value === 'approved' || value === 'shipped') {
+    return value;
+  }
+
+  return null;
+}
+
+function parsePackagingProposalSourceRef(value: unknown): { pageUrl: string | null; pagePath: string | null } | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as PackagingProposalSourceRef;
+  const pageUrl = typeof record.pageUrl === 'string' && record.pageUrl.length > 0 ? record.pageUrl : null;
+  const pagePath = typeof record.pagePath === 'string' && record.pagePath.length > 0 ? record.pagePath : null;
+
+  if (!pageUrl && !pagePath) {
+    return null;
+  }
+
+  return { pageUrl, pagePath };
 }
 
 function classifyPageType(pagePath: string): SeoPackagingPageType {
@@ -591,6 +627,7 @@ function buildAuditRecord(
   metric: AggregatedPageMetric,
   issues: SeoPackagingIssueRecord[],
   evergreenCandidate: EvergreenCandidate | null,
+  existingPackagingFixProposal: SeoPackagingExistingProposalSummary | null,
   activeExperimentPaths: Set<string>,
   windowStart: string,
   windowEnd: string
@@ -628,7 +665,57 @@ function buildAuditRecord(
           rationale: evergreenCandidate.rationale,
         }
       : null,
+    existingPackagingFixProposal,
   };
+}
+
+async function loadExistingPackagingFixProposals(): Promise<Map<string, SeoPackagingExistingProposalSummary>> {
+  const rows = await prisma.seoProposal.findMany({
+    where: {
+      proposalType: 'packaging_fix',
+      status: {
+        not: 'rejected',
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      status: true,
+      createdAt: true,
+      sourceRefJson: true,
+    },
+  });
+
+  const proposals = new Map<string, SeoPackagingExistingProposalSummary>();
+  for (const row of rows) {
+    const status = normalizeProposalStatus(row.status);
+    if (!status) {
+      continue;
+    }
+
+    const sourceRef = parsePackagingProposalSourceRef(row.sourceRefJson);
+    if (!sourceRef) {
+      continue;
+    }
+
+    const summary: SeoPackagingExistingProposalSummary = {
+      id: row.id,
+      status,
+      createdAt: row.createdAt.toISOString(),
+    };
+
+    if (sourceRef.pageUrl && !proposals.has(sourceRef.pageUrl)) {
+      proposals.set(sourceRef.pageUrl, summary);
+    }
+
+    if (sourceRef.pagePath && !proposals.has(sourceRef.pagePath)) {
+      proposals.set(sourceRef.pagePath, summary);
+    }
+  }
+
+  return proposals;
 }
 
 async function buildAllPackagingAudits(): Promise<{
@@ -638,10 +725,11 @@ async function buildAllPackagingAudits(): Promise<{
 }> {
   const windowEnd = getLatestFinalizedPtDate();
   const windowStart = shiftIsoDate(windowEnd, -(LOOKBACK_DAYS - 1));
-  const [metrics, evergreenCandidates, activeExperimentPaths] = await Promise.all([
+  const [metrics, evergreenCandidates, activeExperimentPaths, existingPackagingFixProposals] = await Promise.all([
     aggregatePageMetrics(windowStart, windowEnd),
     loadEvergreenCandidates(windowEnd),
     loadActiveExperimentPaths(),
+    loadExistingPackagingFixProposals(),
   ]);
 
   const audits: SeoPackagingAuditRecord[] = [];
@@ -652,6 +740,9 @@ async function buildAllPackagingAudits(): Promise<{
     }
 
     const evergreenCandidate = evergreenCandidates.get(metric.pagePath) ?? null;
+    const existingPackagingFixProposal = existingPackagingFixProposals.get(metric.pageUrl)
+      ?? existingPackagingFixProposals.get(metric.pagePath)
+      ?? null;
     const issues = buildPackagingIssues(context, metric, evergreenCandidate);
     if (issues.length === 0) {
       continue;
@@ -662,6 +753,7 @@ async function buildAllPackagingAudits(): Promise<{
       metric,
       issues,
       evergreenCandidate,
+      existingPackagingFixProposal,
       activeExperimentPaths,
       windowStart,
       windowEnd

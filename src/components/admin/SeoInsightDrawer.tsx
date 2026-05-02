@@ -8,6 +8,7 @@ import {
   type SeoProposalRecord,
   type SeoRewriteProposal,
 } from '../../services/api';
+import { getProposalToastContent, getProposalToastTone } from '../../lib/seoProposalFeedback';
 import { Drawer, ErrorState, LoadingSkeleton } from '../ui';
 
 interface SeoInsightDrawerProps {
@@ -498,8 +499,15 @@ export function SeoInsightDrawer({
                     try {
                       const nextProposal = await seoInsightsApi.generateProposal(detail.id);
                       setContentProposal(nextProposal);
-                      setDetail((currentDetail) => currentDetail ? { ...currentDetail, status: 'actioned' } : currentDetail);
-                      toast.success('Proposal queued in SEO Proposals');
+                      if (nextProposal.status !== 'rejected') {
+                        setDetail((currentDetail) => currentDetail ? { ...currentDetail, status: 'actioned' } : currentDetail);
+                      }
+                      const toastContent = getProposalToastContent(nextProposal);
+                      if (getProposalToastTone(nextProposal) === 'error') {
+                        toast.error(toastContent);
+                      } else {
+                        toast.success(toastContent);
+                      }
                       await onProposalQueued();
                     } catch (nextError) {
                       setContentProposalError(nextError instanceof Error ? nextError.message : 'Failed to generate proposal');

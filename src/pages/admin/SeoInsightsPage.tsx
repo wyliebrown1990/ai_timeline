@@ -11,9 +11,11 @@ import {
 } from 'lucide-react';
 import { startTransition, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import {
   seoInsightsApi,
   type SeoAgentActionRecord,
+  type SeoAgentRunRecord,
   type SeoAgentRunSerperSnapshot,
   type SeoInsightsHealth,
   type SeoInsight,
@@ -22,7 +24,7 @@ import {
   type SeoSerperUsageSummary,
 } from '../../services/api';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
-import { ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
+import { ConfirmDialog, Drawer, EmptyState, ErrorState, HelpTooltip, LoadingSkeleton, Tabs } from '../../components/ui';
 import { SeoInsightDrawer } from '../../components/admin/SeoInsightDrawer';
 
 const BUCKET_TABS: Array<{ id: SeoInsightBucket; label: string; description: string }> = [
@@ -211,6 +213,33 @@ function getDigestSerperSnapshotText(snapshot: SeoAgentRunSerperSnapshot): strin
   ].join(' · ');
 }
 
+function getDigestStatusPill(run: SeoAgentRunRecord): { label: string; classes: string } {
+  if (run.status === 'failed') {
+    return {
+      label: 'Failed',
+      classes: 'border border-rose-200 bg-rose-100 text-rose-700',
+    };
+  }
+
+  return {
+    label: 'Successful',
+    classes: 'border border-emerald-200 bg-emerald-100 text-emerald-700',
+  };
+}
+
+function isDigestLoopUrl(value: string | null): boolean {
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const normalized = new URL(value, 'https://letaiexplainai.com');
+    return normalized.pathname === '/admin/seo-insights';
+  } catch {
+    return value === '/admin/seo-insights';
+  }
+}
+
 function getSerperSummaryText(serper: SeoSerperUsageSummary): string {
   if (!serper.configured) {
     return 'Serper is not configured yet, so paid SERP sampling is unavailable.';
@@ -278,6 +307,7 @@ export default function SeoInsightsPage() {
   const [error, setError] = useState<string | null>(null);
   const [pendingInsightId, setPendingInsightId] = useState<string | null>(null);
   const [drawerInsightId, setDrawerInsightId] = useState<string | null>(null);
+  const [digestDrawerOpen, setDigestDrawerOpen] = useState(false);
   const [pausePending, setPausePending] = useState(false);
   const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
 
@@ -326,6 +356,8 @@ export default function SeoInsightsPage() {
   const insights = result?.data ?? [];
   const agentBannerState = getAgentBannerState(health);
   const agentRun = health?.agentRun ?? null;
+  const digestStatusPill = agentRun ? getDigestStatusPill(agentRun) : null;
+  const hasDedicatedDigestUrl = agentRun?.digestUrl ? !isDigestLoopUrl(agentRun.digestUrl) : false;
   const paused = health?.paused ?? false;
   const serper = health?.serper ?? null;
   const counts = result?.meta.counts ?? {
@@ -403,7 +435,15 @@ export default function SeoInsightsPage() {
               <Search className="h-3.5 w-3.5" />
               SEO Insights
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Google’s signal, curated into action lanes.</h1>
+            <div className="mt-4 flex items-start gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight">Google’s signal, curated into action lanes.</h1>
+              <HelpTooltip
+                title="How to use Insights"
+                description="Start here each week. Switch buckets to inspect deterministic Search Console findings, change the week to compare finalized windows, open detail for evidence and actions, and use the pause control only when you want to stop automated rewrites without losing visibility."
+                buttonLabel="How to use SEO Insights"
+                className="mt-1 border-white/15 bg-white/10 text-blue-100 hover:border-white/30 hover:bg-white/15 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-blue-100"
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-blue-100/85">
               Browse deterministic findings from Search Console, inspect the underlying evidence, and queue work without leaving the admin.
             </p>
@@ -579,38 +619,52 @@ export default function SeoInsightsPage() {
             </div>
 
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-              {agentRun?.digestUrl && (
-                <a
-                  href={agentRun.digestUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-current/15 bg-white/80 px-4 py-2 text-sm font-medium text-current transition-colors hover:bg-white"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  View digest
-                </a>
+              {agentRun && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDigestDrawerOpen(true)}
+                    data-testid="view-digest-summary"
+                    className="inline-flex items-center gap-2 rounded-full border border-current/15 bg-white/80 px-4 py-2 text-sm font-medium text-current transition-colors hover:bg-white"
+                  >
+                    <Clock3 className="h-4 w-4" />
+                    View digest summary
+                  </button>
+                  <HelpTooltip
+                    title="Digest summary"
+                    description="Open the last weekly automation run summary. This shows what shipped, what turned into proposals, what stayed human-only, what was measured, and what Serper spend was recorded for that run."
+                    buttonLabel="Explain digest summary"
+                  />
+                </div>
               )}
-              <button
-                type="button"
-                aria-pressed={paused}
-                onClick={() => {
-                  if (paused) {
-                    setResumeConfirmOpen(true);
-                    return;
-                  }
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-pressed={paused}
+                  onClick={() => {
+                    if (paused) {
+                      setResumeConfirmOpen(true);
+                      return;
+                    }
 
-                  void handlePauseChange(true);
-                }}
-                disabled={pausePending}
-                className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                  paused
-                    ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
-                    : 'border-green-300 bg-white text-green-800 hover:bg-green-100'
-                }`}
-              >
-                {paused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
-                {paused ? 'Resume auto-ship' : 'Pause auto-ship'}
-              </button>
+                    void handlePauseChange(true);
+                  }}
+                  disabled={pausePending}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                    paused
+                      ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                      : 'border-green-300 bg-white text-green-800 hover:bg-green-100'
+                  }`}
+                >
+                  {paused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+                  {paused ? 'Resume auto-ship' : 'Pause auto-ship'}
+                </button>
+                <HelpTooltip
+                  title="Pause auto-ship"
+                  description="Pause stops automated rewrite shipping and other mutating SEO agent behavior, but keeps the dashboard, proposal queue, portfolio review, and other read-only surfaces available."
+                  buttonLabel="Explain auto-ship pause controls"
+                />
+              </div>
             </div>
           </div>
         ) : (
@@ -638,12 +692,25 @@ export default function SeoInsightsPage() {
           />
           <div className="flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{activeTab?.label}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{activeTab?.label}</h2>
+                <HelpTooltip
+                  title="Insight buckets"
+                  description="Buckets are deterministic classification lanes. Zero is normal on a newer site. Use Winnable Losses for likely metadata wins, Content Gaps for missing destinations, Trend Signals for accelerating demand, and Decay for pages that are slipping."
+                  buttonLabel="Explain insight buckets"
+                />
+              </div>
               <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{activeTab?.description}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
                 Week
+                <HelpTooltip
+                  title="Week selector"
+                  description="Insights run on finalized weekly Search Console windows, not live intraday data. Use this to compare prior weeks when a bucket looks empty or when you want to see whether a finding is persistent."
+                  buttonLabel="Explain week selector"
+                  className="h-5 w-5 border-transparent bg-transparent text-slate-400 shadow-none hover:border-slate-200 hover:bg-white dark:bg-transparent dark:hover:bg-slate-900"
+                />
                 <select
                   value={effectiveWeek}
                   onChange={(event) => {
@@ -843,6 +910,178 @@ export default function SeoInsightsPage() {
           await loadInsights();
         }}
       />
+
+      {agentRun && (
+        <Drawer
+          open={digestDrawerOpen}
+          onClose={() => setDigestDrawerOpen(false)}
+          title="Weekly digest summary"
+          description="Review the latest SEO agent run without leaving the admin."
+        >
+          <div className="space-y-6 p-5" data-testid="seo-digest-summary-drawer">
+            <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Run snapshot</p>
+                  <h3 className="mt-2 text-lg font-semibold text-gray-900 dark:text-white">
+                    {agentRun.status === 'failed' ? 'Last digest run failed' : 'Last digest run completed'}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
+                    {agentRun.status === 'failed'
+                      ? 'The weekly agent reported an error. Review the failure note and related queues before re-enabling trust in auto-ship.'
+                      : 'This is the persisted summary from the most recent weekly SEO agent run.'}
+                  </p>
+                </div>
+                {digestStatusPill && (
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${digestStatusPill.classes}`}>
+                    {digestStatusPill.label}
+                  </span>
+                )}
+              </div>
+
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950/50">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Reviewed week</dt>
+                  <dd className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    {agentRun.weekStart ? agentRun.weekStart.slice(0, 10) : 'Unknown'}
+                  </dd>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950/50">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Completed</dt>
+                  <dd className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    {formatTimestamp(agentRun.completedAt)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950/50">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Started</dt>
+                  <dd className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    {formatTimestamp(agentRun.startedAt)}
+                  </dd>
+                </div>
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950/50">
+                  <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Digest age</dt>
+                  <dd className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                    {formatRelativeTime(agentRun.completedAt)}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Run totals</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-300">Shipped</p>
+                  <p className="mt-1 text-xl font-semibold text-emerald-900 dark:text-emerald-100">{agentRun.shippedCount}</p>
+                </div>
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/60 dark:bg-amber-950/30">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-700 dark:text-amber-300">Queued proposals</p>
+                  <p className="mt-1 text-xl font-semibold text-amber-900 dark:text-amber-100">{agentRun.proposalCount}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/40">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 dark:text-slate-300">Human-only findings</p>
+                  <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">{agentRun.humanOnlyCount}</p>
+                </div>
+                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900/60 dark:bg-blue-950/30">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Measured outcomes</p>
+                  <p className="mt-1 text-xl font-semibold text-blue-900 dark:text-blue-100">{agentRun.measuredCount}</p>
+                </div>
+              </div>
+            </section>
+
+            {agentRun.errorMessage && (
+              <section className="rounded-3xl border border-rose-200 bg-rose-50 p-4 text-rose-900 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em]">Failure note</p>
+                <p className="mt-2 text-sm leading-6">{agentRun.errorMessage}</p>
+              </section>
+            )}
+
+            {agentRun.serperSnapshot && (
+              <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Paid discovery snapshot</p>
+                  <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${getSerperWarningClasses(agentRun.serperSnapshot.warningLevel)}`}>
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {getSerperWarningLabel(agentRun.serperSnapshot.warningLevel)}
+                  </span>
+                  <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    {agentRun.serperSnapshot.autoTopupEnabled ? 'Auto top-up on' : 'Auto top-up off'}
+                  </span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-400">
+                  {getDigestSerperSnapshotText(agentRun.serperSnapshot)}
+                </p>
+                <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950/50">
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Captured</dt>
+                    <dd className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                      {formatTimestamp(agentRun.serperSnapshot.capturedAt)}
+                    </dd>
+                  </div>
+                  <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-950/50">
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-500">Latest paid sample</dt>
+                    <dd className="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                      {formatDateTime(agentRun.serperSnapshot.lastSampledAt)}
+                    </dd>
+                  </div>
+                </dl>
+              </section>
+            )}
+
+            <section className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Continue in admin</p>
+                  <p className="mt-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
+                    Jump straight into the lanes that this digest likely changed.
+                  </p>
+                </div>
+                {hasDedicatedDigestUrl && agentRun.digestUrl && (
+                  <a
+                    href={agentRun.digestUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open linked digest
+                  </a>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  to="/admin/seo-insights/actions"
+                  onClick={() => setDigestDrawerOpen(false)}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                  View action log
+                </Link>
+                <Link
+                  to="/admin/seo-insights/proposals"
+                  onClick={() => setDigestDrawerOpen(false)}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                  Review proposals
+                </Link>
+                <Link
+                  to="/admin/seo-insights/portfolio"
+                  onClick={() => setDigestDrawerOpen(false)}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                  Check portfolio
+                </Link>
+                <Link
+                  to="/admin/seo-insights/packaging"
+                  onClick={() => setDigestDrawerOpen(false)}
+                  className="rounded-full border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-800"
+                >
+                  Check packaging
+                </Link>
+              </div>
+            </section>
+          </div>
+        </Drawer>
+      )}
 
       <ConfirmDialog
         isOpen={resumeConfirmOpen}

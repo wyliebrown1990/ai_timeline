@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { SeoEditorialSeedDrawer } from '../../components/admin/SeoEditorialSeedDrawer';
 import { SeoKeywordOpportunityDrawer } from '../../components/admin/SeoKeywordOpportunityDrawer';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
-import { ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
+import { ConfirmDialog, EmptyState, ErrorState, HelpTooltip, LoadingSkeleton, Tabs } from '../../components/ui';
+import { getProposalToastContent, getProposalToastTone } from '../../lib/seoProposalFeedback';
 import {
   seoInsightsApi,
   type SeoKeywordOpportunityClusterSourceRef,
@@ -1040,14 +1041,12 @@ export default function SeoKeywordPortfolioPage() {
       const response = await seoInsightsApi.promoteKeywordOpportunity(opportunity.id);
       setResult((current) => updateKeywordOpportunityResult(current, response.opportunity));
       setSelectedOpportunity(response.opportunity);
-      toast.success(
-        <span>
-          Proposal queued for <span className="font-semibold">{response.proposal.targetKeyword}</span>.{' '}
-          <a href={response.proposal.handoff?.proposalPath ?? '/admin/seo-insights/proposals'} className="underline">
-            Open proposals
-          </a>
-        </span>,
-      );
+      const toastContent = getProposalToastContent(response.proposal);
+      if (getProposalToastTone(response.proposal) === 'error') {
+        toast.error(toastContent);
+      } else {
+        toast.success(toastContent);
+      }
       void loadPortfolio({ background: true });
     } catch (nextError) {
       toast.error(nextError instanceof Error ? nextError.message : 'Failed to promote keyword opportunity');
@@ -1146,7 +1145,15 @@ export default function SeoKeywordPortfolioPage() {
               <Layers3 className="h-3.5 w-3.5" />
               Keyword Portfolio
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Score the search demand LAEA should earn next.</h1>
+            <div className="mt-4 flex items-start gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight">Score the search demand LAEA should earn next.</h1>
+              <HelpTooltip
+                title="How to use Portfolio"
+                description="Portfolio is the discovery backlog, not the execution queue. Review ideas from GSC clusters, Trends, Serper, and editorial seeds, then either queue a proposal, archive a weak bet, add a manual seed, or rebuild the portfolio when you want fresh scoring before the next scheduled pass."
+                buttonLabel="How to use SEO Portfolio"
+                className="mt-1 border-white/15 bg-white/10 text-sky-100 hover:border-white/30 hover:bg-white/15 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-sky-100"
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-sky-100/85">
               This backlog turns cluster evidence into a ranked portfolio of topic bets, so we can grow organic traffic without guessing.
             </p>

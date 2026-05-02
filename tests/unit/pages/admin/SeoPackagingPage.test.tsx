@@ -2,7 +2,25 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
+const mockNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useNavigate: () => mockNavigate,
+}));
+
 jest.mock('../../../../src/services/api', () => ({
+  ApiError: class ApiError extends Error {
+    statusCode: number;
+    details?: unknown;
+
+    constructor(statusCode: number, message: string, details?: unknown) {
+      super(message);
+      this.name = 'ApiError';
+      this.statusCode = statusCode;
+      this.details = details;
+    }
+  },
   seoInsightsApi: {
     listPackagingAudits: jest.fn(),
     proposePackagingEvergreen: jest.fn(),
@@ -62,6 +80,7 @@ function buildAudit() {
       },
     ],
     structuredDataTypes: [],
+    existingPackagingFixProposal: null,
     evergreenRecommendation: {
       clusterId: 'cluster_1',
       representativeQuery: '"turing award" "multiple winners" quiz',
@@ -92,6 +111,15 @@ function buildListResult() {
         info: 0,
       },
     },
+  };
+}
+
+function buildExistingPackagingFixProposal(overrides: Partial<Record<string, unknown>> = {}) {
+  return {
+    id: 'proposal_fix_1',
+    status: 'pending',
+    createdAt: '2026-05-01T12:00:00.000Z',
+    ...overrides,
   };
 }
 
@@ -257,5 +285,75 @@ describe('SeoPackagingPage', () => {
     await user.click(screen.getByRole('button', { name: /queue packaging fix/i }));
 
     expect(mockSeoInsightsApi.proposePackagingFix).toHaveBeenCalledWith('packaging_1');
+  });
+
+  it('shows the existing packaging proposal instead of queueing a duplicate', async () => {
+    mockSeoInsightsApi.listPackagingAudits.mockResolvedValue({
+      ...buildListResult(),
+      data: [
+        {
+          ...buildAudit(),
+          existingPackagingFixProposal: buildExistingPackagingFixProposal(),
+        },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('/news')).toBeInTheDocument();
+
+    const button = screen.getByRole('button', { name: /view queued proposal/i });
+    await user.click(button);
+
+    expect(mockSeoInsightsApi.proposePackagingFix).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/seo-insights/proposals?status=pending');
+  });
+
+  it('shows the existing packaging proposal in the detail drawer too', async () => {
+    mockSeoInsightsApi.listPackagingAudits.mockResolvedValue({
+      ...buildListResult(),
+      data: [
+        {
+          ...buildAudit(),
+          existingPackagingFixProposal: buildExistingPackagingFixProposal(),
+        },
+      ],
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('/news')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /view detail/i }));
+    expect(await screen.findByText(/read-only serp packaging audit/i)).toBeInTheDocument();
+
+    const buttons = screen.getAllByRole('button', { name: /view queued proposal/i });
+    await user.click(buttons[buttons.length - 1]);
+
+    expect(mockSeoInsightsApi.proposePackagingFix).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/seo-insights/proposals?status=pending');
+  });
+
+  it('routes to the existing proposal when the backend duplicate guard returns proposal details', async () => {
+    mockSeoInsightsApi.listPackagingAudits.mockResolvedValue(buildListResult());
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('/news')).toBeInTheDocument();
+
+    const duplicateError = new (jest.requireMock('../../../../src/services/api').ApiError)(409, 'duplicate', {
+      existingId: 'proposal_fix_1',
+      existingStatus: 'pending',
+      proposalType: 'packaging_fix',
+    });
+    mockSeoInsightsApi.proposePackagingFix.mockRejectedValueOnce(duplicateError);
+
+    await user.click(screen.getByRole('button', { name: /queue packaging fix/i }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/admin/seo-insights/proposals?status=pending');
+    expect(await screen.findByRole('button', { name: /view queued proposal/i })).toBeInTheDocument();
   });
 });

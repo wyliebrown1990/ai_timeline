@@ -89,6 +89,40 @@ Second AIBlogDraft post, and the first run of **research mode**: Wylie asked for
 - **Subject IDs are cuids, not slugs**. The `/api/subjects/tree` endpoint returns both; the blog admin payload requires cuids (e.g. `b4fba468-24d2-49a6-b843-117190503bc3` for `business-technology-semiconductors`). Note in SKILL.md for future drafts so we don't waste a round trip.
 - **SERP recommendation held up**: picked `AI compute bottleneck` over `AI compute shortage` and `HBM4 shortage AI` because the bottleneck SERP was fragmented (each top result picked ONE bottleneck — CPU, memory, energy, networking) and LAEA could synthesize. The Goldman Sachs "compute not models" piece already ranking on the target keyword was the green-light signal.
 
+## 2026-04-30 — `in-context-learning-vs-fine-tuning`
+
+Third AIBlogDraft post, second **topic-mode** run. Wylie spotted SEO-keyword traffic landing on `/explained/in-context-learning` and asked for a draft that capitalized on it. SERP research showed the bare keyword was locked by IBM/Stanford/arXiv; pivoted to the long-tail `in context learning vs fine tuning` (Medium #1, 3 mid-tier blogs in top 10 — winnable). Wylie picked option 1 (the pivot) on first ask, approved the full draft on the first review pass with a single `y`, no copy edits.
+
+### Diction
+- **"The atlas's read:"** as the closing-section header survived again — third time it has appeared, can be considered standard for posts that take a position. Use it specifically when the post ends on a *thesis* rather than a recap.
+- **"meant to be contested"** closing line survived again, with a tweak to invite reader pushback in concrete form ("send us the post-mortem"). The invite-pushback variant works for posts that make a falsifiable architectural claim — invites readers with counter-evidence to engage.
+- **Em-dashes for under-statement** held: "no gradient steps, no validation loop, no MLOps team" — three-item parallel deflation > "without all the operational overhead". Keep the deflation pattern for capability claims.
+- **"Mechanical, not ideological"** as a one-line frame ("The choice between them isn't ideological. It's mechanical.") landed and demarcates the analytical posture: this isn't tribal, it's an engineering decision. Reusable framing for any "X vs Y" post.
+
+### Structure
+- **5 H2s held again**, each making a distinct argument: (1) definitions w/ keyword in heading, (2) ICL pros/cons, (3) FT pros/cons, (4) decision framework, (5) "atlas's read" thesis. Symmetric pros/cons sections (H2-2, H2-3) gave the post visual balance — confirms the pattern from the Nvidia post (H2 structure carries the thesis).
+- **Numbered tier framework** (1-2-3) in H2-4 worked — better than a binary table for the "vs" comparison genre. Each item makes a structural claim ("fluid behavior" vs "structural behavior" vs "both"), not a feature checklist.
+- **Inline news links inside bullet points** (`[Anthropic's Introspection Adapters work](/news/...)`) read naturally and didn't fight the bullet structure. News-event links are mid-paragraph evidence, not standalone CTAs.
+- **Two news pieces, both ≤2 days old, carried the H2-3 fine-tuning argument**. Topic-mode posts can use fresh news as evidence even when the post itself isn't news-hooked at the lede — the news lives inside the section that needs proof, not at the top.
+
+### Do
+- **When the existing entity graph already contains the target keyword (as `/glossary/in-context-learning`)**, the right move is a *companion blog post* that links to the glossary entry on first mention — internal-link equity flows to the glossary page without competing with it on SERP.
+- **For "X vs Y" comparison posts, target the long-tail "vs" SERP rather than the bare definitional keyword.** The bare keyword is almost always locked by big-brand definitional pages (IBM/Stanford/arXiv). The "vs" SERP is consistently more winnable because the comparison genre attracts mid-tier practitioner blogs.
+- **Verify news-event IDs (`/news/<id>`) before linking to them**. Article IDs (`cm...` cuids from `/api/admin/articles`) do NOT resolve at `/news/<id>` — only NewsEvent IDs (`ce-...` slugs from `/api/feed`) do. Check `/api/feed?limit=30` for a published news event matching the article you want to cite. This run found two perfect news events (Introspection Adapters + MIT RLCR) that had been promoted from articles already.
+- **Use `glossary_term` (with underscore) as the entityType in relations**, not `glossary`. Schema enum is `[milestone, person, organization, glossary_term]`. The Phase 3 link inventory uses `[[glossary:slug|label]]` for the body shortcode, but the `relations` array uses `glossary_term`. Mismatch → schema error.
+- **For relation entityIds, use the slug for person/organization/glossary_term, but the milestone ID (e.g. `E2020_GPT3`) for milestones.** Mirrors the URL conventions for each entity's profile page.
+
+### Don't
+- **Don't link news events as `[[event:...]]` shortcodes**. The shortcode renderer only resolves `person | organization | glossary | event` — and `event` resolves to `/events/:id` (milestones), not `/news/:id` (news events). Use plain markdown `[label](/news/<id>)` for news event links.
+- **Don't include `newsEvent` in the relations array** — it's not a valid `BlogRelationEntityTypeEnum` value (only `milestone | person | organization | glossary_term`). News-event citations are body-only links; they don't drive FromTheBlog reverse-injection on news event pages (yet — could be a future enhancement).
+
+### Other
+- **Topic-mode-with-news-hooks pattern works**: the post is structured around a thesis (ICL vs FT in 2026), not around the news. The news pieces are evidence inside H2-3, not the lede. This is different from research-mode (where the news IS the lede) and gives topic-mode posts a longer evergreen shelf-life. Worth distinguishing in future posts.
+- **Single-pass approval (`y`, no edits) on a 5-H2, 800-word topic-mode draft.** Voice is converging — the previous Nvidia post had verbatim prose, the compute-bottleneck post had research-mode scaffolding feedback, this one had neither and shipped clean. The blog_voice.md accumulated rules are doing their job.
+- **Subject cuids (not slugs) reaffirmed**: `/api/subjects/tree` returns both; `subjectIds` requires cuids. Cached the science-cs-ml cuid (`efda3614-c8f7-4033-bb0d-3b8ade6600d8`) and science-cs-nlp cuid (`4e89a61c-311a-44ac-a65f-11f55ea5a0cf`) for ML/NLP-themed posts going forward.
+- **Live URL**: `https://letaiexplainai.com/blog/in-context-learning-vs-fine-tuning`
+- **PublishedAt**: 2026-04-30T14:32:31Z
+
 <!--
 Template for appending:
 
@@ -110,3 +144,59 @@ Template for appending:
 ### Other
 - [anything else useful]
 -->
+
+## 2026-05-02 — `ai-home-renovation`
+
+Fourth AIBlogDraft post, topic-mode, approved with a single `y` and shipped without copy edits. Originated from an SEO proposal correction: a weak celebrity-keyword idea (`chip gaines`) was rejected, then reframed into the broader, more truthful keyword `ai home renovation`.
+
+### Diction
+- **Thesis-first skepticism works when the category is over-marketed.** The post's core contrast — "style with structure" — survived as the title and set the tone for the whole piece. Wylie's voice is comfortable being a little skeptical as long as the skepticism is concrete, not snide.
+- **Use clean binaries to frame limits.** Lines like "visual intelligence and construction intelligence" and "visualization and construction reasoning are the same thing" fit the atlas voice: analytical, compressed, and arguable.
+- **Graph-flavored language still plays outside core model topics.** "Move from image generation toward a graph of the job itself" and "braid visual imagination to measurement, catalogs, code, and contractor reality" show the atlas voice can extend into consumer-AI categories without sounding forced.
+
+### Structure
+- **A 5-H2 explainer with one technical middle section and one market/limitations section works well for consumer AI topics.** This run used: market framing, technical stack, failure modes, missing context layer, then "The atlas's read." That pattern cleanly separates "what the tools do" from "what they cannot know."
+- **Lead with the demo, then puncture it.** Opening on the product experience ("Upload a kitchen photo...") before moving to the structural critique gave the post immediate relevance and kept the analysis from sounding abstract.
+- **The closing thesis does not need a separate CTA section.** For this genre, the "atlas's read" close is enough; adding a separate "where to read more" block would have weakened the ending.
+
+### Do
+- **When a SERP is dominated by apps, app stores, Reddit, YouTube, and listicles, LAEA should usually compete with an explanatory thesis post, not another roundup.** This is exactly the sort of fragmented SERP where the atlas can win on depth.
+- **For consumer-AI topics, distinguish emotional value from technical truth.** This post's strongest move was admitting the tools are genuinely useful while still arguing they are mechanically limited. Keep that "useful, but..." structure.
+- **Use first-mention links only for the AI mechanisms that actually carry the argument.** Here that meant `computer vision`, `multimodal AI`, `OpenAI`, `Google`, and `GPT` — enough to ground the stack, not enough to turn the post into a glossary dump.
+
+### Don't
+- **Don't let a proposal's original angle overrule live verification.** This post only happened because the celebrity-keyword proposal was stopped and reframed after manual SERP review. If the keyword does not actually support the angle, pivot before drafting.
+- **Don't over-claim what current consumer tools can do.** Terms like "predict structural feasibility" and "optimize material costs" are better treated as category claims to interrogate than as settled capabilities to repeat uncritically.
+
+### Other
+- **Single-pass approval on a consumer-AI explainer means the voice can travel beyond frontier-model and policy topics.** The atlas voice is not limited to "core AI lab" coverage; it also works on adjacent application categories when the piece has a real thesis.
+- **Live URL**: `https://letaiexplainai.com/blog/ai-home-renovation`
+- **PublishedAt**: `2026-05-02T15:23:16Z`
+
+## 2026-05-02 — `ai-agent-memory`
+
+Fifth AIBlogDraft post, topic-mode, approved with a single `y` and shipped through the SEO proposal lane. The source proposal was already in `drafting`, so this run also validated the intended `proposal -> published post -> experiment ledger` path once the backend recovery bug was fixed.
+
+### Diction
+- **Use clean, arguable contrasts for systems topics.** "Working attention, not autobiography" and "chat feels smart when it can answer; agency feels smart when it can resume" fit the atlas voice well: compressed, slightly sharp, and easy to remember.
+- **Treat category hype as something to interrogate, not just summarize.** This post worked because it did not merely explain agent memory; it argued that the real breakthrough is selective persistence, not bigger windows.
+- **Systems language is welcome when it stays human-readable.** Terms like "governance," "continuity," and "attack surface" landed because they were tied to concrete failures like stale retrieval, contradictions, and poisoned notes.
+
+### Structure
+- **A 5-H2 architecture works for technical explainers when the sections move from confusion -> architecture -> frontier -> failure modes -> thesis.** This gave the post a strong narrative arc instead of reading like a taxonomy.
+- **Open with the user-visible symptom before defining the mechanism.** Starting from why assistants still feel like "talented interns" made the memory argument more grounded than opening with architecture terms alone.
+- **The closing thesis can widen from product design to civilizational significance as long as it remains specific.** The final section zoomed out to autonomy without losing the core memory argument.
+
+### Do
+- **For agent topics, distinguish context from memory early.** That conceptual separation is the whole point of the post and should arrive before the taxonomy.
+- **Link only the concepts doing real argumentative work.** `Context Window`, `In-Context Learning`, `AI Agents`, `RAG`, `Multimodal AI`, `OpenAI`, and `Anthropic` were enough; more would have diluted the spine.
+- **When the SERP is vendor-heavy and fragmented, compete with a thesis explainer, not a glossary clone.** This keyword was winnable because the current page-one results explain pieces of the problem without owning the historical/system-level frame.
+
+### Don't
+- **Don't let the post collapse into a memory taxonomy list.** The useful move is the thesis about what memory changes, not a survey of every memory type.
+- **Don't oversell persistence as simple accumulation.** The strongest section in this piece was about forgetting, contradiction, and memory poisoning. Keep that skepticism in future agent-memory coverage.
+
+### Other
+- **Single-pass approval on a systems-heavy AI post suggests the atlas voice is now stable across both consumer-AI and agent-architecture explainers.**
+- **Live URL**: `https://letaiexplainai.com/blog/ai-agent-memory`
+- **PublishedAt**: `2026-05-02T16:30:58Z`

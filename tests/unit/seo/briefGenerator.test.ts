@@ -124,6 +124,7 @@ import {
   generateProposal,
   generateProposalFromCluster,
   generateProposalFromKeywordOpportunity,
+  linkProposalDraft,
 } from '../../../server/src/services/seo/briefGenerator';
 
 function buildAnthropicResponse(text: string) {
@@ -183,6 +184,14 @@ function buildCreatedProposal(overrides: Partial<{
   representativeQuery: string;
   sourcePage: string;
   sourceQuery: string | null;
+  draftPostId: string | null;
+  draftPost: {
+    id: string;
+    slug: string;
+    title: string;
+    status: string;
+    publishedAt: Date | null;
+  } | null;
 }> = {}) {
   const snapshot = buildSnapshot();
   return {
@@ -215,7 +224,7 @@ function buildCreatedProposal(overrides: Partial<{
     packagingFixJson: overrides.packagingFixJson ?? null,
     confidence: overrides.confidence ?? 0.88,
     status: overrides.status ?? 'pending',
-    draftPostId: null,
+    draftPostId: overrides.draftPostId ?? null,
     createdAt: new Date('2026-04-30T12:00:00.000Z'),
     actedAt: null,
     rejectedReason: overrides.rejectedReason ?? null,
@@ -240,7 +249,7 @@ function buildCreatedProposal(overrides: Partial<{
           representativeQuery: overrides.representativeQuery ?? overrides.targetKeyword ?? 'AI timeline',
         }
       : null,
-    draftPost: null,
+    draftPost: overrides.draftPost ?? null,
   };
 }
 
@@ -414,6 +423,7 @@ describe('briefGenerator', () => {
         status: 'rejected',
       }),
     }));
+    expect(mockSnapshotUpdate).not.toHaveBeenCalled();
   });
 
   it('rejects angles that duplicate an existing glossary entity', async () => {
@@ -542,6 +552,120 @@ describe('briefGenerator', () => {
       where: { id: 'cluster_1' },
       data: { status: 'actioned' },
     });
+  });
+
+  it('auto-routes cluster proposal generation to evergreen when a stronger canonical destination already exists', async () => {
+    mockPlanTopicPodForCluster.mockResolvedValue({
+      keyword: 'in context learning',
+      sourceType: 'cluster_snapshot',
+      sourceId: 'cluster_1',
+      sourceLabel: '90d topic theme',
+      primaryPage: 'https://letaiexplainai.com/explained/in-context-learning',
+      moveType: 'expand_existing',
+      hypothesis: 'The glossary page should absorb this recurring clustered demand instead of spawning a duplicate blog post.',
+      canonicalDestination: {
+        type: 'entity_page',
+        label: 'In-Context Learning',
+        path: '/glossary/in-context-learning',
+        exists: true,
+        reason: 'LAEA already has a stronger exact-match destination at /glossary/in-context-learning.',
+      },
+      companionAssets: [],
+      internalLinkOpportunities: [],
+    });
+    mockClusterFindUnique.mockResolvedValue(buildCluster({
+      bucket: 'cluster_topic_theme',
+      primaryPage: 'https://letaiexplainai.com/explained/in-context-learning',
+      representativeQuery: 'in context learning',
+    }));
+    mockProposalCreate.mockResolvedValueOnce(buildCreatedProposal({
+      sourceType: 'cluster_snapshot',
+      clusterSnapshotId: 'cluster_1',
+      proposalType: 'evergreen_routing',
+      targetKeyword: 'in context learning',
+      suggestedAngle: 'Expand /glossary/in-context-learning so it becomes the canonical destination for this recurring search demand.',
+      rationale: 'The glossary page should absorb this recurring clustered demand instead of spawning a duplicate blog post. Current landing page: /explained/in-context-learning. Recommended canonical destination: /glossary/in-context-learning.',
+      hypothesis: 'The glossary page should absorb this recurring clustered demand instead of spawning a duplicate blog post.',
+      topicPodJson: {
+        keyword: 'in context learning',
+        sourceType: 'cluster_snapshot',
+        sourceId: 'cluster_1',
+        sourceLabel: '90d topic theme',
+        primaryPage: 'https://letaiexplainai.com/explained/in-context-learning',
+        moveType: 'expand_existing',
+        hypothesis: 'The glossary page should absorb this recurring clustered demand instead of spawning a duplicate blog post.',
+        canonicalDestination: {
+          type: 'entity_page',
+          label: 'In-Context Learning',
+          path: '/glossary/in-context-learning',
+          exists: true,
+          reason: 'LAEA already has a stronger exact-match destination at /glossary/in-context-learning.',
+        },
+        companionAssets: [],
+        internalLinkOpportunities: [],
+      },
+      confidence: 0.86,
+      status: 'pending',
+      rejectedReason: null,
+      linkInventoryJson: [],
+      newsHooksJson: [],
+      primaryPage: 'https://letaiexplainai.com/explained/in-context-learning',
+      representativeQuery: 'in context learning',
+    }));
+
+    const result = await generateProposalFromCluster('cluster_1');
+
+    expect(result.proposalType).toBe('evergreen_routing');
+    expect(result.status).toBe('pending');
+    expect(result.handoff.mode).toBe('manual_routing_review');
+    expect(result.handoff.command).toBeNull();
+    expect(result.routingPlan).toMatchObject({
+      currentPath: '/explained/in-context-learning',
+      targetPath: '/glossary/in-context-learning',
+      moveType: 'expand_existing',
+    });
+    expect(mockMessageCreate).not.toHaveBeenCalled();
+    expect(mockClusterUpdate).toHaveBeenCalledWith({
+      where: { id: 'cluster_1' },
+      data: { status: 'actioned' },
+    });
+  });
+
+  it('keeps a cluster open when a generated blog proposal is auto-rejected', async () => {
+    mockMessageCreate.mockResolvedValue(buildAnthropicResponse(JSON.stringify({
+      suggestedAngle: 'In this article, we will explore the revolutionary power of in-context learning',
+      rationale: 'The topic is interesting, but the angle drifts into banned hype phrasing.',
+      confidence: 0.7,
+    })));
+    mockClusterFindUnique.mockResolvedValue(buildCluster({
+      bucket: 'cluster_topic_theme',
+      representativeQuery: 'in context learning',
+      primaryPage: 'https://letaiexplainai.com/explained/in-context-learning',
+    }));
+    mockPlanTopicPodForCluster.mockResolvedValue({
+      keyword: 'in context learning',
+      sourceType: 'cluster_snapshot',
+      sourceId: 'cluster_1',
+      sourceLabel: '90d topic theme',
+      primaryPage: 'https://letaiexplainai.com/explained/in-context-learning',
+      moveType: 'create_new',
+      hypothesis: 'A fresh editorial angle could outperform the fragmented cluster landing.',
+      canonicalDestination: {
+        type: 'new_blog_post',
+        label: 'New blog explainer: In-Context Learning',
+        path: '/blog/in-context-learning',
+        exists: false,
+        reason: 'No stronger destination exists yet.',
+      },
+      companionAssets: [],
+      internalLinkOpportunities: [],
+    });
+
+    const result = await generateProposalFromCluster('cluster_1');
+
+    expect(result.status).toBe('rejected');
+    expect(result.rejectedReason).toContain('Voice drift');
+    expect(mockClusterUpdate).not.toHaveBeenCalled();
   });
 
   it('generates a manual keyword-opportunity proposal for editorial seeds', async () => {
@@ -775,5 +899,183 @@ describe('briefGenerator', () => {
       issueTypes: ['title_link_risk'],
     });
     expect(mockMessageCreate).not.toHaveBeenCalled();
+  });
+
+  it('refuses to generate a duplicate packaging-fix proposal for the same page inside the 30-day window', async () => {
+    mockProposalFindFirst.mockResolvedValueOnce({
+      id: 'existing_packaging_proposal',
+    });
+
+    await expect(generatePackagingFixProposal('packaging_1')).rejects.toMatchObject({
+      statusCode: 409,
+      message: 'A recent packaging-fix proposal already exists for /news. Check Proposals > Pending.',
+    });
+
+    expect(mockProposalCreate).not.toHaveBeenCalled();
+    expect(mockMessageCreate).not.toHaveBeenCalled();
+  });
+
+  it('links a blog draft from a public /blog/... URL', async () => {
+    mockProposalFindUnique.mockResolvedValue(buildCreatedProposal({
+      sourceType: 'keyword_opportunity',
+      status: 'drafting',
+      sourceRefJson: {
+        opportunityId: 'kw_1',
+        opportunitySourceType: 'serp_sample',
+        pageUrl: 'https://letaiexplainai.com/blog/chip-gaines',
+        pagePath: '/blog/chip-gaines',
+        pageTypeRecommendation: 'blog_post',
+        windowStart: '2026-05-01T20:52:26.647Z',
+        windowEnd: null,
+        sourceBucket: 'serp_sample',
+        sourceQuery: 'chip gaines',
+      },
+    }));
+    mockBlogPostFindUnique
+      .mockResolvedValueOnce({
+        id: 'post_chip',
+        slug: 'chip-gaines',
+        title: 'Chip Gaines and the AI home-renovation moment',
+        status: 'draft',
+        publishedAt: null,
+      })
+      .mockResolvedValueOnce(null);
+    mockProposalUpdate.mockResolvedValue(buildCreatedProposal({
+      sourceType: 'keyword_opportunity',
+      status: 'approved',
+      sourceRefJson: {
+        opportunityId: 'kw_1',
+        opportunitySourceType: 'serp_sample',
+        pageUrl: 'https://letaiexplainai.com/blog/chip-gaines',
+        pagePath: '/blog/chip-gaines',
+        pageTypeRecommendation: 'blog_post',
+        windowStart: '2026-05-01T20:52:26.647Z',
+        windowEnd: null,
+        sourceBucket: 'serp_sample',
+        sourceQuery: 'chip gaines',
+      },
+      draftPost: {
+        id: 'post_chip',
+        slug: 'chip-gaines',
+        title: 'Chip Gaines and the AI home-renovation moment',
+        status: 'draft',
+        publishedAt: null,
+      },
+    }));
+
+    const result = await linkProposalDraft('proposal_1', 'https://letaiexplainai.com/blog/chip-gaines');
+
+    expect(mockBlogPostFindUnique).toHaveBeenCalledWith({
+      where: { slug: 'chip-gaines' },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        status: true,
+        publishedAt: true,
+      },
+    });
+    expect(mockProposalUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'proposal_1' },
+      data: expect.objectContaining({
+        draftPostId: 'post_chip',
+        status: 'approved',
+      }),
+    }));
+    expect(result.draftPost?.id).toBe('post_chip');
+  });
+
+  it('explains that a planned /blog/... destination is not enough when no post exists yet', async () => {
+    mockProposalFindUnique.mockResolvedValue(buildCreatedProposal({
+      sourceType: 'keyword_opportunity',
+      status: 'drafting',
+      sourceRefJson: {
+        opportunityId: 'kw_1',
+        opportunitySourceType: 'serp_sample',
+        pageUrl: 'https://letaiexplainai.com/blog/chip-gaines',
+        pagePath: '/blog/chip-gaines',
+        pageTypeRecommendation: 'blog_post',
+        windowStart: '2026-05-01T20:52:26.647Z',
+        windowEnd: null,
+        sourceBucket: 'serp_sample',
+        sourceQuery: 'chip gaines',
+      },
+    }));
+    mockBlogPostFindUnique.mockResolvedValue(null);
+
+    await expect(
+      linkProposalDraft('proposal_1', 'https://letaiexplainai.com/blog/chip-gaines')
+    ).rejects.toMatchObject({
+      statusCode: 404,
+      message: expect.stringContaining('Planned destinations like /blog/chip-gaines do not count'),
+    });
+  });
+
+  it('allows a shipped proposal to relink the same published post so experiment recovery can rerun safely', async () => {
+    mockProposalFindUnique.mockResolvedValue(buildCreatedProposal({
+      sourceType: 'keyword_opportunity',
+      status: 'shipped',
+      draftPostId: 'post_chip',
+      sourceRefJson: {
+        opportunityId: 'kw_1',
+        opportunitySourceType: 'serp_sample',
+        pageUrl: 'https://letaiexplainai.com/blog/chip-gaines',
+        pagePath: '/blog/chip-gaines',
+        pageTypeRecommendation: 'blog_post',
+        windowStart: '2026-05-01T20:52:26.647Z',
+        windowEnd: null,
+        sourceBucket: 'serp_sample',
+        sourceQuery: 'chip gaines',
+      },
+      draftPost: {
+        id: 'post_chip',
+        slug: 'chip-gaines',
+        title: 'Chip Gaines and the AI home-renovation moment',
+        status: 'published',
+        publishedAt: new Date('2026-05-02T15:23:16.000Z'),
+      },
+    }));
+    mockBlogPostFindUnique.mockResolvedValue({
+      id: 'post_chip',
+      slug: 'chip-gaines',
+      title: 'Chip Gaines and the AI home-renovation moment',
+      status: 'published',
+      publishedAt: null,
+    });
+    mockProposalUpdate.mockResolvedValue(buildCreatedProposal({
+      sourceType: 'keyword_opportunity',
+      status: 'shipped',
+      draftPostId: 'post_chip',
+      sourceRefJson: {
+        opportunityId: 'kw_1',
+        opportunitySourceType: 'serp_sample',
+        pageUrl: 'https://letaiexplainai.com/blog/chip-gaines',
+        pagePath: '/blog/chip-gaines',
+        pageTypeRecommendation: 'blog_post',
+        windowStart: '2026-05-01T20:52:26.647Z',
+        windowEnd: null,
+        sourceBucket: 'serp_sample',
+        sourceQuery: 'chip gaines',
+      },
+      draftPost: {
+        id: 'post_chip',
+        slug: 'chip-gaines',
+        title: 'Chip Gaines and the AI home-renovation moment',
+        status: 'published',
+        publishedAt: new Date('2026-05-02T15:23:16.000Z'),
+      },
+    }));
+
+    const result = await linkProposalDraft('proposal_1', 'https://letaiexplainai.com/blog/chip-gaines');
+
+    expect(mockProposalUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'proposal_1' },
+      data: expect.objectContaining({
+        draftPostId: 'post_chip',
+        status: 'shipped',
+      }),
+    }));
+    expect(mockEnsureExperimentForProposalLink).toHaveBeenCalledWith('proposal_1');
+    expect(result.status).toBe('shipped');
   });
 });

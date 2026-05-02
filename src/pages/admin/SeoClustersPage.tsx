@@ -3,7 +3,8 @@ import { startTransition, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { SeoClusterDrawer } from '../../components/admin/SeoClusterDrawer';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
-import { EmptyState, ErrorState, LoadingSkeleton, Tabs } from '../../components/ui';
+import { EmptyState, ErrorState, HelpTooltip, LoadingSkeleton, Tabs } from '../../components/ui';
+import { getProposalToastContent, getProposalToastTone } from '../../lib/seoProposalFeedback';
 import {
   seoInsightsApi,
   type SeoClusterBucket,
@@ -139,7 +140,12 @@ export default function SeoClustersPage() {
     setPendingClusterId(id);
     try {
       const proposal = await seoInsightsApi.generateClusterProposal(id);
-      toast.success(`Proposal queued for ${proposal.targetKeyword}`);
+      const toastContent = getProposalToastContent(proposal);
+      if (getProposalToastTone(proposal) === 'error') {
+        toast.error(toastContent);
+      } else {
+        toast.success(toastContent);
+      }
       await loadClusters();
     } catch (nextError) {
       toast.error(nextError instanceof Error ? nextError.message : 'Failed to generate proposal');
@@ -157,7 +163,15 @@ export default function SeoClustersPage() {
               <Waypoints className="h-3.5 w-3.5" />
               SEO Clusters
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Longer windows, fewer false negatives, clearer topic demand.</h1>
+            <div className="mt-4 flex items-start gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight">Longer windows, fewer false negatives, clearer topic demand.</h1>
+              <HelpTooltip
+                title="How to use Clusters"
+                description="Use 28 days for fresher recurring demand and 90 days for thinner but more persistent topic families. Open a cluster to inspect the grouped queries, then generate a proposal when the canonical destination or content angle is clear."
+                buttonLabel="How to use SEO Clusters"
+                className="mt-1 border-white/15 bg-white/10 text-cyan-100 hover:border-white/30 hover:bg-white/15 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-cyan-100"
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-cyan-100/85">
               Mine finalized 28-day and 90-day Search Console windows for clustered opportunities that exact weekly query rows miss on a newer site.
             </p>

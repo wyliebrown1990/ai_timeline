@@ -1,5 +1,9 @@
 import { ArrowUpRight, Route, TriangleAlert, Wrench } from 'lucide-react';
-import type { SeoPackagingAuditRecord, SeoPackagingIssueRecord } from '../../services/api';
+import type {
+  SeoPackagingAuditRecord,
+  SeoPackagingExistingProposalSummary,
+  SeoPackagingIssueRecord,
+} from '../../services/api';
 import { Drawer } from '../ui';
 
 interface SeoPackagingDrawerProps {
@@ -8,8 +12,23 @@ interface SeoPackagingDrawerProps {
   onClose: () => void;
   onProposeEvergreen: (audit: SeoPackagingAuditRecord) => Promise<void>;
   onProposeFix: (audit: SeoPackagingAuditRecord) => Promise<void>;
+  onViewExistingPackagingProposal: (proposal: SeoPackagingExistingProposalSummary) => void;
   proposePendingId: string | null;
   proposeFixPendingId: string | null;
+}
+
+function getExistingPackagingProposalLabel(proposal: SeoPackagingExistingProposalSummary): string {
+  switch (proposal.status) {
+    case 'approved':
+      return 'View approved proposal';
+    case 'drafting':
+      return 'View drafting proposal';
+    case 'shipped':
+      return 'View shipped proposal';
+    case 'pending':
+    default:
+      return 'View queued proposal';
+  }
 }
 
 function getSeverityClasses(severity: SeoPackagingIssueRecord['severity']): string {
@@ -39,6 +58,7 @@ export function SeoPackagingDrawer({
   onClose,
   onProposeEvergreen,
   onProposeFix,
+  onViewExistingPackagingProposal,
   proposePendingId,
   proposeFixPendingId,
 }: SeoPackagingDrawerProps) {
@@ -47,6 +67,7 @@ export function SeoPackagingDrawer({
   }
 
   const hasPackagingFixOpportunity = audit.issues.some((issue) => issue.type !== 'evergreen_routing');
+  const existingPackagingFixProposal = audit.existingPackagingFixProposal;
 
   return (
     <Drawer
@@ -129,22 +150,30 @@ export function SeoPackagingDrawer({
         )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950/60">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
-              <TriangleAlert className="h-4 w-4" />
-              Packaging issues
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                <TriangleAlert className="h-4 w-4" />
+                Packaging issues
+              </div>
+              {hasPackagingFixOpportunity && existingPackagingFixProposal ? (
+                <button
+                  type="button"
+                  onClick={() => onViewExistingPackagingProposal(existingPackagingFixProposal)}
+                  className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  {getExistingPackagingProposalLabel(existingPackagingFixProposal)}
+                </button>
+              ) : hasPackagingFixOpportunity ? (
+                <button
+                  type="button"
+                  onClick={() => void onProposeFix(audit)}
+                  disabled={proposeFixPendingId === audit.id}
+                  className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/50"
+                >
+                  {proposeFixPendingId === audit.id ? 'Queueing…' : 'Queue packaging fix'}
+                </button>
+              ) : null}
             </div>
-            {hasPackagingFixOpportunity && (
-              <button
-                type="button"
-                onClick={() => void onProposeFix(audit)}
-                disabled={proposeFixPendingId === audit.id}
-                className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-950/50"
-              >
-                {proposeFixPendingId === audit.id ? 'Queueing…' : 'Queue packaging fix'}
-              </button>
-            )}
-          </div>
           <div className="mt-4 space-y-3">
             {audit.issues.map((issue) => (
               <div key={issue.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/50">

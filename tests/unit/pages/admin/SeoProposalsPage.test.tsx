@@ -24,9 +24,9 @@ import SeoProposalsPage from '../../../../src/pages/admin/SeoProposalsPage';
 
 const mockSeoInsightsApi = seoInsightsApi as jest.Mocked<typeof seoInsightsApi>;
 
-function renderPage() {
+function renderPage(initialEntries?: string[]) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={initialEntries}>
       <SeoProposalsPage />
     </MemoryRouter>
   );
@@ -34,11 +34,14 @@ function renderPage() {
 
 function buildProposal(overrides: Partial<{
   id: string;
+  sourceType: string;
   status: 'pending' | 'drafting' | 'approved' | 'rejected' | 'shipped';
   proposalType: 'blog_post' | 'evergreen_routing' | 'packaging_fix';
   targetKeyword: string;
   suggestedAngle: string;
   rejectedReason: string | null;
+  sourcePage: string;
+  sourceQuery: string;
   draftPost: {
     id: string;
     slug: string;
@@ -49,7 +52,7 @@ function buildProposal(overrides: Partial<{
 }> = {}) {
   return {
     id: overrides.id ?? 'proposal_1',
-    sourceType: 'weekly_snapshot',
+    sourceType: overrides.sourceType ?? 'weekly_snapshot',
     sourceId: 'snapshot_1',
     proposalType: overrides.proposalType ?? 'blog_post',
     targetKeyword: overrides.targetKeyword ?? 'AI agents in healthcare',
@@ -64,8 +67,8 @@ function buildProposal(overrides: Partial<{
     sourceWindowStart: '2026-04-21T00:00:00.000Z',
     sourceWindowEnd: null,
     sourceBucket: 'content_gap',
-    sourcePage: 'https://letaiexplainai.com/news',
-    sourceQuery: 'AI agents in healthcare',
+    sourcePage: overrides.sourcePage ?? 'https://letaiexplainai.com/news',
+    sourceQuery: overrides.sourceQuery ?? 'AI agents in healthcare',
     linkInventory: [
       {
         entityType: 'organization' as const,
@@ -146,6 +149,59 @@ describe('SeoProposalsPage', () => {
     expect(await screen.findByText(/human-reviewed follow-through plan/i)).toBeInTheDocument();
     expect(screen.getByText(/hospitals test ai agents for clinician workflows/i)).toBeInTheDocument();
     expect(screen.getByText(/link inventory/i)).toBeInTheDocument();
+  });
+
+  it('explains that keyword-opportunity blog URLs are planned destinations, not live drafts', async () => {
+    mockSeoInsightsApi.listProposals.mockResolvedValue(buildListResult({
+      data: [
+        buildProposal({
+          sourceType: 'keyword_opportunity',
+          status: 'drafting',
+          targetKeyword: 'chip gaines',
+          sourcePage: 'https://letaiexplainai.com/blog/chip-gaines',
+          sourceQuery: 'chip gaines',
+          draftPost: null,
+        }),
+      ],
+    }));
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('chip gaines')).toBeInTheDocument();
+    expect(screen.getByText(/planned destination https:\/\/letaiexplainai\.com\/blog\/chip-gaines/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /view detail/i }));
+
+    expect(await screen.findByText(/^planned destination$/i, { selector: 'dt' })).toBeInTheDocument();
+    expect(screen.getByText(/it does not mean a blog draft already exists yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/planned destinations like \/blog\/chip-gaines do not count until a real post exists/i)).toBeInTheDocument();
+  });
+
+  it('respects the status query param when opening the proposals page', async () => {
+    mockSeoInsightsApi.listProposals.mockResolvedValue(buildListResult({
+      data: [buildProposal({ status: 'rejected', rejectedReason: 'Too broad and too close to an existing page.' })],
+      meta: {
+        counts: {
+          all: 1,
+          pending: 0,
+          drafting: 0,
+          approved: 0,
+          rejected: 1,
+          shipped: 0,
+        },
+      },
+    }));
+
+    renderPage(['/admin/seo-insights/proposals?status=rejected']);
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.listProposals).toHaveBeenCalledWith({
+        status: 'rejected',
+        page: 1,
+        limit: 25,
+      });
+    });
+    expect(await screen.findByText('AI agents in healthcare')).toBeInTheDocument();
   });
 
   it('approves a proposal from the table and refreshes the queue', async () => {

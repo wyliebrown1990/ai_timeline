@@ -3,7 +3,7 @@ import { startTransition, useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { SeoDiffPanel } from '../../components/admin/SeoDiffPanel';
 import { SeoInsightsSectionNav } from '../../components/admin/SeoInsightsSectionNav';
-import { ConfirmDialog, EmptyState, ErrorState, LoadingSkeleton } from '../../components/ui';
+import { ConfirmDialog, EmptyState, ErrorState, HelpTooltip, LoadingSkeleton } from '../../components/ui';
 import {
   seoInsightsApi,
   type SeoAgentActionRecord,
@@ -89,7 +89,15 @@ export default function SeoActionsPage() {
               <CheckCircle2 className="h-3.5 w-3.5" />
               SEO Actions
             </div>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Audit every shipped metadata move before it drifts.</h1>
+            <div className="mt-4 flex items-start gap-3">
+              <h1 className="text-3xl font-semibold tracking-tight">Audit every shipped metadata move before it drifts.</h1>
+              <HelpTooltip
+                title="How to use Actions"
+                description="This is the auto-ship audit log. Start with shipped rows, inspect the before and after diff, and use rollback only when a rewrite is off-voice, inaccurate, or clearly underperforming."
+                buttonLabel="How to use SEO Actions"
+                className="mt-1 border-white/15 bg-white/10 text-emerald-100 hover:border-white/30 hover:bg-white/15 hover:text-white dark:border-white/15 dark:bg-white/10 dark:text-emerald-100"
+              />
+            </div>
             <p className="mt-3 text-sm leading-6 text-emerald-100/85">
               Review what the SEO agent changed, inspect the exact before/after diff, and roll back in one click if a rewrite misses the bar.
             </p>

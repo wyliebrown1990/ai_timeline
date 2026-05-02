@@ -22,8 +22,10 @@ jest.mock('react-hot-toast', () => ({
 
 import { seoInsightsApi } from '../../../../src/services/api';
 import SeoClustersPage from '../../../../src/pages/admin/SeoClustersPage';
+import toast from 'react-hot-toast';
 
 const mockSeoInsightsApi = seoInsightsApi as jest.Mocked<typeof seoInsightsApi>;
+const mockToast = toast as jest.Mocked<typeof toast>;
 
 function renderPage() {
   return render(
@@ -283,5 +285,77 @@ describe('SeoClustersPage', () => {
       expect(mockSeoInsightsApi.generateClusterProposal).toHaveBeenCalledWith('cluster_1');
     });
     expect(await screen.findByText('No clustered opportunities in this bucket')).toBeInTheDocument();
+  });
+
+  it('shows a rejected-proposal warning when slop review blocks a generated cluster brief', async () => {
+    mockSeoInsightsApi.listClusters
+      .mockResolvedValueOnce(buildClusterListResult())
+      .mockResolvedValueOnce(buildClusterListResult({
+        data: [],
+        pagination: {
+          page: 1,
+          limit: 25,
+          total: 0,
+          totalPages: 0,
+        },
+        meta: {
+          horizon: '90d',
+          windowStart: '2026-01-29',
+          windowEnd: '2026-04-28',
+          counts: {
+            cluster_content_gap: 0,
+            cluster_near_win: 0,
+            cluster_topic_theme: 0,
+          },
+        },
+      }));
+    mockSeoInsightsApi.generateClusterProposal.mockResolvedValue({
+      id: 'proposal_2',
+      sourceType: 'cluster_snapshot',
+      sourceId: 'cluster_1',
+      proposalType: 'blog_post',
+      targetKeyword: 'in context learning',
+      suggestedAngle: 'Why in-context learning emerged as the most surprising property of large language models.',
+      rationale: 'Clustered topic theme with enough demand to justify a thesis-shaped brief.',
+      hypothesis: 'A stronger editorial angle should outperform the fragmented cluster landing.',
+      confidence: 0.83,
+      status: 'rejected',
+      rejectedReason: 'Too close to an existing glossary/explainer destination.',
+      createdAt: '2026-05-02T13:48:24.000Z',
+      actedAt: null,
+      sourceWindowStart: '2026-01-29T00:00:00.000Z',
+      sourceWindowEnd: '2026-04-28T00:00:00.000Z',
+      sourceBucket: 'cluster_topic_theme',
+      sourcePage: 'https://letaiexplainai.com/explained/in-context-learning',
+      sourceQuery: 'in context learning',
+      linkInventory: [],
+      newsHooks: [],
+      topicPod: null,
+      routingPlan: null,
+      packagingFixPlan: null,
+      handoff: {
+        mode: 'blog_draft',
+        label: 'Send to /AIBlogDraft',
+        topic: 'Why in-context learning emerged as the most surprising property of large language models.',
+        keyword: 'in context learning',
+        newsUrl: null,
+        command: '/AIBlogDraft topic: "Why in-context learning emerged as the most surprising property of large language models." keyword: "in context learning"',
+        proposalPath: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+        guidance: 'Approving this proposal keeps a human in the loop and prepares a structured /AIBlogDraft handoff.',
+      },
+      draftPost: null,
+    });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText('ai history timeline key milestones')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Generate proposal' }));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.generateClusterProposal).toHaveBeenCalledWith('cluster_1');
+    });
+
+    expect(mockToast.error).toHaveBeenCalled();
   });
 });
