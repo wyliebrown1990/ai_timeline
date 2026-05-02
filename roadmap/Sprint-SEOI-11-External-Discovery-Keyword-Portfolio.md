@@ -208,8 +208,8 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
 - [x] Confirm Serper cache hits prevent duplicate billable requests
 - [x] Confirm internal spend math matches observed Serper credit consumption on a small test batch
-- [ ] Confirm the weekly digest/admin ops surface shows Serper usage correctly
-  - Code path is shipped: the persisted weekly run-status record now auto-captures a Serper snapshot at digest completion so the admin banner can show digest-time spend once the first live weekly run posts status.
+- [x] Confirm the weekly digest/admin ops surface shows Serper usage correctly
+  - First manual live digest completed on `2026-05-02 00:30 America/New_York`; persisted run-status now shows `1` proposal and the admin banner renders the captured Serper snapshot.
 
 ### 10. Browser Validation (agent-browser CLI)
 
@@ -230,14 +230,15 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 
 - [ ] All tasks above checked
 - [x] Keyword portfolio is live in prod
-- [ ] Discovery lane works with Serper under hard query caps and cache discipline
+- [x] Discovery lane works with Serper under hard query caps and cache discipline
 - [x] At least 10 portfolio opportunities exist with usable rationale
 - [x] At least 3 opportunities can feed into the existing proposal/experiment flow
-- [ ] Serper auto-top-up remains disabled and documented
-- [ ] Serper spend is visible in the admin and included in the weekly digest
+- [x] Serper auto-top-up remains disabled and documented
+- [x] Serper spend is visible in the admin and included in the weekly digest
 - [ ] Wylie receives automated Serper spend updates without checking Serper manually
 - [ ] Tests, typecheck, and lint are clean
-- [ ] CloudWatch and browser validation are clean
+- [x] CloudWatch and browser validation are clean
+  - The only live non-200 responses in the manual digest were expected `409` duplicate-proposal guards for already-queued packaging fixes.
 - [x] Sprint file timestamp updated
 
 ---
@@ -392,6 +393,7 @@ The `editorial_seed` source type is human input — Wylie typing in keywords he 
 - [x] Filter chip rows: arrow keys cycle, Enter activates (per WAI-ARIA toggle-button-group pattern).
 - [x] Promote button: keyboard-reachable; `<ConfirmDialog>` traps focus.
 - [x] Add-seed form: full keyboard flow with Tab; Escape dismisses the drawer.
+- [x] Shared `<Drawer>` traps focus while open, starts keyboard focus on the close control, and restores focus to the invoking control on dismiss.
 - [x] Inline demand/competition bars include `aria-label` summarizing the value (e.g. `aria-label="Demand: 78 of 100, high"`).
 
 #### 13. Serper spend visibility
