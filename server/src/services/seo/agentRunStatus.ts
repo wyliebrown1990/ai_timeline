@@ -6,6 +6,28 @@ const SEO_AGENT_LAST_RUN_PARAM =
 const CACHE_TTL_MS = 60_000;
 
 export type SeoAgentRunStatusValue = 'success' | 'failed';
+export type SeoAgentRunSerperRemainingCreditsSource =
+  | 'unavailable'
+  | 'policy_derived'
+  | 'vendor_observed_adjusted';
+export type SeoAgentRunSerperWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
+
+export interface SeoAgentRunSerperSnapshot {
+  capturedAt: string;
+  configured: boolean;
+  enabled: boolean;
+  autoTopupEnabled: boolean;
+  creditsUsedWeek: number;
+  creditsUsedMonth: number;
+  effectiveSpendWeekUsd: number;
+  effectiveSpendMonthUsd: number;
+  remainingCredits: number | null;
+  remainingCreditsSource: SeoAgentRunSerperRemainingCreditsSource;
+  remainingCreditsObservedAt: string | null;
+  projectedDepletionDate: string | null;
+  lastSampledAt: string | null;
+  warningLevel: SeoAgentRunSerperWarningLevel;
+}
 
 export interface SeoAgentRunStatusRecord {
   status: SeoAgentRunStatusValue;
@@ -18,6 +40,7 @@ export interface SeoAgentRunStatusRecord {
   measuredCount: number;
   digestUrl: string | null;
   errorMessage: string | null;
+  serperSnapshot: SeoAgentRunSerperSnapshot | null;
 }
 
 interface RunStatusCacheEntry {
@@ -49,6 +72,63 @@ function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0;
 }
 
+function isSerperRemainingCreditsSource(value: unknown): value is SeoAgentRunSerperRemainingCreditsSource {
+  return value === 'unavailable' || value === 'policy_derived' || value === 'vendor_observed_adjusted';
+}
+
+function isSerperWarningLevel(value: unknown): value is SeoAgentRunSerperWarningLevel {
+  return value === 'ok' || value === 'watch' || value === 'warning' || value === 'critical';
+}
+
+function parseSerperSnapshot(value: unknown): SeoAgentRunSerperSnapshot | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const parsed = value as Partial<SeoAgentRunSerperSnapshot>;
+  if (
+    typeof parsed.capturedAt !== 'string' ||
+    typeof parsed.configured !== 'boolean' ||
+    typeof parsed.enabled !== 'boolean' ||
+    typeof parsed.autoTopupEnabled !== 'boolean' ||
+    !isNonNegativeInteger(parsed.creditsUsedWeek) ||
+    !isNonNegativeInteger(parsed.creditsUsedMonth) ||
+    typeof parsed.effectiveSpendWeekUsd !== 'number' ||
+    !Number.isFinite(parsed.effectiveSpendWeekUsd) ||
+    typeof parsed.effectiveSpendMonthUsd !== 'number' ||
+    !Number.isFinite(parsed.effectiveSpendMonthUsd) ||
+    (parsed.remainingCredits !== null && !isNonNegativeInteger(parsed.remainingCredits)) ||
+    !isSerperRemainingCreditsSource(parsed.remainingCreditsSource) ||
+    (parsed.remainingCreditsObservedAt !== null && typeof parsed.remainingCreditsObservedAt !== 'string') ||
+    (parsed.projectedDepletionDate !== null && typeof parsed.projectedDepletionDate !== 'string') ||
+    (parsed.lastSampledAt !== null && typeof parsed.lastSampledAt !== 'string') ||
+    !isSerperWarningLevel(parsed.warningLevel)
+  ) {
+    return null;
+  }
+
+  return {
+    capturedAt: parsed.capturedAt,
+    configured: parsed.configured,
+    enabled: parsed.enabled,
+    autoTopupEnabled: parsed.autoTopupEnabled,
+    creditsUsedWeek: parsed.creditsUsedWeek,
+    creditsUsedMonth: parsed.creditsUsedMonth,
+    effectiveSpendWeekUsd: parsed.effectiveSpendWeekUsd,
+    effectiveSpendMonthUsd: parsed.effectiveSpendMonthUsd,
+    remainingCredits: parsed.remainingCredits,
+    remainingCreditsSource: parsed.remainingCreditsSource,
+    remainingCreditsObservedAt: parsed.remainingCreditsObservedAt,
+    projectedDepletionDate: parsed.projectedDepletionDate,
+    lastSampledAt: parsed.lastSampledAt,
+    warningLevel: parsed.warningLevel,
+  };
+}
+
 function parseRunStatus(rawValue: string | undefined): SeoAgentRunStatusRecord | null {
   if (!rawValue) {
     return null;
@@ -71,6 +151,11 @@ function parseRunStatus(rawValue: string | undefined): SeoAgentRunStatusRecord |
       return null;
     }
 
+    const serperSnapshot = parseSerperSnapshot(parsed.serperSnapshot);
+    if (parsed.serperSnapshot !== undefined && parsed.serperSnapshot !== null && serperSnapshot === null) {
+      return null;
+    }
+
     return {
       status: parsed.status,
       startedAt: parsed.startedAt,
@@ -82,6 +167,7 @@ function parseRunStatus(rawValue: string | undefined): SeoAgentRunStatusRecord |
       measuredCount: parsed.measuredCount,
       digestUrl: parsed.digestUrl,
       errorMessage: parsed.errorMessage,
+      serperSnapshot,
     };
   } catch {
     return null;

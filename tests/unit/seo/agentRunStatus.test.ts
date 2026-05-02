@@ -44,6 +44,22 @@ describe('agentRunStatus', () => {
           measuredCount: 1,
           digestUrl: null,
           errorMessage: null,
+          serperSnapshot: {
+            capturedAt: '2026-05-05T13:03:00.000Z',
+            configured: true,
+            enabled: true,
+            autoTopupEnabled: false,
+            creditsUsedWeek: 4,
+            creditsUsedMonth: 4,
+            effectiveSpendWeekUsd: 0.004,
+            effectiveSpendMonthUsd: 0.004,
+            remainingCredits: 2_496,
+            remainingCreditsSource: 'vendor_observed_adjusted',
+            remainingCreditsObservedAt: '2026-05-05T12:50:00.000Z',
+            projectedDepletionDate: '2038-04-16T03:55:00.000Z',
+            lastSampledAt: '2026-05-05T12:59:00.000Z',
+            warningLevel: 'ok',
+          },
         }),
       },
     });
@@ -59,6 +75,30 @@ describe('agentRunStatus', () => {
     expect(mockSend).toHaveBeenCalledTimes(1);
   });
 
+  it('treats pre-snapshot run records as valid and fills serperSnapshot with null', async () => {
+    mockSend.mockResolvedValue({
+      Parameter: {
+        Value: JSON.stringify({
+          status: 'success',
+          startedAt: '2026-05-05T13:00:00.000Z',
+          completedAt: '2026-05-05T13:03:00.000Z',
+          weekStart: '2026-04-28T00:00:00.000Z',
+          shippedCount: 2,
+          proposalCount: 1,
+          humanOnlyCount: 0,
+          measuredCount: 1,
+          digestUrl: null,
+          errorMessage: null,
+        }),
+      },
+    });
+
+    await expect(getLatestAgentRunStatus()).resolves.toEqual(expect.objectContaining({
+      status: 'success',
+      serperSnapshot: null,
+    }));
+  });
+
   it('writes run status JSON back to SSM and refreshes the cache', async () => {
     mockSend.mockResolvedValue({});
 
@@ -72,7 +112,8 @@ describe('agentRunStatus', () => {
       humanOnlyCount: 0,
       measuredCount: 0,
       digestUrl: null,
-      errorMessage: 'Discord delivery failed',
+      errorMessage: 'Digest persistence failed',
+      serperSnapshot: null,
     };
 
     await expect(setLatestAgentRunStatus(payload, 1_000)).resolves.toEqual(payload);

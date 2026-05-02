@@ -44,6 +44,11 @@ const VIDEO_DOMAIN_PATTERNS = [
   'youtu.be',
   'vimeo.com',
 ];
+const INVENTOR_QUERY_PATTERN = /\b(who invented|who developed|who created|inventor of|created by)\b/;
+const PERSON_QUERY_PATTERN = /\b(who is|biography|net worth|age)\b/;
+const TIMELINE_QUERY_PATTERN = /\b(timeline|history of|chronology|evolution of)\b/;
+const DEFINITION_QUERY_PATTERN = /\b(what is|what are|define|definition|meaning of|explained)\b/;
+const NEWS_QUERY_PATTERN = /\b(news|latest|today|announced|launch|released?)\b/;
 
 export interface SerperPricingConfig {
   enabled: boolean;
@@ -210,6 +215,8 @@ interface SerperStoredSummary {
   videoDomainCount: number;
   competitionProxy: number;
   competitionReason: string;
+  pageTypeRecommendation: string;
+  pageTypeReason: string;
   effectiveCostUsd: number;
 }
 
@@ -394,11 +401,14 @@ function buildRequestKey(query: string, country: string, language: string, dateR
   return [country, language, dateRange || 'any', page, normalizeQuery(query)].join(':');
 }
 
-function buildSerperOpportunityDedupeKey(input: SerperKeywordOpportunityInput): string {
+function buildSerperOpportunityDedupeKey(
+  input: SerperKeywordOpportunityInput,
+  pageTypeRecommendation: string = input.pageTypeRecommendation,
+): string {
   return [
     'serp_sample',
     buildKeySegment(input.seedQuery),
-    buildKeySegment(input.pageTypeRecommendation),
+    buildKeySegment(pageTypeRecommendation),
     buildKeySegment(input.targetUrl ?? input.seedQuery),
   ].join(':');
 }
@@ -419,7 +429,111 @@ function matchesPattern(hostname: string, patterns: string[]): boolean {
   return patterns.some((pattern) => hostname === pattern || hostname.endsWith(`.${pattern}`));
 }
 
+function formatPageTypeLabel(value: string): string {
+  return value.replace(/_/g, ' ');
+}
+
+function derivePageTypeFromTargetUrl(targetUrl: string | null): string | null {
+  if (!targetUrl) {
+    return null;
+  }
+
+  try {
+    const path = new URL(targetUrl).pathname;
+    if (path.startsWith('/glossary/')) return 'glossary_term';
+    if (path.startsWith('/explained/')) return 'explainer_page';
+    if (path.startsWith('/who-invented/')) return 'who_invented_page';
+    if (path.startsWith('/people/')) return 'person_page';
+    if (path.startsWith('/organizations/')) return 'organization_page';
+    if (path.startsWith('/events/')) return 'event_page';
+    if (path === '/timeline') return 'timeline_page';
+    if (path.startsWith('/blog/')) return 'blog_post';
+    return 'existing_page_optimize';
+  } catch {
+    return null;
+  }
+}
+
+function deriveDefinitionLikePageType(query: string): string {
+  const normalized = normalizeQuery(query);
+  const tokenCount = normalized.length > 0 ? normalized.split(' ').length : 0;
+  const isQuestion = /^(what|who|when|where|why|how)\b/.test(normalized);
+  return tokenCount > 0 && tokenCount <= 4 && !isQuestion ? 'glossary_term' : 'explainer_page';
+}
+
+function deriveSerperPageTypeRecommendation(
+  input: Pick<SerperKeywordOpportunityInput, 'seedQuery' | 'pageTypeRecommendation' | 'targetUrl'>,
+  response: SerperSearchResponse,
+): {
+  pageTypeRecommendation: string;
+  pageTypeReason: string;
+} {
+  const lockedPageType = derivePageTypeFromTargetUrl(input.targetUrl);
+  if (lockedPageType) {
+    return {
+      pageTypeRecommendation: lockedPageType,
+      pageTypeReason: `The canonical target URL already anchors this opportunity to ${formatPageTypeLabel(lockedPageType)}.`,
+    };
+  }
+
+  const normalizedQuery = normalizeQuery(input.seedQuery);
+  const organicTexts = (Array.isArray(response.organic) ? response.organic : [])
+    .slice(0, 5)
+    .map((result) => `${result.title ?? ''} ${result.snippet ?? ''} ${result.link ?? ''}`.toLowerCase());
+
+  const inventorSignals = organicTexts.filter((text) => INVENTOR_QUERY_PATTERN.test(text)).length;
+  const personSignals = organicTexts.filter((text) => PERSON_QUERY_PATTERN.test(text)).length;
+  const timelineSignals = organicTexts.filter((text) => TIMELINE_QUERY_PATTERN.test(text)).length;
+  const definitionSignals = organicTexts.filter((text) => DEFINITION_QUERY_PATTERN.test(text)).length;
+
+  if (INVENTOR_QUERY_PATTERN.test(normalizedQuery) || inventorSignals >= 2) {
+    return {
+      pageTypeRecommendation: 'who_invented_page',
+      pageTypeReason: 'The live first page is dominated by inventor-style results, so a who invented page matches searcher intent best.',
+    };
+  }
+
+  if (TIMELINE_QUERY_PATTERN.test(normalizedQuery) || timelineSignals >= 2) {
+    return {
+      pageTypeRecommendation: 'timeline_page',
+      pageTypeReason: 'Timeline and history results dominate the live first page, so a timeline destination is the best fit.',
+    };
+  }
+
+  if (PERSON_QUERY_PATTERN.test(normalizedQuery) || personSignals >= 2) {
+    return {
+      pageTypeRecommendation: 'person_page',
+      pageTypeReason: 'Biography-style results dominate the live first page, so a person page is the best destination type.',
+    };
+  }
+
+  if (
+    DEFINITION_QUERY_PATTERN.test(normalizedQuery)
+    || definitionSignals >= 2
+    || (Array.isArray(response.peopleAlsoAsk) ? response.peopleAlsoAsk.length : 0) >= 3
+  ) {
+    const recommended = deriveDefinitionLikePageType(input.seedQuery);
+    return {
+      pageTypeRecommendation: recommended,
+      pageTypeReason: `Definition-style results and People Also Ask patterns suggest a ${formatPageTypeLabel(recommended)} is the clearest destination.`,
+    };
+  }
+
+  if (NEWS_QUERY_PATTERN.test(normalizedQuery)) {
+    return {
+      pageTypeRecommendation: 'blog_post',
+      pageTypeReason: 'The query reads like a current-events topic, so a blog post remains the right destination type.',
+    };
+  }
+
+  return {
+    pageTypeRecommendation: input.pageTypeRecommendation,
+    pageTypeReason: `The live first page does not strongly contradict the current ${formatPageTypeLabel(input.pageTypeRecommendation)} recommendation.`,
+  };
+}
+
 function buildCompetitionSummary(
+  input: Pick<SerperKeywordOpportunityInput, 'seedQuery' | 'pageTypeRecommendation' | 'targetUrl'>,
   response: SerperSearchResponse,
   effectiveCostUsd: number,
   sampledAt: Date,
@@ -464,6 +578,7 @@ function buildCompetitionSummary(
   if (peopleAlsoAskCount > 0) {
     reasons.push(`People Also Ask is present with ${peopleAlsoAskCount} prompts`);
   }
+  const pageTypeSignal = deriveSerperPageTypeRecommendation(input, response);
 
   return {
     requestKey,
@@ -483,6 +598,8 @@ function buildCompetitionSummary(
     videoDomainCount,
     competitionProxy,
     competitionReason: reasons.join('; ') || 'Live first-page SERP sample collected from Serper.',
+    pageTypeRecommendation: pageTypeSignal.pageTypeRecommendation,
+    pageTypeReason: pageTypeSignal.pageTypeReason,
     effectiveCostUsd: Number(effectiveCostUsd.toFixed(4)),
   };
 }
@@ -534,8 +651,25 @@ function parseStoredSummary(value: unknown): SerperStoredSummary | null {
     videoDomainCount: summary.videoDomainCount,
     competitionProxy: summary.competitionProxy,
     competitionReason: summary.competitionReason,
+    pageTypeRecommendation: typeof summary.pageTypeRecommendation === 'string' ? summary.pageTypeRecommendation : '',
+    pageTypeReason: typeof summary.pageTypeReason === 'string' ? summary.pageTypeReason : '',
     effectiveCostUsd: summary.effectiveCostUsd,
   };
+}
+
+function resolveStoredPageTypeRecommendation(
+  input: SerperKeywordOpportunityInput,
+  summary: SerperStoredSummary,
+): string {
+  return summary.pageTypeRecommendation.trim() || input.pageTypeRecommendation;
+}
+
+function resolveStoredPageTypeReason(
+  resolvedPageType: string,
+  summary: SerperStoredSummary,
+): string {
+  return summary.pageTypeReason.trim()
+    || `Legacy cached sample predates page-type intent refinement, so the existing ${formatPageTypeLabel(resolvedPageType)} recommendation is preserved.`;
 }
 
 function startOfUtcDay(date: Date): Date {
@@ -815,8 +949,14 @@ function buildSerperRationale(
   input: SerperKeywordOpportunityInput,
   summary: SerperStoredSummary,
 ): string {
-  const targetLabel = input.targetUrl ? input.targetUrl.replace('https://letaiexplainai.com', '') : input.pageTypeRecommendation.replace(/_/g, ' ');
-  return `${input.seedQuery} was validated against a live Serper first-page search. ${summary.competitionReason}. LAEA's current target remains ${targetLabel}, and the refreshed competition score is ${summary.competitionProxy}/100.`;
+  const resolvedPageType = resolveStoredPageTypeRecommendation(input, summary);
+  const resolvedPageTypeReason = resolveStoredPageTypeReason(resolvedPageType, summary);
+  const targetLabel = input.targetUrl ? input.targetUrl.replace('https://letaiexplainai.com', '') : formatPageTypeLabel(input.pageTypeRecommendation);
+  if (resolvedPageType !== input.pageTypeRecommendation) {
+    return `${input.seedQuery} was validated against a live Serper first-page search. ${summary.competitionReason}. Serper nudged the destination type from ${formatPageTypeLabel(input.pageTypeRecommendation)} to ${formatPageTypeLabel(resolvedPageType)} because ${resolvedPageTypeReason} The refreshed competition score is ${summary.competitionProxy}/100.`;
+  }
+
+  return `${input.seedQuery} was validated against a live Serper first-page search. ${summary.competitionReason}. ${resolvedPageTypeReason} LAEA's current target remains ${targetLabel}, and the refreshed competition score is ${summary.competitionProxy}/100.`;
 }
 
 function parseSampleDate(value: string | Date | null | undefined): Date | null {
@@ -890,6 +1030,7 @@ async function fetchFreshSample(
   const effectiveCostUsd = pricing.usdPerThousandQueries / 1000;
   const expiresAt = new Date(now.getTime() + (pricing.cacheTtlDays * DAY_MS));
   const summary = buildCompetitionSummary(
+    input,
     responseJson,
     effectiveCostUsd,
     now,
@@ -991,21 +1132,28 @@ export async function buildSerperKeywordOpportunityCandidates(
       cacheHits += 1;
     }
 
+    const resolvedPageType = resolveStoredPageTypeRecommendation(row, summary);
+    const resolvedSummary = {
+      ...summary,
+      pageTypeRecommendation: resolvedPageType,
+      pageTypeReason: resolveStoredPageTypeReason(resolvedPageType, summary),
+    };
+
     candidates.push({
       sourceOpportunityId: row.id,
       sourceOpportunitySourceType: row.sourceType,
-      dedupeKey: buildSerperOpportunityDedupeKey(row),
+      dedupeKey: buildSerperOpportunityDedupeKey(row, resolvedPageType),
       seedQuery: row.seedQuery,
       clusterKey: row.clusterKey,
       clusterSnapshotId: row.clusterSnapshotId,
       targetIntent: row.targetIntent,
       demandProxy: row.demandProxy,
-      competitionProxy: summary.competitionProxy,
+      competitionProxy: resolvedSummary.competitionProxy,
       laeaFitScore: row.laeaFitScore,
-      pageTypeRecommendation: row.pageTypeRecommendation,
+      pageTypeRecommendation: resolvedPageType,
       targetUrl: row.targetUrl,
-      rationale: buildSerperRationale(row, summary),
-      sourceRef: buildSerperSourceRef(row, summary),
+      rationale: buildSerperRationale(row, resolvedSummary),
+      sourceRef: buildSerperSourceRef(row, resolvedSummary),
     });
 
     if (row.sourceType !== 'serp_sample') {
@@ -1063,11 +1211,17 @@ export async function refreshSerperKeywordOpportunitySample(
   );
   const summary = await fetchFreshSample(input, runtimeConfig.apiKey, runtimeConfig.pricing, requestKey, now);
   usage = await getSerperUsageSummary(now);
+  const resolvedPageType = resolveStoredPageTypeRecommendation(input, summary);
+  const resolvedSummary = {
+    ...summary,
+    pageTypeRecommendation: resolvedPageType,
+    pageTypeReason: resolveStoredPageTypeReason(resolvedPageType, summary),
+  };
 
   return {
-    summary,
-    sourceRef: buildSerperSourceRef(input, summary),
-    rationale: buildSerperRationale(input, summary),
+    summary: resolvedSummary,
+    sourceRef: buildSerperSourceRef(input, resolvedSummary),
+    rationale: buildSerperRationale(input, resolvedSummary),
     usage,
   };
 }

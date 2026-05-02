@@ -146,7 +146,8 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
   - [x] ability to support internal linking
   - [x] experiment capacity
 - [ ] Make Serper a refinement layer, not the primary ranking signal:
-  - [ ] use Serper to refine `competitionProxy` and page-type recommendation
+  - [x] use Serper to refine `competitionProxy` and page-type recommendation
+    - Current implementation keeps canonical target URLs authoritative, but uses live first-page intent to refine page type for unlocked opportunities such as editorial seeds with no fixed destination yet.
   - [x] if Serper is paused, over budget, or cache-hit only, keep the non-Serper score path working
 - [x] Cap the weekly intake so discovery does not overwhelm the backlog
 
@@ -205,9 +206,10 @@ This sprint should create a durable keyword portfolio that the weekly agent can 
 - [x] Confirm at least 3 opportunities can be promoted into experiment/proposal flows
 - [x] Verify source attribution and rationale are visible and understandable
 - [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — zero errors
-- [ ] Confirm Serper cache hits prevent duplicate billable requests
-- [ ] Confirm internal spend math matches observed Serper credit consumption on a small test batch
+- [x] Confirm Serper cache hits prevent duplicate billable requests
+- [x] Confirm internal spend math matches observed Serper credit consumption on a small test batch
 - [ ] Confirm the weekly digest/admin ops surface shows Serper usage correctly
+  - Code path is shipped: the persisted weekly run-status record now auto-captures a Serper snapshot at digest completion so the admin banner can show digest-time spend once the first live weekly run posts status.
 
 ### 10. Browser Validation (agent-browser CLI)
 
@@ -394,7 +396,7 @@ The `editorial_seed` source type is human input — Wylie typing in keywords he 
 
 #### 13. Serper spend visibility
 
-- [ ] Add a compact ops card above the portfolio table showing: `credits used this week`, `effective spend`, `remaining purchased balance`, `projected depletion date`, and `auto-top-up: off`.
+- [x] Add a compact ops card above the portfolio table showing: `credits used this week`, `effective spend`, `remaining purchased balance`, `projected depletion date`, and `auto-top-up: off`.
 - [x] The same spend summary appears in the row/detail context when a keyword has a fresh `serp_sample`, so operators can see that the paid enrichment is cached and already paid for.
 - [x] Threshold states (`25%`, `50%`, `75%`, `90%` credit burn) use icon + text + color, not color alone.
 

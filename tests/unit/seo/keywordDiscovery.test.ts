@@ -191,6 +191,8 @@ describe('keywordDiscovery', () => {
         videoDomainCount: 0,
         competitionProxy: 28,
         competitionReason: 'Top results include wikipedia.org',
+        pageTypeRecommendation: 'blog_post',
+        pageTypeReason: 'The canonical target URL already anchors this opportunity to blog post.',
         effectiveCostUsd: 0.001,
       },
       sourceRef: {
@@ -215,6 +217,8 @@ describe('keywordDiscovery', () => {
         videoDomainCount: 0,
         competitionProxy: 28,
         competitionReason: 'Top results include wikipedia.org',
+        pageTypeRecommendation: 'blog_post',
+        pageTypeReason: 'The canonical target URL already anchors this opportunity to blog post.',
         effectiveCostUsd: 0.001,
       },
       rationale: 'Updated SERP rationale',
@@ -898,6 +902,7 @@ describe('keywordDiscovery', () => {
       where: { id: 'kw_serp_1' },
       data: expect.objectContaining({
         competitionProxy: 28,
+        pageTypeRecommendation: 'blog_post',
         overallScore: 79.8,
         rationale: 'Updated SERP rationale',
         sourceRefJson: expect.objectContaining({

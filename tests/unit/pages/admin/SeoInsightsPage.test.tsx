@@ -385,6 +385,48 @@ describe('SeoInsightsPage', () => {
     expect(screen.getByRole('button', { name: /pause auto-ship/i })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('shows the persisted Serper snapshot from the last weekly digest run', async () => {
+    mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
+    mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({
+      agentRun: {
+        status: 'success',
+        startedAt: '2026-05-05T13:00:00.000Z',
+        completedAt: '2026-05-05T13:03:00.000Z',
+        weekStart: '2026-04-28T00:00:00.000Z',
+        shippedCount: 2,
+        proposalCount: 1,
+        humanOnlyCount: 0,
+        measuredCount: 1,
+        digestUrl: null,
+        errorMessage: null,
+        serperSnapshot: {
+          capturedAt: '2026-05-05T13:03:00.000Z',
+          configured: true,
+          enabled: true,
+          autoTopupEnabled: false,
+          creditsUsedWeek: 4,
+          creditsUsedMonth: 4,
+          effectiveSpendWeekUsd: 0.004,
+          effectiveSpendMonthUsd: 0.004,
+          remainingCredits: 2_496,
+          remainingCreditsSource: 'vendor_observed_adjusted' as const,
+          remainingCreditsObservedAt: '2026-05-01T23:51:30.000Z',
+          projectedDepletionDate: '2038-04-16T03:55:00.000Z',
+          lastSampledAt: '2026-05-01T20:53:00.000Z',
+          warningLevel: 'ok' as const,
+        },
+      },
+    }));
+
+    renderPage();
+
+    expect(await screen.findByTestId('seo-digest-serper-snapshot')).toHaveTextContent(
+      /serper snapshot for that digest: 4 queries that week/i
+    );
+    expect(screen.getByTestId('seo-digest-serper-snapshot')).toHaveTextContent('$0.0040 modeled month');
+    expect(screen.getByTestId('seo-digest-serper-snapshot')).toHaveTextContent('tracked vendor balance 2,496');
+  });
+
   it('elevates Serper warnings on the SEO ops banner when burn looks risky', async () => {
     mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
     mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({

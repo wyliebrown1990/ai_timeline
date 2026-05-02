@@ -311,6 +311,8 @@ describe('serperClient', () => {
       videoDomainCount: 0,
       competitionProxy: 27,
       competitionReason: 'Cached sample.',
+      pageTypeRecommendation: 'blog_post',
+      pageTypeReason: 'The canonical target URL already anchors this opportunity to blog post.',
       effectiveCostUsd: 0.001,
     };
 
@@ -383,6 +385,77 @@ describe('serperClient', () => {
     expect(result.skippedSamples).toBe(0);
     expect(mockSerpSampleCreate).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses live first-page intent to refine page-type recommendation when no canonical target is locked', async () => {
+    mockSend.mockImplementation(async (command: { Name: string }) => {
+      if (command.Name?.includes('serper-api-key')) {
+        return {
+          Parameter: {
+            Value: 'test-serper-key',
+          },
+        };
+      }
+
+      return {
+        Parameter: {
+          Value: JSON.stringify({
+            enabled: true,
+            tierLabel: 'starter',
+            purchasedCredits: 50_000,
+            monthlyCreditBudget: 2_500,
+            usdPerThousandQueries: 1,
+            maxQueriesPerRun: 3,
+            maxQueriesPerDay: 10,
+            maxQueriesPerWeek: 25,
+            cacheTtlDays: 28,
+            country: 'us',
+            language: 'en',
+            dateRange: 'qdr:m',
+            page: 1,
+            autoTopupEnabled: false,
+          }),
+        },
+      };
+    });
+
+    (global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        organic: [
+          { title: 'What is AI orchestration? A practical guide', link: 'https://example.com/what-is-ai-orchestration' },
+          { title: 'AI orchestration explained for teams', link: 'https://another.example.com/ai-orchestration-explained' },
+        ],
+        peopleAlsoAsk: [{}, {}, {}],
+        relatedSearches: [],
+      }),
+    } as Response);
+
+    const result = await buildSerperKeywordOpportunityCandidates([
+      {
+        id: 'kw_seed_1',
+        sourceType: 'editorial_seed',
+        dedupeKey: 'editorial_seed:what-is-ai-orchestration:blog-post',
+        seedQuery: 'what is ai orchestration',
+        clusterKey: null,
+        clusterSnapshotId: null,
+        targetIntent: 'topic_theme',
+        demandProxy: 68,
+        competitionProxy: 42,
+        laeaFitScore: 78,
+        pageTypeRecommendation: 'blog_post',
+        targetUrl: null,
+        rationale: 'Manual seed',
+        status: 'scored',
+      },
+    ], new Date('2026-05-01T12:00:00.000Z'));
+
+    expect(result.candidates).toHaveLength(1);
+    expect(result.candidates[0]).toEqual(expect.objectContaining({
+      pageTypeRecommendation: 'explainer_page',
+      dedupeKey: expect.stringContaining('explainer-page'),
+      rationale: expect.stringContaining('Serper nudged the destination type from blog post to explainer page'),
+    }));
   });
 
   it('blocks manual refresh until the 7-day Serper cooldown expires', async () => {

@@ -764,6 +764,30 @@ function parseNonNegativeInteger(value: unknown, fallback: number = 0): number {
   return parsed;
 }
 
+async function buildAgentRunSerperSnapshot(capturedAt: string) {
+  try {
+    const summary = await getSerperUsageSummary(new Date(capturedAt));
+    return {
+      capturedAt,
+      configured: summary.configured,
+      enabled: summary.enabled,
+      autoTopupEnabled: summary.autoTopupEnabled,
+      creditsUsedWeek: summary.creditsUsedWeek,
+      creditsUsedMonth: summary.creditsUsedMonth,
+      effectiveSpendWeekUsd: summary.effectiveSpendWeekUsd,
+      effectiveSpendMonthUsd: summary.effectiveSpendMonthUsd,
+      remainingCredits: summary.remainingCredits,
+      remainingCreditsSource: summary.remainingCreditsSource,
+      remainingCreditsObservedAt: summary.remainingCreditsObservedAt,
+      projectedDepletionDate: summary.projectedDepletionDate,
+      lastSampledAt: summary.lastSampledAt,
+      warningLevel: summary.warningLevel,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function updateRunStatus(req: Request, res: Response, next: NextFunction) {
   try {
     const {
@@ -804,6 +828,8 @@ export async function updateRunStatus(req: Request, res: Response, next: NextFun
       return;
     }
 
+    const serperSnapshot = await buildAgentRunSerperSnapshot(completedAt);
+
     const nextStatus = await setLatestAgentRunStatus({
       status,
       startedAt,
@@ -815,6 +841,7 @@ export async function updateRunStatus(req: Request, res: Response, next: NextFun
       measuredCount: parseNonNegativeInteger(measuredCount),
       digestUrl: digestUrl ?? null,
       errorMessage: errorMessage ?? null,
+      serperSnapshot,
     });
 
     res.json(nextStatus);

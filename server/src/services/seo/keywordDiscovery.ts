@@ -1068,6 +1068,7 @@ export async function refreshKeywordOpportunitySerp(
     },
     data: {
       competitionProxy: refreshed.summary.competitionProxy,
+      pageTypeRecommendation: refreshed.summary.pageTypeRecommendation,
       overallScore,
       rationale: refreshed.rationale,
       sourceRefJson: refreshed.sourceRef as unknown as Prisma.InputJsonValue,

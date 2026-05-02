@@ -1291,8 +1291,24 @@ describe('seoAdmin controller', () => {
       proposalCount: 1,
       humanOnlyCount: 0,
       measuredCount: 1,
-      digestUrl: 'https://discord.com/channels/1/2/3',
+      digestUrl: 'https://letaiexplainai.com/admin/seo-insights',
       errorMessage: null,
+      serperSnapshot: {
+        capturedAt: '2026-05-05T13:03:00.000Z',
+        configured: false,
+        enabled: false,
+        autoTopupEnabled: false,
+        creditsUsedWeek: 0,
+        creditsUsedMonth: 0,
+        effectiveSpendWeekUsd: 0,
+        effectiveSpendMonthUsd: 0,
+        remainingCredits: null,
+        remainingCreditsSource: 'unavailable',
+        remainingCreditsObservedAt: null,
+        projectedDepletionDate: null,
+        lastSampledAt: null,
+        warningLevel: 'ok',
+      },
     });
 
     const res = createResponse();
@@ -1307,10 +1323,11 @@ describe('seoAdmin controller', () => {
         shippedCount: 2,
         proposalCount: 1,
         measuredCount: 1,
-        digestUrl: 'https://discord.com/channels/1/2/3',
+        digestUrl: 'https://letaiexplainai.com/admin/seo-insights',
       },
     }), res, next);
 
+    expect(mockGetSerperUsageSummary).toHaveBeenCalledWith(new Date('2026-05-05T13:03:00.000Z'));
     expect(mockSetLatestAgentRunStatus).toHaveBeenCalledWith({
       status: 'success',
       startedAt: '2026-05-05T13:00:00.000Z',
@@ -1320,12 +1337,66 @@ describe('seoAdmin controller', () => {
       proposalCount: 1,
       humanOnlyCount: 0,
       measuredCount: 1,
-      digestUrl: 'https://discord.com/channels/1/2/3',
+      digestUrl: 'https://letaiexplainai.com/admin/seo-insights',
       errorMessage: null,
+      serperSnapshot: {
+        capturedAt: '2026-05-05T13:03:00.000Z',
+        configured: false,
+        enabled: false,
+        autoTopupEnabled: false,
+        creditsUsedWeek: 0,
+        creditsUsedMonth: 0,
+        effectiveSpendWeekUsd: 0,
+        effectiveSpendMonthUsd: 0,
+        remainingCredits: null,
+        remainingCreditsSource: 'unavailable',
+        remainingCreditsObservedAt: null,
+        projectedDepletionDate: null,
+        lastSampledAt: null,
+        warningLevel: 'ok',
+      },
     });
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       status: 'success',
       shippedCount: 2,
+      serperSnapshot: expect.objectContaining({
+        capturedAt: '2026-05-05T13:03:00.000Z',
+      }),
+    }));
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('still stores run status when the Serper snapshot cannot be captured', async () => {
+    mockGetSerperUsageSummary.mockRejectedValue(new Error('serper unavailable'));
+    mockSetLatestAgentRunStatus.mockResolvedValue({
+      status: 'failed',
+      startedAt: '2026-05-05T13:00:00.000Z',
+      completedAt: '2026-05-05T13:03:00.000Z',
+      weekStart: null,
+      shippedCount: 0,
+      proposalCount: 0,
+      humanOnlyCount: 0,
+      measuredCount: 0,
+      digestUrl: null,
+      errorMessage: 'run failed',
+      serperSnapshot: null,
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await updateRunStatus(createRequest({
+      body: {
+        status: 'failed',
+        startedAt: '2026-05-05T13:00:00.000Z',
+        completedAt: '2026-05-05T13:03:00.000Z',
+        errorMessage: 'run failed',
+      },
+    }), res, next);
+
+    expect(mockSetLatestAgentRunStatus).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'failed',
+      serperSnapshot: null,
     }));
     expect(next).not.toHaveBeenCalled();
   });

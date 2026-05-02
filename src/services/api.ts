@@ -5944,6 +5944,25 @@ export interface SeoAgentActionMetadata {
 }
 
 export type SeoAgentRunStatus = 'success' | 'failed';
+export type SeoAgentRunSerperRemainingCreditsSource = 'unavailable' | 'policy_derived' | 'vendor_observed_adjusted';
+export type SeoAgentRunSerperWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
+
+export interface SeoAgentRunSerperSnapshot {
+  capturedAt: string;
+  configured: boolean;
+  enabled: boolean;
+  autoTopupEnabled: boolean;
+  creditsUsedWeek: number;
+  creditsUsedMonth: number;
+  effectiveSpendWeekUsd: number;
+  effectiveSpendMonthUsd: number;
+  remainingCredits: number | null;
+  remainingCreditsSource: SeoAgentRunSerperRemainingCreditsSource;
+  remainingCreditsObservedAt: string | null;
+  projectedDepletionDate: string | null;
+  lastSampledAt: string | null;
+  warningLevel: SeoAgentRunSerperWarningLevel;
+}
 
 export interface SeoAgentRunRecord {
   status: SeoAgentRunStatus;
@@ -5956,6 +5975,7 @@ export interface SeoAgentRunRecord {
   measuredCount: number;
   digestUrl: string | null;
   errorMessage: string | null;
+  serperSnapshot: SeoAgentRunSerperSnapshot | null;
 }
 
 export interface SeoAgentActionRecord {

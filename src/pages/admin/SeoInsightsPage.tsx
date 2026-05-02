@@ -14,6 +14,7 @@ import toast from 'react-hot-toast';
 import {
   seoInsightsApi,
   type SeoAgentActionRecord,
+  type SeoAgentRunSerperSnapshot,
   type SeoInsightsHealth,
   type SeoInsight,
   type SeoInsightBucket,
@@ -174,6 +175,40 @@ function getSerperWarningLabel(level: SeoSerperUsageSummary['warningLevel']): st
     default:
       return 'Healthy';
   }
+}
+
+function getSerperBalanceLabel(
+  source: SeoSerperUsageSummary['remainingCreditsSource'] | SeoAgentRunSerperSnapshot['remainingCreditsSource']
+): string {
+  return source === 'vendor_observed_adjusted' ? 'Tracked vendor balance' : 'Tracked credits';
+}
+
+function getSerperBalanceDetail(
+  source: SeoSerperUsageSummary['remainingCreditsSource'] | SeoAgentRunSerperSnapshot['remainingCreditsSource'],
+  observedAt: string | null,
+  fallback: string
+): string {
+  if (source !== 'vendor_observed_adjusted') {
+    return fallback;
+  }
+
+  return observedAt ? `Observed ${formatDateTime(observedAt)}` : 'Observed in vendor billing';
+}
+
+function getDigestSerperSnapshotText(snapshot: SeoAgentRunSerperSnapshot): string {
+  const balanceLabel = getSerperBalanceLabel(snapshot.remainingCreditsSource).toLowerCase();
+  const balanceDetail = getSerperBalanceDetail(
+    snapshot.remainingCreditsSource,
+    snapshot.remainingCreditsObservedAt,
+    'Policy basis'
+  );
+
+  return [
+    `Serper snapshot for that digest: ${snapshot.creditsUsedWeek.toLocaleString()} queries that week`,
+    `${formatUsd(snapshot.effectiveSpendMonthUsd)} modeled month`,
+    `${balanceLabel} ${formatCount(snapshot.remainingCredits)}`,
+    balanceDetail,
+  ].join(' · ');
 }
 
 function getSerperSummaryText(serper: SeoSerperUsageSummary): string {
@@ -448,6 +483,11 @@ export default function SeoInsightsPage() {
                   {agentBannerState === 'healthy' &&
                     `Completed ${formatTimestamp(agentRun?.completedAt ?? null)} for week ${agentRun?.weekStart?.slice(0, 10) ?? 'unknown'}.`}
                 </p>
+                {agentRun?.serperSnapshot && (
+                  <p className="mt-2 text-sm leading-6 text-slate-700" data-testid="seo-digest-serper-snapshot">
+                    {getDigestSerperSnapshotText(agentRun.serperSnapshot)}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap gap-2 text-sm">
@@ -508,17 +548,17 @@ export default function SeoInsightsPage() {
                       </div>
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                          {serper.remainingCreditsSource === 'vendor_observed_adjusted' ? 'Tracked vendor balance' : 'Tracked credits'}
+                          {getSerperBalanceLabel(serper.remainingCreditsSource)}
                         </p>
                         <p className="mt-1 text-base font-semibold text-slate-900">
                           {formatCount(serper.remainingCredits)}
                         </p>
                         <p className="text-slate-600">
-                          {serper.remainingCreditsSource === 'vendor_observed_adjusted'
-                            ? serper.remainingCreditsObservedAt
-                              ? `Observed ${formatDateTime(serper.remainingCreditsObservedAt)}`
-                              : 'Observed in vendor billing'
-                            : `Tier ${serper.tierLabel ?? 'custom'} · Policy basis`}
+                          {getSerperBalanceDetail(
+                            serper.remainingCreditsSource,
+                            serper.remainingCreditsObservedAt ?? null,
+                            `Tier ${serper.tierLabel ?? 'custom'} · Policy basis`
+                          )}
                         </p>
                       </div>
                       <div>
