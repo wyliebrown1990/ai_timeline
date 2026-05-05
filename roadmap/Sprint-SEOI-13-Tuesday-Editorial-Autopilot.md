@@ -107,7 +107,7 @@ Why this fits the current architecture:
   - final self-audit
 - [ ] Before adding composer logic, audit and reuse `server/src/services/seo/briefGenerator.ts`; do not copy or fork its proposal generation, link inventory, duplicate-window, entity search, or anti-slop phrase logic.
 - [ ] If `briefGenerator.ts` has useful private helpers, extract narrow exported helpers there instead of creating a parallel SEO context builder.
-- [ ] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
+- [x] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
 - [x] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
 - [x] Keep Tuesday run-status values in one typed backend/UI contract. Avoid scattered string literals for `warning`, `failed_email_only`, `paused`, or partial-success states.
 - [ ] Reuse existing `server/src/services/blogAdmin.ts` functions where possible rather than calling public admin HTTP endpoints from inside Lambda:
@@ -254,7 +254,7 @@ Why this fits the current architecture:
 ### 10. Tests
 
 - [x] Add `tests/unit/seo/editorialOpportunitySelector.test.ts` for ranking, caps, `editorial_seed` exclusion, and keyword score thresholds.
-- [ ] Add `tests/unit/seo/blogQualityGate.test.ts` for pass/fail cases, unresolved shortcodes, weak internal links, and slop-listicle rejection.
+- [x] Add `tests/unit/seo/blogQualityGate.test.ts` for pass/fail cases, unresolved shortcodes, weak internal links, and slop-listicle rejection.
 - [ ] Add `tests/unit/seo/editorialAutopilotRunner.test.ts` for idempotency, dry-run no-op behavior, bounded caps, partial candidate failure, and email failure preserving run results.
 - [ ] Add `tests/unit/seo/editorialEmail.test.ts` for recap payload generation and plain-text fallback links.
 - [ ] Add `tests/unit/ingestionLambda.seoEditorialTuesday.test.ts` for `seoEditorialTuesday` dispatch and dry-run/force/maxPosts payload handling.
