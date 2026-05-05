@@ -10,8 +10,10 @@ import {
 
 const MAX_POSTS_PER_RUN = 3;
 const MAX_AUTO_PUBLISH_PER_RUN = 2;
-const MIN_PROPOSAL_CONFIDENCE = 0.75;
-const MIN_KEYWORD_SCORE = 70;
+const MIN_PROPOSAL_DRAFT_CONFIDENCE = 0.6;
+const MIN_PROPOSAL_AUTO_PUBLISH_CONFIDENCE = 0.7;
+const MIN_KEYWORD_DRAFT_SCORE = 40;
+const MIN_KEYWORD_AUTO_PUBLISH_SCORE = 70;
 
 export type EditorialOpportunitySourceType = 'proposal' | 'keyword';
 export type EditorialOpportunityAction = 'auto_publish' | 'draft_only';
@@ -43,6 +45,8 @@ function isAllowedProposalSource(sourceType: string): boolean {
   return (
     sourceType === 'content_gap' ||
     sourceType === 'trend_signal' ||
+    sourceType === 'cluster_snapshot' ||
+    sourceType === 'keyword_opportunity' ||
     sourceType === 'gsc_cluster' ||
     sourceType === 'google_trends' ||
     sourceType === 'serp_sample'
@@ -53,7 +57,8 @@ function isAllowedKeywordSource(row: KeywordOpportunityRecord): boolean {
   return (
     row.sourceType === 'gsc_cluster' ||
     row.sourceType === 'google_trends' ||
-    row.sourceType === 'serp_sample'
+    row.sourceType === 'serp_sample' ||
+    row.sourceType === 'editorial_seed'
   );
 }
 
@@ -86,8 +91,8 @@ function isEligibleProposal(proposal: SeoProposalRecord): string | null {
     return `Proposal source ${proposal.sourceType} is not an autonomous source.`;
   }
 
-  if (proposal.confidence < MIN_PROPOSAL_CONFIDENCE) {
-    return `Proposal confidence ${proposal.confidence.toFixed(2)} is below ${MIN_PROPOSAL_CONFIDENCE.toFixed(2)}.`;
+  if (proposal.confidence < MIN_PROPOSAL_DRAFT_CONFIDENCE) {
+    return `Proposal confidence ${proposal.confidence.toFixed(2)} is below ${MIN_PROPOSAL_DRAFT_CONFIDENCE.toFixed(2)}.`;
   }
 
   return null;
@@ -98,10 +103,6 @@ function isEligibleKeyword(row: KeywordOpportunityRecord): string | null {
     return `Keyword status ${row.status} is not scored.`;
   }
 
-  if (row.sourceType === 'editorial_seed') {
-    return 'Editorial seed rows stay in backlog for human review.';
-  }
-
   if (!isAllowedKeywordSource(row)) {
     return `Keyword source ${row.sourceType} is not an autonomous source.`;
   }
@@ -110,11 +111,19 @@ function isEligibleKeyword(row: KeywordOpportunityRecord): string | null {
     return `Keyword recommendation ${row.pageTypeRecommendation} is not blog_post.`;
   }
 
-  if (row.overallScore < MIN_KEYWORD_SCORE) {
-    return `Keyword score ${row.overallScore} is below ${MIN_KEYWORD_SCORE}.`;
+  if (row.overallScore < MIN_KEYWORD_DRAFT_SCORE) {
+    return `Keyword score ${row.overallScore} is below ${MIN_KEYWORD_DRAFT_SCORE}.`;
   }
 
   return null;
+}
+
+function proposalCanAutoPublish(proposal: SeoProposalRecord): boolean {
+  return proposal.confidence >= MIN_PROPOSAL_AUTO_PUBLISH_CONFIDENCE;
+}
+
+function keywordCanAutoPublish(row: KeywordOpportunityRecord): boolean {
+  return row.sourceType !== 'editorial_seed' && row.overallScore >= MIN_KEYWORD_AUTO_PUBLISH_SCORE;
 }
 
 export function selectEditorialOpportunities(input: {
@@ -149,7 +158,8 @@ export function selectEditorialOpportunities(input: {
       continue;
     }
 
-    const action: EditorialOpportunityAction = autoPublishCount < maxAutoPublish ? 'auto_publish' : 'draft_only';
+    const action: EditorialOpportunityAction =
+      autoPublishCount < maxAutoPublish && proposalCanAutoPublish(proposal) ? 'auto_publish' : 'draft_only';
     if (action === 'auto_publish') autoPublishCount += 1;
     selected.push({
       id: proposal.id,
@@ -177,7 +187,8 @@ export function selectEditorialOpportunities(input: {
       continue;
     }
 
-    const action: EditorialOpportunityAction = autoPublishCount < maxAutoPublish ? 'auto_publish' : 'draft_only';
+    const action: EditorialOpportunityAction =
+      autoPublishCount < maxAutoPublish && keywordCanAutoPublish(row) ? 'auto_publish' : 'draft_only';
     if (action === 'auto_publish') autoPublishCount += 1;
     selected.push({
       id: row.id,

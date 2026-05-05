@@ -15,6 +15,13 @@ const INTERNAL_LINK_PREFIXES = [
   '/timeline/',
   '/blog/',
 ];
+const INTERNAL_LINK_EXACT_PATHS = new Set([
+  '/glossary',
+  '/learn',
+  '/timeline',
+  '/news',
+  '/blog',
+]);
 const SLOP_TITLE_PATTERNS = [
   /\bultimate guide\b/i,
   /\beverything you need to know\b/i,
@@ -86,6 +93,7 @@ function countInternalLinks(markdown: string): number {
   for (const match of markdown.matchAll(MARKDOWN_LINK_PATTERN)) {
     const href = match[1].trim();
     if (
+      INTERNAL_LINK_EXACT_PATHS.has(href) ||
       INTERNAL_LINK_PREFIXES.some((prefix) => href.startsWith(prefix)) ||
       href.startsWith(`${SITE_ORIGIN}/`)
     ) {

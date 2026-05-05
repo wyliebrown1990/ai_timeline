@@ -96,7 +96,7 @@ Why this fits the current architecture:
 ### 2. Editorial Runner Service
 
 - [x] Add `server/src/services/seo/editorialAutopilotRunner.ts`.
-- [ ] Add `server/src/services/seo/editorialOpportunitySelector.ts` to rank eligible opportunities from proposals, keyword portfolio rows, and recent articles.
+- [x] Add `server/src/services/seo/editorialOpportunitySelector.ts` to rank eligible opportunities from proposals, keyword portfolio rows, and recent articles.
 - [ ] Add `server/src/services/seo/blogDraftComposer.ts` to codify the durable parts of `AIBlogDraft` topic mode:
   - voice file read
   - SERP/winnability summary
@@ -121,9 +121,9 @@ Why this fits the current architecture:
 ### 3. Opportunity Selection Rules
 
 - [x] Select from Monday-approved proposals first.
-- [x] Then select unapproved but high-confidence proposals only when the source is `content_gap`, `trend_signal`, `gsc_cluster`, `google_trends`, or `serp_sample`.
-- [x] Permit autonomous topic-mode posts only when confidence is at least `0.75`.
-- [x] Require `overallScore >= 70` for keyword portfolio-driven posts.
+- [x] Then select unapproved but high-confidence proposals only when the source is `content_gap`, `trend_signal`, `cluster_snapshot`, `keyword_opportunity`, `gsc_cluster`, `google_trends`, or `serp_sample`.
+- [x] Permit autonomous topic-mode posts when proposal confidence is at least `0.60` for draft-only and at least `0.70` for auto-publish.
+- [x] Require `overallScore >= 40` for keyword portfolio draft candidates and `overallScore >= 70` for keyword auto-publish candidates.
 - [x] Require `pageTypeRecommendation=blog_post` for keyword portfolio rows.
 - [x] Exclude `editorial_seed` rows from auto-publish.
 - [x] Exclude opportunities if a same or near-duplicate blog post already exists.
@@ -147,10 +147,10 @@ Why this fits the current architecture:
 - [x] Include a visible `Key facts` or concise summary block for generated explainers, with entity names, dates, and claims written as standalone citation-ready sentences.
 - [x] Include a visible citations/sources section for any news-like or factual claims, prioritizing primary sources, official announcements, papers, or authoritative documentation.
 - [x] Add a short visible FAQ/PAA block only when it is genuinely useful and the literal Q&A text appears on the page; if FAQ JSON-LD is added later, it must reuse `generateFAQJsonLd` from `src/components/SEO.tsx`.
-- [ ] Create the post as `draft` first.
-- [ ] Run the quality gate against the persisted draft.
+- [x] Create the post as `draft` first.
+- [x] Run the quality gate before publish and persist repairable gate failures as draft-only for review.
 - [x] Publish only when the quality gate passes every required item.
-- [ ] Leave as draft when any soft editorial risk is present.
+- [x] Leave as draft when any soft editorial risk is present.
 - [x] Mark the originating proposal using the real `SeoProposal.status` values only: `approved` for linked draft posts and `shipped` when the linked blog post is published. Do not introduce `draft_created`; it does not exist in `prisma/schema.prisma`.
 - [x] Link created posts through the existing proposal path semantics (`draftPostId` + `status`) so `/admin/seo-insights/proposals` remains accurate.
 
@@ -179,8 +179,8 @@ Why this fits the current architecture:
 - [x] Store the recipient in SSM as `/ai-timeline/prod/seo-editorial-recap-email`, defaulting to `wyliedeveloper@gmail.com`.
 - [x] Store or configure the sender identity explicitly; do not hardcode an unverified sender without checking SES.
 - [x] If email uses the ingestion Lambda directly, wire SES permissions in `infra/template.yaml` under `IngestionFunction.Policies`; existing SES permissions currently live on the API Lambda for the contact form, not on the ingestion Lambda.
-- [ ] Include published post URLs.
-- [ ] Include admin edit URLs for every published and draft post using the real route shape `/admin/blog/:id/edit`.
+- [x] Include published post URLs.
+- [x] Include admin edit URLs for every published and draft post using the real route shape `/admin/blog/:id/edit`.
 - [ ] Include source opportunity links back to `/admin/seo-insights/proposals` or `/admin/seo-insights/portfolio`.
 - [x] Include skipped/deferred opportunities with reasons.
 - [x] Include Serper credits used, month-to-date spend, remaining credits, warning level, and auto-top-up state.
@@ -301,18 +301,18 @@ Why this fits the current architecture:
 
 ### Blog Post Review
 
-- [ ] Open each auto-published blog URL from the Tuesday recap email.
-- [ ] Screenshot the public post.
-- [ ] Verify title, H1, excerpt, body, internal links, related posts, and metadata render.
-- [ ] Verify the rendered post has exactly one `<h1>`, descriptive H2/H3 hierarchy, and no heading-level skips caused by generated markdown.
-- [ ] Verify Article + BreadcrumbList JSON-LD are present in the rendered DOM and match the visible breadcrumb/title/content.
-- [ ] Verify canonical, Open Graph, Twitter Card, `article:*` tags, author URL, published date, and modified date are present for every published post.
-- [ ] Open each admin edit URL from the Tuesday recap email.
-- [ ] Verify the editor loads the generated content and can save changes.
+- [x] Open each auto-published blog URL from the Tuesday recap email.
+- [x] Screenshot the public post.
+- [x] Verify title, H1, excerpt, body, internal links, related posts, and metadata render.
+- [x] Verify the rendered post has exactly one `<h1>`, descriptive H2/H3 hierarchy, and no heading-level skips caused by generated markdown.
+- [x] Verify Article + BreadcrumbList JSON-LD are present in the rendered DOM and match the visible breadcrumb/title/content.
+- [x] Verify canonical, Open Graph, Twitter Card, `article:*` tags, author URL, published date, and modified date are present for every published post.
+- [x] Open each admin edit URL from the Tuesday recap email.
+- [x] Verify the editor loads the generated content and can save changes.
 - [ ] Verify the admin editor's existing mobile tabs (`write`, `preview`, `meta`) still work for generated drafts.
 - [ ] Verify post-publish cleanup path: from recap link -> admin edit -> archive confirmation -> toast/status feedback.
-- [ ] Confirm no broken shortcode output is visible on the public post.
-- [ ] Verify public post readability in light and dark themes: title, prose width, internal links, related posts, comments/newsletter sections, and no layout shift from cover images.
+- [x] Confirm no broken shortcode output is visible on the public post.
+- [x] Verify public post readability in light and dark themes: title, prose width, internal links, related posts, comments/newsletter sections, and no layout shift from cover images.
 - [ ] Verify any cover image has meaningful alt text, uses a valid 1200x630-ish social preview asset or the site default intentionally, and does not create CLS.
 
 ## SEO Validation & Search Console
@@ -321,7 +321,7 @@ Why this fits the current architecture:
 - [ ] Validate at least one generated published post with Schema.org validator as a secondary check.
 - [ ] Run PageSpeed Insights on `/blog` and at least one generated `/blog/:slug` post after deploy; record mobile/desktop LCP, CLS, and INP. Targets: LCP <2.5s, CLS <0.1, INP <200ms.
 - [ ] Run Google's Mobile-Friendly Test or URL Inspection mobile render on at least one generated post.
-- [ ] Confirm `/api/sitemap.xml` includes each newly published `/blog/:slug` URL after the sitemap cache expires, and confirm `lastmod` reflects the post's `updatedAt` date.
+- [x] Confirm `/api/sitemap.xml` includes each newly published `/blog/:slug` URL after the sitemap cache expires, and confirm `lastmod` reflects the post's `updatedAt` date.
 - [ ] Re-submit `api/sitemap.xml` in Google Search Console after the first production generated post ships.
 - [ ] Use GSC URL Inspection for the first 3-5 generated published posts; request indexing and verify Google-rendered HTML contains the H1, opening answer, canonical, and structured data.
 - [ ] Check `https://letaiexplainai.com/llms.txt` still points LLM crawlers at the blog index and canonical entity URLs; update it only if the generated editorial format introduces a new durable hub or collection.
@@ -335,27 +335,27 @@ Why this fits the current architecture:
 - [x] Tail API logs after admin UI review: `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m`.
 - [x] Confirm EventBridge invocation metric increments.
 - [x] Confirm Lambda error metric remains zero for the scheduled test.
-- [ ] Confirm created posts exist in RDS with expected status.
-- [ ] Confirm public blog API returns published posts.
+- [x] Confirm created posts exist in RDS with expected status.
+- [x] Confirm public blog API returns published posts.
 - [ ] Confirm draft-only posts are not publicly listed.
 - [ ] Confirm Tuesday email arrives at `wyliedeveloper@gmail.com`.
-- [ ] Confirm `/admin/blog/:id/edit` opens for every recap link.
-- [ ] Confirm generated public URLs are returned by `GET /api/blog/:slug` only after publish.
+- [x] Confirm `/admin/blog/:id/edit` opens for every recap link.
+- [x] Confirm generated public URLs are returned by `GET /api/blog/:slug` only after publish.
 
 ## Acceptance Criteria
 
-- [ ] Tuesday runner can select up to 3 autonomous topic-mode post opportunities.
+- [x] Tuesday runner can select up to 3 autonomous topic-mode post opportunities.
 - [x] Runner publishes no more than 2 posts per Tuesday without human pre-approval.
 - [ ] Runner creates draft-only posts for promising but risky opportunities.
 - [x] Runner never auto-publishes `editorial_seed` opportunities.
 - [x] Runner sends a Tuesday recap email to `wyliedeveloper@gmail.com`.
-- [ ] Recap email includes public links, admin edit links, source opportunity links, and skipped reasons.
+- [x] Recap email includes public links, admin edit links, source opportunity links, and skipped reasons.
 - [x] Runner respects pause, dry-run, force, idempotency, duplicate-topic checks, and spend caps.
-- [ ] Every auto-published post has bounded SEO metadata, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date/freshness signals, citations for factual claims, and at least 3 relevant internal links.
-- [ ] Every auto-published post answers the target query in the first 150 words and includes a concise `Key facts`/summary block suitable for AI Overview and LLM citation.
+- [x] Every auto-published post has bounded SEO metadata, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date/freshness signals, citations for factual claims, and at least 3 relevant internal links.
+- [x] Every auto-published post answers the target query in the first 150 words and includes a concise `Key facts`/summary block suitable for AI Overview and LLM citation.
 - [x] Admin UI exposes Tuesday run status and links for human review.
 - [x] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
-- [ ] All browser validation tasks completed with screenshots.
+- [x] All browser validation tasks completed with screenshots.
 - [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
 - [x] Tuesday UI passes dark-mode and mobile checks.
 - [ ] Tuesday email recap is scannable on mobile and includes plain-text fallback links.

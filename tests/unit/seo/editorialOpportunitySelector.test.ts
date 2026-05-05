@@ -98,28 +98,48 @@ describe('editorialOpportunitySelector', () => {
     ]));
   });
 
-  it('excludes editorial seeds and weak keyword opportunities', () => {
+  it('allows editorial seeds and lower-scored keywords into draft-only mode', () => {
     const result = selectEditorialOpportunities({
       proposals: [],
       keywords: [
         keyword({ id: 'seed', sourceType: 'editorial_seed', overallScore: 99 }),
-        keyword({ id: 'weak', sourceType: 'serp_sample', overallScore: 69 }),
+        keyword({ id: 'draftable', sourceType: 'serp_sample', overallScore: 45 }),
+        keyword({ id: 'weak', sourceType: 'serp_sample', overallScore: 39 }),
         keyword({ id: 'not-blog', sourceType: 'serp_sample', pageTypeRecommendation: 'landing_page', overallScore: 95 }),
       ],
     });
 
-    expect(result.selected).toHaveLength(0);
+    expect(result.selected.map((row) => [row.id, row.action])).toEqual([
+      ['seed', 'draft_only'],
+      ['draftable', 'draft_only'],
+    ]);
     expect(result.deferred).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'seed', reason: 'Editorial seed rows stay in backlog for human review.' }),
-      expect.objectContaining({ id: 'weak', reason: 'Keyword score 69 is below 70.' }),
+      expect.objectContaining({ id: 'weak', reason: 'Keyword score 39 is below 40.' }),
       expect.objectContaining({ id: 'not-blog', reason: 'Keyword recommendation landing_page is not blog_post.' }),
     ]));
   });
 
-  it('rejects proposals below confidence threshold or already linked to posts', () => {
+  it('allows cluster and keyword-opportunity proposals and drafts lower-confidence ideas', () => {
     const result = selectEditorialOpportunities({
       proposals: [
-        proposal({ id: 'low-confidence', confidence: 0.74 }),
+        proposal({ id: 'cluster', sourceType: 'cluster_snapshot', confidence: 0.97 }),
+        proposal({ id: 'keyword-proposal', sourceType: 'keyword_opportunity', sourceBucket: 'editorial_seed', confidence: 0.65 }),
+      ],
+      keywords: [],
+      maxPosts: 3,
+      maxAutoPublish: 2,
+    });
+
+    expect(result.selected.map((row) => [row.id, row.action])).toEqual([
+      ['cluster', 'auto_publish'],
+      ['keyword-proposal', 'draft_only'],
+    ]);
+  });
+
+  it('rejects proposals below draft threshold or already linked to posts', () => {
+    const result = selectEditorialOpportunities({
+      proposals: [
+        proposal({ id: 'low-confidence', confidence: 0.59 }),
         proposal({
           id: 'linked',
           status: 'approved',
@@ -137,7 +157,7 @@ describe('editorialOpportunitySelector', () => {
 
     expect(result.selected).toHaveLength(0);
     expect(result.deferred).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'low-confidence', reason: 'Proposal confidence 0.74 is below 0.75.' }),
+      expect.objectContaining({ id: 'low-confidence', reason: 'Proposal confidence 0.59 is below 0.60.' }),
       expect.objectContaining({ id: 'linked', reason: 'Proposal already has a linked blog post.' }),
     ]));
   });

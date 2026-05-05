@@ -99,4 +99,30 @@ describe('blogQualityGate', () => {
       'Canonical URL must default to the absolute /blog/:slug URL unless a duplicate-content rationale is recorded.'
     );
   });
+
+  it('counts stable top-level atlas routes as internal links', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'AI timelines are useful because they help readers connect model releases, research bottlenecks, and public adoption into one navigable history. The best answer is a map, not a flat list, because the important shifts usually happen when infrastructure, ideas, and products start reinforcing each other.',
+        '',
+        '## Key facts',
+        '',
+        '- The timeline view anchors the topic in dated events.',
+        '- The glossary view explains recurring terms.',
+        '- The learning view gives readers a route through the material.',
+        '',
+        '## Where should readers start?',
+        '',
+        'Start with the [Timeline](/timeline), use the [AI glossary](/glossary), then move through [Learn](/learn).',
+        '',
+        '## Sources',
+        '',
+        '- [AI Timeline](/blog/ai-timeline)',
+      ].join('\n'),
+      relations: [],
+    }));
+
+    expect(result.metrics.internalLinkCount).toBeGreaterThanOrEqual(3);
+    expect(result.blockers).not.toContain('At least 3 distinct internal links are required.');
+  });
 });

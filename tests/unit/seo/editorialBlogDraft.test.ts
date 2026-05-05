@@ -201,7 +201,7 @@ describe('editorialBlogDraft', () => {
     }));
   });
 
-  it('skips without creating a draft when quality gates fail', async () => {
+  it('downgrades auto-publish to draft when repairable quality gates fail', async () => {
     mockEvaluateBlogQualityGate.mockReturnValue({
       passed: false,
       blockers: ['At least 3 distinct internal links are required.'],
@@ -211,16 +211,34 @@ describe('editorialBlogDraft', () => {
 
     const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
 
-    expect(result.status).toBe('skipped_by_gate');
+    expect(result.status).toBe('draft_created');
+    expect(result.action).toBe('draft_only');
     expect(result.reason).toContain('At least 3 distinct internal links');
     expect(mockEditorialRunUpdate).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
-        status: 'skipped_by_gate',
+        status: 'draft_created',
+        postId: 'post-1',
       }),
     }));
+    expect(mockCreateDraft).toHaveBeenCalled();
+    expect(mockPublishPost).not.toHaveBeenCalled();
+    expect(mockLinkProposalDraft).toHaveBeenCalledWith('proposal-1', 'post-1');
+  });
+
+  it('skips without creating a draft when hard quality gates fail', async () => {
+    mockEvaluateBlogQualityGate.mockReturnValue({
+      passed: false,
+      blockers: ['seoTitle is required and must be <= 60 characters.'],
+      warnings: [],
+      metrics: { internalLinkCount: 3, shortcodeCount: 0, wordCount: 900 },
+    });
+
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
+
+    expect(result.status).toBe('skipped_by_gate');
+    expect(result.reason).toContain('seoTitle is required');
     expect(mockCreateDraft).not.toHaveBeenCalled();
     expect(mockPublishPost).not.toHaveBeenCalled();
-    expect(mockLinkProposalDraft).not.toHaveBeenCalled();
   });
 
   it('returns an existing completed run without generating another post', async () => {
