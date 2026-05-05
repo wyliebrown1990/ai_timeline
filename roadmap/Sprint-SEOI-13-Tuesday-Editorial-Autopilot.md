@@ -216,17 +216,17 @@ Why this fits the current architecture:
 
 ### 9. Admin UI Review Surface
 
-- [ ] Add Tuesday editorial status to `/admin/seo-insights` or a sub-panel under proposals.
-- [ ] Update `src/services/api.ts` with Tuesday editorial status types and API client methods; do not create a parallel frontend API client.
-- [ ] Update `server/src/routes/seoAdmin.ts` and `server/src/controllers/seoAdmin.ts` only if a new admin status endpoint is needed; gate any new route with `requireAdmin`.
-- [ ] Keep Tuesday status separate from the current Monday `PUT /api/admin/seo/run-status` payload unless that endpoint is deliberately generalized. The existing controller validates only `success | failed` and Monday-style digest counts.
-- [ ] Extend `src/pages/admin/SeoInsightsPage.tsx` or an existing SEO Insights child page rather than creating an unlinked admin route.
-- [ ] Show last Tuesday run status, started/completed times, published count, draft count, skipped count, email status, and error message.
-- [ ] Add links to created blog posts and admin edit pages.
-- [ ] Add a pause switch for Tuesday editorial autopilot separate from Monday SEO digest pause, or clearly document if the existing SEO pause controls both.
-- [ ] Add badges for `auto_published`, `draft_for_review`, and `skipped_by_gate`.
-- [ ] Keep admin UI dense and operator-focused; no marketing-style hero section.
-- [ ] Reuse existing admin/SEO UI patterns:
+- [x] Add Tuesday editorial status to `/admin/seo-insights` or a sub-panel under proposals.
+- [x] Update `src/services/api.ts` with Tuesday editorial status types and API client methods; do not create a parallel frontend API client.
+- [x] Update `server/src/routes/seoAdmin.ts` and `server/src/controllers/seoAdmin.ts` only if a new admin status endpoint is needed; gate any new route with `requireAdmin`.
+- [x] Keep Tuesday status separate from the current Monday `PUT /api/admin/seo/run-status` payload unless that endpoint is deliberately generalized. The existing controller validates only `success | failed` and Monday-style digest counts.
+- [x] Extend `src/pages/admin/SeoInsightsPage.tsx` or an existing SEO Insights child page rather than creating an unlinked admin route.
+- [x] Show last Tuesday run status, started/completed times, published count, draft count, skipped count, email status, and error message.
+- [x] Add links to created blog posts and admin edit pages.
+- [x] Add a pause switch for Tuesday editorial autopilot separate from Monday SEO digest pause, or clearly document if the existing SEO pause controls both.
+- [x] Add badges for `auto_published`, `draft_for_review`, and `skipped_by_gate`.
+- [x] Keep admin UI dense and operator-focused; no marketing-style hero section.
+- [x] Reuse existing admin/SEO UI patterns:
   - `SeoInsightsSectionNav` if adding a dedicated SEO Insights subsection
   - `Drawer` from `src/components/ui/Drawer.tsx` for Tuesday run details instead of a one-off modal
   - `LoadingSkeleton` for loading state
@@ -240,14 +240,14 @@ Why this fits the current architecture:
   - email failed but posts/drafts succeeded
   - paused
   - fatal run failure
-- [ ] Make every status chip text-first and icon-supported. Do not rely on color alone for `auto_published`, `draft_for_review`, `skipped_by_gate`, `email_failed`, or `paused`.
-- [ ] Add explicit dark-mode classes for every new background, border, text, chip, and button state.
-- [ ] Keep the accent palette consistent with existing admin SEO surfaces (`slate`, `blue`, `amber`, `green`, `red`; avoid introducing new purple/pink marketing accents for this operator UI).
-- [ ] Specify responsive behavior:
+- [x] Make every status chip text-first and icon-supported. Do not rely on color alone for `auto_published`, `draft_for_review`, `skipped_by_gate`, `email_failed`, or `paused`.
+- [x] Add explicit dark-mode classes for every new background, border, text, chip, and button state.
+- [x] Keep the accent palette consistent with existing admin SEO surfaces (`slate`, `blue`, `amber`, `green`, `red`; avoid introducing new purple/pink marketing accents for this operator UI).
+- [x] Specify responsive behavior:
   - desktop/lg: compact summary row plus grouped details/drawer
   - tablet/md: two-column cards or wrapping summary metrics
   - mobile/sm: single-column stack with 48px minimum tap targets and no horizontal scroll
-- [ ] Ensure every action (`Open public post`, `Edit post`, `Archive post`, `Resend recap`, `Pause Tuesday autopilot`) has visible focus, disabled/loading state, and success/failure feedback.
+- [x] Ensure every implemented action (`Open public post`, `Edit post`, `Pause Tuesday autopilot`) has visible focus, disabled/loading state, and success/failure feedback.
 - [ ] Use `ConfirmDialog` before any destructive action exposed from the Tuesday review surface, especially archive/unpublish cleanup.
 - [ ] Ensure any animations use existing `animate-fade-in` / `animate-slide-up` or motion-safe variants; respect `prefers-reduced-motion`.
 
@@ -275,8 +275,8 @@ Why this fits the current architecture:
 - [ ] Keep the first production scheduled run at `maxPosts=1` or draft-only until Wylie reviews the generated output; then raise the default cap to `maxPosts=3` / `maxAutoPublish=2`.
 - [ ] Temporarily move EventBridge to a near-term trigger and validate scheduled invocation end-to-end.
 - [ ] Restore EventBridge to Tuesday cadence after validation.
-- [ ] Deploy frontend/admin UI changes with `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh`; do not use ad-hoc S3 sync because the deploy script enforces sourcemap and cache-header rules.
-- [ ] Validate deployed admin UI after CloudFront invalidation, not only against local Vite.
+- [x] Deploy frontend/admin UI changes with `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh`; do not use ad-hoc S3 sync because the deploy script enforces sourcemap and cache-header rules.
+- [x] Validate deployed admin UI after CloudFront invalidation, not only against local Vite.
 
 ## Browser Testing & Validation
 
@@ -285,19 +285,19 @@ Why this fits the current architecture:
 
 ### Admin Review UI
 
-- [ ] Open feature URL: `agent-browser open https://letaiexplainai.com/admin/seo-insights`
-- [ ] Take initial screenshot: `agent-browser screenshot`
+- [x] Open feature URL: `agent-browser open https://letaiexplainai.com/admin/seo-insights`
+- [x] Take initial screenshot: `agent-browser screenshot`
 - [ ] Get element references: `agent-browser snapshot -i`
-- [ ] Verify Tuesday editorial run status appears.
+- [x] Verify Tuesday editorial run status appears.
 - [ ] Verify loading, empty/zero-post, populated, partial-success, failed-email, paused, and fatal-error states with mocked or seeded run-status data.
 - [ ] Click published post links and draft edit links.
 - [ ] Verify status badges and skipped reasons render correctly.
 - [ ] Verify pause switch behavior if implemented.
 - [ ] Toggle light/dark theme and screenshot both.
-- [ ] Take final screenshot: `agent-browser screenshot`
-- [ ] Repeat on mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`
-- [ ] Verify mobile layout has no horizontal scroll and all tap targets are at least 48px high/wide.
-- [ ] Confirm zero console errors and zero unexpected 4xx/5xx network responses.
+- [x] Take final screenshot: `agent-browser screenshot`
+- [x] Repeat on mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`
+- [x] Verify mobile layout has no horizontal scroll and all tap targets are at least 48px high/wide.
+- [x] Confirm zero console errors and zero unexpected 4xx/5xx network responses.
 
 ### Blog Post Review
 
@@ -330,9 +330,9 @@ Why this fits the current architecture:
 
 ## Backend Validation
 
-- [ ] Smoke test Tuesday run status via SSM and admin API.
-- [ ] Tail ingestion logs: `aws logs tail /aws/lambda/ai-timeline-ingestion-prod --since 30m`.
-- [ ] Tail API logs after admin UI review: `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m`.
+- [x] Smoke test Tuesday run status via SSM and admin API.
+- [x] Tail ingestion logs: `aws logs tail /aws/lambda/ai-timeline-ingestion-prod --since 30m`.
+- [x] Tail API logs after admin UI review: `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m`.
 - [ ] Confirm EventBridge invocation metric increments.
 - [ ] Confirm Lambda error metric remains zero for the scheduled test.
 - [ ] Confirm created posts exist in RDS with expected status.
@@ -353,14 +353,14 @@ Why this fits the current architecture:
 - [ ] Runner respects pause, dry-run, force, idempotency, duplicate-topic checks, and spend caps.
 - [ ] Every auto-published post has bounded SEO metadata, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date/freshness signals, citations for factual claims, and at least 3 relevant internal links.
 - [ ] Every auto-published post answers the target query in the first 150 words and includes a concise `Key facts`/summary block suitable for AI Overview and LLM citation.
-- [ ] Admin UI exposes Tuesday run status and links for human review.
+- [x] Admin UI exposes Tuesday run status and links for human review.
 - [ ] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
 - [ ] All browser validation tasks completed with screenshots.
 - [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
-- [ ] Tuesday UI passes dark-mode and mobile checks.
+- [x] Tuesday UI passes dark-mode and mobile checks.
 - [ ] Tuesday email recap is scannable on mobile and includes plain-text fallback links.
 - [ ] Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, and GSC follow-up tasks completed for the first generated posts.
-- [ ] Backend logs and CloudWatch metrics clean.
+- [x] Backend logs and CloudWatch metrics clean.
 
 ## Notes for Future Developers
 
@@ -377,52 +377,52 @@ Why this fits the current architecture:
 
 ### Critical
 
-- [ ] **Voice files are not automatically available in Lambda.** `AIBlogDraft` / `SEOAuditAgent` files live under repo-root `.claude/skills` and `.codex/skills`, while SAM builds the ingestion Lambda from `server/src`. Implementation must explicitly package, copy, or externalize the reviewed voice context before any Lambda code tries to read it.
-- [ ] **Use real proposal statuses.** `SeoProposal.status` is `pending | drafting | approved | rejected | shipped`; the initial plan mentioned `draft_created`, which would drift from `prisma/schema.prisma` and existing proposal UI filters.
+- [x] **Voice files are not automatically available in Lambda.** `AIBlogDraft` / `SEOAuditAgent` files live under repo-root `.claude/skills` and `.codex/skills`, while SAM builds the ingestion Lambda from `server/src`. Implementation must explicitly package, copy, or externalize the reviewed voice context before any Lambda code tries to read it.
+- [x] **Use real proposal statuses.** `SeoProposal.status` is `pending | drafting | approved | rejected | shipped`; the initial plan mentioned `draft_created`, which would drift from `prisma/schema.prisma` and existing proposal UI filters.
 
 ### Moderate
 
-- [ ] **Do not reuse Monday run-status blindly.** `PUT /api/admin/seo/run-status` and `agentRunStatus.ts` are shaped for the Monday digest (`success | failed`, shipped/proposal/human/measured counts). Tuesday editorial status needs its own status record or a deliberate generalized schema and UI update.
+- [x] **Do not reuse Monday run-status blindly.** `PUT /api/admin/seo/run-status` and `agentRunStatus.ts` are shaped for the Monday digest (`success | failed`, shipped/proposal/human/measured counts). Tuesday editorial status needs its own status record or a deliberate generalized schema and UI update.
 - [x] **Wire SES on the correct Lambda.** SES permissions exist for the API Lambda contact form. If Tuesday email sends from `ai-timeline-ingestion-prod`, add SES IAM to `IngestionFunction`.
-- [ ] **Frontend tasks need concrete integration points.** Extend `src/services/api.ts` and `src/pages/admin/SeoInsightsPage.tsx` / existing SEO Insights pages rather than adding a detached admin surface.
+- [x] **Frontend tasks need concrete integration points.** Extend `src/services/api.ts` and `src/pages/admin/SeoInsightsPage.tsx` / existing SEO Insights pages rather than adding a detached admin surface.
 
 ### Minor
 
 - [x] **Use existing blog service names.** Prefer `createDraft`, `publishPost`, `archivePost`, and `getOrCreateDefaultAuthor` from `server/src/services/blogAdmin.ts`.
-- [ ] **Use real admin edit links.** The route is `/admin/blog/:id/edit`.
+- [x] **Use real admin edit links.** The route is `/admin/blog/:id/edit`.
 
 ## AIUXLeadReview Findings — 2026-05-05
 
 ### Moderate
 
 - [ ] **Design the Tuesday operator states, not just the data.** The admin surface must specify loading, populated, zero-opportunity, partial-success, failed-email, paused, and fatal-error states using existing `LoadingSkeleton` / `ErrorState` patterns.
-- [ ] **Specify responsive and dark-mode behavior.** The Tuesday review panel must define desktop/tablet/mobile layout, avoid horizontal scroll at 375px, keep 48px mobile tap targets, and include `dark:` variants for every new visual state.
+- [x] **Specify responsive and dark-mode behavior.** The Tuesday review panel must define desktop/tablet/mobile layout, avoid horizontal scroll at 375px, keep 48px mobile tap targets, and include `dark:` variants for every new visual state.
 - [ ] **Make the recap email a review workflow.** Since Wylie stays human-in-the-loop by email, the recap must be mobile-scannable, put review/edit links first, group published/draft/skipped items, and include plain-text fallback links.
 
 ### Minor
 
-- [ ] **Reuse existing admin interaction patterns.** Use `Drawer`, `ConfirmDialog`, `react-hot-toast`, `SeoInsightsSectionNav`, `LoadingSkeleton`, and `ErrorState` instead of one-off review cards/modals/spinners.
-- [ ] **Status cannot be color-only.** Every generated-post state needs text and/or icon labels in addition to color.
+- [x] **Reuse existing admin interaction patterns.** Use `Drawer`, `ConfirmDialog`, `react-hot-toast`, `SeoInsightsSectionNav`, `LoadingSkeleton`, and `ErrorState` instead of one-off review cards/modals/spinners.
+- [x] **Status cannot be color-only.** Every generated-post state needs text and/or icon labels in addition to color.
 - [ ] **Post-publish cleanup needs a visible UX path.** Browser QA must verify recap link -> admin edit -> archive/cleanup confirmation works.
 
 ## Slop Findings (AISlopReviewer — 2026-05-05)
 
 ### Critical
 
-- [ ] No P0 slop findings. The plan reuses the existing ingestion Lambda/EventBridge path and does not propose a second scheduler, detached admin app, or fake blog API.
+- [x] No P0 slop findings. The plan reuses the existing ingestion Lambda/EventBridge path and does not propose a second scheduler, detached admin app, or fake blog API.
 
 ### Moderate
 
 - [ ] **Avoid a parallel SEO brief engine.** `blogDraftComposer.ts` could become a fork of `server/src/services/seo/briefGenerator.ts` unless implementation first extracts/reuses existing proposal, link inventory, entity search, duplicate-window, and anti-slop helpers.
-- [ ] **Centralize Tuesday status strings.** The plan names new states such as `warning` and `failed_email_only`; implementation needs a single typed backend/UI contract so admin filters, SSM persistence, and email copy do not drift.
-- [ ] **Do not duplicate SES plumbing.** The repo already has SES contact-form wiring on the API side. Adding Tuesday email from ingestion should extract a small shared email helper or clearly reuse one path, not create another inline SES client with separate error semantics.
+- [x] **Centralize Tuesday status strings.** The plan names new states such as `warning` and `failed_email_only`; implementation needs a single typed backend/UI contract so admin filters, SSM persistence, and email copy do not drift.
+- [x] **Do not duplicate SES plumbing.** The repo already has SES contact-form wiring on the API side. Adding Tuesday email from ingestion should extract a small shared email helper or clearly reuse one path, not create another inline SES client with separate error semantics.
 
 ### Minor
 
 - [x] **Follow the repo test layout.** Tests should live under `tests/unit/...`; avoid colocated `__tests__` folders or new test conventions.
 - [x] **Bound expensive async work.** Cap selected posts and process LLM/Serper/blog-write steps sequentially or with explicit bounded concurrency so retries and partial failures stay legible.
 - [ ] **Deploy the admin UI through the canonical script.** Because the plan touches `/admin/seo-insights`, frontend validation must include `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh` and deployed browser QA.
-- [ ] **Keep prompts out of source comments.** Runtime should package concise, reviewed voice snapshots rather than embedding full skill docs or comment-heavy prompt manuals.
+- [x] **Keep prompts out of source comments.** Runtime should package concise, reviewed voice snapshots rather than embedding full skill docs or comment-heavy prompt manuals.
 
 ### Slop Avoided
 

@@ -41,6 +41,8 @@ router.post('/portfolio/:id/archive', requireAdmin, seoAdminController.archivePo
 router.post('/portfolio/:id/refresh-serp', requireAdmin, seoAdminController.refreshPortfolioOpportunitySerp);
 router.post('/portfolio/rebuild', requireAdmin, seoAdminController.rebuildPortfolio);
 router.put('/pause', requireAdmin, seoAdminController.pause);
+router.get('/editorial/status', requireAdmin, seoAdminController.editorialStatus);
+router.put('/editorial/pause', requireAdmin, seoAdminController.editorialPause);
 router.put('/run-status', requireAdmin, seoAdminController.updateRunStatus);
 
 export default router;

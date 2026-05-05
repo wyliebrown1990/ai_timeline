@@ -21,6 +21,9 @@ const mockIsPaused = jest.fn();
 const mockSetPaused = jest.fn();
 const mockGetLatestAgentRunStatus = jest.fn();
 const mockSetLatestAgentRunStatus = jest.fn();
+const mockGetLatestEditorialRunStatus = jest.fn();
+const mockIsEditorialPaused = jest.fn();
+const mockSetEditorialPaused = jest.fn();
 const mockListSeoProposals = jest.fn();
 const mockGenerateProposal = jest.fn();
 const mockGenerateProposalFromCluster = jest.fn();
@@ -125,6 +128,12 @@ jest.mock('../../server/src/services/seo/agentRunStatus', () => ({
   setLatestAgentRunStatus: mockSetLatestAgentRunStatus,
 }));
 
+jest.mock('../../server/src/services/seo/editorialRunStatus', () => ({
+  getLatestEditorialRunStatus: mockGetLatestEditorialRunStatus,
+  isEditorialPaused: mockIsEditorialPaused,
+  setEditorialPaused: mockSetEditorialPaused,
+}));
+
 import {
   action,
   actionClusterOpportunity,
@@ -134,6 +143,8 @@ import {
   detail,
   dismiss,
   dismissClusterOpportunity,
+  editorialPause,
+  editorialStatus,
   experiments,
   experimentDetail,
   packaging,
@@ -189,6 +200,8 @@ describe('seoAdmin controller', () => {
     jest.clearAllMocks();
     mockIsPaused.mockResolvedValue(false);
     mockGetLatestAgentRunStatus.mockResolvedValue(null);
+    mockIsEditorialPaused.mockResolvedValue(false);
+    mockGetLatestEditorialRunStatus.mockResolvedValue(null);
     mockGetSerperUsageSummary.mockResolvedValue({
       configured: false,
       enabled: false,
@@ -401,6 +414,10 @@ describe('seoAdmin controller', () => {
         projectedDepletionDate: null,
         lastSampledAt: null,
         warningLevel: 'ok',
+      },
+      editorial: {
+        paused: false,
+        run: null,
       },
     });
     expect(next).not.toHaveBeenCalled();
@@ -1312,6 +1329,63 @@ describe('seoAdmin controller', () => {
     expect(res.status).toHaveBeenCalledWith(400);
     expect(res.json).toHaveBeenCalledWith({ error: 'paused must be a boolean' });
     expect(mockSetPaused).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('returns Tuesday editorial status separately from the Monday digest status', async () => {
+    mockIsEditorialPaused.mockResolvedValue(true);
+    mockGetLatestEditorialRunStatus.mockResolvedValue({
+      status: 'warning',
+      startedAt: '2026-05-05T15:00:00.000Z',
+      completedAt: '2026-05-05T15:05:00.000Z',
+      weekStart: '2026-04-24T00:00:00.000Z',
+      publishedCount: 1,
+      draftCount: 1,
+      skippedCount: 2,
+      emailStatus: 'sent',
+      digestUrl: 'https://letaiexplainai.com/admin/seo-insights',
+      errorMessage: null,
+      items: [],
+    });
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await editorialStatus(createRequest(), res, next);
+
+    expect(res.json).toHaveBeenCalledWith({
+      paused: true,
+      run: expect.objectContaining({
+        status: 'warning',
+        publishedCount: 1,
+        draftCount: 1,
+      }),
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('toggles the Tuesday editorial pause switch independently', async () => {
+    mockSetEditorialPaused.mockResolvedValue(true);
+
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await editorialPause(createRequest({ body: { paused: true } }), res, next);
+
+    expect(mockSetEditorialPaused).toHaveBeenCalledWith(true);
+    expect(res.json).toHaveBeenCalledWith({ paused: true });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('rejects Tuesday editorial pause updates when paused is not a boolean', async () => {
+    const res = createResponse();
+    const next = jest.fn() as unknown as NextFunction;
+
+    await editorialPause(createRequest({ body: { paused: 'yes' } }), res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: 'paused must be a boolean' });
+    expect(mockSetEditorialPaused).not.toHaveBeenCalled();
     expect(next).not.toHaveBeenCalled();
   });
 

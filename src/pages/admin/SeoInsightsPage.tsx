@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  Edit3,
   ExternalLink,
   PauseCircle,
   PlayCircle,
@@ -17,6 +18,9 @@ import {
   type SeoAgentActionRecord,
   type SeoAgentRunRecord,
   type SeoAgentRunSerperSnapshot,
+  type SeoEditorialRunItem,
+  type SeoEditorialRunRecord,
+  type SeoEditorialStatusResponse,
   type SeoInsightsHealth,
   type SeoInsight,
   type SeoInsightBucket,
@@ -227,6 +231,67 @@ function getDigestStatusPill(run: SeoAgentRunRecord): { label: string; classes: 
   };
 }
 
+function getEditorialStatusPill(
+  run: SeoEditorialRunRecord | null,
+  paused: boolean
+): { label: string; classes: string } {
+  if (paused) {
+    return {
+      label: 'Paused',
+      classes: 'border border-red-300 bg-red-100 text-red-700 dark:border-red-900/70 dark:bg-red-950/40 dark:text-red-200',
+    };
+  }
+
+  if (!run) {
+    return {
+      label: 'Awaiting first run',
+      classes: 'border border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+    };
+  }
+
+  if (run.status === 'failed' || run.emailStatus === 'failed') {
+    return {
+      label: run.emailStatus === 'failed' && run.status !== 'failed' ? 'Email failed' : 'Failed',
+      classes: 'border border-rose-300 bg-rose-100 text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-200',
+    };
+  }
+
+  if (run.status === 'warning') {
+    return {
+      label: 'Partial success',
+      classes: 'border border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-200',
+    };
+  }
+
+  return {
+    label: 'Ready for review',
+    classes: 'border border-emerald-300 bg-emerald-100 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-200',
+  };
+}
+
+function getEditorialItemPill(
+  action: SeoEditorialRunItem['action']
+): { label: string; classes: string } {
+  if (action === 'auto_published') {
+    return {
+      label: 'Auto-published',
+      classes: 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-200',
+    };
+  }
+
+  if (action === 'draft_for_review') {
+    return {
+      label: 'Draft for review',
+      classes: 'border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-200',
+    };
+  }
+
+  return {
+    label: 'Skipped by gate',
+    classes: 'border border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200',
+  };
+}
+
 function isDigestLoopUrl(value: string | null): boolean {
   if (!value) {
     return false;
@@ -302,21 +367,26 @@ export default function SeoInsightsPage() {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<SeoInsightListResult | null>(null);
   const [health, setHealth] = useState<SeoInsightsHealth | null>(null);
+  const [editorialStatus, setEditorialStatus] = useState<SeoEditorialStatusResponse | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
+  const [editorialError, setEditorialError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingInsightId, setPendingInsightId] = useState<string | null>(null);
   const [drawerInsightId, setDrawerInsightId] = useState<string | null>(null);
   const [digestDrawerOpen, setDigestDrawerOpen] = useState(false);
   const [pausePending, setPausePending] = useState(false);
+  const [editorialPausePending, setEditorialPausePending] = useState(false);
+  const [editorialResumeConfirmOpen, setEditorialResumeConfirmOpen] = useState(false);
   const [resumeConfirmOpen, setResumeConfirmOpen] = useState(false);
 
   const loadInsights = useCallback(async () => {
     setLoading(true);
     setError(null);
     setHealthError(null);
+    setEditorialError(null);
     try {
-      const [insightsResponse, healthResponse] = await Promise.allSettled([
+      const [insightsResponse, healthResponse, editorialResponse] = await Promise.allSettled([
         seoInsightsApi.list({
           bucket,
           weekStart: requestedWeek,
@@ -324,6 +394,7 @@ export default function SeoInsightsPage() {
           limit: 50,
         }),
         seoInsightsApi.getHealth(),
+        seoInsightsApi.getEditorialStatus(),
       ]);
 
       if (insightsResponse.status === 'rejected') {
@@ -334,12 +405,23 @@ export default function SeoInsightsPage() {
 
       if (healthResponse.status === 'fulfilled') {
         setHealth(healthResponse.value);
+        setEditorialStatus(healthResponse.value.editorial ?? null);
       } else {
         setHealth(null);
         setHealthError(
           healthResponse.reason instanceof Error
             ? healthResponse.reason.message
             : 'Failed to load SEO automation status'
+        );
+      }
+
+      if (editorialResponse.status === 'fulfilled') {
+        setEditorialStatus(editorialResponse.value);
+      } else {
+        setEditorialError(
+          editorialResponse.reason instanceof Error
+            ? editorialResponse.reason.message
+            : 'Failed to load Tuesday editorial status'
         );
       }
     } catch (nextError) {
@@ -359,6 +441,9 @@ export default function SeoInsightsPage() {
   const digestStatusPill = agentRun ? getDigestStatusPill(agentRun) : null;
   const hasDedicatedDigestUrl = agentRun?.digestUrl ? !isDigestLoopUrl(agentRun.digestUrl) : false;
   const paused = health?.paused ?? false;
+  const editorialPaused = editorialStatus?.paused ?? false;
+  const editorialRun = editorialStatus?.run ?? null;
+  const editorialPill = getEditorialStatusPill(editorialRun, editorialPaused);
   const serper = health?.serper ?? null;
   const counts = result?.meta.counts ?? {
     winnable_loss: 0,
@@ -423,6 +508,24 @@ export default function SeoInsightsPage() {
     } finally {
       setPausePending(false);
       setResumeConfirmOpen(false);
+    }
+  }
+
+  async function handleEditorialPauseChange(nextPaused: boolean) {
+    setEditorialPausePending(true);
+    try {
+      const nextState = await seoInsightsApi.setEditorialPaused(nextPaused);
+      setEditorialStatus((currentStatus) => ({
+        paused: nextState.paused,
+        run: currentStatus?.run ?? null,
+      }));
+      toast.success(nextPaused ? 'Tuesday autopilot paused' : 'Tuesday autopilot resumed');
+      await loadInsights();
+    } catch (nextError) {
+      toast.error(nextError instanceof Error ? nextError.message : 'Failed to update Tuesday autopilot');
+    } finally {
+      setEditorialPausePending(false);
+      setEditorialResumeConfirmOpen(false);
     }
   }
 
@@ -670,6 +773,151 @@ export default function SeoInsightsPage() {
         ) : (
           <LoadingSkeleton className="h-24 w-full rounded-2xl" />
         )}
+      </section>
+
+      <section
+        className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+        data-testid="seo-editorial-status-panel"
+      >
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                Tuesday editorial autopilot
+              </span>
+              <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] ${editorialPill.classes}`}>
+                {editorialPaused ? <PauseCircle className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+                {editorialPill.label}
+              </span>
+              {editorialRun && (
+                <span className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  Completed {formatRelativeTime(editorialRun.completedAt)}
+                </span>
+              )}
+            </div>
+
+            {editorialError ? (
+              <ErrorState
+                title="Tuesday status unavailable"
+                message={editorialError}
+                onRetry={() => void loadInsights()}
+              />
+            ) : editorialStatus ? (
+              <>
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    {editorialRun
+                      ? `Last Tuesday run: ${editorialRun.publishedCount} published, ${editorialRun.draftCount} drafts`
+                      : 'No Tuesday editorial run recorded yet'}
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                    {editorialRun
+                      ? `Week ${editorialRun.weekStart?.slice(0, 10) ?? 'unknown'} produced ${editorialRun.skippedCount} skipped or deferred opportunities. Email status: ${editorialRun.emailStatus.replace('_', ' ')}.`
+                      : 'The Tuesday runner is scheduled, but it has not persisted a non-dry run yet. Dry runs stay out of this operator record.'}
+                  </p>
+                  {editorialRun?.errorMessage && (
+                    <p className="mt-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-100">
+                      {editorialRun.errorMessage}
+                    </p>
+                  )}
+                </div>
+
+                {editorialRun && editorialRun.items.length > 0 ? (
+                  <div className="grid gap-3 lg:grid-cols-2">
+                    {editorialRun.items.slice(0, 6).map((item) => {
+                      const itemPill = getEditorialItemPill(item.action);
+                      return (
+                        <article
+                          key={`${item.sourceType}-${item.id}-${item.action}`}
+                          className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ${itemPill.classes}`}>
+                              {itemPill.label}
+                            </span>
+                            <span className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                              {item.sourceType}
+                            </span>
+                          </div>
+                          <h3 className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-900 dark:text-white">
+                            {item.title}
+                          </h3>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
+                            {item.reason}
+                          </p>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {item.publicUrl && (
+                              <a
+                                href={item.publicUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Open public post
+                              </a>
+                            )}
+                            {item.adminUrl && (
+                              <a
+                                href={item.adminUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-900/70 dark:bg-blue-950/30 dark:text-blue-200 dark:hover:bg-blue-950/60"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                                Edit post
+                              </a>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title={editorialRun ? 'No post actions in the latest run' : 'No Tuesday run yet'}
+                    description={editorialRun
+                      ? 'The runner found no publishable or draftable opportunities, so this run stayed review-only.'
+                      : 'The first real Tuesday run will populate published posts, drafts for review, and skipped reasons here.'}
+                  />
+                )}
+              </>
+            ) : (
+              <LoadingSkeleton className="h-28 w-full rounded-2xl" />
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row xl:flex-col">
+            <button
+              type="button"
+              aria-pressed={editorialPaused}
+              onClick={() => {
+                if (editorialPaused) {
+                  setEditorialResumeConfirmOpen(true);
+                  return;
+                }
+
+                void handleEditorialPauseChange(true);
+              }}
+              disabled={editorialPausePending || Boolean(editorialError)}
+              className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                editorialPaused
+                  ? 'border-red-500 bg-red-600 text-white hover:bg-red-700'
+                  : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              {editorialPaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
+              {editorialPaused ? 'Resume Tuesday autopilot' : 'Pause Tuesday autopilot'}
+            </button>
+            <Link
+              to="/admin/seo-insights/proposals"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Review proposals
+            </Link>
+          </div>
+        </div>
       </section>
 
       <SeoInsightsSectionNav activeCount={result?.pagination.total ?? 0} />
@@ -1094,6 +1342,19 @@ export default function SeoInsightsPage() {
           void handlePauseChange(false);
         }}
         isLoading={pausePending}
+      />
+
+      <ConfirmDialog
+        isOpen={editorialResumeConfirmOpen}
+        title="Resume Tuesday editorial autopilot?"
+        message="This lets the Tuesday runner create drafts and publish tightly gated topic-mode posts on its next non-dry run."
+        confirmLabel="Resume Tuesday autopilot"
+        cancelLabel="Keep paused"
+        onCancel={() => setEditorialResumeConfirmOpen(false)}
+        onConfirm={() => {
+          void handleEditorialPauseChange(false);
+        }}
+        isLoading={editorialPausePending}
       />
     </div>
   );

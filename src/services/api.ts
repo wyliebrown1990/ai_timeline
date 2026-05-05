@@ -5944,6 +5944,9 @@ export interface SeoAgentActionMetadata {
 }
 
 export type SeoAgentRunStatus = 'success' | 'failed';
+export type SeoEditorialRunStatus = 'success' | 'failed' | 'warning' | 'failed_email_only' | 'paused';
+export type SeoEditorialRunEmailStatus = 'not_attempted' | 'sent' | 'failed';
+export type SeoEditorialRunItemAction = 'auto_published' | 'draft_for_review' | 'skipped_by_gate';
 export type SeoAgentRunSerperRemainingCreditsSource = 'unavailable' | 'policy_derived' | 'vendor_observed_adjusted';
 export type SeoAgentRunSerperWarningLevel = 'ok' | 'watch' | 'warning' | 'critical';
 
@@ -5976,6 +5979,35 @@ export interface SeoAgentRunRecord {
   digestUrl: string | null;
   errorMessage: string | null;
   serperSnapshot: SeoAgentRunSerperSnapshot | null;
+}
+
+export interface SeoEditorialRunItem {
+  id: string;
+  sourceType: 'proposal' | 'keyword' | 'article';
+  action: SeoEditorialRunItemAction;
+  title: string;
+  publicUrl: string | null;
+  adminUrl: string | null;
+  reason: string;
+}
+
+export interface SeoEditorialRunRecord {
+  status: SeoEditorialRunStatus;
+  startedAt: string;
+  completedAt: string;
+  weekStart: string | null;
+  publishedCount: number;
+  draftCount: number;
+  skippedCount: number;
+  emailStatus: SeoEditorialRunEmailStatus;
+  digestUrl: string | null;
+  errorMessage: string | null;
+  items: SeoEditorialRunItem[];
+}
+
+export interface SeoEditorialStatusResponse {
+  paused: boolean;
+  run: SeoEditorialRunRecord | null;
 }
 
 export interface SeoAgentActionRecord {
@@ -6425,6 +6457,7 @@ export interface SeoInsightsHealth {
   paused: boolean;
   agentRun: SeoAgentRunRecord | null;
   serper: SeoSerperUsageSummary;
+  editorial?: SeoEditorialStatusResponse;
 }
 
 export const seoInsightsApi = {
@@ -6730,8 +6763,22 @@ export const seoInsightsApi = {
     });
   },
 
+  async getEditorialStatus(): Promise<SeoEditorialStatusResponse> {
+    return fetchJson<SeoEditorialStatusResponse>(`${API_BASE}/admin/seo/editorial/status`, {
+      headers: getAuthHeaders(),
+    });
+  },
+
   async setPaused(paused: boolean): Promise<{ paused: boolean }> {
     return fetchJson<{ paused: boolean }>(`${API_BASE}/admin/seo/pause`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ paused }),
+    });
+  },
+
+  async setEditorialPaused(paused: boolean): Promise<{ paused: boolean }> {
+    return fetchJson<{ paused: boolean }>(`${API_BASE}/admin/seo/editorial/pause`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify({ paused }),

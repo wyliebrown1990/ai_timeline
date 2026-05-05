@@ -142,6 +142,22 @@ export async function isEditorialPaused(now: number = Date.now()): Promise<boole
   }
 }
 
+export async function setEditorialPaused(paused: boolean, now: number = Date.now()): Promise<boolean> {
+  await getSsmClient().send(new PutParameterCommand({
+    Name: EDITORIAL_PAUSED_PARAM,
+    Type: 'String',
+    Overwrite: true,
+    Value: paused ? 'true' : 'false',
+  }));
+
+  pausedCache = {
+    value: paused,
+    expiresAt: now + CACHE_TTL_MS,
+  };
+
+  return paused;
+}
+
 export async function getLatestEditorialRunStatus(
   now: number = Date.now(),
 ): Promise<SeoEditorialRunStatusRecord | null> {

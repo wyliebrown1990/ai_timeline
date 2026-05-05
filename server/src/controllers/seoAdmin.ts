@@ -58,6 +58,11 @@ import {
   type SeoAgentRunStatusRecord,
 } from '../services/seo/agentRunStatus';
 import {
+  getLatestEditorialRunStatus,
+  isEditorialPaused,
+  setEditorialPaused,
+} from '../services/seo/editorialRunStatus';
+import {
   archiveKeywordOpportunity,
   createEditorialKeywordOpportunity,
   getKeywordOpportunity,
@@ -236,11 +241,13 @@ export async function action(req: Request, res: Response, next: NextFunction) {
 
 export async function health(_req: Request, res: Response, next: NextFunction) {
   try {
-    const [status, paused, agentRun, serper] = await Promise.all([
+    const [status, paused, agentRun, serper, editorialPaused, editorialRun] = await Promise.all([
       getGscHealth(),
       isPaused(),
       getLatestAgentRunStatus(),
       getSerperUsageSummary(),
+      isEditorialPaused(),
+      getLatestEditorialRunStatus(),
     ]);
     res.json({
       lastRunAt: status.lastRunAt?.toISOString() ?? null,
@@ -252,6 +259,10 @@ export async function health(_req: Request, res: Response, next: NextFunction) {
       paused,
       agentRun,
       serper,
+      editorial: {
+        paused: editorialPaused,
+        run: editorialRun,
+      },
     });
   } catch (error) {
     next(error);
@@ -747,6 +758,34 @@ export async function pause(req: Request, res: Response, next: NextFunction) {
     }
 
     const nextState = await setPaused(paused);
+    res.json({ paused: nextState });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function editorialStatus(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const [paused, run] = await Promise.all([
+      isEditorialPaused(),
+      getLatestEditorialRunStatus(),
+    ]);
+
+    res.json({ paused, run });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function editorialPause(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { paused } = req.body as { paused?: unknown };
+    if (typeof paused !== 'boolean') {
+      res.status(400).json({ error: 'paused must be a boolean' });
+      return;
+    }
+
+    const nextState = await setEditorialPaused(paused);
     res.json({ paused: nextState });
   } catch (error) {
     next(error);

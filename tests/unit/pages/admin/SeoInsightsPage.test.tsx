@@ -14,7 +14,9 @@ jest.mock('../../../../src/services/api', () => ({
     listActions: jest.fn(),
     rollbackAction: jest.fn(),
     getHealth: jest.fn(),
+    getEditorialStatus: jest.fn(),
     setPaused: jest.fn(),
+    setEditorialPaused: jest.fn(),
   },
 }));
 
@@ -123,6 +125,16 @@ function buildHealthResult(overrides: Partial<Awaited<ReturnType<typeof seoInsig
   };
 }
 
+function buildEditorialStatus(
+  overrides: Partial<Awaited<ReturnType<typeof seoInsightsApi.getEditorialStatus>>> = {}
+) {
+  return {
+    paused: false,
+    run: null,
+    ...overrides,
+  };
+}
+
 function buildProposalRecord() {
   return {
     id: 'proposal_1',
@@ -182,6 +194,7 @@ describe('SeoInsightsPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult());
+    mockSeoInsightsApi.getEditorialStatus.mockResolvedValue(buildEditorialStatus());
   });
 
   it('switches tabs and fetches the matching bucket', async () => {
@@ -385,6 +398,102 @@ describe('SeoInsightsPage', () => {
     expect(screen.getByRole('button', { name: /pause auto-ship/i })).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('renders Tuesday editorial status with post review links', async () => {
+    mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
+    mockSeoInsightsApi.getEditorialStatus.mockResolvedValue(buildEditorialStatus({
+      run: {
+        status: 'success',
+        startedAt: '2026-05-05T15:00:00.000Z',
+        completedAt: '2026-05-05T15:04:00.000Z',
+        weekStart: '2026-04-24T00:00:00.000Z',
+        publishedCount: 1,
+        draftCount: 1,
+        skippedCount: 2,
+        emailStatus: 'sent',
+        digestUrl: 'https://letaiexplainai.com/admin/seo-insights',
+        errorMessage: null,
+        items: [
+          {
+            id: 'proposal_1',
+            sourceType: 'proposal',
+            action: 'auto_published',
+            title: 'AI timeline acceleration phases',
+            publicUrl: 'https://letaiexplainai.com/blog/ai-timeline-acceleration',
+            adminUrl: 'https://letaiexplainai.com/admin/blog/post_1/edit',
+            reason: 'Passed the blog quality gate.',
+          },
+          {
+            id: 'keyword_1',
+            sourceType: 'keyword',
+            action: 'draft_for_review',
+            title: 'AI agent memory explained',
+            publicUrl: null,
+            adminUrl: 'https://letaiexplainai.com/admin/blog/post_2/edit',
+            reason: 'Created as draft because the source mix needs human review.',
+          },
+        ],
+      },
+    }));
+
+    renderPage();
+
+    expect(await screen.findByTestId('seo-editorial-status-panel')).toHaveTextContent('Tuesday editorial autopilot');
+    expect(await screen.findByText(/last tuesday run: 1 published, 1 drafts/i)).toBeInTheDocument();
+    expect(screen.getByText('Auto-published')).toBeInTheDocument();
+    expect(screen.getByText('Draft for review')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /open public post/i })).toHaveAttribute(
+      'href',
+      'https://letaiexplainai.com/blog/ai-timeline-acceleration'
+    );
+    expect(screen.getAllByRole('link', { name: /edit post/i })[0]).toHaveAttribute(
+      'href',
+      'https://letaiexplainai.com/admin/blog/post_1/edit'
+    );
+  });
+
+  it('pauses and resumes the Tuesday editorial autopilot separately', async () => {
+    mockSeoInsightsApi.list
+      .mockResolvedValueOnce(buildListResult())
+      .mockResolvedValueOnce(buildListResult())
+      .mockResolvedValueOnce(buildListResult());
+    mockSeoInsightsApi.getHealth
+      .mockResolvedValueOnce(buildHealthResult())
+      .mockResolvedValueOnce(buildHealthResult())
+      .mockResolvedValueOnce(buildHealthResult());
+    mockSeoInsightsApi.getEditorialStatus
+      .mockResolvedValueOnce(buildEditorialStatus())
+      .mockResolvedValueOnce(buildEditorialStatus({ paused: true }))
+      .mockResolvedValueOnce(buildEditorialStatus({ paused: false }));
+    mockSeoInsightsApi.setEditorialPaused
+      .mockResolvedValueOnce({ paused: true })
+      .mockResolvedValueOnce({ paused: false });
+
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText('turing award multiple winners quiz');
+
+    await user.click(screen.getByRole('button', { name: /pause tuesday autopilot/i }));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.setEditorialPaused).toHaveBeenCalledWith(true);
+    });
+
+    expect(await screen.findByRole('button', { name: /resume tuesday autopilot/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+
+    await user.click(screen.getByRole('button', { name: /resume tuesday autopilot/i }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+
+    await user.click(screen.getByTestId('confirm-delete'));
+
+    await waitFor(() => {
+      expect(mockSeoInsightsApi.setEditorialPaused).toHaveBeenLastCalledWith(false);
+    });
+  });
+
   it('shows the persisted Serper snapshot from the last weekly digest run', async () => {
     mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
     mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({
@@ -473,7 +582,7 @@ describe('SeoInsightsPage', () => {
     expect(screen.getByText(/queued proposals/i)).toBeInTheDocument();
     expect(screen.getByText(/human-only findings/i)).toBeInTheDocument();
     expect(screen.getByText(/paid discovery snapshot/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /review proposals/i })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: /review proposals/i })[0]).toHaveAttribute(
       'href',
       '/admin/seo-insights/proposals'
     );
