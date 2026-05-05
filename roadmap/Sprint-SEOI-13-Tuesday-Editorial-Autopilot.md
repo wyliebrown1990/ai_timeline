@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-05 by Codex + AITechLeadReview + AIUXLeadReview
+> Last updated: 2026-05-05 by Codex + AITechLeadReview + AIUXLeadReview + AISlopReviewer
 
 ## Overview
 
@@ -105,8 +105,11 @@ Why this fits the current architecture:
   - SEO title/description generation
   - duplicate-topic check
   - final self-audit
+- [ ] Before adding composer logic, audit and reuse `server/src/services/seo/briefGenerator.ts`; do not copy or fork its proposal generation, link inventory, duplicate-window, entity search, or anti-slop phrase logic.
+- [ ] If `briefGenerator.ts` has useful private helpers, extract narrow exported helpers there instead of creating a parallel SEO context builder.
 - [ ] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
 - [ ] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
+- [ ] Keep Tuesday run-status values in one typed backend/UI contract. Avoid scattered string literals for `warning`, `failed_email_only`, `paused`, or partial-success states.
 - [ ] Reuse existing `server/src/services/blogAdmin.ts` functions where possible rather than calling public admin HTTP endpoints from inside Lambda:
   - `createDraft(input, authorId)`
   - `publishPost(id)`
@@ -135,6 +138,7 @@ Why this fits the current architecture:
 - [ ] Run SERP/Serper sampling with cache and spend caps before drafting.
 - [ ] Generate one topic-mode blog draft in Wylie's accumulated voice.
 - [ ] Build an entity link inventory and enforce first-mention links.
+- [ ] Use the existing entity/search/link inventory path from `briefGenerator.ts`, `entityMatcher.ts`, and related SEO services. Add only a thin blog-body shortcode resolver if no reusable function exists.
 - [ ] Require at least 3 internal links and no invented entities.
 - [ ] Require a unique slug, title, `seoTitle`, `seoDescription`, excerpt, tags, subjects, and relation records.
 - [ ] Create the post as `draft` first.
@@ -148,6 +152,7 @@ Why this fits the current architecture:
 
 - [ ] Reject auto-publish if the post has hallucinated facts, unsupported claims, or missing primary-source links for news claims.
 - [ ] Reject auto-publish if the title or body reads as generic listicle/slop.
+- [ ] Source anti-slop checks from existing SEO voice/brief-generation rules where possible; do not maintain a second disconnected list of forbidden phrases or generic-writing heuristics.
 - [ ] Reject auto-publish if the post competes with an existing LAEA page without a clear canonical strategy.
 - [ ] Reject auto-publish if the target keyword is too broad for LAEA to plausibly win.
 - [ ] Reject auto-publish if internal links are forced or irrelevant.
@@ -160,6 +165,7 @@ Why this fits the current architecture:
 ### 6. Tuesday Email Recap
 
 - [ ] Add an email helper for SEO editorial recap emails.
+- [ ] Do not duplicate the contact-form SES wiring inline. Extract or reuse a small shared server email helper so SES client creation, sender validation, and error normalization live in one place.
 - [ ] Prefer SES `SendEmailCommand`; if sending from the ingestion Lambda, add `ses:SendEmail` and `ses:SendRawEmail` permissions to `IngestionFunction`.
 - [ ] Store the recipient in SSM as `/ai-timeline/prod/seo-editorial-recap-email`, defaulting to `wyliedeveloper@gmail.com`.
 - [ ] Store or configure the sender identity explicitly; do not hardcode an unverified sender without checking SES.
@@ -195,6 +201,8 @@ Why this fits the current architecture:
 - [ ] Support `dryRun`, `force`, and `maxPosts` payload overrides for manual validation.
 - [ ] Ensure dry-run never creates posts, proposals, status mutations, or emails unless explicitly passed `sendTestEmail=true`.
 - [ ] Ensure force bypasses same-week idempotency but still respects post caps and duplicate-topic gates.
+- [ ] Process selected opportunities sequentially or with bounded concurrency. Do not use unbounded `Promise.all` around LLM, Serper, blog writes, or publish steps.
+- [ ] Persist per-opportunity failure reasons and continue the run when one candidate fails after selection.
 - [ ] Return a compact JSON summary with selected, published, drafted, skipped, emailed, and failed counts.
 
 ### 9. Admin UI Review Surface
@@ -236,16 +244,12 @@ Why this fits the current architecture:
 
 ### 10. Tests
 
-- [ ] Unit test opportunity ranking and caps.
-- [ ] Unit test exclusion of `editorial_seed` from auto-publish.
-- [ ] Unit test duplicate-topic detection.
-- [ ] Unit test quality gate pass/fail cases.
-- [ ] Unit test idempotency: same week does not duplicate posts.
-- [ ] Unit test dry-run: no blog writes, no proposal mutations, no emails.
-- [ ] Unit test email recap payload generation.
-- [ ] Unit test email failure handling preserves run results.
-- [ ] Unit test ingestion Lambda dispatch for `seoEditorialTuesday`.
-- [ ] Integration test draft creation against mocked Prisma/blog service.
+- [ ] Add `tests/unit/seo/editorialOpportunitySelector.test.ts` for ranking, caps, `editorial_seed` exclusion, and keyword score thresholds.
+- [ ] Add `tests/unit/seo/blogQualityGate.test.ts` for pass/fail cases, unresolved shortcodes, weak internal links, and slop-listicle rejection.
+- [ ] Add `tests/unit/seo/editorialAutopilotRunner.test.ts` for idempotency, dry-run no-op behavior, bounded caps, partial candidate failure, and email failure preserving run results.
+- [ ] Add `tests/unit/seo/editorialEmail.test.ts` for recap payload generation and plain-text fallback links.
+- [ ] Add `tests/unit/ingestionLambda.seoEditorialTuesday.test.ts` for `seoEditorialTuesday` dispatch and dry-run/force/maxPosts payload handling.
+- [ ] Add a mocked Prisma/blog-service integration-style unit test under `tests/unit/seo/` for draft creation; follow the repo's `tests/unit/...` convention instead of colocated `__tests__` folders.
 - [ ] Run `npm run typecheck` after each implementation block.
 - [ ] Run `npm run lint` after each implementation block.
 - [ ] Run targeted Jest tests after each implementation block.
@@ -262,6 +266,8 @@ Why this fits the current architecture:
 - [ ] Keep the first production scheduled run at `maxPosts=1` or draft-only until Wylie reviews the generated output; then raise the default cap to `maxPosts=3` / `maxAutoPublish=2`.
 - [ ] Temporarily move EventBridge to a near-term trigger and validate scheduled invocation end-to-end.
 - [ ] Restore EventBridge to Tuesday cadence after validation.
+- [ ] Deploy frontend/admin UI changes with `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh`; do not use ad-hoc S3 sync because the deploy script enforces sourcemap and cache-header rules.
+- [ ] Validate deployed admin UI after CloudFront invalidation, not only against local Vite.
 
 ## Browser Testing & Validation
 
@@ -332,6 +338,7 @@ Why this fits the current architecture:
 - This sprint should reuse the SEOI-12 EventBridge/SSM/idempotency pattern. Do not invent a second scheduler architecture.
 - The deployed runtime should codify `AIBlogDraft` behavior; it should not attempt to invoke Codex skills inside Lambda.
 - The deployed runtime cannot rely on repo-root `.claude/skills/...` paths unless those files are deliberately packaged. Treat voice context as a deployable dependency.
+- Do not paste full skill files or long prompt manuals into Lambda source. Keep deployable prompts concise, versioned, and data-driven from reviewed voice snapshots.
 - Treat Wylie's Tuesday email as the human-in-the-loop handoff. The email must be crisp enough to review quickly from a phone.
 - The first production run should use `maxPosts=1` even though the final cap is 3. Raise to 3 only after the first generated post passes human review.
 - If SES is still in sandbox mode, email validation may be the actual blocker. Document it under `Blocked — PM decision needed` rather than weakening the review loop.
@@ -368,6 +375,33 @@ Why this fits the current architecture:
 - [ ] **Reuse existing admin interaction patterns.** Use `Drawer`, `ConfirmDialog`, `react-hot-toast`, `SeoInsightsSectionNav`, `LoadingSkeleton`, and `ErrorState` instead of one-off review cards/modals/spinners.
 - [ ] **Status cannot be color-only.** Every generated-post state needs text and/or icon labels in addition to color.
 - [ ] **Post-publish cleanup needs a visible UX path.** Browser QA must verify recap link -> admin edit -> archive/cleanup confirmation works.
+
+## Slop Findings (AISlopReviewer — 2026-05-05)
+
+### Critical
+
+- [ ] No P0 slop findings. The plan reuses the existing ingestion Lambda/EventBridge path and does not propose a second scheduler, detached admin app, or fake blog API.
+
+### Moderate
+
+- [ ] **Avoid a parallel SEO brief engine.** `blogDraftComposer.ts` could become a fork of `server/src/services/seo/briefGenerator.ts` unless implementation first extracts/reuses existing proposal, link inventory, entity search, duplicate-window, and anti-slop helpers.
+- [ ] **Centralize Tuesday status strings.** The plan names new states such as `warning` and `failed_email_only`; implementation needs a single typed backend/UI contract so admin filters, SSM persistence, and email copy do not drift.
+- [ ] **Do not duplicate SES plumbing.** The repo already has SES contact-form wiring on the API side. Adding Tuesday email from ingestion should extract a small shared email helper or clearly reuse one path, not create another inline SES client with separate error semantics.
+
+### Minor
+
+- [ ] **Follow the repo test layout.** Tests should live under `tests/unit/...`; avoid colocated `__tests__` folders or new test conventions.
+- [ ] **Bound expensive async work.** Cap selected posts and process LLM/Serper/blog-write steps sequentially or with explicit bounded concurrency so retries and partial failures stay legible.
+- [ ] **Deploy the admin UI through the canonical script.** Because the plan touches `/admin/seo-insights`, frontend validation must include `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh` and deployed browser QA.
+- [ ] **Keep prompts out of source comments.** Runtime should package concise, reviewed voice snapshots rather than embedding full skill docs or comment-heavy prompt manuals.
+
+### Slop Avoided
+
+- [x] The plan keeps automation in the existing `server/src/ingestionLambda.ts` action dispatch instead of creating a new Lambda.
+- [x] The plan uses real `SeoProposal.status` values from Prisma after tech review.
+- [x] The plan reuses `server/src/services/blogAdmin.ts` for draft/publish/archive flows.
+- [x] The plan uses `src/services/api.ts`, `SeoInsightsPage`, `Drawer`, `ConfirmDialog`, `LoadingSkeleton`, and `ErrorState` instead of inventing detached frontend surfaces.
+- [x] The browser validation uses `agent-browser`, which matches the repo's current validation tooling.
 
 ## Blocked — PM Decision Needed
 
