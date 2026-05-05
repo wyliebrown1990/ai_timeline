@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-05 by Codex
+> Last updated: 2026-05-05 by Codex + AITechLeadReview
 
 ## Overview
 
@@ -18,6 +18,22 @@ Recommended initial cap:
 - No auto-publish from `editorial_seed` rows until Wylie explicitly approves that source type for automation.
 
 The core PM tradeoff is speed versus taste risk. This plan chooses speed with guardrails: publish the clean long-tail/opportunity posts, draft the edgy/thesis-heavy posts, email Wylie everything.
+
+## Session Start Workflow (MANDATORY)
+
+Before touching any code:
+
+1. Read `/Users/wyliebrown/ai_timeline/AGENTS.md`, `/Users/wyliebrown/ai_timeline/.claude/CLAUDE.md`, and the relevant `.claude/rules/*.md` files.
+2. Open `/Users/wyliebrown/ai_timeline/roadmap/PLAN-SEO-Insights-Pilot.md` and this sprint file.
+3. Pick exactly one unchecked `[ ]` task. Do not start broad refactors.
+4. After each implementation block, run:
+   - [ ] `npm run typecheck`
+   - [ ] `npm run lint`
+   - [ ] targeted tests for the changed behavior
+5. For backend changes, validate deployed behavior with AWS CLI, SSM/API checks, and CloudWatch logs before checking the task.
+6. For frontend changes, validate with `agent-browser` screenshots on deployed `https://letaiexplainai.com`.
+7. Update this sprint checklist and commit the code plus checkbox change together.
+8. Stop only when the Acceptance Criteria are met or a PM decision is required.
 
 ## Product Decision
 
@@ -72,6 +88,7 @@ Why this fits the current architecture:
 - [ ] Confirm SEOI-12 production rule remains restored to `cron(15 13 ? * MON *)` with target input `{"action":"seoWeeklyDigest"}`.
 - [ ] Confirm Tuesday runner should use the existing ingestion Lambda rather than creating a new Lambda.
 - [ ] Define SSM names for Tuesday state, for example `/ai-timeline/prod/seo-editorial-last-run` and `/ai-timeline/prod/seo-editorial-paused`.
+- [ ] Define how deployed Lambda receives blog/SEO voice context. Do not assume repo-root `.claude/skills/...` files exist in the `server/src` Lambda bundle; either copy a reviewed voice snapshot into deployable source, store it in SSM/RDS, or load it from an explicitly packaged asset.
 - [ ] Confirm email sender constraints in SES: verified sender identity, sandbox status, and whether `wyliedeveloper@gmail.com` can receive from the configured sender.
 - [ ] Document expected incremental cost: LLM tokens, Serper calls, SES email, and any extra CloudWatch/EventBridge usage.
 - [ ] Get PM approval before adding any new billable AWS resources. Prefer no new billable resource beyond existing EventBridge/Lambda/SES.
@@ -90,8 +107,13 @@ Why this fits the current architecture:
   - final self-audit
 - [ ] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
 - [ ] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
-- [ ] Reuse existing Prisma/blog admin service functions where possible rather than calling public admin HTTP endpoints from inside Lambda.
+- [ ] Reuse existing `server/src/services/blogAdmin.ts` functions where possible rather than calling public admin HTTP endpoints from inside Lambda:
+  - `createDraft(input, authorId)`
+  - `publishPost(id)`
+  - `archivePost(id)` for rollback/manual cleanup support
+  - `getOrCreateDefaultAuthor()`
 - [ ] Add a hard idempotency key per opportunity and week so the Tuesday runner cannot publish duplicate posts on retry.
+- [ ] Add an idempotency persistence mechanism before publishing. Use an existing durable table if sufficient, otherwise add a small Prisma model/migration; do not rely on in-memory keys because EventBridge/Lambda retries can cold-start.
 
 ### 3. Opportunity Selection Rules
 
@@ -119,7 +141,8 @@ Why this fits the current architecture:
 - [ ] Run the quality gate against the persisted draft.
 - [ ] Publish only when the quality gate passes every required item.
 - [ ] Leave as draft when any soft editorial risk is present.
-- [ ] Mark the originating proposal as `approved`, `published`, or `draft_created` according to the existing proposal status model.
+- [ ] Mark the originating proposal using the real `SeoProposal.status` values only: `approved` for linked draft posts and `shipped` when the linked blog post is published. Do not introduce `draft_created`; it does not exist in `prisma/schema.prisma`.
+- [ ] Link created posts through the existing proposal path semantics (`draftPostId` + `status`) so `/admin/seo-insights/proposals` remains accurate.
 
 ### 5. Quality Gates
 
@@ -140,8 +163,9 @@ Why this fits the current architecture:
 - [ ] Prefer SES `SendEmailCommand`; if sending from the ingestion Lambda, add `ses:SendEmail` and `ses:SendRawEmail` permissions to `IngestionFunction`.
 - [ ] Store the recipient in SSM as `/ai-timeline/prod/seo-editorial-recap-email`, defaulting to `wyliedeveloper@gmail.com`.
 - [ ] Store or configure the sender identity explicitly; do not hardcode an unverified sender without checking SES.
+- [ ] If email uses the ingestion Lambda directly, wire SES permissions in `infra/template.yaml` under `IngestionFunction.Policies`; existing SES permissions currently live on the API Lambda for the contact form, not on the ingestion Lambda.
 - [ ] Include published post URLs.
-- [ ] Include admin edit URLs for every published and draft post.
+- [ ] Include admin edit URLs for every published and draft post using the real route shape `/admin/blog/:id/edit`.
 - [ ] Include source opportunity links back to `/admin/seo-insights/proposals` or `/admin/seo-insights/portfolio`.
 - [ ] Include skipped/deferred opportunities with reasons.
 - [ ] Include Serper credits used, month-to-date spend, remaining credits, warning level, and auto-top-up state.
@@ -169,6 +193,10 @@ Why this fits the current architecture:
 ### 9. Admin UI Review Surface
 
 - [ ] Add Tuesday editorial status to `/admin/seo-insights` or a sub-panel under proposals.
+- [ ] Update `src/services/api.ts` with Tuesday editorial status types and API client methods; do not create a parallel frontend API client.
+- [ ] Update `server/src/routes/seoAdmin.ts` and `server/src/controllers/seoAdmin.ts` only if a new admin status endpoint is needed; gate any new route with `requireAdmin`.
+- [ ] Keep Tuesday status separate from the current Monday `PUT /api/admin/seo/run-status` payload unless that endpoint is deliberately generalized. The existing controller validates only `success | failed` and Monday-style digest counts.
+- [ ] Extend `src/pages/admin/SeoInsightsPage.tsx` or an existing SEO Insights child page rather than creating an unlinked admin route.
 - [ ] Show last Tuesday run status, started/completed times, published count, draft count, skipped count, email status, and error message.
 - [ ] Add links to created blog posts and admin edit pages.
 - [ ] Add a pause switch for Tuesday editorial autopilot separate from Monday SEO digest pause, or clearly document if the existing SEO pause controls both.
@@ -200,6 +228,7 @@ Why this fits the current architecture:
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true}`.
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true,"sendTestEmail":true}` to verify email delivery to `wyliedeveloper@gmail.com`.
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","force":true,"maxPosts":1}` only after reviewing dry-run output.
+- [ ] Keep the first production scheduled run at `maxPosts=1` or draft-only until Wylie reviews the generated output; then raise the default cap to `maxPosts=3` / `maxAutoPublish=2`.
 - [ ] Temporarily move EventBridge to a near-term trigger and validate scheduled invocation end-to-end.
 - [ ] Restore EventBridge to Tuesday cadence after validation.
 
@@ -241,6 +270,8 @@ Why this fits the current architecture:
 - [ ] Confirm public blog API returns published posts.
 - [ ] Confirm draft-only posts are not publicly listed.
 - [ ] Confirm Tuesday email arrives at `wyliedeveloper@gmail.com`.
+- [ ] Confirm `/admin/blog/:id/edit` opens for every recap link.
+- [ ] Confirm generated public URLs are returned by `GET /api/blog/:slug` only after publish.
 
 ## Acceptance Criteria
 
@@ -260,9 +291,28 @@ Why this fits the current architecture:
 
 - This sprint should reuse the SEOI-12 EventBridge/SSM/idempotency pattern. Do not invent a second scheduler architecture.
 - The deployed runtime should codify `AIBlogDraft` behavior; it should not attempt to invoke Codex skills inside Lambda.
+- The deployed runtime cannot rely on repo-root `.claude/skills/...` paths unless those files are deliberately packaged. Treat voice context as a deployable dependency.
 - Treat Wylie's Tuesday email as the human-in-the-loop handoff. The email must be crisp enough to review quickly from a phone.
 - The first production run should use `maxPosts=1` even though the final cap is 3. Raise to 3 only after the first generated post passes human review.
 - If SES is still in sandbox mode, email validation may be the actual blocker. Document it under `Blocked — PM decision needed` rather than weakening the review loop.
+
+## AITechLeadReview Findings — 2026-05-05
+
+### Critical
+
+- [ ] **Voice files are not automatically available in Lambda.** `AIBlogDraft` / `SEOAuditAgent` files live under repo-root `.claude/skills` and `.codex/skills`, while SAM builds the ingestion Lambda from `server/src`. Implementation must explicitly package, copy, or externalize the reviewed voice context before any Lambda code tries to read it.
+- [ ] **Use real proposal statuses.** `SeoProposal.status` is `pending | drafting | approved | rejected | shipped`; the initial plan mentioned `draft_created`, which would drift from `prisma/schema.prisma` and existing proposal UI filters.
+
+### Moderate
+
+- [ ] **Do not reuse Monday run-status blindly.** `PUT /api/admin/seo/run-status` and `agentRunStatus.ts` are shaped for the Monday digest (`success | failed`, shipped/proposal/human/measured counts). Tuesday editorial status needs its own status record or a deliberate generalized schema and UI update.
+- [ ] **Wire SES on the correct Lambda.** SES permissions exist for the API Lambda contact form. If Tuesday email sends from `ai-timeline-ingestion-prod`, add SES IAM to `IngestionFunction`.
+- [ ] **Frontend tasks need concrete integration points.** Extend `src/services/api.ts` and `src/pages/admin/SeoInsightsPage.tsx` / existing SEO Insights pages rather than adding a detached admin surface.
+
+### Minor
+
+- [ ] **Use existing blog service names.** Prefer `createDraft`, `publishPost`, `archivePost`, and `getOrCreateDefaultAuthor` from `server/src/services/blogAdmin.ts`.
+- [ ] **Use real admin edit links.** The route is `/admin/blog/:id/edit`.
 
 ## Blocked — PM Decision Needed
 
