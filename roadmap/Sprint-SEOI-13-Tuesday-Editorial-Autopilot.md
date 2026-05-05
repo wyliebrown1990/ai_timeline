@@ -202,7 +202,7 @@ Why this fits the current architecture:
 - [x] Target the existing ingestion Lambda with `{"action":"seoEditorialTuesday"}`.
 - [x] Add paired Lambda invoke permission for the EventBridge rule.
 - [x] Add ingestion Lambda environment variables for Tuesday pause/status/email SSM params.
-- [ ] Confirm EventBridge rule, target, and permission via AWS CLI after deploy.
+- [x] Confirm EventBridge rule, target, and permission via AWS CLI after deploy.
 
 ### 8. Ingestion Lambda Wiring
 
@@ -266,10 +266,10 @@ Why this fits the current architecture:
 ### 11. Deployment
 
 - [x] Run `aws events list-rules` and `aws lambda get-function` to confirm existing infrastructure before provisioning.
-- [ ] Deploy backend with `./scripts/deploy-backend.sh`.
-- [ ] Confirm CloudFormation creates `SeoTuesdayEditorialRule` and permission.
-- [ ] Confirm ingestion Lambda has required SSM and SES permissions.
-- [ ] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true}`.
+- [x] Deploy backend with `./scripts/deploy-backend.sh`.
+- [x] Confirm CloudFormation creates `SeoTuesdayEditorialRule` and permission.
+- [x] Confirm ingestion Lambda has required SSM and SES permissions.
+- [x] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true}`.
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true,"sendTestEmail":true}` to verify email delivery to `wyliedeveloper@gmail.com`.
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","force":true,"maxPosts":1}` only after reviewing dry-run output.
 - [ ] Keep the first production scheduled run at `maxPosts=1` or draft-only until Wylie reviews the generated output; then raise the default cap to `maxPosts=3` / `maxAutoPublish=2`.

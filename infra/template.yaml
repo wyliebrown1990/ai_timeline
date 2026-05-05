@@ -105,10 +105,6 @@ Resources:
           SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
           SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
           SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
-          SEO_EDITORIAL_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-last-run'
-          SEO_EDITORIAL_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-paused'
-          SEO_EDITORIAL_RECAP_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-recap-email'
-          SEO_EDITORIAL_SENDER_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-sender-email'
 
       Events:
         ApiProxy:
@@ -243,6 +239,10 @@ Resources:
           SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
           SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
           SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
+          SEO_EDITORIAL_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-last-run'
+          SEO_EDITORIAL_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-paused'
+          SEO_EDITORIAL_RECAP_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-recap-email'
+          SEO_EDITORIAL_SENDER_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-sender-email'
 
       # IAM permissions
       Policies:
