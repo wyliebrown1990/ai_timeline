@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-05 by Codex + AITechLeadReview + AIUXLeadReview + AISlopReviewer
+> Last updated: 2026-05-05 by Codex + AITechLeadReview + AIUXLeadReview + AISlopReviewer + AISEOReview
 
 ## Overview
 
@@ -140,7 +140,13 @@ Why this fits the current architecture:
 - [ ] Build an entity link inventory and enforce first-mention links.
 - [ ] Use the existing entity/search/link inventory path from `briefGenerator.ts`, `entityMatcher.ts`, and related SEO services. Add only a thin blog-body shortcode resolver if no reusable function exists.
 - [ ] Require at least 3 internal links and no invented entities.
-- [ ] Require a unique slug, title, `seoTitle`, `seoDescription`, excerpt, tags, subjects, and relation records.
+- [ ] Require a unique kebab-case slug, exactly one title/H1, `seoTitle`, `seoDescription`, excerpt, tags, subjects, and relation records.
+- [ ] Enforce `seoTitle` ≤60 characters and `seoDescription` between 140-160 characters before publish; leave as draft if the generated metadata misses the bounds.
+- [ ] Default canonical URL to `https://letaiexplainai.com/blog/:slug`; allow a custom canonical only when the gate records a duplicate-content rationale.
+- [ ] Structure the first 150 words to answer the target query directly for AI Overview and LLM citability.
+- [ ] Include a visible `Key facts` or concise summary block for generated explainers, with entity names, dates, and claims written as standalone citation-ready sentences.
+- [ ] Include a visible citations/sources section for any news-like or factual claims, prioritizing primary sources, official announcements, papers, or authoritative documentation.
+- [ ] Add a short visible FAQ/PAA block only when it is genuinely useful and the literal Q&A text appears on the page; if FAQ JSON-LD is added later, it must reuse `generateFAQJsonLd` from `src/components/SEO.tsx`.
 - [ ] Create the post as `draft` first.
 - [ ] Run the quality gate against the persisted draft.
 - [ ] Publish only when the quality gate passes every required item.
@@ -159,6 +165,9 @@ Why this fits the current architecture:
 - [ ] Reject auto-publish if body content lacks a thesis or is only a recap.
 - [ ] Reject auto-publish if markdown shortcodes do not resolve to valid entities.
 - [ ] Reject auto-publish if Article/Breadcrumb metadata cannot be generated.
+- [ ] Reject auto-publish if Article JSON-LD lacks `author`, `publisher`, `datePublished`, `dateModified`, `mainEntityOfPage`, or absolute `url`/canonical values.
+- [ ] Reject auto-publish if the post cannot be represented by the existing `SEO`, `generateArticleJsonLd`, and `generateBreadcrumbListJsonLd` patterns without creating parallel head-management code.
+- [ ] Reject auto-publish if the generated post would be client-rendered but Google URL Inspection cannot verify the rendered HTML contains the H1 and opening body for a sampled production post.
 - [ ] Reject auto-publish if generated post would exceed the weekly cap.
 - [ ] On rejection, persist a draft or skipped opportunity with a reason for Tuesday email review.
 
@@ -295,12 +304,29 @@ Why this fits the current architecture:
 - [ ] Open each auto-published blog URL from the Tuesday recap email.
 - [ ] Screenshot the public post.
 - [ ] Verify title, H1, excerpt, body, internal links, related posts, and metadata render.
+- [ ] Verify the rendered post has exactly one `<h1>`, descriptive H2/H3 hierarchy, and no heading-level skips caused by generated markdown.
+- [ ] Verify Article + BreadcrumbList JSON-LD are present in the rendered DOM and match the visible breadcrumb/title/content.
+- [ ] Verify canonical, Open Graph, Twitter Card, `article:*` tags, author URL, published date, and modified date are present for every published post.
 - [ ] Open each admin edit URL from the Tuesday recap email.
 - [ ] Verify the editor loads the generated content and can save changes.
 - [ ] Verify the admin editor's existing mobile tabs (`write`, `preview`, `meta`) still work for generated drafts.
 - [ ] Verify post-publish cleanup path: from recap link -> admin edit -> archive confirmation -> toast/status feedback.
 - [ ] Confirm no broken shortcode output is visible on the public post.
 - [ ] Verify public post readability in light and dark themes: title, prose width, internal links, related posts, comments/newsletter sections, and no layout shift from cover images.
+- [ ] Verify any cover image has meaningful alt text, uses a valid 1200x630-ish social preview asset or the site default intentionally, and does not create CLS.
+
+## SEO Validation & Search Console
+
+- [ ] Validate at least one generated published post with Google Rich Results Test; Article and BreadcrumbList schemas must show zero errors before the cap is raised beyond the calibration run.
+- [ ] Validate at least one generated published post with Schema.org validator as a secondary check.
+- [ ] Run PageSpeed Insights on `/blog` and at least one generated `/blog/:slug` post after deploy; record mobile/desktop LCP, CLS, and INP. Targets: LCP <2.5s, CLS <0.1, INP <200ms.
+- [ ] Run Google's Mobile-Friendly Test or URL Inspection mobile render on at least one generated post.
+- [ ] Confirm `/api/sitemap.xml` includes each newly published `/blog/:slug` URL after the sitemap cache expires, and confirm `lastmod` reflects the post's `updatedAt` date.
+- [ ] Re-submit `api/sitemap.xml` in Google Search Console after the first production generated post ships.
+- [ ] Use GSC URL Inspection for the first 3-5 generated published posts; request indexing and verify Google-rendered HTML contains the H1, opening answer, canonical, and structured data.
+- [ ] Check `https://letaiexplainai.com/llms.txt` still points LLM crawlers at the blog index and canonical entity URLs; update it only if the generated editorial format introduces a new durable hub or collection.
+- [ ] Add a 14-day follow-up to verify generated post coverage/indexing in GSC.
+- [ ] Add a 30-day follow-up to review impressions, clicks, CTR, and average position for generated `/blog/*` posts and feed the result back into SEOI measurement.
 
 ## Backend Validation
 
@@ -325,12 +351,15 @@ Why this fits the current architecture:
 - [ ] Runner sends a Tuesday recap email to `wyliedeveloper@gmail.com`.
 - [ ] Recap email includes public links, admin edit links, source opportunity links, and skipped reasons.
 - [ ] Runner respects pause, dry-run, force, idempotency, duplicate-topic checks, and spend caps.
+- [ ] Every auto-published post has bounded SEO metadata, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date/freshness signals, citations for factual claims, and at least 3 relevant internal links.
+- [ ] Every auto-published post answers the target query in the first 150 words and includes a concise `Key facts`/summary block suitable for AI Overview and LLM citation.
 - [ ] Admin UI exposes Tuesday run status and links for human review.
 - [ ] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
 - [ ] All browser validation tasks completed with screenshots.
 - [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
 - [ ] Tuesday UI passes dark-mode and mobile checks.
 - [ ] Tuesday email recap is scannable on mobile and includes plain-text fallback links.
+- [ ] Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, and GSC follow-up tasks completed for the first generated posts.
 - [ ] Backend logs and CloudWatch metrics clean.
 
 ## Notes for Future Developers
@@ -402,6 +431,25 @@ Why this fits the current architecture:
 - [x] The plan reuses `server/src/services/blogAdmin.ts` for draft/publish/archive flows.
 - [x] The plan uses `src/services/api.ts`, `SeoInsightsPage`, `Drawer`, `ConfirmDialog`, `LoadingSkeleton`, and `ErrorState` instead of inventing detached frontend surfaces.
 - [x] The browser validation uses `agent-browser`, which matches the repo's current validation tooling.
+
+## AISEOReview Findings — 2026-05-05
+
+### Critical
+
+- [ ] No P0 SEO findings. The plan uses the existing `/blog/:slug` public surface, which already has Article/Breadcrumb JSON-LD helpers, canonical support, sitemap inclusion for published posts, and preview `noindex` handling.
+
+### Moderate
+
+- [ ] **Strengthen auto-publish SEO gates.** Publishing must fail closed unless generated posts have bounded `seoTitle`/`seoDescription`, one H1, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date signals, and at least 3 relevant internal links.
+- [ ] **Make generated posts AEO-ready, not just blog-shaped.** Topic-mode posts need a direct answer in the first 150 words, citation-ready `Key facts`/summary block, explicit entity/date claims, and visible citations for factual or news-like assertions.
+- [ ] **Verify SPA crawlability with Google-rendered output.** Because the public site is a React SPA behind S3/CloudFront, the first generated posts must be checked in GSC URL Inspection to confirm Google sees the H1, opening body, canonical, and structured data after rendering.
+- [ ] **Add mandatory search validation after launch.** The plan now requires Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, sitemap resubmission, and 14/30-day GSC follow-ups before raising the autonomous cap.
+
+### Minor
+
+- [ ] **Protect sitemap freshness.** Confirm `/api/sitemap.xml` uses each generated post's `updatedAt` as `lastmod`; stale `publishedAt`-only lastmod weakens freshness signals after edits.
+- [ ] **Keep FAQ schema honest.** FAQ/PAA blocks are useful only when visible Q&A text exists on the page and any future schema reuses `generateFAQJsonLd`.
+- [ ] **Treat images as SEO assets.** Generated posts should either use a valid social/cover image with meaningful alt text and no CLS, or intentionally fall back to the site default OG image.
 
 ## Blocked — PM Decision Needed
 
