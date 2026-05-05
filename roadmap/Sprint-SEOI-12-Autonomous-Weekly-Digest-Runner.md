@@ -194,6 +194,8 @@ Make the SEO weekly digest run without depending on a live Codex Desktop convers
   - Note: Lambda pause-state cache required waiting before a final active forced run restored the latest persisted digest to `paused=false`.
 - [x] `aws logs tail /aws/lambda/ai-timeline-ingestion-prod --since 30m` — digest run visible, zero unexpected errors
 - [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — admin health/status checks clean
+- [x] Validate real EventBridge scheduled trigger by temporarily moving `ai-timeline-seo-digest-schedule-prod` to `cron(46 13 5 5 ? 2026)` with `{"action":"seoWeeklyDigest","force":true}`, then restoring `cron(15 13 ? * MON *)` with normal non-force input
+  - Result: triggered at 2026-05-05T13:46:50Z, completed at 2026-05-05T13:46:51Z, persisted `status=success`, `weekStart=2026-04-24`, shippedCount=0, proposalCount=0, humanOnlyCount=6, measuredCount=0, Lambda errors=0.
 
 ### 9. Browser Validation (via `/Browser` skill only)
 
@@ -213,8 +215,8 @@ Make the SEO weekly digest run without depending on a live Codex Desktop convers
 - [ ] All tasks above checked
 - [x] `server/src/services/seo/weeklyDigestRunner.ts` runs from the ingestion Lambda without admin credentials or public API calls
 - [x] `scripts/seo-weekly-digest-runner.mjs` can run locally as a dry-run/manual Lambda wrapper
-- [ ] EventBridge rule runs manually and on schedule
-  - Note: rule is created and enabled; the first scheduled Monday run is still pending.
+- [x] EventBridge rule runs manually and on schedule
+  - Note: near-term scheduled trigger was validated on 2026-05-05; production schedule is restored for Monday at 13:15 UTC.
 - [x] Runner exits idempotently when the current finalized week already succeeded
 - [x] Paused mode produces digest-only status with zero mutations
 - [x] Failure mode writes `status=failed` and a useful `errorMessage`
@@ -256,7 +258,7 @@ roadmap/PLAN-SEO-Insights-Pilot.md                      (modify — SEOI-12 trac
 
 - `npm run lint` now exits 0 against maintained production source as of 2026-05-05. It still reports 533 warnings, mostly existing `no-console`, Fast Refresh export-shape, and hook dependency cleanup debt.
 - Full `npm test -- --runInBand` is not green repo-wide as of 2026-05-05. The SEOI-12 runner suite passes, but unrelated Jest/import-meta configuration and stale mock failures remain outside this sprint.
-- EventBridge is deployed and enabled, but the first natural scheduled Monday invocation has not happened yet.
+- EventBridge is deployed, enabled, and validated with a near-term scheduled trigger. The first natural Monday invocation on the restored cadence is still pending.
 
 ---
 
