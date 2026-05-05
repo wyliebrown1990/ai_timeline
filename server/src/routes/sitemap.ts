@@ -288,7 +288,7 @@ router.get('/', async (_req, res) => {
     });
 
     for (const post of blogPosts) {
-      const lastmod = (post.publishedAt ?? post.updatedAt).toISOString().split('T')[0];
+      const lastmod = post.updatedAt.toISOString().split('T')[0];
       urls.push({
         loc: `${BASE_URL}/blog/${post.slug}`,
         changefreq: 'weekly',

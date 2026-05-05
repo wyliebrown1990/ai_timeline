@@ -56,7 +56,7 @@ function summary(overrides: Partial<SeoEditorialTuesdayRunSummary> = {}): SeoEdi
         id: 'proposal-1',
         sourceType: 'proposal',
         action: 'auto_publish',
-        status: 'planned',
+        status: 'auto_published',
         title: 'AI timeline explained',
         reason: 'Selected for Tuesday editorial automation.',
         publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
@@ -92,6 +92,12 @@ describe('editorialEmail', () => {
     expect(email.text).toContain('Editorial seed rows stay in backlog for human review.');
     expect(email.text).toContain('Credits used this week: 4');
     expect(email.html).toContain('Open SEO dashboard');
+    expect(email.html).toContain('Published posts');
+    expect(email.html).toContain('Review public post');
+    expect(email.html).toContain('Edit post');
+    expect(email.html).toContain('Open source proposal');
+    expect(email.html).toContain('Skipped by gate');
+    expect(email.html).toContain('Open source keyword');
   });
 
   it('elevates Serper warnings in recap copy', () => {

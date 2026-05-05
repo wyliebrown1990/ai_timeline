@@ -41,6 +41,7 @@ const RISKY_CLAIM_PATTERNS = [
 ];
 
 export interface BlogQualityGateInput {
+  targetKeyword?: string;
   title: string;
   slug: string;
   seoTitle: string | null | undefined;
@@ -52,6 +53,9 @@ export interface BlogQualityGateInput {
   subjectIds?: string[];
   relations?: Array<{ entityType: string; entityId: string }>;
   intendedAction: 'auto_publish' | 'draft_only';
+  strongInternalLinkCandidates?: number;
+  hasArticleJsonLdPath?: boolean;
+  clientRenderedCrawlVerified?: boolean;
 }
 
 export interface BlogQualityGateResult {
@@ -168,6 +172,30 @@ function hasQuestionBlock(markdown: string): boolean {
   return /^#{2,3}\s+.+\?\s*$/im.test(markdown) || /\*\*Q:\*\*/i.test(markdown);
 }
 
+function broadKeywordReason(keyword: string | undefined): string | null {
+  const normalized = keyword?.trim().toLowerCase();
+  if (!normalized) return null;
+  const tooBroad = new Set([
+    'ai',
+    'artificial intelligence',
+    'machine learning',
+    'deep learning',
+    'openai',
+    'chatgpt',
+    'llm',
+    'llms',
+  ]);
+  return tooBroad.has(normalized) ? `Target keyword "${keyword}" is too broad for autonomous publishing.` : null;
+}
+
+function hasThesis(markdown: string): boolean {
+  const firstSection = markdown
+    .replace(/^#{1,6}\s+.+$/gm, '')
+    .split(/^#{2,3}\s+/m)[0]
+    .toLowerCase();
+  return /\b(because|therefore|the useful answer|the thesis|matters because|changed when|shifted from|bottleneck)\b/.test(firstSection);
+}
+
 function startsWithDirectAnswer(markdown: string): boolean {
   const stripped = markdown
     .replace(/^#{1,6}\s+.+$/gm, '')
@@ -233,6 +261,22 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   }
   if (input.intendedAction === 'auto_publish' && riskyClaimCount > 0 && sourceLinkCount === 0) {
     blockers.push('Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.');
+  }
+  if (input.intendedAction === 'auto_publish' && typeof input.strongInternalLinkCandidates === 'number' && input.strongInternalLinkCandidates < 3) {
+    blockers.push('Auto-publish requires at least 3 strong internal-link candidates before drafting.');
+  }
+  const broadReason = input.intendedAction === 'auto_publish' ? broadKeywordReason(input.targetKeyword) : null;
+  if (broadReason) {
+    blockers.push(broadReason);
+  }
+  if (input.intendedAction === 'auto_publish' && !hasThesis(input.bodyMarkdown)) {
+    blockers.push('Auto-publish requires a clear thesis; generic recaps stay draft-only.');
+  }
+  if (input.intendedAction === 'auto_publish' && input.hasArticleJsonLdPath === false) {
+    blockers.push('Auto-publish requires the existing Article and Breadcrumb JSON-LD path.');
+  }
+  if (input.intendedAction === 'auto_publish' && input.clientRenderedCrawlVerified === false) {
+    blockers.push('Auto-publish requires sampled Google-rendered HTML verification for SPA crawlability.');
   }
   if (!hasQuestionBlock(input.bodyMarkdown)) {
     warnings.push('Consider a concise visible PAA-style question block when useful.');

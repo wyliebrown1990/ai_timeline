@@ -14,6 +14,7 @@ const mockApproveSeoProposal = jest.fn();
 const mockLinkProposalDraft = jest.fn();
 const mockMarkKeywordOpportunityPromoted = jest.fn();
 const mockEvaluateBlogQualityGate = jest.fn();
+const mockBuildEditorialBlogCompositionBrief = jest.fn();
 
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
@@ -57,6 +58,10 @@ jest.mock('../../../server/src/services/seo/keywordDiscovery', () => ({
 
 jest.mock('../../../server/src/services/seo/blogQualityGate', () => ({
   evaluateBlogQualityGate: mockEvaluateBlogQualityGate,
+}));
+
+jest.mock('../../../server/src/services/seo/blogDraftComposer', () => ({
+  buildEditorialBlogCompositionBrief: mockBuildEditorialBlogCompositionBrief,
 }));
 
 import {
@@ -141,6 +146,20 @@ beforeEach(() => {
     warnings: [],
     metrics: { internalLinkCount: 3, shortcodeCount: 1, wordCount: 900 },
   });
+  mockBuildEditorialBlogCompositionBrief.mockResolvedValue({
+    targetKeyword: 'ai timeline',
+    angle: 'AI timeline systems map',
+    rationale: 'Strong fit.',
+    linkInventory: [
+      { entityType: 'glossary_term', id: 'machine-learning', label: 'Machine learning', path: '/glossary/machine-learning', reason: 'Relevant term.' },
+      { entityType: 'organization', id: 'openai', label: 'OpenAI', path: '/organizations/openai', reason: 'Relevant organization.' },
+      { entityType: 'person', id: 'sam-altman', label: 'Sam Altman', path: '/people/sam-altman', reason: 'Relevant person.' },
+    ],
+    newsHooks: [],
+    serperSourceRef: null,
+    winnabilityNotes: ['Strong internal-link base: 3 reusable entity links.'],
+    blockers: [],
+  });
   mockGetOrCreateDefaultAuthor.mockResolvedValue({ id: 'author-1', slug: 'wylie-brown' });
   mockCreateDraft.mockResolvedValue({
     id: 'post-1',
@@ -223,6 +242,27 @@ describe('editorialBlogDraft', () => {
     expect(mockCreateDraft).toHaveBeenCalled();
     expect(mockPublishPost).not.toHaveBeenCalled();
     expect(mockLinkProposalDraft).toHaveBeenCalledWith('proposal-1', 'post-1');
+  });
+
+  it('creates draft-only when the structured brief blocks auto-publish', async () => {
+    mockBuildEditorialBlogCompositionBrief.mockResolvedValue({
+      targetKeyword: 'ai timeline',
+      angle: 'AI timeline systems map',
+      rationale: 'Strong fit.',
+      linkInventory: [],
+      newsHooks: [],
+      serperSourceRef: null,
+      winnabilityNotes: ['Weak internal-link base: 0 reusable entity links.'],
+      blockers: ['Fewer than 3 strong internal links are available for this topic.'],
+    });
+
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
+
+    expect(result.status).toBe('draft_created');
+    expect(result.action).toBe('draft_only');
+    expect(result.publicUrl).toBeNull();
+    expect(result.reason).toContain('Draft-only because pre-draft brief found');
+    expect(mockPublishPost).not.toHaveBeenCalled();
   });
 
   it('skips without creating a draft when hard quality gates fail', async () => {

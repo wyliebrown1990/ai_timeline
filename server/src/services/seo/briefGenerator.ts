@@ -551,7 +551,7 @@ function parseKeywordOpportunitySourceRef(value: unknown): SeoKeywordOpportunity
   };
 }
 
-function parseSerperSourceRef(value: unknown): SerperKeywordSourceRef | null {
+export function parseSerperSourceRef(value: unknown): SerperKeywordSourceRef | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return null;
   }
@@ -1279,7 +1279,7 @@ function getDraftStatus(status: string): SeoProposalStatus {
   return 'pending';
 }
 
-function parseLinkInventory(value: unknown): SeoProposalLinkInventoryItem[] {
+export function parseLinkInventory(value: unknown): SeoProposalLinkInventoryItem[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -1318,7 +1318,7 @@ function parseLinkInventory(value: unknown): SeoProposalLinkInventoryItem[] {
     .filter((item): item is SeoProposalLinkInventoryItem => item !== null);
 }
 
-function parseNewsHooks(value: unknown): SeoProposalNewsHook[] {
+export function parseNewsHooks(value: unknown): SeoProposalNewsHook[] {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -1685,7 +1685,7 @@ function buildEvergreenRoutingRationale(cluster: ClusterSourceRecord, topicPod: 
   return `${topicPod.hypothesis} Current landing page: ${currentPath}. Recommended canonical destination: ${topicPod.canonicalDestination.path}.`;
 }
 
-async function loadLinkInventory(keyword: string): Promise<SeoProposalLinkInventoryItem[]> {
+export async function loadLinkInventory(keyword: string): Promise<SeoProposalLinkInventoryItem[]> {
   const [personMatch, organizationMatch, persons, organizations, glossaryTerms, milestoneResults] = await Promise.all([
     matchPerson(keyword),
     matchOrganization(keyword),
@@ -1771,7 +1771,7 @@ async function loadLinkInventory(keyword: string): Promise<SeoProposalLinkInvent
   return items.slice(0, MAX_ENTITY_RESULTS * 2);
 }
 
-async function loadNewsHooks(keyword: string): Promise<SeoProposalNewsHook[]> {
+export async function loadNewsHooks(keyword: string): Promise<SeoProposalNewsHook[]> {
   const windowStart = subtractDays(RECENT_NEWS_WINDOW_DAYS);
   const slug = slugify(keyword);
   const rows = await prisma.ingestedArticle.findMany({
@@ -1807,7 +1807,7 @@ async function loadNewsHooks(keyword: string): Promise<SeoProposalNewsHook[]> {
   }));
 }
 
-async function findDuplicateEntityReason(keyword: string, rawQuery?: string | null): Promise<string | null> {
+export async function findDuplicateEntityReason(keyword: string, rawQuery?: string | null): Promise<string | null> {
   for (const candidate of buildDuplicateEntityCandidates(keyword, rawQuery)) {
     const normalizedKeyword = normalizeWhitespace(candidate);
     const normalizedSlug = slugify(normalizedKeyword);
@@ -1858,7 +1858,7 @@ async function findDuplicateEntityReason(keyword: string, rawQuery?: string | nu
   return null;
 }
 
-async function runSlopPreflight(input: {
+export async function runSlopPreflight(input: {
   keyword: string;
   rawQuery?: string | null;
   suggestedAngle: string;

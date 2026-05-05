@@ -90,14 +90,16 @@ Why this fits the current architecture:
 - [x] Define SSM names for Tuesday state, for example `/ai-timeline/prod/seo-editorial-last-run` and `/ai-timeline/prod/seo-editorial-paused`.
 - [x] Define how deployed Lambda receives blog/SEO voice context. Do not assume repo-root `.claude/skills/...` files exist in the `server/src` Lambda bundle; either copy a reviewed voice snapshot into deployable source, store it in SSM/RDS, or load it from an explicitly packaged asset.
 - [x] Confirm email sender constraints in SES: verified sender identity, sandbox status, and whether `wyliedeveloper@gmail.com` can receive from the configured sender.
-- [ ] Document expected incremental cost: LLM tokens, Serper calls, SES email, and any extra CloudWatch/EventBridge usage.
-- [ ] Get PM approval before adding any new billable AWS resources. Prefer no new billable resource beyond existing EventBridge/Lambda/SES.
+- [x] Document expected incremental cost: LLM tokens, Serper calls, SES email, and any extra CloudWatch/EventBridge usage.
+- [x] Get PM approval before adding any new billable AWS resources. Prefer no new billable resource beyond existing EventBridge/Lambda/SES.
+
+Cost note: the Tuesday runner adds no new billable AWS resources beyond existing EventBridge, Lambda, SSM, RDS, SES, and CloudWatch usage. Incremental cost is bounded by the configured caps: up to 3 Claude topic-mode drafts per Tuesday, existing cached/guarded Serper sampling only through the portfolio/brief pipeline, one SES recap email, and normal Lambda/CloudWatch invocation/log volume for a short sequential run.
 
 ### 2. Editorial Runner Service
 
 - [x] Add `server/src/services/seo/editorialAutopilotRunner.ts`.
 - [x] Add `server/src/services/seo/editorialOpportunitySelector.ts` to rank eligible opportunities from proposals, keyword portfolio rows, and recent articles.
-- [ ] Add `server/src/services/seo/blogDraftComposer.ts` to codify the durable parts of `AIBlogDraft` topic mode:
+- [x] Add `server/src/services/seo/blogDraftComposer.ts` to codify the durable parts of `AIBlogDraft` topic mode:
   - voice file read
   - SERP/winnability summary
   - entity inventory
@@ -105,8 +107,8 @@ Why this fits the current architecture:
   - SEO title/description generation
   - duplicate-topic check
   - final self-audit
-- [ ] Before adding composer logic, audit and reuse `server/src/services/seo/briefGenerator.ts`; do not copy or fork its proposal generation, link inventory, duplicate-window, entity search, or anti-slop phrase logic.
-- [ ] If `briefGenerator.ts` has useful private helpers, extract narrow exported helpers there instead of creating a parallel SEO context builder.
+- [x] Before adding composer logic, audit and reuse `server/src/services/seo/briefGenerator.ts`; do not copy or fork its proposal generation, link inventory, duplicate-window, entity search, or anti-slop phrase logic.
+- [x] If `briefGenerator.ts` has useful private helpers, extract narrow exported helpers there instead of creating a parallel SEO context builder.
 - [x] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
 - [x] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
 - [x] Keep Tuesday run-status values in one typed backend/UI contract. Avoid scattered string literals for `warning`, `failed_email_only`, `paused`, or partial-success states.
@@ -127,18 +129,18 @@ Why this fits the current architecture:
 - [x] Require `pageTypeRecommendation=blog_post` for keyword portfolio rows.
 - [x] Exclude `editorial_seed` rows from auto-publish.
 - [x] Exclude opportunities if a same or near-duplicate blog post already exists.
-- [ ] Exclude topics with fewer than 3 strong internal links unless Wylie has manually approved the idea.
+- [x] Exclude topics with fewer than 3 strong internal links unless Wylie has manually approved the idea.
 - [x] Cap output at 3 total posts per Tuesday.
 - [x] Cap immediate publishing at 2 posts per Tuesday.
 - [x] Convert all remaining good opportunities to draft-only or leave them queued with a clear reason.
 
 ### 4. Blog Draft and Publish Flow
 
-- [ ] For each selected opportunity, produce a structured brief before drafting.
-- [ ] Run SERP/Serper sampling with cache and spend caps before drafting.
+- [x] For each selected opportunity, produce a structured brief before drafting.
+- [x] Run SERP/Serper sampling with cache and spend caps before drafting.
 - [x] Generate one topic-mode blog draft in Wylie's accumulated voice.
-- [ ] Build an entity link inventory and enforce first-mention links.
-- [ ] Use the existing entity/search/link inventory path from `briefGenerator.ts`, `entityMatcher.ts`, and related SEO services. Add only a thin blog-body shortcode resolver if no reusable function exists.
+- [x] Build an entity link inventory and enforce first-mention links.
+- [x] Use the existing entity/search/link inventory path from `briefGenerator.ts`, `entityMatcher.ts`, and related SEO services. Add only a thin blog-body shortcode resolver if no reusable function exists.
 - [x] Require at least 3 internal links and no invented entities.
 - [x] Require a unique kebab-case slug, exactly one title/H1, `seoTitle`, `seoDescription`, excerpt, tags, subjects, and relation records.
 - [x] Enforce `seoTitle` ≤60 characters and `seoDescription` between 140-160 characters before publish; leave as draft if the generated metadata misses the bounds.
@@ -158,15 +160,15 @@ Why this fits the current architecture:
 
 - [x] Reject auto-publish if the post has hallucinated facts, unsupported claims, or missing primary-source links for news claims.
 - [x] Reject auto-publish if the title or body reads as generic listicle/slop.
-- [ ] Source anti-slop checks from existing SEO voice/brief-generation rules where possible; do not maintain a second disconnected list of forbidden phrases or generic-writing heuristics.
-- [ ] Reject auto-publish if the post competes with an existing LAEA page without a clear canonical strategy.
-- [ ] Reject auto-publish if the target keyword is too broad for LAEA to plausibly win.
+- [x] Source anti-slop checks from existing SEO voice/brief-generation rules where possible; do not maintain a second disconnected list of forbidden phrases or generic-writing heuristics.
+- [x] Reject auto-publish if the post competes with an existing LAEA page without a clear canonical strategy.
+- [x] Reject auto-publish if the target keyword is too broad for LAEA to plausibly win.
 - [x] Reject auto-publish if internal links are forced or irrelevant.
-- [ ] Reject auto-publish if body content lacks a thesis or is only a recap.
+- [x] Reject auto-publish if body content lacks a thesis or is only a recap.
 - [x] Reject auto-publish if markdown shortcodes do not resolve to valid entities.
-- [ ] Reject auto-publish if Article/Breadcrumb metadata cannot be generated.
-- [ ] Reject auto-publish if Article JSON-LD lacks `author`, `publisher`, `datePublished`, `dateModified`, `mainEntityOfPage`, or absolute `url`/canonical values.
-- [ ] Reject auto-publish if the post cannot be represented by the existing `SEO`, `generateArticleJsonLd`, and `generateBreadcrumbListJsonLd` patterns without creating parallel head-management code.
+- [x] Reject auto-publish if Article/Breadcrumb metadata cannot be generated.
+- [x] Reject auto-publish if Article JSON-LD lacks `author`, `publisher`, `datePublished`, `dateModified`, `mainEntityOfPage`, or absolute `url`/canonical values.
+- [x] Reject auto-publish if the post cannot be represented by the existing `SEO`, `generateArticleJsonLd`, and `generateBreadcrumbListJsonLd` patterns without creating parallel head-management code.
 - [ ] Reject auto-publish if the generated post would be client-rendered but Google URL Inspection cannot verify the rendered HTML contains the H1 and opening body for a sampled production post.
 - [x] Reject auto-publish if generated post would exceed the weekly cap.
 - [x] On rejection, persist a draft or skipped opportunity with a reason for Tuesday email review.
@@ -187,7 +189,7 @@ Why this fits the current architecture:
 - [x] Include Tuesday runner status and CloudWatch log pointer.
 - [x] Send the email even when the run produces zero posts, unless the whole run fails before email construction.
 - [x] If email send fails, keep the runner status `warning` or `failed_email_only` while preserving blog/proposal results.
-- [ ] Design the recap as a scannable operator artifact, not a newsletter:
+- [x] Design the recap as a scannable operator artifact, not a newsletter:
   - top line status: `Published`, `Drafts ready`, `Skipped`, `Warnings`
   - first visible links: public post review URLs and `/admin/blog/:id/edit`
   - grouped sections for Published, Drafts for review, Skipped by gate, Spend/Serper, and Logs
@@ -313,7 +315,7 @@ Why this fits the current architecture:
 - [ ] Verify post-publish cleanup path: from recap link -> admin edit -> archive confirmation -> toast/status feedback.
 - [x] Confirm no broken shortcode output is visible on the public post.
 - [x] Verify public post readability in light and dark themes: title, prose width, internal links, related posts, comments/newsletter sections, and no layout shift from cover images.
-- [ ] Verify any cover image has meaningful alt text, uses a valid 1200x630-ish social preview asset or the site default intentionally, and does not create CLS.
+- [x] Verify any cover image has meaningful alt text, uses a valid 1200x630-ish social preview asset or the site default intentionally, and does not create CLS.
 
 ## SEO Validation & Search Console
 
@@ -324,7 +326,7 @@ Why this fits the current architecture:
 - [x] Confirm `/api/sitemap.xml` includes each newly published `/blog/:slug` URL after the sitemap cache expires, and confirm `lastmod` reflects the post's `updatedAt` date.
 - [ ] Re-submit `api/sitemap.xml` in Google Search Console after the first production generated post ships.
 - [ ] Use GSC URL Inspection for the first 3-5 generated published posts; request indexing and verify Google-rendered HTML contains the H1, opening answer, canonical, and structured data.
-- [ ] Check `https://letaiexplainai.com/llms.txt` still points LLM crawlers at the blog index and canonical entity URLs; update it only if the generated editorial format introduces a new durable hub or collection.
+- [x] Check `https://letaiexplainai.com/llms.txt` still points LLM crawlers at the blog index and canonical entity URLs; update it only if the generated editorial format introduces a new durable hub or collection.
 - [ ] Add a 14-day follow-up to verify generated post coverage/indexing in GSC.
 - [ ] Add a 30-day follow-up to review impressions, clicks, CTR, and average position for generated `/blog/*` posts and feed the result back into SEOI measurement.
 
@@ -337,8 +339,8 @@ Why this fits the current architecture:
 - [x] Confirm Lambda error metric remains zero for the scheduled test.
 - [x] Confirm created posts exist in RDS with expected status.
 - [x] Confirm public blog API returns published posts.
-- [ ] Confirm draft-only posts are not publicly listed.
-- [ ] Confirm Tuesday email arrives at `wyliedeveloper@gmail.com`.
+- [x] Confirm draft-only posts are not publicly listed.
+- [x] Confirm Tuesday email arrives at `wyliedeveloper@gmail.com`.
 - [x] Confirm `/admin/blog/:id/edit` opens for every recap link.
 - [x] Confirm generated public URLs are returned by `GET /api/blog/:slug` only after publish.
 
@@ -346,7 +348,7 @@ Why this fits the current architecture:
 
 - [x] Tuesday runner can select up to 3 autonomous topic-mode post opportunities.
 - [x] Runner publishes no more than 2 posts per Tuesday without human pre-approval.
-- [ ] Runner creates draft-only posts for promising but risky opportunities.
+- [x] Runner creates draft-only posts for promising but risky opportunities.
 - [x] Runner never auto-publishes `editorial_seed` opportunities.
 - [x] Runner sends a Tuesday recap email to `wyliedeveloper@gmail.com`.
 - [x] Recap email includes public links, admin edit links, source opportunity links, and skipped reasons.
@@ -358,7 +360,7 @@ Why this fits the current architecture:
 - [x] All browser validation tasks completed with screenshots.
 - [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
 - [x] Tuesday UI passes dark-mode and mobile checks.
-- [ ] Tuesday email recap is scannable on mobile and includes plain-text fallback links.
+- [x] Tuesday email recap is scannable on mobile and includes plain-text fallback links.
 - [ ] Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, and GSC follow-up tasks completed for the first generated posts.
 - [x] Backend logs and CloudWatch metrics clean.
 
@@ -397,7 +399,7 @@ Why this fits the current architecture:
 
 - [ ] **Design the Tuesday operator states, not just the data.** The admin surface must specify loading, populated, zero-opportunity, partial-success, failed-email, paused, and fatal-error states using existing `LoadingSkeleton` / `ErrorState` patterns.
 - [x] **Specify responsive and dark-mode behavior.** The Tuesday review panel must define desktop/tablet/mobile layout, avoid horizontal scroll at 375px, keep 48px mobile tap targets, and include `dark:` variants for every new visual state.
-- [ ] **Make the recap email a review workflow.** Since Wylie stays human-in-the-loop by email, the recap must be mobile-scannable, put review/edit links first, group published/draft/skipped items, and include plain-text fallback links.
+- [x] **Make the recap email a review workflow.** Since Wylie stays human-in-the-loop by email, the recap must be mobile-scannable, put review/edit links first, group published/draft/skipped items, and include plain-text fallback links.
 
 ### Minor
 
@@ -413,7 +415,7 @@ Why this fits the current architecture:
 
 ### Moderate
 
-- [ ] **Avoid a parallel SEO brief engine.** `blogDraftComposer.ts` could become a fork of `server/src/services/seo/briefGenerator.ts` unless implementation first extracts/reuses existing proposal, link inventory, entity search, duplicate-window, and anti-slop helpers.
+- [x] **Avoid a parallel SEO brief engine.** `blogDraftComposer.ts` could become a fork of `server/src/services/seo/briefGenerator.ts` unless implementation first extracts/reuses existing proposal, link inventory, entity search, duplicate-window, and anti-slop helpers.
 - [x] **Centralize Tuesday status strings.** The plan names new states such as `warning` and `failed_email_only`; implementation needs a single typed backend/UI contract so admin filters, SSM persistence, and email copy do not drift.
 - [x] **Do not duplicate SES plumbing.** The repo already has SES contact-form wiring on the API side. Adding Tuesday email from ingestion should extract a small shared email helper or clearly reuse one path, not create another inline SES client with separate error semantics.
 
@@ -441,15 +443,15 @@ Why this fits the current architecture:
 ### Moderate
 
 - [x] **Strengthen auto-publish SEO gates.** Publishing must fail closed unless generated posts have bounded `seoTitle`/`seoDescription`, one H1, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date signals, and at least 3 relevant internal links.
-- [ ] **Make generated posts AEO-ready, not just blog-shaped.** Topic-mode posts need a direct answer in the first 150 words, citation-ready `Key facts`/summary block, explicit entity/date claims, and visible citations for factual or news-like assertions.
+- [x] **Make generated posts AEO-ready, not just blog-shaped.** Topic-mode posts need a direct answer in the first 150 words, citation-ready `Key facts`/summary block, explicit entity/date claims, and visible citations for factual or news-like assertions.
 - [ ] **Verify SPA crawlability with Google-rendered output.** Because the public site is a React SPA behind S3/CloudFront, the first generated posts must be checked in GSC URL Inspection to confirm Google sees the H1, opening body, canonical, and structured data after rendering.
 - [ ] **Add mandatory search validation after launch.** The plan now requires Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, sitemap resubmission, and 14/30-day GSC follow-ups before raising the autonomous cap.
 
 ### Minor
 
-- [ ] **Protect sitemap freshness.** Confirm `/api/sitemap.xml` uses each generated post's `updatedAt` as `lastmod`; stale `publishedAt`-only lastmod weakens freshness signals after edits.
-- [ ] **Keep FAQ schema honest.** FAQ/PAA blocks are useful only when visible Q&A text exists on the page and any future schema reuses `generateFAQJsonLd`.
-- [ ] **Treat images as SEO assets.** Generated posts should either use a valid social/cover image with meaningful alt text and no CLS, or intentionally fall back to the site default OG image.
+- [x] **Protect sitemap freshness.** Confirm `/api/sitemap.xml` uses each generated post's `updatedAt` as `lastmod`; stale `publishedAt`-only lastmod weakens freshness signals after edits.
+- [x] **Keep FAQ schema honest.** FAQ/PAA blocks are useful only when visible Q&A text exists on the page and any future schema reuses `generateFAQJsonLd`.
+- [x] **Treat images as SEO assets.** Generated posts should either use a valid social/cover image with meaningful alt text and no CLS, or intentionally fall back to the site default OG image.
 
 ## Blocked — PM Decision Needed
 

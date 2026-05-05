@@ -63,6 +63,40 @@ function decisionTextLine(decision: SeoEditorialTuesdayRunSummary['decisions'][n
   return `- ${decisionLabel(decision)}: ${decision.reason}${decisionLinkLines(decision)}`;
 }
 
+function decisionLinksHtml(decision: SeoEditorialTuesdayRunSummary['decisions'][number]): string {
+  const links = [
+    decision.publicUrl ? `<a href="${escapeHtml(decision.publicUrl)}">Review public post</a>` : null,
+    decision.adminUrl ? `<a href="${escapeHtml(decision.adminUrl)}">Edit post</a>` : null,
+    decision.sourceUrl ? `<a href="${escapeHtml(decision.sourceUrl)}">Open source ${escapeHtml(decision.sourceType)}</a>` : null,
+  ].filter((link): link is string => Boolean(link));
+
+  return links.length > 0
+    ? `<p style="margin:8px 0 0">${links.join(' &nbsp; ')}</p>`
+    : '';
+}
+
+function decisionCardHtml(decision: SeoEditorialTuesdayRunSummary['decisions'][number]): string {
+  return [
+    '<li style="margin:0 0 12px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;list-style:none">',
+    `<strong>${escapeHtml(decision.title)}</strong>`,
+    `<div style="margin-top:4px;color:#4b5563;font-size:13px">${escapeHtml(decision.sourceType)} · ${escapeHtml(decision.action)}</div>`,
+    `<p style="margin:8px 0 0">${escapeHtml(decision.reason)}</p>`,
+    decisionLinksHtml(decision),
+    '</li>',
+  ].join('');
+}
+
+function decisionSectionHtml(
+  title: string,
+  decisions: SeoEditorialTuesdayRunSummary['decisions'],
+  emptyText: string,
+): string {
+  const body = decisions.length > 0
+    ? `<ul style="margin:0;padding:0">${decisions.map(decisionCardHtml).join('')}</ul>`
+    : `<p>${escapeHtml(emptyText)}</p>`;
+  return `<h2 style="font-size:16px;margin:20px 0 8px">${escapeHtml(title)}</h2>${body}`;
+}
+
 export function buildEditorialRecapEmail(summary: SeoEditorialTuesdayRunSummary): {
   subject: string;
   text: string;
@@ -75,6 +109,8 @@ export function buildEditorialRecapEmail(summary: SeoEditorialTuesdayRunSummary)
       : null,
   ].filter((value): value is string => Boolean(value));
   const selected = summary.decisions.filter((decision) => decision.action !== 'skipped');
+  const published = summary.decisions.filter((decision) => decision.status === 'auto_published');
+  const drafts = summary.decisions.filter((decision) => decision.status === 'draft_created');
   const skipped = summary.decisions.filter((decision) => decision.action === 'skipped');
   const statusLine = `Published ${summary.publishedCount} | Drafts ready ${summary.draftCount} | Skipped ${summary.skippedCount} | Warnings ${warnings.length}`;
   const subject = `[LAEA SEO] Tuesday editorial ${summary.status}: ${statusLine}`;
@@ -120,17 +156,16 @@ export function buildEditorialRecapEmail(summary: SeoEditorialTuesdayRunSummary)
 
   const html = [
     '<!doctype html>',
-    '<html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#111827">',
+    '<html><body style="font-family:Arial,sans-serif;line-height:1.5;color:#111827;margin:0;padding:16px">',
     `<h1 style="font-size:18px;margin:0 0 12px">${escapeHtml(statusLine)}</h1>`,
     '<p>What to do next: review any generated posts or skipped opportunities from the admin SEO pages.</p>',
-    `<p><a href="${escapeHtml(summary.digestUrl)}">Open SEO dashboard</a> &nbsp; <a href="https://letaiexplainai.com/admin/blog">Open Blog CMS</a> &nbsp; <a href="${CLOUDWATCH_LOG_URL}">Open CloudWatch logs</a></p>`,
-    '<h2 style="font-size:16px">Selected for this run</h2>',
-    `<pre style="white-space:pre-wrap;background:#f3f4f6;padding:12px;border-radius:6px">${escapeHtml(selectedLines)}</pre>`,
-    '<h2 style="font-size:16px">Skipped or deferred</h2>',
-    `<pre style="white-space:pre-wrap;background:#f3f4f6;padding:12px;border-radius:6px">${escapeHtml(skippedLines)}</pre>`,
-    '<h2 style="font-size:16px">Spend / Serper</h2>',
+    `<p style="margin:0 0 16px"><a href="${escapeHtml(summary.digestUrl)}">Open SEO dashboard</a> &nbsp; <a href="https://letaiexplainai.com/admin/blog">Open Blog CMS</a> &nbsp; <a href="${CLOUDWATCH_LOG_URL}">Open CloudWatch logs</a></p>`,
+    decisionSectionHtml('Published posts', published, 'No posts published in this run.'),
+    decisionSectionHtml('Drafts for review', drafts, 'No drafts created in this run.'),
+    decisionSectionHtml('Skipped by gate', skipped, 'No skipped opportunities.'),
+    '<h2 style="font-size:16px;margin:20px 0 8px">Spend / Serper</h2>',
     `<p>${escapeHtml(serperLine)}</p>`,
-    '<h2 style="font-size:16px">Warnings</h2>',
+    '<h2 style="font-size:16px;margin:20px 0 8px">Warnings</h2>',
     `<pre style="white-space:pre-wrap;background:#fef3c7;padding:12px;border-radius:6px">${escapeHtml(warningLines)}</pre>`,
     `<p style="color:#6b7280;font-size:12px">Run: ${escapeHtml(summary.startedAt)} -> ${escapeHtml(summary.completedAt)} | Week: ${escapeHtml(summary.weekStart ?? 'unknown')}</p>`,
     '</body></html>',

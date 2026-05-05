@@ -20,6 +20,10 @@ import {
   type BlogQualityGateResult,
 } from './blogQualityGate';
 import {
+  buildEditorialBlogCompositionBrief,
+  type EditorialBlogCompositionBrief,
+} from './blogDraftComposer';
+import {
   claimEditorialOpportunityRun,
   completeEditorialOpportunityRun,
   findDuplicateEditorialPost,
@@ -122,19 +126,34 @@ function parseGeneratedDraft(value: unknown): GeneratedEditorialBlogDraft {
   };
 }
 
-function opportunityPrompt(opportunity: EditorialOpportunity): string {
+function opportunityPrompt(
+  opportunity: EditorialOpportunity,
+  brief: EditorialBlogCompositionBrief,
+): string {
   const source = opportunity.source as SeoProposalRecord | KeywordOpportunityRecord;
   const proposal = opportunity.sourceType === 'proposal' ? source as SeoProposalRecord : null;
   const keyword = opportunity.sourceType === 'keyword' ? source as KeywordOpportunityRecord : null;
   const handoff = proposal?.handoff;
-  const linkInventory = proposal?.linkInventory?.length
-    ? proposal.linkInventory.map((item) => `- ${item.label}: ${item.path} (${item.reason})`).join('\n')
+  const linkInventory = brief.linkInventory.length
+    ? brief.linkInventory.map((item) => `- ${item.label}: ${item.path} (${item.reason})`).join('\n')
     : [
         '- AI Timeline: /blog/ai-timeline',
         '- Timeline: /timeline',
         '- AI glossary: /glossary',
         '- Learn: /learn',
       ].join('\n');
+  const newsHooks = brief.newsHooks.length
+    ? brief.newsHooks.map((item) => `- ${item.title}: ${item.externalUrl} (${item.sourceName ?? 'unknown source'}, ${item.publishedAt})`).join('\n')
+    : '- No recent news hooks were attached.';
+  const serperSummary = brief.serperSourceRef
+    ? [
+        `- Query: ${brief.serperSourceRef.query}`,
+        `- Competition proxy: ${brief.serperSourceRef.competitionProxy}`,
+        `- Top domains: ${brief.serperSourceRef.topDomains.join(', ') || 'none captured'}`,
+        `- PAA prompts: ${brief.serperSourceRef.peopleAlsoAskCount}`,
+        `- Competition read: ${brief.serperSourceRef.competitionReason}`,
+      ].join('\n')
+    : '- No attached Serper sample; avoid pretending to know live SERP composition.';
 
   return `
 You are drafting a topic-mode LAEA blog post for letaiexplainai.com.
@@ -153,6 +172,15 @@ ${keyword?.targetUrl ? `- Existing target URL context: ${keyword.targetUrl}` : '
 
 Internal links available:
 ${linkInventory}
+
+Recent source hooks:
+${newsHooks}
+
+SERP/winnability evidence:
+${serperSummary}
+
+Pre-draft winnability notes:
+${brief.winnabilityNotes.map((note) => `- ${note}`).join('\n')}
 
 Return one JSON object only. No markdown fences.
 
@@ -186,12 +214,15 @@ Source discipline:
 `.trim();
 }
 
-export async function generateEditorialBlogDraft(opportunity: EditorialOpportunity): Promise<GeneratedEditorialBlogDraft> {
+export async function generateEditorialBlogDraft(
+  opportunity: EditorialOpportunity,
+  brief: EditorialBlogCompositionBrief,
+): Promise<GeneratedEditorialBlogDraft> {
   const response = await getAnthropicClient().messages.create({
     model: CONTENT_MODEL,
     max_tokens: 4500,
     temperature: 0.4,
-    messages: [{ role: 'user', content: opportunityPrompt(opportunity) }],
+    messages: [{ role: 'user', content: opportunityPrompt(opportunity, brief) }],
   });
   const text = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
@@ -230,8 +261,11 @@ function gateInput(
   subjectIds: string[],
   slug: string,
   intendedAction: EditorialOpportunity['action'],
+  opportunity: EditorialOpportunity,
+  brief: EditorialBlogCompositionBrief,
 ) {
   return {
+    targetKeyword: opportunity.targetKeyword,
     title: generated.title,
     slug,
     seoTitle: generated.seoTitle,
@@ -243,6 +277,8 @@ function gateInput(
     subjectIds,
     relations: generated.relations,
     intendedAction,
+    strongInternalLinkCandidates: brief.linkInventory.length,
+    hasArticleJsonLdPath: true,
   };
 }
 
@@ -413,7 +449,10 @@ export async function processEditorialOpportunity(
   }
 
   try {
-    const generated = await generateEditorialBlogDraft(opportunity);
+    const brief = await buildEditorialBlogCompositionBrief(opportunity);
+    const effectiveAction: EditorialOpportunity['action'] =
+      opportunity.action === 'auto_publish' && brief.blockers.length > 0 ? 'draft_only' : opportunity.action;
+    const generated = await generateEditorialBlogDraft({ ...opportunity, action: effectiveAction }, brief);
     const subjectIds = await resolveSubjectIds(generated.subjectSlugs);
     const slug = deriveDraftSlug(generated, opportunity);
     const duplicate = await findDuplicateEditorialPost({
@@ -442,11 +481,11 @@ export async function processEditorialOpportunity(
       };
     }
 
-    let qualityGate = evaluateBlogQualityGate(gateInput(generated, subjectIds, slug, opportunity.action));
+    let qualityGate = evaluateBlogQualityGate(gateInput(generated, subjectIds, slug, effectiveAction, opportunity, brief));
     let finalGenerated = generated;
     if (!qualityGate.passed) {
       finalGenerated = repairGeneratedDraftForGate(generated, opportunity, qualityGate);
-      qualityGate = evaluateBlogQualityGate(gateInput(finalGenerated, subjectIds, slug, opportunity.action));
+      qualityGate = evaluateBlogQualityGate(gateInput(finalGenerated, subjectIds, slug, effectiveAction, opportunity, brief));
     }
 
     if (!qualityGate.passed) {
@@ -465,7 +504,7 @@ export async function processEditorialOpportunity(
           status: 'draft_created',
           postId: draftPost.id,
           reason,
-          metadata: { qualityGate, downgradedFrom: opportunity.action },
+          metadata: { qualityGate, compositionBrief: brief, downgradedFrom: opportunity.action },
         });
         return {
           id: opportunity.id,
@@ -475,7 +514,7 @@ export async function processEditorialOpportunity(
           title: draftPost.title,
           reason,
           postId: draftPost.id,
-          publicUrl: `${SITE_ORIGIN}/blog/${draftPost.slug}`,
+          publicUrl: null,
           adminUrl: `${SITE_ORIGIN}/admin/blog/${draftPost.id}/edit`,
           qualityGate,
         };
@@ -502,7 +541,7 @@ export async function processEditorialOpportunity(
 
     const post = await createDraftAndLink(opportunity, finalGenerated, subjectIds, slug);
 
-    const publishedPost = opportunity.action === 'auto_publish'
+    const publishedPost = effectiveAction === 'auto_publish'
       ? await publishPost(post.id)
       : post;
     if (!publishedPost) {
@@ -510,26 +549,30 @@ export async function processEditorialOpportunity(
     }
 
     const publicUrl = `${SITE_ORIGIN}/blog/${publishedPost.slug}`;
-    const status = opportunity.action === 'auto_publish' ? 'auto_published' : 'draft_created';
-    const reason = qualityGate.warnings.length > 0
+    const status = effectiveAction === 'auto_publish' ? 'auto_published' : 'draft_created';
+    const downgradeReason = effectiveAction !== opportunity.action
+      ? `Draft-only because pre-draft brief found: ${brief.blockers.join('; ')}`
+      : null;
+    const reason = downgradeReason
+      ?? (qualityGate.warnings.length > 0
       ? `Created with warnings: ${qualityGate.warnings.join('; ')}`
-      : 'Created successfully.';
+      : 'Created successfully.');
     await completeEditorialOpportunityRun(claim.idempotencyKey, {
       status,
       postId: post.id,
       reason,
-      metadata: { qualityGate },
+      metadata: { qualityGate, compositionBrief: brief, requestedAction: opportunity.action },
     });
 
     return {
       id: opportunity.id,
       sourceType: opportunity.sourceType,
-      action: opportunity.action,
+      action: effectiveAction,
       status,
       title: publishedPost.title,
       reason,
       postId: post.id,
-      publicUrl,
+      publicUrl: status === 'auto_published' ? publicUrl : null,
       adminUrl: `${SITE_ORIGIN}/admin/blog/${post.id}/edit`,
       qualityGate,
     };

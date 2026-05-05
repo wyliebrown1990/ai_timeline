@@ -29,6 +29,7 @@ function validBody(): string {
 function validInput(overrides: Partial<BlogQualityGateInput> = {}): BlogQualityGateInput {
   return {
     title: 'AI Agents Explained',
+    targetKeyword: 'ai agents explained',
     slug: 'ai-agents-explained',
     seoTitle: 'AI Agents Explained | LAEA',
     seoDescription: VALID_DESCRIPTION,
@@ -43,6 +44,8 @@ function validInput(overrides: Partial<BlogQualityGateInput> = {}): BlogQualityG
       { entityType: 'person', entityId: 'sam-altman' },
     ],
     intendedAction: 'auto_publish',
+    strongInternalLinkCandidates: 3,
+    hasArticleJsonLdPath: true,
     ...overrides,
   };
 }
@@ -182,5 +185,37 @@ describe('blogQualityGate', () => {
     expect(result.blockers).not.toContain(
       'Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.'
     );
+  });
+
+  it('blocks auto-publish for too-broad keywords, weak pre-draft links, missing schema path, or no thesis', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      targetKeyword: 'AI',
+      strongInternalLinkCandidates: 1,
+      hasArticleJsonLdPath: false,
+      bodyMarkdown: [
+        'AI is a broad field with many dates, people, and organizations. This recap names some areas of AI and gives readers a quick overview of the category. It is useful as a summary of common terms and milestones for readers who want an introduction.',
+        '',
+        '## Key facts',
+        '',
+        '- AI includes many techniques.',
+        '- AI has a long history.',
+        '- AI appears in many products.',
+        '',
+        '## What should readers open next?',
+        '',
+        'Use the [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn).',
+        '',
+        '## Sources',
+        '',
+        '- [AI Timeline](/blog/ai-timeline)',
+      ].join('\n'),
+    }));
+
+    expect(result.blockers).toEqual(expect.arrayContaining([
+      'Auto-publish requires at least 3 strong internal-link candidates before drafting.',
+      'Target keyword "AI" is too broad for autonomous publishing.',
+      'Auto-publish requires a clear thesis; generic recaps stay draft-only.',
+      'Auto-publish requires the existing Article and Breadcrumb JSON-LD path.',
+    ]));
   });
 });
