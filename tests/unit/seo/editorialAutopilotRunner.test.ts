@@ -318,6 +318,40 @@ describe('editorialAutopilotRunner', () => {
     }));
   });
 
+  it('compacts persisted skipped decisions so SSM standard parameters stay below the size limit', async () => {
+    const longTitle = 'Long skipped title '.repeat(40);
+    const longReason = 'Long skipped reason '.repeat(40);
+    mockSelectEditorialOpportunities.mockReturnValue({
+      selected: [],
+      deferred: Array.from({ length: 12 }, (_value, index) => ({
+        id: `deferred-${index}`,
+        sourceType: 'proposal',
+        title: longTitle,
+        reason: longReason,
+      })),
+    });
+
+    await runSeoEditorialTuesday({
+      force: true,
+      now: new Date('2026-05-05T15:00:00.000Z'),
+    });
+
+    expect(mockSetLatestEditorialRunStatus).toHaveBeenCalledWith(expect.objectContaining({
+      skippedCount: 12,
+      items: expect.arrayContaining([
+        expect.objectContaining({ id: 'deferred-0' }),
+        expect.objectContaining({ id: 'deferred-4' }),
+      ]),
+    }));
+    const persisted = mockSetLatestEditorialRunStatus.mock.calls[0][0] as {
+      items: Array<{ title: string; reason: string }>;
+    };
+    expect(persisted.items).toHaveLength(5);
+    expect(persisted.items.every((item) => item.title.length <= 140)).toBe(true);
+    expect(persisted.items.every((item) => item.reason.length <= 220)).toBe(true);
+    expect(JSON.stringify(persisted).length).toBeLessThan(4096);
+  });
+
   it('skips when the week has already completed unless forced', async () => {
     mockGetLatestEditorialRunStatus.mockResolvedValue({
       status: 'success',

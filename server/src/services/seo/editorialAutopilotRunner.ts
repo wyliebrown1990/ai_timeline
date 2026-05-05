@@ -21,6 +21,9 @@ import {
 const DIGEST_URL = 'https://letaiexplainai.com/admin/seo-insights';
 const DEFAULT_MAX_POSTS = 3;
 const DEFAULT_MAX_AUTO_PUBLISH = 2;
+const MAX_PERSISTED_SKIPPED_ITEMS = 5;
+const MAX_PERSISTED_TITLE_LENGTH = 140;
+const MAX_PERSISTED_REASON_LENGTH = 220;
 
 export interface SeoEditorialTuesdayRunOptions {
   dryRun?: boolean;
@@ -117,6 +120,44 @@ function deferredDecision(row: DeferredEditorialOpportunity): SeoEditorialTuesda
   };
 }
 
+function truncateForStatus(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength - 1)}…`;
+}
+
+function toPersistedItem(decision: SeoEditorialTuesdayDecision): SeoEditorialRunStatusRecord['items'][number] {
+  return {
+    id: decision.id,
+    sourceType: decision.sourceType,
+    action: decision.action === 'draft_only'
+      ? 'draft_for_review'
+      : decision.action === 'auto_publish'
+        ? 'auto_published'
+        : 'skipped_by_gate',
+    title: truncateForStatus(decision.title, MAX_PERSISTED_TITLE_LENGTH),
+    publicUrl: decision.publicUrl ?? null,
+    adminUrl: decision.adminUrl ?? null,
+    reason: truncateForStatus(decision.reason, MAX_PERSISTED_REASON_LENGTH),
+  };
+}
+
+function buildPersistedItems(
+  decisions: SeoEditorialTuesdayDecision[],
+): SeoEditorialRunStatusRecord['items'] {
+  const actioned = decisions
+    .filter((decision) => decision.status !== 'skipped')
+    .map(toPersistedItem);
+  const skipped = decisions
+    .filter((decision) => decision.status === 'skipped')
+    .slice(0, MAX_PERSISTED_SKIPPED_ITEMS)
+    .map(toPersistedItem);
+
+  return [...actioned, ...skipped];
+}
+
 async function processSelectedSequentially(input: {
   opportunities: EditorialOpportunity[];
   weekStart: string;
@@ -151,19 +192,7 @@ async function persistRunStatus(summary: SeoEditorialTuesdayRunSummary): Promise
     emailStatus: summary.emailedCount > 0 ? 'sent' : summary.errorMessage ? 'failed' : 'not_attempted',
     digestUrl: summary.digestUrl,
     errorMessage: summary.errorMessage,
-    items: summary.decisions.map((decision) => ({
-      id: decision.id,
-      sourceType: decision.sourceType,
-      action: decision.action === 'draft_only'
-        ? 'draft_for_review'
-        : decision.action === 'auto_publish'
-          ? 'auto_published'
-          : 'skipped_by_gate',
-      title: decision.title,
-      publicUrl: decision.publicUrl ?? null,
-      adminUrl: decision.adminUrl ?? null,
-      reason: decision.reason,
-    })),
+    items: buildPersistedItems(summary.decisions),
   };
 
   await setLatestEditorialRunStatus(record);

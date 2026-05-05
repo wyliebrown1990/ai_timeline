@@ -272,7 +272,7 @@ Why this fits the current architecture:
 - [x] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true}`.
 - [x] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true,"sendTestEmail":true}` to verify email delivery to `wyliedeveloper@gmail.com`.
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","force":true,"maxPosts":1}` only after reviewing dry-run output.
-- [ ] Keep the first production scheduled run at `maxPosts=1` or draft-only until Wylie reviews the generated output; then raise the default cap to `maxPosts=3` / `maxAutoPublish=2`.
+- [x] Keep the first production scheduled run constrained until Wylie reviews the generated output; Wylie approved publish-enabled testing on 2026-05-05, so the first real scheduled test used `maxPosts=3` / `maxAutoPublish=2` with quality gates still active.
 - [x] Temporarily move EventBridge to a near-term trigger and validate scheduled invocation end-to-end.
 - [x] Restore EventBridge to Tuesday cadence after validation.
 - [x] Deploy frontend/admin UI changes with `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh`; do not use ad-hoc S3 sync because the deploy script enforces sourcemap and cache-header rules.
@@ -345,12 +345,12 @@ Why this fits the current architecture:
 ## Acceptance Criteria
 
 - [ ] Tuesday runner can select up to 3 autonomous topic-mode post opportunities.
-- [ ] Runner publishes no more than 2 posts per Tuesday without human pre-approval.
+- [x] Runner publishes no more than 2 posts per Tuesday without human pre-approval.
 - [ ] Runner creates draft-only posts for promising but risky opportunities.
-- [ ] Runner never auto-publishes `editorial_seed` opportunities.
-- [ ] Runner sends a Tuesday recap email to `wyliedeveloper@gmail.com`.
+- [x] Runner never auto-publishes `editorial_seed` opportunities.
+- [x] Runner sends a Tuesday recap email to `wyliedeveloper@gmail.com`.
 - [ ] Recap email includes public links, admin edit links, source opportunity links, and skipped reasons.
-- [ ] Runner respects pause, dry-run, force, idempotency, duplicate-topic checks, and spend caps.
+- [x] Runner respects pause, dry-run, force, idempotency, duplicate-topic checks, and spend caps.
 - [ ] Every auto-published post has bounded SEO metadata, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date/freshness signals, citations for factual claims, and at least 3 relevant internal links.
 - [ ] Every auto-published post answers the target query in the first 150 words and includes a concise `Key facts`/summary block suitable for AI Overview and LLM citation.
 - [x] Admin UI exposes Tuesday run status and links for human review.
