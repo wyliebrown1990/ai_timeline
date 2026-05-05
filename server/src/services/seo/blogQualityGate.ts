@@ -4,6 +4,7 @@ const ENTITY_SHORTCODE_PATTERN = /\[\[(person|organization|glossary|event):([a-z
 const ENTITY_SHORTCODE_EXACT_PATTERN = /^\[\[(person|organization|glossary|event):([a-zA-Z0-9_-]+)\|([^\]]+)\]\]$/;
 const ANY_SHORTCODE_PATTERN = /\[\[([^\]]+)\]\]/g;
 const MARKDOWN_LINK_PATTERN = /\[[^\]]+\]\(([^)]+)\)/g;
+const HEADING_PATTERN = /^#{2,3}\s+(.+)$/gm;
 const INTERNAL_LINK_PREFIXES = [
   '/people/',
   '/organizations/',
@@ -29,6 +30,15 @@ const SLOP_TITLE_PATTERNS = [
   /\bgame[- ]changer\b/i,
   /\brevolutionary\b/i,
 ];
+const RISKY_CLAIM_PATTERNS = [
+  /\b\d+(?:\.\d+)?\s?%/,
+  /\b\d+(?:\.\d+)?\s?(?:x|times)\b/i,
+  /\bQ[1-4]\s+20\d{2}\b/i,
+  /\b(?:early|mid|late)\s+20\d{2}\b/i,
+  /\b(?:research|study|report|survey|benchmark|data)\s+(?:showed|shows|found|suggests|indicates)\b/i,
+  /\b(?:OpenAI|Google|DeepMind|Microsoft|Meta|Anthropic|NVIDIA|Salesforce|LangChain|AutoGen)\b.*\b(?:released|introduced|announced|showed|found|integrated|launched)\b/i,
+  /\b(?:released|introduced|announced|showed|found|integrated|launched)\b.*\b(?:OpenAI|Google|DeepMind|Microsoft|Meta|Anthropic|NVIDIA|Salesforce|LangChain|AutoGen)\b/i,
+];
 
 export interface BlogQualityGateInput {
   title: string;
@@ -52,6 +62,8 @@ export interface BlogQualityGateResult {
     internalLinkCount: number;
     shortcodeCount: number;
     wordCount: number;
+    sourceLinkCount: number;
+    riskyClaimCount: number;
   };
 }
 
@@ -112,6 +124,42 @@ function hasVisibleCitations(markdown: string): boolean {
   return /^#{2,3}\s+(sources|citations|further reading)\b/im.test(markdown);
 }
 
+function getVisibleCitationSection(markdown: string): string {
+  const headings = [...markdown.matchAll(HEADING_PATTERN)];
+  const citationHeading = headings.find((match) => /^(sources|citations|further reading)\b/i.test(match[1].trim()));
+  if (!citationHeading || citationHeading.index === undefined) return '';
+
+  const nextHeading = headings.find((match) => (match.index ?? 0) > citationHeading.index!);
+  return markdown.slice(citationHeading.index, nextHeading?.index ?? markdown.length);
+}
+
+function countSourceLinks(markdown: string): number {
+  const section = getVisibleCitationSection(markdown);
+  if (!section) return 0;
+
+  const hrefs = new Set<string>();
+  for (const match of section.matchAll(MARKDOWN_LINK_PATTERN)) {
+    const href = match[1].trim();
+    if (href.startsWith('https://') || href.startsWith(`${SITE_ORIGIN}/`) || href.startsWith('/')) {
+      hrefs.add(href);
+    }
+  }
+
+  return hrefs.size;
+}
+
+function countRiskyClaims(markdown: string): number {
+  const prose = markdown
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/\[[^\]]+\]\([^)]+\)/g, '')
+    .replace(/\[\[(?:person|organization|glossary|event):[a-zA-Z0-9_-]+\|([^\]]+)\]\]/g, '$1');
+
+  return RISKY_CLAIM_PATTERNS.reduce((count, pattern) => {
+    const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
+    return count + [...prose.matchAll(globalPattern)].length;
+  }, 0);
+}
+
 function hasBodyH1(markdown: string): boolean {
   return /^#\s+\S+/m.test(markdown);
 }
@@ -135,6 +183,8 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   const warnings: string[] = [];
   const internalLinkCount = countInternalLinks(input.bodyMarkdown);
   const shortcodeCount = countEntityShortcodes(input.bodyMarkdown);
+  const sourceLinkCount = countSourceLinks(input.bodyMarkdown);
+  const riskyClaimCount = countRiskyClaims(input.bodyMarkdown);
   const words = wordCount(input.bodyMarkdown);
   const canonical = getCanonical(input);
 
@@ -181,6 +231,9 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   if (!hasVisibleCitations(input.bodyMarkdown)) {
     warnings.push('Add a visible Sources/Citations/Further reading section for factual claims.');
   }
+  if (input.intendedAction === 'auto_publish' && riskyClaimCount > 0 && sourceLinkCount === 0) {
+    blockers.push('Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.');
+  }
   if (!hasQuestionBlock(input.bodyMarkdown)) {
     warnings.push('Consider a concise visible PAA-style question block when useful.');
   }
@@ -196,6 +249,8 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
       internalLinkCount,
       shortcodeCount,
       wordCount: words,
+      sourceLinkCount,
+      riskyClaimCount,
     },
   };
 }

@@ -156,7 +156,7 @@ Why this fits the current architecture:
 
 ### 5. Quality Gates
 
-- [ ] Reject auto-publish if the post has hallucinated facts, unsupported claims, or missing primary-source links for news claims.
+- [x] Reject auto-publish if the post has hallucinated facts, unsupported claims, or missing primary-source links for news claims.
 - [x] Reject auto-publish if the title or body reads as generic listicle/slop.
 - [ ] Source anti-slop checks from existing SEO voice/brief-generation rules where possible; do not maintain a second disconnected list of forbidden phrases or generic-writing heuristics.
 - [ ] Reject auto-publish if the post competes with an existing LAEA page without a clear canonical strategy.
@@ -440,7 +440,7 @@ Why this fits the current architecture:
 
 ### Moderate
 
-- [ ] **Strengthen auto-publish SEO gates.** Publishing must fail closed unless generated posts have bounded `seoTitle`/`seoDescription`, one H1, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date signals, and at least 3 relevant internal links.
+- [x] **Strengthen auto-publish SEO gates.** Publishing must fail closed unless generated posts have bounded `seoTitle`/`seoDescription`, one H1, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date signals, and at least 3 relevant internal links.
 - [ ] **Make generated posts AEO-ready, not just blog-shaped.** Topic-mode posts need a direct answer in the first 150 words, citation-ready `Key facts`/summary block, explicit entity/date claims, and visible citations for factual or news-like assertions.
 - [ ] **Verify SPA crawlability with Google-rendered output.** Because the public site is a React SPA behind S3/CloudFront, the first generated posts must be checked in GSC URL Inspection to confirm Google sees the H1, opening body, canonical, and structured data after rendering.
 - [ ] **Add mandatory search validation after launch.** The plan now requires Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, sitemap resubmission, and 14/30-day GSC follow-ups before raising the autonomous cap.

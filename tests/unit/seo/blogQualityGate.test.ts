@@ -55,6 +55,7 @@ describe('blogQualityGate', () => {
     expect(result.blockers).toEqual([]);
     expect(result.metrics.internalLinkCount).toBeGreaterThanOrEqual(3);
     expect(result.metrics.shortcodeCount).toBe(3);
+    expect(result.metrics.sourceLinkCount).toBeGreaterThanOrEqual(1);
   });
 
   it('blocks weak metadata, body H1s, unresolved shortcodes, and too few internal links', () => {
@@ -124,5 +125,62 @@ describe('blogQualityGate', () => {
 
     expect(result.metrics.internalLinkCount).toBeGreaterThanOrEqual(3);
     expect(result.blockers).not.toContain('At least 3 distinct internal links are required.');
+  });
+
+  it('blocks auto-publish for risky claims without visible source links', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'AI agent orchestration matters because enterprise teams started hitting governance limits as workflows became more complex. The key answer is that orchestration turns one overloaded agent into a coordinated system, which matters because complex tasks need separate retrieval, analysis, and review responsibilities.',
+        '',
+        '## Key facts',
+        '',
+        '- Enterprise adoption reached 60% by mid 2024.',
+        '- Microsoft research showed single agents had 40% higher error rates when too many capabilities were combined.',
+        '- Salesforce integrated agent routing in Q2 2024.',
+        '',
+        '## Why did orchestration matter?',
+        '',
+        'Use the [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) to map the context.',
+        '',
+        '## Sources',
+        '',
+        '- No source yet.',
+      ].join('\n'),
+    }));
+
+    expect(result.metrics.riskyClaimCount).toBeGreaterThan(0);
+    expect(result.metrics.sourceLinkCount).toBe(0);
+    expect(result.blockers).toContain(
+      'Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.'
+    );
+  });
+
+  it('allows sourced risky claims to pass the source-link gate', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'AI agent orchestration matters because enterprise teams started hitting governance limits as workflows became more complex. The key answer is that orchestration turns one overloaded agent into a coordinated system, which matters because complex tasks need separate retrieval, analysis, and review responsibilities.',
+        '',
+        '## Key facts',
+        '',
+        '- LangChain introduced multi-agent workflow guidance for orchestrating specialized agents.',
+        '- Microsoft AutoGen became one visible framework for multi-agent coordination.',
+        '- The atlas view is strongest when these tools are treated as workflow infrastructure, not magic autonomy.',
+        '',
+        '## Why did orchestration matter?',
+        '',
+        'Use the [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) to map the context.',
+        '',
+        '## Sources',
+        '',
+        '- [LangChain multi-agent documentation](https://docs.langchain.com/oss/python/langchain/multi-agent/index)',
+        '- [Microsoft AutoGen project](https://www.microsoft.com/en-us/research/project/autogen/)',
+      ].join('\n'),
+    }));
+
+    expect(result.metrics.riskyClaimCount).toBeGreaterThan(0);
+    expect(result.metrics.sourceLinkCount).toBeGreaterThanOrEqual(2);
+    expect(result.blockers).not.toContain(
+      'Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.'
+    );
   });
 });

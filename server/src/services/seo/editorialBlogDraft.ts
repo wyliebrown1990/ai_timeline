@@ -168,7 +168,7 @@ JSON shape:
   "relations": [
     { "entityType": "glossary_term", "entityId": "machine-learning", "relationLabel": "mentions" }
   ],
-  "bodyMarkdown": "<800-1200 words. No H1. Use H2s. Include a visible ## Key facts section. Include at least 3 internal links using markdown links or supported entity shortcodes. Include ## Sources or ## Further reading. Include one question-style H2 or Q/A block. End with ## The atlas's read.>"
+  "bodyMarkdown": "<800-1200 words. No H1. Use H2s. Include a visible ## Key facts section. Include at least 3 internal links using markdown links or supported entity shortcodes. Include ## Sources with visible links. Include one question-style H2 or Q/A block. End with ## The atlas's read.>"
 }
 
 Supported entity shortcodes in bodyMarkdown:
@@ -177,7 +177,12 @@ Supported entity shortcodes in bodyMarkdown:
 - [[glossary:slug|Visible Name]]
 - [[event:id|Visible Name]]
 
-Use at least 3 distinct links from the Internal links available list. Use exact markdown hrefs such as [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn). Do not invent external citations.
+Use at least 3 distinct links from the Internal links available list. Use exact markdown hrefs such as [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn).
+
+Source discipline:
+- Do not include percentages, adoption stats, benchmark numbers, or "research showed" claims unless you include a visible source link in ## Sources.
+- Do not make vendor-specific claims about OpenAI, Google, DeepMind, Microsoft, Meta, Anthropic, NVIDIA, Salesforce, LangChain, or AutoGen unless they are general historical context or visibly sourced.
+- If you do not have a source URL, phrase the claim qualitatively instead of inventing precision.
 `.trim();
 }
 
