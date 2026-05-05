@@ -117,6 +117,24 @@ function deferredDecision(row: DeferredEditorialOpportunity): SeoEditorialTuesda
   };
 }
 
+async function processSelectedSequentially(input: {
+  opportunities: EditorialOpportunity[];
+  weekStart: string;
+  force: boolean;
+}): Promise<SeoEditorialTuesdayDecision[]> {
+  const decisions: SeoEditorialTuesdayDecision[] = [];
+
+  for (const opportunity of input.opportunities) {
+    const result = await processEditorialOpportunity(opportunity, {
+      weekStart: input.weekStart,
+      force: input.force,
+    });
+    decisions.push(processedDecision(result));
+  }
+
+  return decisions;
+}
+
 async function persistRunStatus(summary: SeoEditorialTuesdayRunSummary): Promise<void> {
   if (summary.dryRun || summary.status === 'skipped') {
     return;
@@ -213,9 +231,11 @@ export async function runSeoEditorialTuesday(
     });
     const processed = dryRun || paused
       ? selection.selected.map(selectedDecision)
-      : await Promise.all(selection.selected.map(async (opportunity) => (
-          processedDecision(await processEditorialOpportunity(opportunity))
-        )));
+      : await processSelectedSequentially({
+          opportunities: selection.selected,
+          weekStart,
+          force: options.force ?? false,
+        });
     const deferred = selection.deferred.map(deferredDecision);
     const pausedDecision: SeoEditorialTuesdayDecision[] = paused
       ? [{

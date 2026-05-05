@@ -110,13 +110,13 @@ Why this fits the current architecture:
 - [x] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
 - [x] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
 - [x] Keep Tuesday run-status values in one typed backend/UI contract. Avoid scattered string literals for `warning`, `failed_email_only`, `paused`, or partial-success states.
-- [ ] Reuse existing `server/src/services/blogAdmin.ts` functions where possible rather than calling public admin HTTP endpoints from inside Lambda:
+- [x] Reuse existing `server/src/services/blogAdmin.ts` functions where possible rather than calling public admin HTTP endpoints from inside Lambda:
   - `createDraft(input, authorId)`
   - `publishPost(id)`
   - `archivePost(id)` for rollback/manual cleanup support
   - `getOrCreateDefaultAuthor()`
-- [ ] Add a hard idempotency key per opportunity and week so the Tuesday runner cannot publish duplicate posts on retry.
-- [ ] Add an idempotency persistence mechanism before publishing. Use an existing durable table if sufficient, otherwise add a small Prisma model/migration; do not rely on in-memory keys because EventBridge/Lambda retries can cold-start.
+- [x] Add a hard idempotency key per opportunity and week so the Tuesday runner cannot publish duplicate posts on retry.
+- [x] Add an idempotency persistence mechanism before publishing. Use an existing durable table if sufficient, otherwise add a small Prisma model/migration; do not rely on in-memory keys because EventBridge/Lambda retries can cold-start.
 
 ### 3. Opportunity Selection Rules
 
@@ -126,7 +126,7 @@ Why this fits the current architecture:
 - [x] Require `overallScore >= 70` for keyword portfolio-driven posts.
 - [x] Require `pageTypeRecommendation=blog_post` for keyword portfolio rows.
 - [x] Exclude `editorial_seed` rows from auto-publish.
-- [ ] Exclude opportunities if a same or near-duplicate blog post already exists.
+- [x] Exclude opportunities if a same or near-duplicate blog post already exists.
 - [ ] Exclude topics with fewer than 3 strong internal links unless Wylie has manually approved the idea.
 - [x] Cap output at 3 total posts per Tuesday.
 - [x] Cap immediate publishing at 2 posts per Tuesday.
@@ -209,9 +209,9 @@ Why this fits the current architecture:
 - [x] Add `seoEditorialTuesday` action dispatch in `server/src/ingestionLambda.ts`.
 - [x] Support `dryRun`, `force`, and `maxPosts` payload overrides for manual validation.
 - [x] Ensure dry-run never creates posts, proposals, status mutations, or emails unless explicitly passed `sendTestEmail=true`.
-- [ ] Ensure force bypasses same-week idempotency but still respects post caps and duplicate-topic gates.
-- [ ] Process selected opportunities sequentially or with bounded concurrency. Do not use unbounded `Promise.all` around LLM, Serper, blog writes, or publish steps.
-- [ ] Persist per-opportunity failure reasons and continue the run when one candidate fails after selection.
+- [x] Ensure force bypasses same-week idempotency but still respects post caps and duplicate-topic gates.
+- [x] Process selected opportunities sequentially or with bounded concurrency. Do not use unbounded `Promise.all` around LLM, Serper, blog writes, or publish steps.
+- [x] Persist per-opportunity failure reasons and continue the run when one candidate fails after selection.
 - [x] Return a compact JSON summary with selected, published, drafted, skipped, emailed, and failed counts.
 
 ### 9. Admin UI Review Surface
@@ -388,7 +388,7 @@ Why this fits the current architecture:
 
 ### Minor
 
-- [ ] **Use existing blog service names.** Prefer `createDraft`, `publishPost`, `archivePost`, and `getOrCreateDefaultAuthor` from `server/src/services/blogAdmin.ts`.
+- [x] **Use existing blog service names.** Prefer `createDraft`, `publishPost`, `archivePost`, and `getOrCreateDefaultAuthor` from `server/src/services/blogAdmin.ts`.
 - [ ] **Use real admin edit links.** The route is `/admin/blog/:id/edit`.
 
 ## AIUXLeadReview Findings — 2026-05-05
@@ -419,8 +419,8 @@ Why this fits the current architecture:
 
 ### Minor
 
-- [ ] **Follow the repo test layout.** Tests should live under `tests/unit/...`; avoid colocated `__tests__` folders or new test conventions.
-- [ ] **Bound expensive async work.** Cap selected posts and process LLM/Serper/blog-write steps sequentially or with explicit bounded concurrency so retries and partial failures stay legible.
+- [x] **Follow the repo test layout.** Tests should live under `tests/unit/...`; avoid colocated `__tests__` folders or new test conventions.
+- [x] **Bound expensive async work.** Cap selected posts and process LLM/Serper/blog-write steps sequentially or with explicit bounded concurrency so retries and partial failures stay legible.
 - [ ] **Deploy the admin UI through the canonical script.** Because the plan touches `/admin/seo-insights`, frontend validation must include `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh` and deployed browser QA.
 - [ ] **Keep prompts out of source comments.** Runtime should package concise, reviewed voice snapshots rather than embedding full skill docs or comment-heavy prompt manuals.
 

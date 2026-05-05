@@ -465,6 +465,29 @@ model SerpSample {
   @@index([sourceOpportunityId])
 }
 
+/// Durable per-week ledger for Tuesday editorial automation.
+/// Prevents EventBridge/Lambda retries from creating duplicate posts for the same opportunity.
+model SeoEditorialOpportunityRun {
+  id             String    @id @default(cuid())
+  idempotencyKey String    @unique
+  weekStart      DateTime
+  sourceType     String
+  sourceId       String
+  targetKeyword  String
+  action         String
+  status         String    @default("processing") // processing | draft_created | auto_published | skipped_by_gate | failed
+  postId         String?
+  post           BlogPost? @relation(fields: [postId], references: [id])
+  reason         String?   @db.Text
+  metadataJson   Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([weekStart, status])
+  @@index([sourceType, sourceId])
+  @@index([postId])
+}
+
 // =============================================================================
 // Flashcard System (Sprint 36)
 // =============================================================================
@@ -1651,6 +1674,7 @@ model BlogPost {
   subjects     BlogPostSubject[]
   relations    BlogPostRelation[]
   seoProposals SeoProposal[]
+  seoEditorialOpportunityRuns SeoEditorialOpportunityRun[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([featured, publishedAt(sort: Desc)])

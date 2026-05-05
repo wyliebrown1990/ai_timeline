@@ -19,6 +19,12 @@ import {
   evaluateBlogQualityGate,
   type BlogQualityGateResult,
 } from './blogQualityGate';
+import {
+  claimEditorialOpportunityRun,
+  completeEditorialOpportunityRun,
+  findDuplicateEditorialPost,
+  findExistingEditorialRun,
+} from './editorialIdempotency';
 import { EDITORIAL_VOICE_SNAPSHOT } from './editorialVoiceSnapshot';
 import type { EditorialOpportunity } from './editorialOpportunitySelector';
 
@@ -42,6 +48,8 @@ export interface GeneratedEditorialBlogDraft {
 
 export interface ProcessEditorialOpportunityOptions {
   dryRun?: boolean;
+  weekStart?: string | null;
+  force?: boolean;
 }
 
 export interface ProcessEditorialOpportunityResult {
@@ -234,6 +242,33 @@ function deriveDraftSlug(generated: GeneratedEditorialBlogDraft, opportunity: Ed
   return candidate || generated.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || 'post';
 }
 
+function resultFromExistingRun(
+  opportunity: EditorialOpportunity,
+  existing: Awaited<ReturnType<typeof findExistingEditorialRun>>,
+): ProcessEditorialOpportunityResult | null {
+  if (!existing || existing.status === 'processing') return null;
+
+  const publicUrl = existing.postSlug ? `${SITE_ORIGIN}/blog/${existing.postSlug}` : null;
+  return {
+    id: opportunity.id,
+    sourceType: opportunity.sourceType,
+    action: existing.action,
+    status: existing.status === 'auto_published'
+      ? 'auto_published'
+      : existing.status === 'draft_created'
+        ? 'draft_created'
+        : existing.status === 'skipped_by_gate'
+          ? 'skipped_by_gate'
+          : 'failed',
+    title: existing.postTitle ?? opportunity.title,
+    reason: existing.reason ?? 'Skipped because this opportunity was already processed for this GSC week.',
+    postId: existing.postId,
+    publicUrl,
+    adminUrl: existing.postId ? `${SITE_ORIGIN}/admin/blog/${existing.postId}/edit` : null,
+    qualityGate: null,
+  };
+}
+
 async function prepareProposalForDraft(opportunity: EditorialOpportunity): Promise<void> {
   if (opportunity.sourceType !== 'proposal') return;
   const proposal = opportunity.source as SeoProposalRecord;
@@ -270,20 +305,79 @@ export async function processEditorialOpportunity(
     };
   }
 
+  if (!options.weekStart) {
+    return {
+      id: opportunity.id,
+      sourceType: opportunity.sourceType,
+      action: opportunity.action,
+      status: 'failed',
+      title: opportunity.title,
+      reason: 'Missing weekStart for editorial idempotency.',
+      postId: null,
+      publicUrl: null,
+      adminUrl: null,
+      qualityGate: null,
+    };
+  }
+
+  const existing = await findExistingEditorialRun(options.weekStart, opportunity);
+  if (existing && !options.force) {
+    const existingResult = resultFromExistingRun(opportunity, existing);
+    if (existingResult) return existingResult;
+  }
+
+  const claim = await claimEditorialOpportunityRun(options.weekStart, opportunity);
+  if (claim.status !== 'processing' && !options.force) {
+    const existingResult = resultFromExistingRun(opportunity, claim);
+    if (existingResult) return existingResult;
+  }
+
   try {
     const generated = await generateEditorialBlogDraft(opportunity);
     const subjectIds = await resolveSubjectIds(generated.subjectSlugs);
     const slug = deriveDraftSlug(generated, opportunity);
-    const qualityGate = evaluateBlogQualityGate(gateInput(generated, subjectIds, slug, opportunity.action));
-
-    if (!qualityGate.passed) {
+    const duplicate = await findDuplicateEditorialPost({
+      slug,
+      title: generated.title,
+      targetKeyword: opportunity.targetKeyword,
+    });
+    if (duplicate) {
+      const reason = `Duplicate topic blocked by existing ${duplicate.status} post: /blog/${duplicate.slug}`;
+      await completeEditorialOpportunityRun(claim.idempotencyKey, {
+        status: 'skipped_by_gate',
+        reason,
+        metadata: { duplicatePostId: duplicate.id, duplicateSlug: duplicate.slug },
+      });
       return {
         id: opportunity.id,
         sourceType: opportunity.sourceType,
         action: opportunity.action,
         status: 'skipped_by_gate',
         title: generated.title,
-        reason: `Quality gate blocked draft: ${qualityGate.blockers.join('; ')}`,
+        reason,
+        postId: null,
+        publicUrl: null,
+        adminUrl: null,
+        qualityGate: null,
+      };
+    }
+
+    const qualityGate = evaluateBlogQualityGate(gateInput(generated, subjectIds, slug, opportunity.action));
+
+    if (!qualityGate.passed) {
+      const reason = `Quality gate blocked draft: ${qualityGate.blockers.join('; ')}`;
+      await completeEditorialOpportunityRun(claim.idempotencyKey, {
+        status: 'skipped_by_gate',
+        reason,
+        metadata: { qualityGate },
+      });
+      return {
+        id: opportunity.id,
+        sourceType: opportunity.sourceType,
+        action: opportunity.action,
+        status: 'skipped_by_gate',
+        title: generated.title,
+        reason,
         postId: null,
         publicUrl: null,
         adminUrl: null,
@@ -308,28 +402,43 @@ export async function processEditorialOpportunity(
     await afterCreateSideEffects(opportunity, post.id);
 
     const publicUrl = `${SITE_ORIGIN}/blog/${publishedPost.slug}`;
+    const status = opportunity.action === 'auto_publish' ? 'auto_published' : 'draft_created';
+    const reason = qualityGate.warnings.length > 0
+      ? `Created with warnings: ${qualityGate.warnings.join('; ')}`
+      : 'Created successfully.';
+    await completeEditorialOpportunityRun(claim.idempotencyKey, {
+      status,
+      postId: post.id,
+      reason,
+      metadata: { qualityGate },
+    });
+
     return {
       id: opportunity.id,
       sourceType: opportunity.sourceType,
       action: opportunity.action,
-      status: opportunity.action === 'auto_publish' ? 'auto_published' : 'draft_created',
+      status,
       title: publishedPost.title,
-      reason: qualityGate.warnings.length > 0
-        ? `Created with warnings: ${qualityGate.warnings.join('; ')}`
-        : 'Created successfully.',
+      reason,
       postId: post.id,
       publicUrl,
       adminUrl: `${SITE_ORIGIN}/admin/blog/${post.id}/edit`,
       qualityGate,
     };
   } catch (error) {
+    const reason = error instanceof Error ? error.message : 'Unknown editorial draft error';
+    await completeEditorialOpportunityRun(claim.idempotencyKey, {
+      status: 'failed',
+      reason,
+    }).catch(() => null);
+
     return {
       id: opportunity.id,
       sourceType: opportunity.sourceType,
       action: opportunity.action,
       status: 'failed',
       title: opportunity.title,
-      reason: error instanceof Error ? error.message : 'Unknown editorial draft error',
+      reason,
       postId: null,
       publicUrl: null,
       adminUrl: null,

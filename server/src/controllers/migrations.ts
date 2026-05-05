@@ -850,6 +850,94 @@ END $$;
 `;
 
 /**
+ * Migration: Add Tuesday editorial opportunity run ledger
+ * SEOI-13 - Durable idempotency for autonomous editorial runs.
+ * Mirrors Prisma migration 20260505161000_add_seo_editorial_opportunity_run and records
+ * the matching _prisma_migrations row to avoid drift.
+ */
+const MIGRATION_0023_SEO_EDITORIAL_OPPORTUNITY_RUN = `
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM "_prisma_migrations"
+        WHERE migration_name = '20260505161000_add_seo_editorial_opportunity_run'
+    ) THEN
+        RAISE NOTICE 'Prisma migration 20260505161000_add_seo_editorial_opportunity_run already recorded, skipping';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT FROM pg_tables
+        WHERE schemaname = 'public'
+        AND tablename = 'SeoEditorialOpportunityRun'
+    ) THEN
+        CREATE TABLE "SeoEditorialOpportunityRun" (
+            "id" TEXT NOT NULL,
+            "idempotencyKey" TEXT NOT NULL,
+            "weekStart" TIMESTAMP(3) NOT NULL,
+            "sourceType" TEXT NOT NULL,
+            "sourceId" TEXT NOT NULL,
+            "targetKeyword" TEXT NOT NULL,
+            "action" TEXT NOT NULL,
+            "status" TEXT NOT NULL DEFAULT 'processing',
+            "postId" TEXT,
+            "reason" TEXT,
+            "metadataJson" JSONB,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL,
+            CONSTRAINT "SeoEditorialOpportunityRun_pkey" PRIMARY KEY ("id")
+        );
+        RAISE NOTICE 'Created SeoEditorialOpportunityRun table';
+    ELSE
+        RAISE NOTICE 'SeoEditorialOpportunityRun table already exists, recording Prisma migration only';
+    END IF;
+
+    CREATE UNIQUE INDEX IF NOT EXISTS "SeoEditorialOpportunityRun_idempotencyKey_key"
+        ON "SeoEditorialOpportunityRun"("idempotencyKey");
+    CREATE INDEX IF NOT EXISTS "SeoEditorialOpportunityRun_weekStart_status_idx"
+        ON "SeoEditorialOpportunityRun"("weekStart", "status");
+    CREATE INDEX IF NOT EXISTS "SeoEditorialOpportunityRun_sourceType_sourceId_idx"
+        ON "SeoEditorialOpportunityRun"("sourceType", "sourceId");
+    CREATE INDEX IF NOT EXISTS "SeoEditorialOpportunityRun_postId_idx"
+        ON "SeoEditorialOpportunityRun"("postId");
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'SeoEditorialOpportunityRun_postId_fkey'
+    ) THEN
+        ALTER TABLE "SeoEditorialOpportunityRun"
+            ADD CONSTRAINT "SeoEditorialOpportunityRun_postId_fkey"
+            FOREIGN KEY ("postId") REFERENCES "BlogPost"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+    END IF;
+
+    INSERT INTO "_prisma_migrations" (
+        "id",
+        "checksum",
+        "finished_at",
+        "migration_name",
+        "logs",
+        "rolled_back_at",
+        "started_at",
+        "applied_steps_count"
+    )
+    VALUES (
+        md5(random()::text || clock_timestamp()::text),
+        'bc41203b9fb16515d64831740ecef7690a4a87d14b867f712f25d6aeec61a859',
+        NOW(),
+        '20260505161000_add_seo_editorial_opportunity_run',
+        '',
+        NULL,
+        NOW(),
+        1
+    );
+
+    RAISE NOTICE 'Recorded Prisma migration 20260505161000_add_seo_editorial_opportunity_run';
+END $$;
+`;
+
+/**
  * Migration: Add Key Figures System Tables
  * Sprint 44 - Key Figures Data Foundation
  * Creates KeyFigure, MilestoneContributor, KeyFigureDraft tables
@@ -1799,7 +1887,7 @@ export async function runMigrations(
 
     const { migration } = req.body;
 
-    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal', '0018_gsc_cluster_snapshot', '0019_seo_experiment_ledger', '0020_seo_packaging_fix_proposals', '0021_keyword_opportunity', '0022_serp_samples'];
+    const availableMigrations = ['0002_flashcard_system', '0003_learning_paths', '0004_user_data', '0005_optional_source', '0006_key_figures', '0007_news_quiz', '0008_user_auth', '0009_comment_system', '0010_spam_protection', '0011_trust_system', '0012_moderation_system', '0013_vote_integrity', '0014_feed_engagement', '0015_paywall_fields', '0016_seo_agent_action', '0017_seo_proposal', '0018_gsc_cluster_snapshot', '0019_seo_experiment_ledger', '0020_seo_packaging_fix_proposals', '0021_keyword_opportunity', '0022_serp_samples', '0023_seo_editorial_opportunity_run'];
 
     if (!availableMigrations.includes(migration)) {
       throw ApiError.badRequest(
@@ -2010,6 +2098,15 @@ export async function runMigrations(
         message: 'Migration 0022_serp_samples completed successfully',
         tables: ['SerpSample'],
         changes: ['Recorded Prisma migration 20260501223000_add_serp_samples in _prisma_migrations'],
+      });
+    } else if (migration === '0023_seo_editorial_opportunity_run') {
+      await prisma.$executeRawUnsafe(MIGRATION_0023_SEO_EDITORIAL_OPPORTUNITY_RUN);
+      console.log('[Migrations] Migration 0023_seo_editorial_opportunity_run completed successfully');
+      res.json({
+        success: true,
+        message: 'Migration 0023_seo_editorial_opportunity_run completed successfully',
+        tables: ['SeoEditorialOpportunityRun'],
+        changes: ['Recorded Prisma migration 20260505161000_add_seo_editorial_opportunity_run in _prisma_migrations'],
       });
     }
   } catch (error) {

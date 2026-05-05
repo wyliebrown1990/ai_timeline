@@ -166,6 +166,12 @@ describe('editorialAutopilotRunner', () => {
     });
 
     expect(mockProcessEditorialOpportunity).toHaveBeenCalledTimes(1);
+    expect(mockProcessEditorialOpportunity).toHaveBeenCalledWith(expect.objectContaining({
+      id: 'proposal-1',
+    }), {
+      weekStart: '2026-04-24',
+      force: true,
+    });
     expect(summary).toEqual(expect.objectContaining({
       selectedCount: 1,
       publishedCount: 1,
@@ -243,6 +249,10 @@ describe('editorialAutopilotRunner', () => {
       now: new Date('2026-05-05T15:00:00.000Z'),
     });
 
+    expect(mockProcessEditorialOpportunity.mock.calls.map((call) => call[0].id)).toEqual([
+      'proposal-1',
+      'proposal-2',
+    ]);
     expect(summary.status).toBe('warning');
     expect(summary.publishedCount).toBe(1);
     expect(summary.failedCount).toBe(1);

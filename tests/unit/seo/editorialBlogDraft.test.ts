@@ -3,6 +3,10 @@ import type { EditorialOpportunity } from '../../../server/src/services/seo/edit
 
 const mockMessagesCreate = jest.fn();
 const mockSubjectFindMany = jest.fn();
+const mockEditorialRunFindUnique = jest.fn();
+const mockEditorialRunCreate = jest.fn();
+const mockEditorialRunUpdate = jest.fn();
+const mockBlogPostFindFirst = jest.fn();
 const mockCreateDraft = jest.fn();
 const mockGetOrCreateDefaultAuthor = jest.fn();
 const mockPublishPost = jest.fn();
@@ -24,6 +28,14 @@ jest.mock('../../../server/src/db', () => ({
   prisma: {
     subject: {
       findMany: mockSubjectFindMany,
+    },
+    seoEditorialOpportunityRun: {
+      findUnique: mockEditorialRunFindUnique,
+      create: mockEditorialRunCreate,
+      update: mockEditorialRunUpdate,
+    },
+    blogPost: {
+      findFirst: mockBlogPostFindFirst,
     },
   },
 }));
@@ -91,6 +103,34 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.ANTHROPIC_API_KEY = 'test-key';
   resetEditorialBlogDraftForTests();
+  mockEditorialRunFindUnique.mockResolvedValue(null);
+  mockEditorialRunCreate.mockResolvedValue({
+    id: 'run-1',
+    idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+    weekStart: new Date('2026-04-24T00:00:00.000Z'),
+    sourceType: 'proposal',
+    sourceId: 'proposal-1',
+    targetKeyword: 'ai timeline',
+    action: 'auto_publish',
+    status: 'processing',
+    postId: null,
+    post: null,
+    reason: null,
+  });
+  mockEditorialRunUpdate.mockImplementation(async ({ data }) => ({
+    id: 'run-1',
+    idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+    weekStart: new Date('2026-04-24T00:00:00.000Z'),
+    sourceType: 'proposal',
+    sourceId: 'proposal-1',
+    targetKeyword: 'ai timeline',
+    action: 'auto_publish',
+    status: data.status,
+    postId: data.postId ?? null,
+    post: data.postId ? { slug: 'ai-timeline', title: GENERATED_DRAFT.title } : null,
+    reason: data.reason,
+  }));
+  mockBlogPostFindFirst.mockResolvedValue(null);
   mockMessagesCreate.mockResolvedValue({
     content: [{ type: 'text', text: JSON.stringify(GENERATED_DRAFT) }],
   });
@@ -130,8 +170,14 @@ describe('editorialBlogDraft', () => {
   });
 
   it('creates, publishes, and links a passing proposal opportunity', async () => {
-    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY);
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
 
+    expect(mockEditorialRunCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+        status: 'processing',
+      }),
+    }));
     expect(mockApproveSeoProposal).toHaveBeenCalledWith('proposal-1');
     expect(mockCreateDraft).toHaveBeenCalledWith(expect.objectContaining({
       title: GENERATED_DRAFT.title,
@@ -141,6 +187,12 @@ describe('editorialBlogDraft', () => {
     }), 'author-1');
     expect(mockPublishPost).toHaveBeenCalledWith('post-1');
     expect(mockLinkProposalDraft).toHaveBeenCalledWith('proposal-1', 'post-1');
+    expect(mockEditorialRunUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'auto_published',
+        postId: 'post-1',
+      }),
+    }));
     expect(result).toEqual(expect.objectContaining({
       status: 'auto_published',
       postId: 'post-1',
@@ -157,12 +209,63 @@ describe('editorialBlogDraft', () => {
       metrics: { internalLinkCount: 1, shortcodeCount: 0, wordCount: 500 },
     });
 
-    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY);
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
 
     expect(result.status).toBe('skipped_by_gate');
     expect(result.reason).toContain('At least 3 distinct internal links');
+    expect(mockEditorialRunUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'skipped_by_gate',
+      }),
+    }));
     expect(mockCreateDraft).not.toHaveBeenCalled();
     expect(mockPublishPost).not.toHaveBeenCalled();
     expect(mockLinkProposalDraft).not.toHaveBeenCalled();
+  });
+
+  it('returns an existing completed run without generating another post', async () => {
+    mockEditorialRunFindUnique.mockResolvedValue({
+      id: 'run-1',
+      idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+      weekStart: new Date('2026-04-24T00:00:00.000Z'),
+      sourceType: 'proposal',
+      sourceId: 'proposal-1',
+      targetKeyword: 'ai timeline',
+      action: 'auto_publish',
+      status: 'auto_published',
+      postId: 'post-1',
+      post: { slug: 'ai-timeline', title: 'AI Timeline as a Systems Map' },
+      reason: 'Created successfully.',
+    });
+
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
+
+    expect(result).toEqual(expect.objectContaining({
+      status: 'auto_published',
+      postId: 'post-1',
+      publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+    }));
+    expect(mockMessagesCreate).not.toHaveBeenCalled();
+    expect(mockCreateDraft).not.toHaveBeenCalled();
+  });
+
+  it('blocks duplicate blog topics before creating a draft', async () => {
+    mockBlogPostFindFirst.mockResolvedValue({
+      id: 'existing-post',
+      slug: 'ai-timeline',
+      title: 'AI Timeline',
+      status: 'published',
+    });
+
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
+
+    expect(result.status).toBe('skipped_by_gate');
+    expect(result.reason).toContain('Duplicate topic blocked');
+    expect(mockCreateDraft).not.toHaveBeenCalled();
+    expect(mockEditorialRunUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: 'skipped_by_gate',
+      }),
+    }));
   });
 });
