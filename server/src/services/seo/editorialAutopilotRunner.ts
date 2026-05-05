@@ -13,6 +13,10 @@ import {
   type EditorialOpportunity,
 } from './editorialOpportunitySelector';
 import { sendEditorialRecapEmail } from './editorialEmail';
+import {
+  processEditorialOpportunity,
+  type ProcessEditorialOpportunityResult,
+} from './editorialBlogDraft';
 
 const DIGEST_URL = 'https://letaiexplainai.com/admin/seo-insights';
 const DEFAULT_MAX_POSTS = 3;
@@ -31,9 +35,12 @@ export interface SeoEditorialTuesdayDecision {
   id: string;
   sourceType: 'proposal' | 'keyword';
   action: 'auto_publish' | 'draft_only' | 'skipped';
-  status: 'planned' | 'skipped' | 'failed';
+  status: 'planned' | 'draft_created' | 'auto_published' | 'skipped' | 'failed';
   title: string;
   reason: string;
+  postId?: string | null;
+  publicUrl?: string | null;
+  adminUrl?: string | null;
 }
 
 export interface SeoEditorialTuesdayRunSummary {
@@ -85,6 +92,20 @@ function selectedDecision(opportunity: EditorialOpportunity): SeoEditorialTuesda
   };
 }
 
+function processedDecision(result: ProcessEditorialOpportunityResult): SeoEditorialTuesdayDecision {
+  return {
+    id: result.id,
+    sourceType: result.sourceType,
+    action: result.status === 'skipped_by_gate' ? 'skipped' : result.action,
+    status: result.status === 'skipped_by_gate' ? 'skipped' : result.status,
+    title: result.title,
+    reason: result.reason,
+    postId: result.postId,
+    publicUrl: result.publicUrl,
+    adminUrl: result.adminUrl,
+  };
+}
+
 function deferredDecision(row: DeferredEditorialOpportunity): SeoEditorialTuesdayDecision {
   return {
     id: row.id,
@@ -121,8 +142,8 @@ async function persistRunStatus(summary: SeoEditorialTuesdayRunSummary): Promise
           ? 'auto_published'
           : 'skipped_by_gate',
       title: decision.title,
-      publicUrl: null,
-      adminUrl: null,
+      publicUrl: decision.publicUrl ?? null,
+      adminUrl: decision.adminUrl ?? null,
       reason: decision.reason,
     })),
   };
@@ -190,7 +211,11 @@ export async function runSeoEditorialTuesday(
       maxPosts: paused ? 0 : maxPosts,
       maxAutoPublish,
     });
-    const selected = selection.selected.map(selectedDecision);
+    const processed = dryRun || paused
+      ? selection.selected.map(selectedDecision)
+      : await Promise.all(selection.selected.map(async (opportunity) => (
+          processedDecision(await processEditorialOpportunity(opportunity))
+        )));
     const deferred = selection.deferred.map(deferredDecision);
     const pausedDecision: SeoEditorialTuesdayDecision[] = paused
       ? [{
@@ -212,20 +237,26 @@ export async function runSeoEditorialTuesday(
       paused,
       alreadyCompleted: false,
       selectedCount: selection.selected.length,
-      publishedCount: 0,
-      draftCount: 0,
-      skippedCount: deferred.length + pausedDecision.length,
+      publishedCount: processed.filter((decision) => decision.status === 'auto_published').length,
+      draftCount: processed.filter((decision) => decision.status === 'draft_created').length,
+      skippedCount: deferred.length + pausedDecision.length + processed.filter((decision) => decision.status === 'skipped').length,
       emailedCount: 0,
-      failedCount: 0,
+      failedCount: processed.filter((decision) => decision.status === 'failed').length,
       digestUrl: DIGEST_URL,
-      errorMessage: null,
+      errorMessage: processed.some((decision) => decision.status === 'failed')
+        ? 'One or more Tuesday editorial opportunities failed.'
+        : null,
       serper,
       decisions: [
-        ...selected,
+        ...processed,
         ...deferred,
         ...pausedDecision,
       ],
     };
+
+    if (summary.failedCount > 0) {
+      summary.status = summary.publishedCount > 0 || summary.draftCount > 0 ? 'warning' : 'failed';
+    }
 
     if (!dryRun || options.sendTestEmail) {
       const emailResult = await sendEditorialRecapEmail(summary);

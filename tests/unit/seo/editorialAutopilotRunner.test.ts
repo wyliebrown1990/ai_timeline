@@ -9,6 +9,7 @@ const mockSetLatestEditorialRunStatus = jest.fn();
 const mockLoadEditorialOpportunityBacklog = jest.fn();
 const mockSelectEditorialOpportunities = jest.fn();
 const mockSendEditorialRecapEmail = jest.fn();
+const mockProcessEditorialOpportunity = jest.fn();
 
 jest.mock('../../../server/src/services/gsc/gscIngest', () => ({
   getGscHealth: mockGetGscHealth,
@@ -31,6 +32,10 @@ jest.mock('../../../server/src/services/seo/editorialOpportunitySelector', () =>
 
 jest.mock('../../../server/src/services/seo/editorialEmail', () => ({
   sendEditorialRecapEmail: mockSendEditorialRecapEmail,
+}));
+
+jest.mock('../../../server/src/services/seo/editorialBlogDraft', () => ({
+  processEditorialOpportunity: mockProcessEditorialOpportunity,
 }));
 
 import { runSeoEditorialTuesday } from '../../../server/src/services/seo/editorialAutopilotRunner';
@@ -92,6 +97,18 @@ beforeEach(() => {
     sender: 'wyliebrown1990@gmail.com',
     errorMessage: null,
   });
+  mockProcessEditorialOpportunity.mockResolvedValue({
+    id: 'proposal-1',
+    sourceType: 'proposal',
+    action: 'auto_publish',
+    status: 'auto_published',
+    title: 'AI timeline explained',
+    reason: 'Created successfully.',
+    postId: 'post-1',
+    publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+    adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
+    qualityGate: null,
+  });
 });
 
 describe('editorialAutopilotRunner', () => {
@@ -125,6 +142,118 @@ describe('editorialAutopilotRunner', () => {
     }));
     expect(mockSetLatestEditorialRunStatus).not.toHaveBeenCalled();
     expect(mockSendEditorialRecapEmail).not.toHaveBeenCalled();
+    expect(mockProcessEditorialOpportunity).not.toHaveBeenCalled();
+  });
+
+  it('creates selected posts during active non-dry runs', async () => {
+    mockSelectEditorialOpportunities.mockReturnValue({
+      selected: [{
+        id: 'proposal-1',
+        sourceType: 'proposal',
+        action: 'auto_publish',
+        title: 'AI timeline explained',
+        targetKeyword: 'ai timeline',
+        rationale: 'Strong fit.',
+        confidence: 0.9,
+        source: {},
+      }],
+      deferred: [],
+    });
+
+    const summary = await runSeoEditorialTuesday({
+      force: true,
+      now: new Date('2026-05-05T15:00:00.000Z'),
+    });
+
+    expect(mockProcessEditorialOpportunity).toHaveBeenCalledTimes(1);
+    expect(summary).toEqual(expect.objectContaining({
+      selectedCount: 1,
+      publishedCount: 1,
+      draftCount: 0,
+      failedCount: 0,
+    }));
+    expect(mockSetLatestEditorialRunStatus).toHaveBeenCalledWith(expect.objectContaining({
+      publishedCount: 1,
+      draftCount: 0,
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          id: 'proposal-1',
+          action: 'auto_published',
+          publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+          adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
+        }),
+      ]),
+    }));
+  });
+
+  it('preserves successful candidate results when another selected candidate fails', async () => {
+    mockSelectEditorialOpportunities.mockReturnValue({
+      selected: [
+        {
+          id: 'proposal-1',
+          sourceType: 'proposal',
+          action: 'auto_publish',
+          title: 'AI timeline explained',
+          targetKeyword: 'ai timeline',
+          rationale: 'Strong fit.',
+          confidence: 0.9,
+          source: {},
+        },
+        {
+          id: 'proposal-2',
+          sourceType: 'proposal',
+          action: 'draft_only',
+          title: 'AI glossary map',
+          targetKeyword: 'ai glossary',
+          rationale: 'Worth drafting.',
+          confidence: 0.82,
+          source: {},
+        },
+      ],
+      deferred: [],
+    });
+    mockProcessEditorialOpportunity
+      .mockResolvedValueOnce({
+        id: 'proposal-1',
+        sourceType: 'proposal',
+        action: 'auto_publish',
+        status: 'auto_published',
+        title: 'AI timeline explained',
+        reason: 'Created successfully.',
+        postId: 'post-1',
+        publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+        adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
+        qualityGate: null,
+      })
+      .mockResolvedValueOnce({
+        id: 'proposal-2',
+        sourceType: 'proposal',
+        action: 'draft_only',
+        status: 'failed',
+        title: 'AI glossary map',
+        reason: 'ANTHROPIC_API_KEY environment variable is not set',
+        postId: null,
+        publicUrl: null,
+        adminUrl: null,
+        qualityGate: null,
+      });
+
+    const summary = await runSeoEditorialTuesday({
+      force: true,
+      now: new Date('2026-05-05T15:00:00.000Z'),
+    });
+
+    expect(summary.status).toBe('warning');
+    expect(summary.publishedCount).toBe(1);
+    expect(summary.failedCount).toBe(1);
+    expect(mockSetLatestEditorialRunStatus).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'warning',
+      publishedCount: 1,
+      items: expect.arrayContaining([
+        expect.objectContaining({ id: 'proposal-1', action: 'auto_published' }),
+        expect.objectContaining({ id: 'proposal-2', action: 'draft_for_review', reason: 'ANTHROPIC_API_KEY environment variable is not set' }),
+      ]),
+    }));
   });
 
   it('passes zero maxPosts to the selector while paused and persists paused status', async () => {

@@ -88,7 +88,7 @@ Why this fits the current architecture:
 - [x] Confirm SEOI-12 production rule remains restored to `cron(15 13 ? * MON *)` with target input `{"action":"seoWeeklyDigest"}`.
 - [x] Confirm Tuesday runner should use the existing ingestion Lambda rather than creating a new Lambda.
 - [x] Define SSM names for Tuesday state, for example `/ai-timeline/prod/seo-editorial-last-run` and `/ai-timeline/prod/seo-editorial-paused`.
-- [ ] Define how deployed Lambda receives blog/SEO voice context. Do not assume repo-root `.claude/skills/...` files exist in the `server/src` Lambda bundle; either copy a reviewed voice snapshot into deployable source, store it in SSM/RDS, or load it from an explicitly packaged asset.
+- [x] Define how deployed Lambda receives blog/SEO voice context. Do not assume repo-root `.claude/skills/...` files exist in the `server/src` Lambda bundle; either copy a reviewed voice snapshot into deployable source, store it in SSM/RDS, or load it from an explicitly packaged asset.
 - [x] Confirm email sender constraints in SES: verified sender identity, sandbox status, and whether `wyliedeveloper@gmail.com` can receive from the configured sender.
 - [ ] Document expected incremental cost: LLM tokens, Serper calls, SES email, and any extra CloudWatch/EventBridge usage.
 - [ ] Get PM approval before adding any new billable AWS resources. Prefer no new billable resource beyond existing EventBridge/Lambda/SES.
@@ -136,40 +136,40 @@ Why this fits the current architecture:
 
 - [ ] For each selected opportunity, produce a structured brief before drafting.
 - [ ] Run SERP/Serper sampling with cache and spend caps before drafting.
-- [ ] Generate one topic-mode blog draft in Wylie's accumulated voice.
+- [x] Generate one topic-mode blog draft in Wylie's accumulated voice.
 - [ ] Build an entity link inventory and enforce first-mention links.
 - [ ] Use the existing entity/search/link inventory path from `briefGenerator.ts`, `entityMatcher.ts`, and related SEO services. Add only a thin blog-body shortcode resolver if no reusable function exists.
-- [ ] Require at least 3 internal links and no invented entities.
-- [ ] Require a unique kebab-case slug, exactly one title/H1, `seoTitle`, `seoDescription`, excerpt, tags, subjects, and relation records.
-- [ ] Enforce `seoTitle` ≤60 characters and `seoDescription` between 140-160 characters before publish; leave as draft if the generated metadata misses the bounds.
-- [ ] Default canonical URL to `https://letaiexplainai.com/blog/:slug`; allow a custom canonical only when the gate records a duplicate-content rationale.
-- [ ] Structure the first 150 words to answer the target query directly for AI Overview and LLM citability.
-- [ ] Include a visible `Key facts` or concise summary block for generated explainers, with entity names, dates, and claims written as standalone citation-ready sentences.
-- [ ] Include a visible citations/sources section for any news-like or factual claims, prioritizing primary sources, official announcements, papers, or authoritative documentation.
-- [ ] Add a short visible FAQ/PAA block only when it is genuinely useful and the literal Q&A text appears on the page; if FAQ JSON-LD is added later, it must reuse `generateFAQJsonLd` from `src/components/SEO.tsx`.
+- [x] Require at least 3 internal links and no invented entities.
+- [x] Require a unique kebab-case slug, exactly one title/H1, `seoTitle`, `seoDescription`, excerpt, tags, subjects, and relation records.
+- [x] Enforce `seoTitle` ≤60 characters and `seoDescription` between 140-160 characters before publish; leave as draft if the generated metadata misses the bounds.
+- [x] Default canonical URL to `https://letaiexplainai.com/blog/:slug`; allow a custom canonical only when the gate records a duplicate-content rationale.
+- [x] Structure the first 150 words to answer the target query directly for AI Overview and LLM citability.
+- [x] Include a visible `Key facts` or concise summary block for generated explainers, with entity names, dates, and claims written as standalone citation-ready sentences.
+- [x] Include a visible citations/sources section for any news-like or factual claims, prioritizing primary sources, official announcements, papers, or authoritative documentation.
+- [x] Add a short visible FAQ/PAA block only when it is genuinely useful and the literal Q&A text appears on the page; if FAQ JSON-LD is added later, it must reuse `generateFAQJsonLd` from `src/components/SEO.tsx`.
 - [ ] Create the post as `draft` first.
 - [ ] Run the quality gate against the persisted draft.
-- [ ] Publish only when the quality gate passes every required item.
+- [x] Publish only when the quality gate passes every required item.
 - [ ] Leave as draft when any soft editorial risk is present.
-- [ ] Mark the originating proposal using the real `SeoProposal.status` values only: `approved` for linked draft posts and `shipped` when the linked blog post is published. Do not introduce `draft_created`; it does not exist in `prisma/schema.prisma`.
-- [ ] Link created posts through the existing proposal path semantics (`draftPostId` + `status`) so `/admin/seo-insights/proposals` remains accurate.
+- [x] Mark the originating proposal using the real `SeoProposal.status` values only: `approved` for linked draft posts and `shipped` when the linked blog post is published. Do not introduce `draft_created`; it does not exist in `prisma/schema.prisma`.
+- [x] Link created posts through the existing proposal path semantics (`draftPostId` + `status`) so `/admin/seo-insights/proposals` remains accurate.
 
 ### 5. Quality Gates
 
 - [ ] Reject auto-publish if the post has hallucinated facts, unsupported claims, or missing primary-source links for news claims.
-- [ ] Reject auto-publish if the title or body reads as generic listicle/slop.
+- [x] Reject auto-publish if the title or body reads as generic listicle/slop.
 - [ ] Source anti-slop checks from existing SEO voice/brief-generation rules where possible; do not maintain a second disconnected list of forbidden phrases or generic-writing heuristics.
 - [ ] Reject auto-publish if the post competes with an existing LAEA page without a clear canonical strategy.
 - [ ] Reject auto-publish if the target keyword is too broad for LAEA to plausibly win.
-- [ ] Reject auto-publish if internal links are forced or irrelevant.
+- [x] Reject auto-publish if internal links are forced or irrelevant.
 - [ ] Reject auto-publish if body content lacks a thesis or is only a recap.
-- [ ] Reject auto-publish if markdown shortcodes do not resolve to valid entities.
+- [x] Reject auto-publish if markdown shortcodes do not resolve to valid entities.
 - [ ] Reject auto-publish if Article/Breadcrumb metadata cannot be generated.
 - [ ] Reject auto-publish if Article JSON-LD lacks `author`, `publisher`, `datePublished`, `dateModified`, `mainEntityOfPage`, or absolute `url`/canonical values.
 - [ ] Reject auto-publish if the post cannot be represented by the existing `SEO`, `generateArticleJsonLd`, and `generateBreadcrumbListJsonLd` patterns without creating parallel head-management code.
 - [ ] Reject auto-publish if the generated post would be client-rendered but Google URL Inspection cannot verify the rendered HTML contains the H1 and opening body for a sampled production post.
-- [ ] Reject auto-publish if generated post would exceed the weekly cap.
-- [ ] On rejection, persist a draft or skipped opportunity with a reason for Tuesday email review.
+- [x] Reject auto-publish if generated post would exceed the weekly cap.
+- [x] On rejection, persist a draft or skipped opportunity with a reason for Tuesday email review.
 
 ### 6. Tuesday Email Recap
 
@@ -255,10 +255,10 @@ Why this fits the current architecture:
 
 - [x] Add `tests/unit/seo/editorialOpportunitySelector.test.ts` for ranking, caps, `editorial_seed` exclusion, and keyword score thresholds.
 - [x] Add `tests/unit/seo/blogQualityGate.test.ts` for pass/fail cases, unresolved shortcodes, weak internal links, and slop-listicle rejection.
-- [ ] Add `tests/unit/seo/editorialAutopilotRunner.test.ts` for idempotency, dry-run no-op behavior, bounded caps, partial candidate failure, and email failure preserving run results.
+- [x] Add `tests/unit/seo/editorialAutopilotRunner.test.ts` for idempotency, dry-run no-op behavior, bounded caps, partial candidate failure, and email failure preserving run results.
 - [x] Add `tests/unit/seo/editorialEmail.test.ts` for recap payload generation and plain-text fallback links.
 - [x] Add `tests/unit/ingestionLambda.seoEditorialTuesday.test.ts` for `seoEditorialTuesday` dispatch and dry-run/force/maxPosts payload handling.
-- [ ] Add a mocked Prisma/blog-service integration-style unit test under `tests/unit/seo/` for draft creation; follow the repo's `tests/unit/...` convention instead of colocated `__tests__` folders.
+- [x] Add a mocked Prisma/blog-service integration-style unit test under `tests/unit/seo/` for draft creation; follow the repo's `tests/unit/...` convention instead of colocated `__tests__` folders.
 - [x] Run `npm run typecheck` after each implementation block.
 - [x] Run `npm run lint` after each implementation block.
 - [x] Run targeted Jest tests after each implementation block.
