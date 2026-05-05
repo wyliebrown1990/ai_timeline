@@ -273,8 +273,8 @@ Why this fits the current architecture:
 - [x] Invoke manually with `{"action":"seoEditorialTuesday","dryRun":true,"sendTestEmail":true}` to verify email delivery to `wyliedeveloper@gmail.com`.
 - [ ] Invoke manually with `{"action":"seoEditorialTuesday","force":true,"maxPosts":1}` only after reviewing dry-run output.
 - [ ] Keep the first production scheduled run at `maxPosts=1` or draft-only until Wylie reviews the generated output; then raise the default cap to `maxPosts=3` / `maxAutoPublish=2`.
-- [ ] Temporarily move EventBridge to a near-term trigger and validate scheduled invocation end-to-end.
-- [ ] Restore EventBridge to Tuesday cadence after validation.
+- [x] Temporarily move EventBridge to a near-term trigger and validate scheduled invocation end-to-end.
+- [x] Restore EventBridge to Tuesday cadence after validation.
 - [x] Deploy frontend/admin UI changes with `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh`; do not use ad-hoc S3 sync because the deploy script enforces sourcemap and cache-header rules.
 - [x] Validate deployed admin UI after CloudFront invalidation, not only against local Vite.
 
@@ -333,8 +333,8 @@ Why this fits the current architecture:
 - [x] Smoke test Tuesday run status via SSM and admin API.
 - [x] Tail ingestion logs: `aws logs tail /aws/lambda/ai-timeline-ingestion-prod --since 30m`.
 - [x] Tail API logs after admin UI review: `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m`.
-- [ ] Confirm EventBridge invocation metric increments.
-- [ ] Confirm Lambda error metric remains zero for the scheduled test.
+- [x] Confirm EventBridge invocation metric increments.
+- [x] Confirm Lambda error metric remains zero for the scheduled test.
 - [ ] Confirm created posts exist in RDS with expected status.
 - [ ] Confirm public blog API returns published posts.
 - [ ] Confirm draft-only posts are not publicly listed.
@@ -354,7 +354,7 @@ Why this fits the current architecture:
 - [ ] Every auto-published post has bounded SEO metadata, absolute canonical URL, Article + BreadcrumbList JSON-LD, visible author/date/freshness signals, citations for factual claims, and at least 3 relevant internal links.
 - [ ] Every auto-published post answers the target query in the first 150 words and includes a concise `Key facts`/summary block suitable for AI Overview and LLM citation.
 - [x] Admin UI exposes Tuesday run status and links for human review.
-- [ ] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
+- [x] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
 - [ ] All browser validation tasks completed with screenshots.
 - [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
 - [x] Tuesday UI passes dark-mode and mobile checks.
