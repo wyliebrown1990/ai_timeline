@@ -181,7 +181,7 @@ Why this fits the current architecture:
 - [x] If email uses the ingestion Lambda directly, wire SES permissions in `infra/template.yaml` under `IngestionFunction.Policies`; existing SES permissions currently live on the API Lambda for the contact form, not on the ingestion Lambda.
 - [x] Include published post URLs.
 - [x] Include admin edit URLs for every published and draft post using the real route shape `/admin/blog/:id/edit`.
-- [ ] Include source opportunity links back to `/admin/seo-insights/proposals` or `/admin/seo-insights/portfolio`.
+- [x] Include source opportunity links back to `/admin/seo-insights/proposals` or `/admin/seo-insights/portfolio`.
 - [x] Include skipped/deferred opportunities with reasons.
 - [x] Include Serper credits used, month-to-date spend, remaining credits, warning level, and auto-top-up state.
 - [x] Include Tuesday runner status and CloudWatch log pointer.
@@ -421,7 +421,7 @@ Why this fits the current architecture:
 
 - [x] **Follow the repo test layout.** Tests should live under `tests/unit/...`; avoid colocated `__tests__` folders or new test conventions.
 - [x] **Bound expensive async work.** Cap selected posts and process LLM/Serper/blog-write steps sequentially or with explicit bounded concurrency so retries and partial failures stay legible.
-- [ ] **Deploy the admin UI through the canonical script.** Because the plan touches `/admin/seo-insights`, frontend validation must include `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh` and deployed browser QA.
+- [x] **Deploy the admin UI through the canonical script.** Because the plan touches `/admin/seo-insights`, frontend validation must include `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh` and deployed browser QA.
 - [x] **Keep prompts out of source comments.** Runtime should package concise, reviewed voice snapshots rather than embedding full skill docs or comment-heavy prompt manuals.
 
 ### Slop Avoided

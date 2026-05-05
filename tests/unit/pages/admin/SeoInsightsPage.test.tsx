@@ -420,6 +420,7 @@ describe('SeoInsightsPage', () => {
             title: 'AI timeline acceleration phases',
             publicUrl: 'https://letaiexplainai.com/blog/ai-timeline-acceleration',
             adminUrl: 'https://letaiexplainai.com/admin/blog/post_1/edit',
+            sourceUrl: 'https://letaiexplainai.com/admin/seo-insights/proposals',
             reason: 'Passed the blog quality gate.',
           },
           {
@@ -429,6 +430,7 @@ describe('SeoInsightsPage', () => {
             title: 'AI agent memory explained',
             publicUrl: null,
             adminUrl: 'https://letaiexplainai.com/admin/blog/post_2/edit',
+            sourceUrl: 'https://letaiexplainai.com/admin/seo-insights/portfolio',
             reason: 'Created as draft because the source mix needs human review.',
           },
         ],
@@ -448,6 +450,14 @@ describe('SeoInsightsPage', () => {
     expect(screen.getAllByRole('link', { name: /edit post/i })[0]).toHaveAttribute(
       'href',
       'https://letaiexplainai.com/admin/blog/post_1/edit'
+    );
+    expect(screen.getByRole('link', { name: /open source proposal/i })).toHaveAttribute(
+      'href',
+      'https://letaiexplainai.com/admin/seo-insights/proposals'
+    );
+    expect(screen.getByRole('link', { name: /open source keyword/i })).toHaveAttribute(
+      'href',
+      'https://letaiexplainai.com/admin/seo-insights/portfolio'
     );
   });
 

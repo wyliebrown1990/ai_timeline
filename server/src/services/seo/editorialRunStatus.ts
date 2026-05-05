@@ -32,6 +32,7 @@ export interface SeoEditorialRunStatusRecord {
     title: string;
     publicUrl: string | null;
     adminUrl: string | null;
+    sourceUrl: string | null;
     reason: string;
   }>;
 }
@@ -113,8 +114,12 @@ function parseRunStatus(rawValue: string | undefined): SeoEditorialRunStatusReco
         typeof item.title === 'string' &&
         (item.publicUrl === null || typeof item.publicUrl === 'string') &&
         (item.adminUrl === null || typeof item.adminUrl === 'string') &&
+        (item.sourceUrl === null || item.sourceUrl === undefined || typeof item.sourceUrl === 'string') &&
         typeof item.reason === 'string'
-      )),
+      )).map((item) => ({
+        ...item,
+        sourceUrl: item.sourceUrl ?? null,
+      })),
     };
   } catch {
     return null;

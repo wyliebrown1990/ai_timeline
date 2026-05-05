@@ -187,6 +187,7 @@ describe('editorialAutopilotRunner', () => {
           action: 'auto_published',
           publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
           adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
+          sourceUrl: 'https://letaiexplainai.com/admin/seo-insights/proposals',
         }),
       ]),
     }));
@@ -339,7 +340,10 @@ describe('editorialAutopilotRunner', () => {
     expect(mockSetLatestEditorialRunStatus).toHaveBeenCalledWith(expect.objectContaining({
       skippedCount: 12,
       items: expect.arrayContaining([
-        expect.objectContaining({ id: 'deferred-0' }),
+        expect.objectContaining({
+          id: 'deferred-0',
+          sourceUrl: 'https://letaiexplainai.com/admin/seo-insights/proposals',
+        }),
         expect.objectContaining({ id: 'deferred-4' }),
       ]),
     }));

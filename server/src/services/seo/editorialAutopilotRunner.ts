@@ -19,6 +19,8 @@ import {
 } from './editorialBlogDraft';
 
 const DIGEST_URL = 'https://letaiexplainai.com/admin/seo-insights';
+const PROPOSALS_URL = 'https://letaiexplainai.com/admin/seo-insights/proposals';
+const PORTFOLIO_URL = 'https://letaiexplainai.com/admin/seo-insights/portfolio';
 const DEFAULT_MAX_POSTS = 3;
 const DEFAULT_MAX_AUTO_PUBLISH = 2;
 const MAX_PERSISTED_SKIPPED_ITEMS = 5;
@@ -44,6 +46,7 @@ export interface SeoEditorialTuesdayDecision {
   postId?: string | null;
   publicUrl?: string | null;
   adminUrl?: string | null;
+  sourceUrl?: string | null;
 }
 
 export interface SeoEditorialTuesdayRunSummary {
@@ -92,7 +95,12 @@ function selectedDecision(opportunity: EditorialOpportunity): SeoEditorialTuesda
     status: 'planned',
     title: opportunity.title,
     reason: 'Selected for Tuesday editorial automation; drafting/publishing remains gated by the next implementation slice.',
+    sourceUrl: buildSourceUrl(opportunity.sourceType),
   };
+}
+
+function buildSourceUrl(sourceType: SeoEditorialTuesdayDecision['sourceType']): string {
+  return sourceType === 'keyword' ? PORTFOLIO_URL : PROPOSALS_URL;
 }
 
 function processedDecision(result: ProcessEditorialOpportunityResult): SeoEditorialTuesdayDecision {
@@ -106,6 +114,7 @@ function processedDecision(result: ProcessEditorialOpportunityResult): SeoEditor
     postId: result.postId,
     publicUrl: result.publicUrl,
     adminUrl: result.adminUrl,
+    sourceUrl: buildSourceUrl(result.sourceType),
   };
 }
 
@@ -117,6 +126,7 @@ function deferredDecision(row: DeferredEditorialOpportunity): SeoEditorialTuesda
     status: 'skipped',
     title: row.title,
     reason: row.reason,
+    sourceUrl: buildSourceUrl(row.sourceType),
   };
 }
 
@@ -140,6 +150,7 @@ function toPersistedItem(decision: SeoEditorialTuesdayDecision): SeoEditorialRun
     title: truncateForStatus(decision.title, MAX_PERSISTED_TITLE_LENGTH),
     publicUrl: decision.publicUrl ?? null,
     adminUrl: decision.adminUrl ?? null,
+    sourceUrl: decision.sourceUrl ?? buildSourceUrl(decision.sourceType),
     reason: truncateForStatus(decision.reason, MAX_PERSISTED_REASON_LENGTH),
   };
 }
@@ -274,6 +285,7 @@ export async function runSeoEditorialTuesday(
           status: 'skipped',
           title: 'Tuesday editorial autopilot paused',
           reason: 'Pause switch is enabled; no drafts, posts, proposal mutations, or emails were created.',
+          sourceUrl: PROPOSALS_URL,
         }]
       : [];
 

@@ -869,6 +869,17 @@ export default function SeoInsightsPage() {
                                 Edit post
                               </a>
                             )}
+                            {item.sourceUrl && (
+                              <a
+                                href={item.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Open source {item.sourceType}
+                              </a>
+                            )}
                           </div>
                         </article>
                       );

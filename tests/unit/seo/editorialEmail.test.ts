@@ -59,6 +59,9 @@ function summary(overrides: Partial<SeoEditorialTuesdayRunSummary> = {}): SeoEdi
         status: 'planned',
         title: 'AI timeline explained',
         reason: 'Selected for Tuesday editorial automation.',
+        publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
+        adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
+        sourceUrl: 'https://letaiexplainai.com/admin/seo-insights/proposals',
       },
       {
         id: 'keyword-1',
@@ -67,6 +70,7 @@ function summary(overrides: Partial<SeoEditorialTuesdayRunSummary> = {}): SeoEdi
         status: 'skipped',
         title: 'AI jobs',
         reason: 'Editorial seed rows stay in backlog for human review.',
+        sourceUrl: 'https://letaiexplainai.com/admin/seo-insights/portfolio',
       },
     ],
     ...overrides,
@@ -81,6 +85,10 @@ describe('editorialEmail', () => {
     expect(email.text).toContain('Published 0 | Drafts ready 0 | Skipped 1 | Warnings 0');
     expect(email.text).toContain('SEO dashboard: https://letaiexplainai.com/admin/seo-insights');
     expect(email.text).toContain('AI timeline explained');
+    expect(email.text).toContain('public=https://letaiexplainai.com/blog/ai-timeline');
+    expect(email.text).toContain('edit=https://letaiexplainai.com/admin/blog/post-1/edit');
+    expect(email.text).toContain('source=https://letaiexplainai.com/admin/seo-insights/proposals');
+    expect(email.text).toContain('source=https://letaiexplainai.com/admin/seo-insights/portfolio');
     expect(email.text).toContain('Editorial seed rows stay in backlog for human review.');
     expect(email.text).toContain('Credits used this week: 4');
     expect(email.html).toContain('Open SEO dashboard');

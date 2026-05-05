@@ -51,6 +51,18 @@ function decisionLabel(decision: SeoEditorialTuesdayRunSummary['decisions'][numb
   return `${decision.title} (${decision.sourceType}, ${decision.action})`;
 }
 
+function decisionLinkLines(decision: SeoEditorialTuesdayRunSummary['decisions'][number]): string {
+  return [
+    decision.publicUrl ? ` public=${decision.publicUrl}` : '',
+    decision.adminUrl ? ` edit=${decision.adminUrl}` : '',
+    decision.sourceUrl ? ` source=${decision.sourceUrl}` : '',
+  ].join('');
+}
+
+function decisionTextLine(decision: SeoEditorialTuesdayRunSummary['decisions'][number]): string {
+  return `- ${decisionLabel(decision)}: ${decision.reason}${decisionLinkLines(decision)}`;
+}
+
 export function buildEditorialRecapEmail(summary: SeoEditorialTuesdayRunSummary): {
   subject: string;
   text: string;
@@ -68,10 +80,10 @@ export function buildEditorialRecapEmail(summary: SeoEditorialTuesdayRunSummary)
   const subject = `[LAEA SEO] Tuesday editorial ${summary.status}: ${statusLine}`;
 
   const selectedLines = selected.length > 0
-    ? selected.map((decision) => `- ${decisionLabel(decision)}: ${decision.reason}`).join('\n')
+    ? selected.map(decisionTextLine).join('\n')
     : '- None yet.';
   const skippedLines = skipped.length > 0
-    ? skipped.map((decision) => `- ${decisionLabel(decision)}: ${decision.reason}`).join('\n')
+    ? skipped.map(decisionTextLine).join('\n')
     : '- None.';
   const warningLines = warnings.length > 0
     ? warnings.map((warning) => `- ${warning}`).join('\n')

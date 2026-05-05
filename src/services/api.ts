@@ -5988,6 +5988,7 @@ export interface SeoEditorialRunItem {
   title: string;
   publicUrl: string | null;
   adminUrl: string | null;
+  sourceUrl: string | null;
   reason: string;
 }
 
