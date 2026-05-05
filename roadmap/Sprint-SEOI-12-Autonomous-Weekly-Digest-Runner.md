@@ -166,6 +166,7 @@ Make the SEO weekly digest run without depending on a live Codex Desktop convers
 - [x] `npm run typecheck` — zero errors
 - [ ] `npm run lint` — zero errors
   - Note: focused lint for touched TS files passes; full repo lint/test still has unrelated pre-existing failures.
+  - Latest full lint check with larger Node heap reports 129 errors and 874 warnings across generated artifacts, scripts, UI files, and older tests.
 
 ### 7. Deploy / scheduler activation
 
@@ -186,11 +187,12 @@ Make the SEO weekly digest run without depending on a live Codex Desktop convers
 - [x] Run the Lambda manually with `{"action":"seoWeeklyDigest","dryRun":true}` and confirm no mutating service calls
 - [x] Run the Lambda manually with `{"action":"seoWeeklyDigest","force":true}` only after confirming it will not duplicate proposals
 - [x] Verify `GET /api/admin/seo/health` shows run status updated after manual Lambda run
-- [ ] Verify paused mode manually:
+- [x] Verify paused mode manually:
   - flip pause on via `PUT /api/admin/seo/pause`
   - invoke the Lambda manually with `{"action":"seoWeeklyDigest","force":true}`
   - confirm no mutations and successful digest-only status
   - flip pause off
+  - Note: Lambda pause-state cache required waiting before a final active forced run restored the latest persisted digest to `paused=false`.
 - [x] `aws logs tail /aws/lambda/ai-timeline-ingestion-prod --since 30m` — digest run visible, zero unexpected errors
 - [x] `aws logs tail /aws/lambda/ai-timeline-api-prod --since 30m` — admin health/status checks clean
 
@@ -249,6 +251,12 @@ roadmap/PLAN-SEO-Insights-Pilot.md                      (modify — SEOI-12 trac
 ## Blocked — PM decision needed
 
 (None. PM decision resolved on 2026-05-04: use AWS EventBridge targeting the existing ingestion Lambda as the primary scheduler. Do not use GitHub Actions or long-lived GitHub AWS credentials for the primary path.)
+
+## Validation Debt
+
+- Full `npm run lint` is not green repo-wide as of 2026-05-05. The SEOI-12 touched TypeScript files pass targeted ESLint, but the global command reports existing generated-artifact, script, UI, and test lint debt.
+- Full `npm test -- --runInBand` is not green repo-wide as of 2026-05-05. The SEOI-12 runner suite passes, but unrelated Jest/import-meta configuration and stale mock failures remain outside this sprint.
+- EventBridge is deployed and enabled, but the first natural scheduled Monday invocation has not happened yet.
 
 ---
 
