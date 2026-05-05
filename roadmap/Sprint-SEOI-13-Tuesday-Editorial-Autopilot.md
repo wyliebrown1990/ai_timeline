@@ -2,7 +2,7 @@
 
 > **PROGRESS TRACKING**: Update this document as you complete tasks.
 > Mark checkboxes `[x]` when done. Do NOT create separate status docs.
-> Last updated: 2026-05-05 by Codex + AITechLeadReview
+> Last updated: 2026-05-05 by Codex + AITechLeadReview + AIUXLeadReview
 
 ## Overview
 
@@ -172,6 +172,13 @@ Why this fits the current architecture:
 - [ ] Include Tuesday runner status and CloudWatch log pointer.
 - [ ] Send the email even when the run produces zero posts, unless the whole run fails before email construction.
 - [ ] If email send fails, keep the runner status `warning` or `failed_email_only` while preserving blog/proposal results.
+- [ ] Design the recap as a scannable operator artifact, not a newsletter:
+  - top line status: `Published`, `Drafts ready`, `Skipped`, `Warnings`
+  - first visible links: public post review URLs and `/admin/blog/:id/edit`
+  - grouped sections for Published, Drafts for review, Skipped by gate, Spend/Serper, and Logs
+  - plain-text fallback with the same links for mobile/email clients
+- [ ] Keep link labels descriptive (`Review public post`, `Edit draft`, `Open source proposal`) and avoid generic `click here` / `learn more`.
+- [ ] Include one explicit "what Wylie should do next" sentence when posts were published or drafts were created.
 
 ### 7. EventBridge Schedule
 
@@ -202,6 +209,30 @@ Why this fits the current architecture:
 - [ ] Add a pause switch for Tuesday editorial autopilot separate from Monday SEO digest pause, or clearly document if the existing SEO pause controls both.
 - [ ] Add badges for `auto_published`, `draft_for_review`, and `skipped_by_gate`.
 - [ ] Keep admin UI dense and operator-focused; no marketing-style hero section.
+- [ ] Reuse existing admin/SEO UI patterns:
+  - `SeoInsightsSectionNav` if adding a dedicated SEO Insights subsection
+  - `Drawer` from `src/components/ui/Drawer.tsx` for Tuesday run details instead of a one-off modal
+  - `LoadingSkeleton` for loading state
+  - `ErrorState` for status fetch failures with retry
+  - `react-hot-toast` for pause/resume or resend-email feedback
+- [ ] Define all Tuesday status states in the UI:
+  - loading
+  - populated success
+  - zero eligible opportunities
+  - partial success with skipped/failed candidates
+  - email failed but posts/drafts succeeded
+  - paused
+  - fatal run failure
+- [ ] Make every status chip text-first and icon-supported. Do not rely on color alone for `auto_published`, `draft_for_review`, `skipped_by_gate`, `email_failed`, or `paused`.
+- [ ] Add explicit dark-mode classes for every new background, border, text, chip, and button state.
+- [ ] Keep the accent palette consistent with existing admin SEO surfaces (`slate`, `blue`, `amber`, `green`, `red`; avoid introducing new purple/pink marketing accents for this operator UI).
+- [ ] Specify responsive behavior:
+  - desktop/lg: compact summary row plus grouped details/drawer
+  - tablet/md: two-column cards or wrapping summary metrics
+  - mobile/sm: single-column stack with 48px minimum tap targets and no horizontal scroll
+- [ ] Ensure every action (`Open public post`, `Edit post`, `Archive post`, `Resend recap`, `Pause Tuesday autopilot`) has visible focus, disabled/loading state, and success/failure feedback.
+- [ ] Use `ConfirmDialog` before any destructive action exposed from the Tuesday review surface, especially archive/unpublish cleanup.
+- [ ] Ensure any animations use existing `animate-fade-in` / `animate-slide-up` or motion-safe variants; respect `prefers-reduced-motion`.
 
 ### 10. Tests
 
@@ -243,11 +274,14 @@ Why this fits the current architecture:
 - [ ] Take initial screenshot: `agent-browser screenshot`
 - [ ] Get element references: `agent-browser snapshot -i`
 - [ ] Verify Tuesday editorial run status appears.
+- [ ] Verify loading, empty/zero-post, populated, partial-success, failed-email, paused, and fatal-error states with mocked or seeded run-status data.
 - [ ] Click published post links and draft edit links.
 - [ ] Verify status badges and skipped reasons render correctly.
 - [ ] Verify pause switch behavior if implemented.
+- [ ] Toggle light/dark theme and screenshot both.
 - [ ] Take final screenshot: `agent-browser screenshot`
 - [ ] Repeat on mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`
+- [ ] Verify mobile layout has no horizontal scroll and all tap targets are at least 48px high/wide.
 - [ ] Confirm zero console errors and zero unexpected 4xx/5xx network responses.
 
 ### Blog Post Review
@@ -257,7 +291,10 @@ Why this fits the current architecture:
 - [ ] Verify title, H1, excerpt, body, internal links, related posts, and metadata render.
 - [ ] Open each admin edit URL from the Tuesday recap email.
 - [ ] Verify the editor loads the generated content and can save changes.
+- [ ] Verify the admin editor's existing mobile tabs (`write`, `preview`, `meta`) still work for generated drafts.
+- [ ] Verify post-publish cleanup path: from recap link -> admin edit -> archive confirmation -> toast/status feedback.
 - [ ] Confirm no broken shortcode output is visible on the public post.
+- [ ] Verify public post readability in light and dark themes: title, prose width, internal links, related posts, comments/newsletter sections, and no layout shift from cover images.
 
 ## Backend Validation
 
@@ -285,6 +322,9 @@ Why this fits the current architecture:
 - [ ] Admin UI exposes Tuesday run status and links for human review.
 - [ ] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
 - [ ] All browser validation tasks completed with screenshots.
+- [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
+- [ ] Tuesday UI passes dark-mode and mobile checks.
+- [ ] Tuesday email recap is scannable on mobile and includes plain-text fallback links.
 - [ ] Backend logs and CloudWatch metrics clean.
 
 ## Notes for Future Developers
@@ -295,6 +335,7 @@ Why this fits the current architecture:
 - Treat Wylie's Tuesday email as the human-in-the-loop handoff. The email must be crisp enough to review quickly from a phone.
 - The first production run should use `maxPosts=1` even though the final cap is 3. Raise to 3 only after the first generated post passes human review.
 - If SES is still in sandbox mode, email validation may be the actual blocker. Document it under `Blocked — PM decision needed` rather than weakening the review loop.
+- Admin UX should be dense and review-first. This is an operator cockpit, not a public landing page: summary, links, warnings, and next actions should fit above the fold on desktop.
 
 ## AITechLeadReview Findings — 2026-05-05
 
@@ -313,6 +354,20 @@ Why this fits the current architecture:
 
 - [ ] **Use existing blog service names.** Prefer `createDraft`, `publishPost`, `archivePost`, and `getOrCreateDefaultAuthor` from `server/src/services/blogAdmin.ts`.
 - [ ] **Use real admin edit links.** The route is `/admin/blog/:id/edit`.
+
+## AIUXLeadReview Findings — 2026-05-05
+
+### Moderate
+
+- [ ] **Design the Tuesday operator states, not just the data.** The admin surface must specify loading, populated, zero-opportunity, partial-success, failed-email, paused, and fatal-error states using existing `LoadingSkeleton` / `ErrorState` patterns.
+- [ ] **Specify responsive and dark-mode behavior.** The Tuesday review panel must define desktop/tablet/mobile layout, avoid horizontal scroll at 375px, keep 48px mobile tap targets, and include `dark:` variants for every new visual state.
+- [ ] **Make the recap email a review workflow.** Since Wylie stays human-in-the-loop by email, the recap must be mobile-scannable, put review/edit links first, group published/draft/skipped items, and include plain-text fallback links.
+
+### Minor
+
+- [ ] **Reuse existing admin interaction patterns.** Use `Drawer`, `ConfirmDialog`, `react-hot-toast`, `SeoInsightsSectionNav`, `LoadingSkeleton`, and `ErrorState` instead of one-off review cards/modals/spinners.
+- [ ] **Status cannot be color-only.** Every generated-post state needs text and/or icon labels in addition to color.
+- [ ] **Post-publish cleanup needs a visible UX path.** Browser QA must verify recap link -> admin edit -> archive/cleanup confirmation works.
 
 ## Blocked — PM Decision Needed
 
