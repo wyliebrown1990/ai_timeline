@@ -250,7 +250,7 @@ Respond in JSON format:
     }
     claudeResponse = JSON.parse(jsonMatch[0]);
   } catch (parseError) {
-    console.error('[aiPrerequisiteSuggestions] Failed to parse Claude response:', responseText);
+    console.error('[aiPrerequisiteSuggestions] Failed to parse Claude response:', parseError, responseText);
     throw new Error('Failed to parse AI response');
   }
 

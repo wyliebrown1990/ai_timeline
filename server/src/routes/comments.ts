@@ -6,7 +6,8 @@
  * Sprint Spam-3 - Auto-Flagging & Shadowban
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import {
   requireAuth as requireUserAuth,

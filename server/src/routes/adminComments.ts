@@ -6,7 +6,8 @@
  * Mounted at /api/admin/comments
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { ApiError } from '../middleware/error';
 import * as commentService from '../services/commentService';

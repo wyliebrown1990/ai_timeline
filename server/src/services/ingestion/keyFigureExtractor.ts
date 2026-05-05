@@ -14,7 +14,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '../../db';
 import { normalizeName } from '../../lib/nameNormalizer';
 import { findMatch, type MatchResult } from '../keyFigureMatcher';
-import type { IngestedArticle, KeyFigure } from '@prisma/client';
+import type { IngestedArticle } from '@prisma/client';
 
 /**
  * Extracted figure data from article analysis
@@ -216,7 +216,6 @@ function validateFigure(item: unknown): ExtractedFigure | null {
   }
 
   // Filter out likely journalist/author mentions
-  const nameLower = obj.name.toString().toLowerCase();
   const contextLower = obj.context.toString().toLowerCase();
   if (
     contextLower.includes('wrote ') ||

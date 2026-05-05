@@ -13,10 +13,14 @@
  */
 
 import { prisma } from '../../db';
-import { screenArticle, ScreeningResult } from './screening';
-import { generateContent, ContentGenerationResult } from './contentGenerator';
-import { generateNewsEventOnly, NewsEventOnlyDraft } from './newsEventGenerator';
-import { extractGlossaryTerms, GlossaryTermDraft } from './glossaryExtractor';
+import type { ScreeningResult } from './screening';
+import { screenArticle } from './screening';
+import type { ContentGenerationResult } from './contentGenerator';
+import { generateContent } from './contentGenerator';
+import type { NewsEventOnlyDraft } from './newsEventGenerator';
+import { generateNewsEventOnly } from './newsEventGenerator';
+import type { GlossaryTermDraft } from './glossaryExtractor';
+import { extractGlossaryTerms } from './glossaryExtractor';
 import {
   extractKeyFigures,
   processExtractedFigures,

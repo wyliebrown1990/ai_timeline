@@ -5,7 +5,7 @@
  * Handles API requests for explained pages.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { getExplainedPageData, getExplainedPageList } from '../services/explained';
 
 /**

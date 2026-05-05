@@ -25,7 +25,8 @@ import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import { SubjectClassifier, SubjectClassification } from '../services/ingestion/subjectClassifier';
+import type { SubjectClassification } from '../services/ingestion/subjectClassifier';
+import { SubjectClassifier } from '../services/ingestion/subjectClassifier';
 
 // Create Prisma client
 const connectionString = process.env.DATABASE_URL;

@@ -17,7 +17,6 @@ import type { User } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-in-production';
 const JWT_ACCESS_EXPIRY = '1h'; // Access token: 1 hour
-const JWT_REFRESH_EXPIRY = '7d'; // Refresh token: 7 days
 const BCRYPT_ROUNDS = 12;
 
 // Reserved usernames that cannot be registered
@@ -139,13 +138,13 @@ function isReservedUsername(username: string): boolean {
  */
 function toSafeUser(user: User): SafeUser {
   const {
-    passwordHash,
-    refreshToken,
-    refreshTokenExpires,
-    emailVerifyToken,
-    emailVerifyExpires,
-    passwordResetToken,
-    passwordResetExpires,
+    passwordHash: _passwordHash,
+    refreshToken: _refreshToken,
+    refreshTokenExpires: _refreshTokenExpires,
+    emailVerifyToken: _emailVerifyToken,
+    emailVerifyExpires: _emailVerifyExpires,
+    passwordResetToken: _passwordResetToken,
+    passwordResetExpires: _passwordResetExpires,
     ...safeUser
   } = user;
   return safeUser;

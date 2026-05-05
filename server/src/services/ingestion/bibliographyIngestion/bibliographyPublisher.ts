@@ -85,7 +85,7 @@ async function milestoneIdExists(id: string): Promise<boolean> {
  * Generate unique milestone ID (add suffix if needed)
  */
 async function generateUniqueId(entry: BibliographyEntry, title: string): Promise<string> {
-  let baseId = generateMilestoneId(entry, title);
+  const baseId = generateMilestoneId(entry, title);
   let id = baseId;
   let suffix = 1;
 

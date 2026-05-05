@@ -241,7 +241,7 @@ export default function UserManagementPage() {
       setIsLoadingDetail(true);
       const detail = await getUserDetail(user.id);
       setSelectedUser(detail);
-    } catch (error) {
+    } catch {
       toast.error('Failed to load user details');
     } finally {
       setIsLoadingDetail(false);
@@ -258,7 +258,7 @@ export default function UserManagementPage() {
       setSelectedUser(detail);
       // Refresh list
       loadUsers();
-    } catch (error) {
+    } catch {
       toast.error('Failed to grant permission');
     }
   };
@@ -272,7 +272,7 @@ export default function UserManagementPage() {
       const detail = await getUserDetail(selectedUser.user.id);
       setSelectedUser(detail);
       loadUsers();
-    } catch (error) {
+    } catch {
       toast.error('Failed to revoke permission');
     }
   };
@@ -286,7 +286,7 @@ export default function UserManagementPage() {
       const detail = await getUserDetail(selectedUser.user.id);
       setSelectedUser(detail);
       loadUsers();
-    } catch (error) {
+    } catch {
       toast.error('Failed to reset trust score');
     }
   };

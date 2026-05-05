@@ -20,7 +20,7 @@ import {
   zoomConfig,
 } from '../components/Timeline';
 import type { ZoomLevel } from '../components/Timeline';
-import { MilestoneCategory } from '../types/milestone';
+import type { MilestoneCategory } from '../types/milestone';
 import { SearchBar, SearchResults } from '../components/Search';
 import { FilterPanel } from '../components/Filters';
 import { useOnboarding } from '../components/Onboarding';

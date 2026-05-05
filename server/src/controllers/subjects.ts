@@ -5,7 +5,7 @@
  * Request handlers for subject taxonomy API endpoints
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { prisma } from '../db';
 import * as subjectService from '../services/subjects';
 import * as subjectContentService from '../services/subjectContentService';

@@ -4,7 +4,7 @@
  * Handles article analysis and management endpoints.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { prisma } from '../db';
 import { screenOnly, analyzeAllPending, analyzeArticle } from '../services/ingestion/articleAnalyzer';

@@ -11,7 +11,6 @@
 import { prisma } from '../db';
 import { matchPerson, matchOrganization } from './entityMatcher';
 import type { ExtractedPerson, ExtractedOrganization } from './ingestion/entityExtraction';
-import type { Person, Organization } from '@prisma/client';
 
 // ============================================================================
 // Types

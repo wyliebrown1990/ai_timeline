@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import type { MilestoneResponse } from '../../types/milestone';
-import { MilestoneCategory } from '../../types/milestone';
+import type { MilestoneCategory } from '../../types/milestone';
 import { categoryBgClasses } from '../../utils/timelineUtils';
 import { MilestonePill } from './MilestonePill';
 

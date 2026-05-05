@@ -5,8 +5,8 @@
  * and suspicious vote monitoring.
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
+import type { Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { requireAuth } from '../middleware/auth';
 import { ApiError } from '../middleware/error';
 import * as autoFlagService from '../services/autoFlagService';

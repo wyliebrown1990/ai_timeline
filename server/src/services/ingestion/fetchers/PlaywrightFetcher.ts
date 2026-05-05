@@ -6,14 +6,13 @@
  */
 
 import { playwrightClient } from '../../scraper/playwrightClient';
-import { SCRAPER_PRESETS, getPresetForUrl } from '../../scraper/presets';
+import { getPresetForUrl } from '../../scraper/presets';
 import type {
   Fetcher,
   FetchedArticle,
   FetcherSource,
   SourceConfig,
   TestConnectionResult,
-  WebScraperConfig,
 } from './types';
 import { isWebScraperConfig } from './types';
 

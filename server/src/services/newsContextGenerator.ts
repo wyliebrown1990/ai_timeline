@@ -6,7 +6,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { PrismaClient, Milestone, CurrentEvent } from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic();

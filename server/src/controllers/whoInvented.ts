@@ -5,7 +5,7 @@
  * Handles API requests for who-invented pages.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { getWhoInventedPageData, getWhoInventedList } from '../services/whoInvented';
 
 /**

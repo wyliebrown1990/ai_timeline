@@ -21,7 +21,6 @@ const __dirname = dirname(__filename);
 // Load environment variables from server/.env
 config({ path: resolve(__dirname, '../../.env') });
 
-import { prisma } from '../db';
 import * as keyFiguresService from '../services/keyFigures';
 
 interface ProcessResult {

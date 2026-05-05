@@ -11,6 +11,10 @@ const STORAGE_KEY = 'ai_timeline_sounds_enabled';
 // Audio context (created lazily on first use)
 let audioContext: AudioContext | null = null;
 
+type WindowWithWebkitAudio = Window & typeof globalThis & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 /**
  * Get or create AudioContext (lazy initialization)
  */
@@ -19,7 +23,9 @@ function getAudioContext(): AudioContext | null {
 
   if (!audioContext) {
     try {
-      audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioContextConstructor = window.AudioContext || (window as WindowWithWebkitAudio).webkitAudioContext;
+      if (!AudioContextConstructor) return null;
+      audioContext = new AudioContextConstructor();
     } catch (e) {
       console.warn('Web Audio API not supported:', e);
       return null;
@@ -109,7 +115,7 @@ export const soundService = {
    */
   isSupported(): boolean {
     return typeof window !== 'undefined' &&
-      (!!window.AudioContext || !!(window as any).webkitAudioContext);
+      (!!window.AudioContext || !!(window as WindowWithWebkitAudio).webkitAudioContext);
   },
 
   /**

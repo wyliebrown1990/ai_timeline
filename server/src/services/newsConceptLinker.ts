@@ -6,7 +6,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import type { PrismaClient, GlossaryTerm, CurrentEvent } from '@prisma/client';
+import type { PrismaClient, GlossaryTerm } from '@prisma/client';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic();
@@ -29,61 +29,6 @@ export interface ConceptDetectionResult {
   matches: ConceptMatch[];
   keyTopics: string[]; // Term names that are key topics
   reasoning: string; // AI reasoning for matches
-}
-
-/**
- * Jaro-Winkler similarity for fuzzy matching
- */
-function jaroWinklerSimilarity(s1: string, s2: string): number {
-  const s1Lower = s1.toLowerCase();
-  const s2Lower = s2.toLowerCase();
-
-  if (s1Lower === s2Lower) return 1.0;
-  if (s1Lower.length === 0 || s2Lower.length === 0) return 0.0;
-
-  const matchWindow = Math.max(0, Math.floor(Math.max(s1Lower.length, s2Lower.length) / 2) - 1);
-  const s1Matches = new Array(s1Lower.length).fill(false);
-  const s2Matches = new Array(s2Lower.length).fill(false);
-
-  let matches = 0;
-  let transpositions = 0;
-
-  // Find matches
-  for (let i = 0; i < s1Lower.length; i++) {
-    const start = Math.max(0, i - matchWindow);
-    const end = Math.min(i + matchWindow + 1, s2Lower.length);
-
-    for (let j = start; j < end; j++) {
-      if (s2Matches[j] || s1Lower[i] !== s2Lower[j]) continue;
-      s1Matches[i] = true;
-      s2Matches[j] = true;
-      matches++;
-      break;
-    }
-  }
-
-  if (matches === 0) return 0.0;
-
-  // Count transpositions
-  let k = 0;
-  for (let i = 0; i < s1Lower.length; i++) {
-    if (!s1Matches[i]) continue;
-    while (!s2Matches[k]) k++;
-    if (s1Lower[i] !== s2Lower[k]) transpositions++;
-    k++;
-  }
-
-  const jaro =
-    (matches / s1Lower.length + matches / s2Lower.length + (matches - transpositions / 2) / matches) / 3;
-
-  // Winkler modification
-  let prefix = 0;
-  for (let i = 0; i < Math.min(4, Math.min(s1Lower.length, s2Lower.length)); i++) {
-    if (s1Lower[i] === s2Lower[i]) prefix++;
-    else break;
-  }
-
-  return jaro + prefix * 0.1 * (1 - jaro);
 }
 
 /**

@@ -756,7 +756,7 @@ interface CoverageStats {
 }
 
 // Simple in-memory state for backfill (can be replaced with DB-based tracking)
-let backfillState: {
+const backfillState: {
   isRunning: boolean;
   currentJob: BackfillStatus['currentJob'];
   lastRun: BackfillStatus['lastRun'];
@@ -824,7 +824,7 @@ export async function startBackfill(options: BackfillOptions): Promise<BackfillR
  */
 async function backfillContentType(
   contentType: ContentType,
-  mode: string
+  _mode: string
 ): Promise<{ processed: number; created: number; skipped: number; errors: number }> {
   if (!prisma) throw new Error('Database not available');
 

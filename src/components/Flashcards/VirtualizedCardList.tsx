@@ -46,17 +46,6 @@ export function VirtualizedCardList<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleRange, setVisibleRange] = useState({ start: 0, end: threshold });
 
-  // Don't virtualize small lists
-  if (items.length < threshold) {
-    return (
-      <ul className={className} role="list">
-        {items.map((item, index) => (
-          <li key={keyExtractor(item)}>{renderItem(item, index)}</li>
-        ))}
-      </ul>
-    );
-  }
-
   // Calculate visible range based on scroll position
   const updateVisibleRange = useCallback(() => {
     const container = containerRef.current;
@@ -85,6 +74,10 @@ export function VirtualizedCardList<T>({
 
   // Listen to scroll and resize
   useEffect(() => {
+    if (items.length < threshold) {
+      return;
+    }
+
     updateVisibleRange();
 
     let ticking = false;
@@ -105,7 +98,18 @@ export function VirtualizedCardList<T>({
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
     };
-  }, [updateVisibleRange]);
+  }, [items.length, threshold, updateVisibleRange]);
+
+  // Don't virtualize small lists
+  if (items.length < threshold) {
+    return (
+      <ul className={className} role="list">
+        {items.map((item, index) => (
+          <li key={keyExtractor(item)}>{renderItem(item, index)}</li>
+        ))}
+      </ul>
+    );
+  }
 
   // Total height of all items
   const totalHeight = items.length * itemHeight;

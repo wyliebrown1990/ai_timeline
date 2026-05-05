@@ -8,7 +8,7 @@
 
 import Parser from 'rss-parser';
 import { withRetry } from '../../errorTracker';
-import type { Fetcher, FetchedArticle, FetcherSource, RssConfig, SourceConfig, TestConnectionResult } from './types';
+import type { Fetcher, FetchedArticle, FetcherSource, SourceConfig, TestConnectionResult } from './types';
 import { isRssConfig } from './types';
 
 /**

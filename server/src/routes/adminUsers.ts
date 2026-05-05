@@ -4,7 +4,8 @@
  * Endpoints for managing users, viewing trust scores, and admin overrides.
  */
 
-import { Router, Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import { z } from 'zod';
 import { requireAuth } from '../middleware/auth';
 import { ApiError } from '../middleware/error';

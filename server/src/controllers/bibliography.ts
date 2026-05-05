@@ -3,7 +3,7 @@
  * Sprint Bib-1: Admin API endpoints for bibliography ingestion
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import {
   ingestBibliography,
   generateMarkdownReport,

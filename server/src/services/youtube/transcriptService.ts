@@ -5,7 +5,8 @@
  * Cleans and formats transcripts for AI analysis.
  */
 
-import { YoutubeTranscript, TranscriptResponse } from 'youtube-transcript';
+import type { TranscriptResponse } from 'youtube-transcript';
+import { YoutubeTranscript } from 'youtube-transcript';
 
 /**
  * Transcript segment with timing

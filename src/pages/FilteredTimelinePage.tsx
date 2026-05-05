@@ -210,8 +210,6 @@ export default function FilteredTimelinePage() {
 
     const fetchMilestones = async () => {
       try {
-        let response: PaginatedResponse<MilestoneResponse>;
-
         // Build query params based on filter type
         const params = new URLSearchParams();
         params.set('limit', '100'); // Get more results for filtered views
@@ -232,7 +230,7 @@ export default function FilteredTimelinePage() {
         const url = `/api/milestones/filter?${params.toString()}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch milestones');
-        response = await res.json();
+        const response: PaginatedResponse<MilestoneResponse> = await res.json();
 
         setMilestones(response.data);
         setTotal(response.pagination.total);

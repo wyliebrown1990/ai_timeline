@@ -11,7 +11,7 @@
  * Sprint 32.10 - Ingestion Monitoring Dashboard
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { prisma } from '../db';
 import { getDuplicateStats } from '../services/ingestion/duplicateDetector';
 import { getErrorStats, clearAllUnresolved, clearOldErrors } from '../services/errorTracker';

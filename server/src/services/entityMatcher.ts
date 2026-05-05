@@ -42,7 +42,6 @@ export interface OrgMatchResult {
 
 const AUTO_LINK_THRESHOLD = 0.95;
 const CANDIDATE_THRESHOLD = 0.80;
-const CREATE_DRAFT_THRESHOLD = 0.50;
 const MAX_CANDIDATES = 3;
 
 // ============================================================================

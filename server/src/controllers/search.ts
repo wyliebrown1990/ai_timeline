@@ -5,7 +5,7 @@
  * Unified search across milestones, glossary terms, and key figures.
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import * as milestonesService from '../services/milestones';
 import * as glossaryService from '../services/glossary';
 import * as keyFiguresService from '../services/keyFigures';

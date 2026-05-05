@@ -165,7 +165,7 @@ export const chatApi = {
           sessionId,
         }),
       });
-    } catch (error) {
+    } catch {
       // Network error - likely no backend available
       throw new ApiError(
         503,

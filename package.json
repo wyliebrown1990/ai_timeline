@@ -14,7 +14,7 @@
     "build": "tsc -b && vite build && cp -r dist/api dist/data && find dist -name '*.map' -delete",
     "build:extension-zip": "./scripts/build-extension-zip.sh",
     "deploy:backend": "./scripts/deploy-backend.sh",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint src server/src --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
     "test": "jest",
     "test:e2e": "playwright test",

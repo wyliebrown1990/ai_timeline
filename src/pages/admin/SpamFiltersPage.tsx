@@ -178,7 +178,7 @@ export default function SpamFiltersPage() {
         )
       );
       toast.success(filter.isActive ? 'Filter disabled' : 'Filter enabled');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update filter');
     }
   };
@@ -190,7 +190,7 @@ export default function SpamFiltersPage() {
       await deleteFilter(filter.id);
       setFilters((prev) => prev.filter((f) => f.id !== filter.id));
       toast.success('Filter deleted');
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete filter');
     }
   };

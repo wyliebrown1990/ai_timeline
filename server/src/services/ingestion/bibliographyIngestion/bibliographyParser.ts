@@ -101,7 +101,7 @@ function isValidAuthorName(name: string): boolean {
   const cleaned = cleanText(name);
   // Must have actual content (not just whitespace, HTML entities, or punctuation)
   if (cleaned.length < 2) return false;
-  if (/^[\s&;,.\-]+$/.test(cleaned)) return false;
+  if (/^[\s&;,.-]+$/.test(cleaned)) return false;
   if (/^&\w+;?$/.test(cleaned)) return false; // HTML entity like &nbsp
   if (/^et\s+al\.?$/i.test(cleaned)) return false;
   // Must contain at least one letter

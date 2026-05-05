@@ -14,10 +14,7 @@ import { type TrustTier, getTrustTier, getLimitsForTier } from './trustService';
 // Configuration (Default limits for backward compatibility)
 // =============================================================================
 
-// Default limits (used when no trust tier is provided - "new" tier)
-const DEFAULT_COOLDOWN_SECONDS = 30;
 const DEFAULT_COMMENTS_PER_HOUR = 10;
-const DEFAULT_COMMENTS_PER_DAY = 30;
 const DEFAULT_VOTES_PER_HOUR = 50;
 
 // =============================================================================

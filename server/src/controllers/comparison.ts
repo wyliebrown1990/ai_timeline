@@ -5,11 +5,12 @@
  * Handles API requests for comparison pages.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import type {
+  ComparisonEntityType} from '../services/comparison';
 import {
   getComparison,
-  getComparisonPairs,
-  ComparisonEntityType,
+  getComparisonPairs
 } from '../services/comparison';
 
 /**

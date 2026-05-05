@@ -14,11 +14,6 @@ import { normalizeName, generateVariants } from '../lib/nameNormalizer';
 import type { KeyFigureDraft, KeyFigure } from '@prisma/client';
 
 /**
- * Valid draft statuses
- */
-const DraftStatusEnum = z.enum(['pending', 'approved', 'rejected', 'merged']);
-
-/**
  * Transform draft for API response
  */
 function transformDraft(

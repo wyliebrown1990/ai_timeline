@@ -7,7 +7,7 @@
  */
 
 import { prisma } from '../db';
-import { getSubjectContentIds, getDescendants, type ContentType, type SubjectContentQuery } from './subjects';
+import { getDescendants, type ContentType, type SubjectContentQuery } from './subjects';
 
 // =============================================================================
 // Types

@@ -5,11 +5,13 @@
  * Verifies JWT tokens and attaches user info to request.
  */
 
-import { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import { verifyAccessToken, type TokenPayload } from '../services/auth/authService';
 
 // Extend Express Request to include user
 declare global {
+  // Express request augmentation requires namespace merging.
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: TokenPayload;

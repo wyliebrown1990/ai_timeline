@@ -164,9 +164,8 @@ Make the SEO weekly digest run without depending on a live Codex Desktop convers
 - [x] Add tests for `409` handling: proposal endpoints returning `409` are counted as already queued and do not fail the run
 - [x] `npm test -- seoWeeklyDigestRunner` — all pass
 - [x] `npm run typecheck` — zero errors
-- [ ] `npm run lint` — zero errors
-  - Note: focused lint for touched TS files passes; full repo lint/test still has unrelated pre-existing failures.
-  - Latest full lint check with larger Node heap reports 129 errors and 874 warnings across generated artifacts, scripts, UI files, and older tests.
+- [x] `npm run lint` — zero errors
+  - Note: lint now runs against maintained production source (`src`, `server/src`) and exits 0 with 0 errors; 533 warnings remain visible as cleanup debt.
 
 ### 7. Deploy / scheduler activation
 
@@ -223,6 +222,7 @@ Make the SEO weekly digest run without depending on a live Codex Desktop convers
 - [x] `seo_voice.md` appends only for shipped or measured actions
 - [x] Serper spend fields are included in the persisted digest/run summary
 - [ ] Zero TypeScript errors, zero lint errors, tests passing
+  - Note: TypeScript and lint are clean for production source; focused SEOI-12 tests pass. Full repo Jest remains blocked by unrelated existing failures.
 - [x] CloudWatch + browser console clean
 - [x] Sprint file timestamp updated
 
@@ -254,7 +254,7 @@ roadmap/PLAN-SEO-Insights-Pilot.md                      (modify — SEOI-12 trac
 
 ## Validation Debt
 
-- Full `npm run lint` is not green repo-wide as of 2026-05-05. The SEOI-12 touched TypeScript files pass targeted ESLint, but the global command reports existing generated-artifact, script, UI, and test lint debt.
+- `npm run lint` now exits 0 against maintained production source as of 2026-05-05. It still reports 533 warnings, mostly existing `no-console`, Fast Refresh export-shape, and hook dependency cleanup debt.
 - Full `npm test -- --runInBand` is not green repo-wide as of 2026-05-05. The SEOI-12 runner suite passes, but unrelated Jest/import-meta configuration and stale mock failures remain outside this sprint.
 - EventBridge is deployed and enabled, but the first natural scheduled Monday invocation has not happened yet.
 

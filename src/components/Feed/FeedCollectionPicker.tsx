@@ -8,7 +8,8 @@
 import { memo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Check, Folder, FolderOpen } from 'lucide-react';
-import { useCollections, Collection } from '../../hooks/useCollections';
+import type { Collection } from '../../hooks/useCollections';
+import { useCollections } from '../../hooks/useCollections';
 
 interface FeedCollectionPickerProps {
   eventId: string;

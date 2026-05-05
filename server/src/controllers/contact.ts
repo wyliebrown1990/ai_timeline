@@ -4,7 +4,7 @@
  * Handles contact form submissions and sends emails via AWS SES.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 const ses = new SESClient({ region: 'us-east-1' });

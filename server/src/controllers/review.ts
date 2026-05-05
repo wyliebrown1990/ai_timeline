@@ -4,7 +4,7 @@
  * Handles review queue endpoints for approving/rejecting AI-generated drafts.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { prisma } from '../db';
 import { publishMilestone } from '../services/publishing/milestonePublisher';
 import { publishNewsEvent, processNewsLearning } from '../services/publishing/newsPublisher';

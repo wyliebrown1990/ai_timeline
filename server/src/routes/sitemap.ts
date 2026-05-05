@@ -7,7 +7,8 @@
 
 import { Router } from 'express';
 import { prisma } from '../db';
-import { getComparisonPairs, ComparisonEntityType } from '../services/comparison';
+import type { ComparisonEntityType } from '../services/comparison';
+import { getComparisonPairs } from '../services/comparison';
 
 const router = Router();
 

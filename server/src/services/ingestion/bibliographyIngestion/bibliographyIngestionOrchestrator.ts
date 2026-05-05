@@ -6,10 +6,7 @@
  */
 
 import type {
-  BibliographyEntry,
-  ClassificationResult,
   IngestionOptions,
-  IngestionProgress,
   IngestionReport,
   ProcessingResult,
   ScrapedMetadata,

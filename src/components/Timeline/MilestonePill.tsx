@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { MilestoneResponse } from '../../types/milestone';
-import { MilestoneCategory, SignificanceLevel } from '../../types/milestone';
+import type { MilestoneResponse , MilestoneCategory} from '../../types/milestone';
+import { SignificanceLevel } from '../../types/milestone';
 import {
   categoryBgClasses,
   categoryTextClasses,

@@ -24,7 +24,7 @@ import {
   Users,
 } from 'lucide-react';
 import { glossaryApi, type GlossaryTerm, type GlossaryKeyFigure, type GlossaryLinkedMilestone } from '../services/api';
-import { GLOSSARY_CATEGORY_LABELS } from '../types/glossary';
+import { GLOSSARY_CATEGORY_LABELS, type GlossaryEntry } from '../types/glossary';
 import { PrerequisitesSection, DifficultyBadge } from '../components/Learning';
 import { CommentThread } from '../components/Comments';
 import { FromTheBlog } from '../components/Blog/FromTheBlog';
@@ -307,7 +307,7 @@ export default function GlossaryTermPage() {
         {/* Prerequisites section */}
         {term.prerequisiteIds && term.prerequisiteIds.length > 0 && allTerms && (
           <PrerequisitesSection
-            term={term as unknown as import('../types/glossary').GlossaryEntry}
+            term={term as unknown as GlossaryEntry}
             allTerms={allTerms}
             learnedTermIds={seenConceptIds}
             onSelectTerm={handleSelectTerm}

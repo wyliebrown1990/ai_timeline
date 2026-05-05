@@ -20,7 +20,8 @@ import {
   Clock,
   ExternalLink,
 } from 'lucide-react';
-import { useCollections, Collection } from '../hooks/useCollections';
+import type { Collection } from '../hooks/useCollections';
+import { useCollections } from '../hooks/useCollections';
 import type { FeedItem } from '../types/feed';
 
 const API_URL = import.meta.env.VITE_DYNAMIC_API_URL || '/api';

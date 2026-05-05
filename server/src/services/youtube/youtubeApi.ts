@@ -11,7 +11,8 @@
  * - search.list: 100 units (avoid!)
  */
 
-import { google, youtube_v3 } from 'googleapis';
+import type { youtube_v3 } from 'googleapis';
+import { google } from 'googleapis';
 
 /**
  * YouTube video metadata

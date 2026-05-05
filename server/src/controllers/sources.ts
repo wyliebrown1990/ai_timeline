@@ -4,10 +4,6 @@ import { ApiError } from '../middleware/error';
 import * as sourcesService from '../services/sources';
 import {
   fetcherRegistry,
-  isRssConfig,
-  isWebScraperConfig,
-  isYouTubeChannelConfig,
-  isYouTubePlaylistConfig,
   type FetcherSource,
   type SourceConfig,
 } from '../services/ingestion/fetchers';

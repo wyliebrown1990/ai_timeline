@@ -5,7 +5,7 @@
  * Handles API requests for event pages.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { getEventPageData, getEventList, getEventCount } from '../services/events';
 
 /**

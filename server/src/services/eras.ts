@@ -249,7 +249,7 @@ export async function getEraPageData(
 
         keyTerms = terms;
       }
-    } catch (err) {
+    } catch {
       // MilestoneGlossaryTerm table might not exist yet
       console.log('[EraService] MilestoneGlossaryTerm query failed, returning empty terms');
     }

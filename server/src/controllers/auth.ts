@@ -5,7 +5,7 @@
  * password reset, and user profile management.
  */
 
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import authService from '../services/auth/authService';
 
 // Cookie options for refresh token
@@ -51,7 +51,7 @@ export async function register(req: Request, res: Response) {
       message: 'Account created successfully. Please log in.',
       user,
     });
-  } catch (error) {
+  } catch {
     const message = error instanceof Error ? error.message : 'Registration failed';
     res.status(400).json({ error: message });
   }
@@ -79,7 +79,7 @@ export async function login(req: Request, res: Response) {
       user: result.user,
       accessToken: result.accessToken,
     });
-  } catch (error) {
+  } catch {
     const message = error instanceof Error ? error.message : 'Login failed';
     res.status(401).json({ error: message });
   }
@@ -105,7 +105,7 @@ export async function logout(req: Request, res: Response) {
     }
 
     res.json({ message: 'Logged out successfully' });
-  } catch (error) {
+  } catch {
     // Always succeed logout even if there's an error
     res.json({ message: 'Logged out' });
   }
@@ -142,7 +142,7 @@ export async function refresh(req: Request, res: Response) {
       user: result.user,
       accessToken: result.accessToken,
     });
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: 'Token refresh failed' });
   }
 }
@@ -164,7 +164,7 @@ export async function getCurrentUser(req: Request, res: Response) {
     }
 
     res.json({ user });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Failed to get user' });
   }
 }
@@ -188,7 +188,7 @@ export async function updateProfile(req: Request, res: Response) {
     });
 
     res.json({ user });
-  } catch (error) {
+  } catch {
     const message = error instanceof Error ? error.message : 'Failed to update profile';
     res.status(400).json({ error: message });
   }
@@ -221,7 +221,7 @@ export async function changePassword(req: Request, res: Response) {
     });
 
     res.json({ message: 'Password changed successfully. Please log in again.' });
-  } catch (error) {
+  } catch {
     const message = error instanceof Error ? error.message : 'Failed to change password';
     res.status(400).json({ error: message });
   }
@@ -251,7 +251,7 @@ export async function forgotPassword(req: Request, res: Response) {
     res.json({
       message: 'If an account with that email exists, a password reset link has been sent.',
     });
-  } catch (error) {
+  } catch {
     res.json({
       message: 'If an account with that email exists, a password reset link has been sent.',
     });
@@ -273,7 +273,7 @@ export async function resetPassword(req: Request, res: Response) {
     await authService.resetPassword(token, newPassword);
 
     res.json({ message: 'Password reset successfully. Please log in with your new password.' });
-  } catch (error) {
+  } catch {
     const message = error instanceof Error ? error.message : 'Failed to reset password';
     res.status(400).json({ error: message });
   }
@@ -303,7 +303,7 @@ export async function getPublicProfile(req: Request, res: Response) {
         createdAt: user.createdAt,
       },
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Failed to get profile' });
   }
 }

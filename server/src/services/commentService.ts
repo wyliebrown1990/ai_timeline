@@ -9,13 +9,12 @@
  */
 
 import { prisma } from '../db';
-import { CommentTargetType, Prisma } from '@prisma/client';
+import type { CommentTargetType, Prisma } from '@prisma/client';
 import * as trustService from './trustService';
 import { buildShadowbanFilter } from './shadowbanService';
 import {
   runVoteChecks,
   flagVote,
-  recalculateLegitimateScore,
   checkVoteVelocity,
 } from './votePatternService';
 import { createFlag } from './autoFlagService';

@@ -268,7 +268,7 @@ adminRouter.post('/run-seo-columns-migration', requireAdmin, async (req, res, ne
       try {
         await prisma.$executeRawUnsafe(`ALTER TABLE "GlossaryTerm" ${col.sql}`);
         results.push(`${col.name}: added`);
-      } catch (error) {
+      } catch {
         // Column might already exist
         results.push(`${col.name}: already exists or error`);
       }

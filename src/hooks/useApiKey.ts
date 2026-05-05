@@ -120,7 +120,7 @@ export function useApiKey(): UseApiKeyReturn {
         setValidationError(result.error || 'Failed to save key');
         return false;
       }
-    } catch (error) {
+    } catch {
       setValidationError('An unexpected error occurred');
       return false;
     } finally {

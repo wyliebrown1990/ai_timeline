@@ -158,8 +158,6 @@ async function fetchFromArxiv(arxivId: string): Promise<ScrapedMetadata> {
     // Parse XML response
     const publishedMatch = xml.match(/<published>([^<]+)<\/published>/);
     const abstractMatch = xml.match(/<summary>([^<]+)<\/summary>/s);
-    const titleMatch = xml.match(/<title>([^<]+)<\/title>/);
-
     let actualDate: Date | undefined;
     if (publishedMatch) {
       actualDate = parseDate(publishedMatch[1]);

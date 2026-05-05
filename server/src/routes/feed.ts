@@ -8,7 +8,8 @@
  * - Collections management (save/organize items)
  */
 
-import { Router, Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import { Router } from 'express';
 import { prisma } from '../db';
 import {
   getFeedEvents,
@@ -113,8 +114,6 @@ interactionRouter.post('/:id/vote', async (req: Request, res: Response) => {
     }
 
     const action = vote === 'up' ? 'upvote' : 'downvote';
-    const oppositeAction = vote === 'up' ? 'downvote' : 'upvote';
-
     // Check for existing vote from this session
     const existingVote = await prisma.newsInteraction.findFirst({
       where: {

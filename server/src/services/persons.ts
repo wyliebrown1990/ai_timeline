@@ -7,7 +7,7 @@
  */
 
 import { prisma } from '../db';
-import type { Person, Affiliation, Organization, Milestone } from '@prisma/client';
+import type { Person, Affiliation, Organization } from '@prisma/client';
 
 /**
  * Person role enum

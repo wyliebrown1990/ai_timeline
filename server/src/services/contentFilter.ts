@@ -20,7 +20,7 @@ const MAX_URLS_PER_COMMENT = 2;
 const URL_REGEX = /https?:\/\/[^\s<>"{}|\\^`[\]]+/gi;
 
 // Domain extraction regex
-const DOMAIN_REGEX = /https?:\/\/(?:www\.)?([^\/\s]+)/i;
+const DOMAIN_REGEX = /https?:\/\/(?:www\.)?([^/\s]+)/i;
 
 // =============================================================================
 // Types
