@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.letaiexplainai.seo-weekly-digest</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/wyliebrown/ai_timeline</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/homebrew/bin/node</string>
+    <string>/Users/wyliebrown/ai_timeline/scripts/seo-weekly-digest-runner.mjs</string>
+    <string>--dry-run</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>1</integer>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>15</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/wyliebrown/ai_timeline/tmp/seo-weekly-digest/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/wyliebrown/ai_timeline/tmp/seo-weekly-digest/launchd.err.log</string>
+</dict>
+</plist>

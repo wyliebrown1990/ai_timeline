@@ -2,87 +2,48 @@
 
 Committed reference for the weekly SEO digest automation.
 
-## Schedule
+## Primary schedule
 
-- Local time: Monday 9:00 AM America/New_York
-- UTC equivalent during DST: Monday 13:00 UTC
-- Cadence: weekly
-- Status target: `ACTIVE` once run-status persistence and the admin banner are in place; no external notification sink is required for MVP
+- Scheduler: AWS EventBridge `SeoWeeklyDigestRule`
+- Target: existing Lambda `IngestionFunction`
+- Payload: `{"action":"seoWeeklyDigest"}`
+- Schedule expression: `cron(15 13 ? * MON *)`
+- Local time during DST: Monday `9:15 AM America/New_York`
+- Source of truth: `infra/template.yaml`
 
-## Workspace
+The digest intentionally runs after the GSC weekly ingest rule, which is scheduled for Monday `06:00 UTC`.
 
-- Repo: `/Users/wyliebrown/ai_timeline`
-- Execution environment: local cron automation
+## Runner
 
-## Prompt
+- Shared service: `server/src/services/seo/weeklyDigestRunner.ts`
+- Lambda entry: `server/src/ingestionLambda.ts` dispatches `event.action === "seoWeeklyDigest"`
+- Local manual wrapper: `node scripts/seo-weekly-digest-runner.mjs --dry-run` invokes the deployed ingestion Lambda
+- Local fallback installer: `scripts/install-seo-weekly-digest-launchd.sh`
 
-```text
-Run the SEOAuditAgent weekly digest for letaiexplainai.com using the most recent finalized GSC week.
+The Lambda path composes directly with backend services. It does not read admin username/password SSM parameters and does not call the public admin API from inside AWS. The local wrapper intentionally invokes Lambda instead of importing the service directly because production RDS is private to the VPC.
 
-Required steps:
-1. Read `.claude/skills/SEOAuditAgent/SKILL.md`, `Workflows/Digest.md`, `seo_voice.md`, and the latest dry-run note.
-2. Authenticate against the live admin API using the existing admin credentials already configured for this workspace.
-3. Call `GET /api/admin/seo/health` first.
-   - If `paused === true`, produce a digest-only run and do not mutate the system. That means no auto-ship rewrites and no generated `SeoProposal` rows.
-4. Run the feedback loop:
-   - `GET /api/admin/seo/feedback/pending`
-   - `POST /api/admin/seo/actions/:id/measure` for each eligible action
-5. Pull this week's findings from `GET /api/admin/seo/insights` for all four buckets, up to 50 per bucket, pull the packaging backlog from `GET /api/admin/seo/packaging?page=1&limit=100`, and pull the scored keyword backlog from `GET /api/admin/seo/portfolio?status=scored&limit=25`.
-6. For each weekly finding or packaging audit, classify it into `auto_ship`, `propose`, or `human_only` using the SEOAuditAgent skill rules.
-7. For `auto_ship`, call `POST /api/admin/seo/insights/:id/ship-rewrite` only if:
-   - the agent is not paused
-   - the finding is a blog metadata rewrite
-   - the run would stay at or below 3 auto-shipped rewrites this week
-8. For `propose`, call `POST /api/admin/seo/insights/:id/generate-proposal` only if:
-   - the agent is not paused
-   - the finding bucket is `content_gap` or `trend_signal`
-   - the lane confidence is at least `0.60`
-   - the proposal has not already been queued in a recent week
-   - If the endpoint returns `409`, treat it as "already queued recently", mention that in the digest, and continue without failing the run.
-   - For packaging audits with a clear canonical destination, call `POST /api/admin/seo/packaging/:id/propose-evergreen`.
-   - For packaging audits where the page is right but the packaging is weak, call `POST /api/admin/seo/packaging/:id/propose-fix`.
-   - If a packaging proposal endpoint returns `409`, treat it as "already queued recently", mention that in the digest, and continue without failing the run.
-   - Never auto-ship packaging changes. Canonical, H1, schema, and broad internal-link changes remain human-approved.
-   - For discovery-lane portfolio rows, only nominate up to 2 ideas per weekly run:
-     - only while the agent is active
-     - only rows with `status=scored`
-     - only rows from `gsc_cluster`, `google_trends`, or `serp_sample`
-     - never auto-promote `editorial_seed` rows
-     - require `pageTypeRecommendation=blog_post`
-     - require `overallScore >= 60`
-     - call `POST /api/admin/seo/portfolio/:id/promote`
-     - if the endpoint returns `409`, treat it as already queued or ineligible, note it in the digest, and continue
-     - leave every other scored keyword row in backlog for human review
-9. Build a digest that covers:
-   - last week's measured actions
-   - this week's shipped actions
-   - this week's proposals queued
-   - this week's packaging proposals queued
-   - this week's discovery nominations queued from the portfolio
-   - scored portfolio rows intentionally deferred because of the weekly cap
-   - Serper spend state:
-     - credits used this week
-     - effective month-to-date spend in USD
-     - remaining purchased credits
-     - projected depletion date
-     - auto-top-up state
-   - if Serper burn crosses 25% / 50% / 75% / 90% of purchased credits, or projected depletion is under 30 days, elevate that warning clearly in the digest
-   - this week's human-only escalations
-   - packaging audits that need product or IA judgment
-   - any blocker such as missing GSC data or zero qualifying blog opportunities
-10. Do not rely on Discord or email for MVP delivery. Treat persisted run status plus the admin pages as the operator interface for the weekly run.
-11. Append one entry per shipped or measured action to `seo_voice.md` using the append protocol in `Workflows/Digest.md`.
-12. Persist the run summary with `PUT /api/admin/seo/run-status`.
-   - Include `status`, `startedAt`, `completedAt`, `weekStart`, `shippedCount`, `proposalCount`, `humanOnlyCount`, `measuredCount`, `digestUrl`, and `errorMessage`.
-13. If any step fails after the run starts, still attempt to:
-   - persist `PUT /api/admin/seo/run-status` with `status=failed`
-   - include the failure reason in `errorMessage`
-```
+## Required behavior
 
-## Current Reality
+1. Read health, pause state, latest run status, and Serper spend state first.
+2. Exit idempotently when the latest successful run already covers the most recent finalized GSC week, unless `force` is true.
+3. If paused, produce a digest-only run and suppress all mutations, including measurement writes, rewrites, proposals, packaging proposals, and keyword promotions.
+4. Measure eligible feedback actions only while active.
+5. Pull all four insight buckets for `lastWeekCovered`, packaging page 1 limit 100, and scored keyword portfolio page 1 limit 25.
+6. Auto-ship only guarded metadata rewrites, capped at 3 per run.
+7. Queue eligible content, packaging, and keyword proposals only while active; treat `409` as already queued or ineligible.
+8. Promote at most 2 scored keyword ideas per run, excluding `editorial_seed`.
+9. Persist run status through `setLatestAgentRunStatus()` on success or failure.
 
-- Production currently has live GSC data and a working pause switch.
-- Production currently has zero qualifying blog-query rows in the recent backfill window, so many weekly runs will legitimately produce `0` auto-ships until blog traffic appears.
-- Production currently has a live packaging backlog, so future runs should review both weekly insight buckets and packaging audits.
-- Production currently has a live keyword portfolio backlog, but the weekly agent should only nominate at most 2 non-editorial discovery ideas per run and leave the rest scored for human review.
-- The automation can run without any external notification sink because `/admin/seo-insights` is the primary operator surface.
+## Operator surface
+
+MVP delivery does not depend on Discord or email. The operator interface is:
+
+- `/admin/seo-insights`
+- `/admin/seo-insights/actions`
+- `/admin/seo-insights/proposals`
+- `/admin/seo-insights/packaging`
+- `/admin/seo-insights/portfolio`
+
+## Fallback note
+
+`launchd` is only a local fallback because it depends on Wylie's Mac being awake and online. EventBridge remains the primary scheduler.

@@ -235,6 +235,10 @@ Resources:
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
           YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
           PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
+          SEO_AGENT_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-paused'
+          SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
+          SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
+          SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
 
       # IAM permissions
       Policies:
@@ -250,6 +254,7 @@ Resources:
               Action:
                 - ssm:GetParameter
                 - ssm:GetParameters
+                - ssm:PutParameter
               Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
             # EC2 permissions for VPC networking (required for RDS access)
             - Effect: Allow
@@ -350,6 +355,29 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt GscWeeklyIngestRule.Arn
+
+  # ============================================
+  # Weekly SEO Digest
+  # ============================================
+  SeoWeeklyDigestRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ai-timeline-seo-digest-schedule-${Environment}
+      Description: Triggers weekly SEO digest after Google Search Console ingest
+      ScheduleExpression: "cron(15 13 ? * MON *)"
+      State: ENABLED
+      Targets:
+        - Id: SeoWeeklyDigestLambdaTarget
+          Arn: !GetAtt IngestionFunction.Arn
+          Input: '{"action":"seoWeeklyDigest"}'
+
+  SeoWeeklyDigestPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SeoWeeklyDigestRule.Arn
 
   # ============================================
   # Alerting - SNS Topic + CloudWatch Alarms

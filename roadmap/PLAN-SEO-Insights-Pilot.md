@@ -196,8 +196,9 @@ These sprints begin **after SEOI-7 is stable**. They do **not** change the pilot
 | **SEOI-9** | Topic pods + experiment ledger | Cluster-backed proposals, companion-page planning, experiment scheduling with D+14 / D+28 / D+56 reviews | 2-3 days |
 | **SEOI-10** | News-to-evergreen routing + SERP packaging | Repeated `/news` demand promoted into canonical evergreen actions; title/H1/meta/breadcrumb/schema/internal-link packaging audits | 2-3 days |
 | **SEOI-11** | External discovery + keyword portfolio | Non-GSC keyword discovery, Serper-backed competition sampling with cache + spend metering, editorial backlog scoring, portfolio UI, and agent-fed backlog | 2-3 days |
+| **SEOI-12** | Autonomous weekly digest runner | Shared digest service, EventBridge rule targeting the existing ingestion Lambda, local CLI wrapper, idempotent run-state checks, and failure persistence so weekly SEO digests run without manual Codex thread intervention | 1-2 days |
 
-**Expansion-track estimated effort**: 8-12 days after the pilot is stable.
+**Expansion-track estimated effort**: 9-14 days after the pilot is stable.
 
 ### Relationship To Existing SEO Plans
 
@@ -211,6 +212,7 @@ These sprints begin **after SEOI-7 is stable**. They do **not** change the pilot
 - **150 days**: 100% of approved SEO actions and proposals have scheduled measurement checkpoints and visible outcomes in the admin experiment ledger.
 - **180 days**: at least 3 cluster-backed topic pods have shipped, at least 2 repeated `/news` demand themes have been promoted into canonical evergreen destinations, and at least 1 discovery-lane keyword has produced a measurable organic lift.
 - **Operating discipline**: SEOI-11’s Serper-backed `serp_sample` lane stays within its configured caps, auto-top-up remains off, and Wylie receives automated weekly spend updates with threshold warnings before credits become a surprise.
+- **Autonomous operation**: SEOI-12 runs the weekly digest from a non-interactive scheduler for ≥4 consecutive weeks, writes run status even on failure, and requires no manual token refresh or Codex Desktop thread wakeup.
 
 ---
 
@@ -441,7 +443,7 @@ All 2026-04-30 TLR claims hold up against current state:
 
 ### One **NEW** finding from re-verification
 
-- ⚠️ **NEW-1. SEO agent SSM params wired only into API Lambda env, not Ingestion Lambda env.** `infra/template.yaml`: `/ai-timeline/${Environment}/seo-agent-paused` and `/ai-timeline/${Environment}/seo-agent-last-run` are exposed as `SEO_AGENT_PAUSED_PARAM` / `SEO_AGENT_LAST_RUN_PARAM` env vars on the API Lambda (lines 104-105) but NOT on the Ingestion Lambda (lines 227-235). For the pilot this is correct — the `/SEOAuditAgent` workflow is driven by the `/schedule` remote agent + admin-API endpoints, not by ingestion-Lambda code paths. **Flag as a future-proofing risk:** if a future sprint moves any pause-check or run-status-write into the Ingestion Lambda (e.g., to make GSC ingest itself pause-aware), the env vars must be added there too. Add to `seo-pipeline.md` (when SEOI-7 writes that file) as a known constraint. Not blocking for SEOI-8 through SEOI-11.
+- ⚠️ **NEW-1. SEO agent SSM params wired only into API Lambda env, not Ingestion Lambda env.** `infra/template.yaml`: `/ai-timeline/${Environment}/seo-agent-paused` and `/ai-timeline/${Environment}/seo-agent-last-run` are exposed as `SEO_AGENT_PAUSED_PARAM` / `SEO_AGENT_LAST_RUN_PARAM` env vars on the API Lambda (lines 104-105) but NOT on the Ingestion Lambda (lines 227-235). For the pilot this was correct because the `/SEOAuditAgent` workflow was driven by the `/schedule` remote agent + admin-API endpoints. **SEOI-12 now resolves this future-proofing risk** by moving the primary weekly digest into the existing Ingestion Lambda; SEOI-12 must wire `SEO_AGENT_PAUSED_PARAM`, `SEO_AGENT_LAST_RUN_PARAM`, `SERPER_API_KEY_PARAM`, and `SERPER_PRICING_PARAM` into `IngestionFunction` before using backend SEO services there.
 
 ### Cross-cutting findings for the post-pilot track (SEOI-8 → SEOI-11)
 

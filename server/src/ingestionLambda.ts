@@ -9,6 +9,7 @@
  *
  * Also supports "analysis only" mode for processing pending articles without RSS fetch.
  */
+/* eslint-disable no-console */
 
 import type { ScheduledEvent, Context } from 'aws-lambda';
 import { runIngestionJob } from './jobs/ingestionJob';
@@ -17,6 +18,7 @@ import { analyzeAllPending, analyzeArticle, screenOnly } from './services/ingest
 import { ingestBibliography, generateMarkdownReport } from './services/ingestion/bibliographyIngestion';
 import { prisma } from './db';
 import { runBackfill, runWeeklyIngest } from './services/gsc/gscIngest';
+import { runSeoWeeklyDigest } from './services/seo/weeklyDigestRunner';
 
 /**
  * Lambda response structure
@@ -139,7 +141,13 @@ interface GscBackfillEvent {
   daysBack?: number;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent;
+interface SeoWeeklyDigestEvent {
+  action: 'seoWeeklyDigest';
+  force?: boolean;
+  dryRun?: boolean;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -191,6 +199,10 @@ function isGscWeeklyIngestEvent(event: LambdaEvent): event is GscWeeklyIngestEve
 
 function isGscBackfillEvent(event: LambdaEvent): event is GscBackfillEvent {
   return (event as GscBackfillEvent).action === 'gscBackfill';
+}
+
+function isSeoWeeklyDigestEvent(event: LambdaEvent): event is SeoWeeklyDigestEvent {
+  return (event as SeoWeeklyDigestEvent).action === 'seoWeeklyDigest';
 }
 
 /**
@@ -436,7 +448,7 @@ export async function handler(
           if (!c || typeof c !== 'string') return false;
           const cleaned = c.trim();
           if (cleaned.length < 2) return false;
-          if (/^[\s&;,.\-]+$/.test(cleaned)) return false;
+          if (/^[\s&;,.-]+$/.test(cleaned)) return false;
           if (/nbsp/i.test(cleaned)) return false;
           if (!/[a-zA-Z]/.test(cleaned)) return false;
           return true;
@@ -561,7 +573,7 @@ export async function handler(
       }
 
       // Mark all but the first in each group as duplicates
-      for (const [key, group] of byYearTitle) {
+      for (const group of byYearTitle.values()) {
         if (group.length > 1) {
           // Keep the first (oldest), mark rest as duplicates
           for (let i = 1; i < group.length; i++) {
@@ -1197,6 +1209,31 @@ Return ONLY the JSON object, no other text.`;
           error: errorMessage,
         }),
       };
+    }
+  }
+
+  if (isSeoWeeklyDigestEvent(event)) {
+    console.log('[IngestionLambda] Running SEO weekly digest');
+    console.log(`  Dry run: ${event.dryRun ?? false}`);
+    console.log(`  Force: ${event.force ?? false}`);
+
+    try {
+      const summary = await runSeoWeeklyDigest({
+        dryRun: event.dryRun ?? false,
+        force: event.force ?? false,
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'SEO weekly digest completed successfully',
+          summary,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] SEO weekly digest failed:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
+      throw error;
     }
   }
 

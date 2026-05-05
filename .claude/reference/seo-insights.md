@@ -34,18 +34,26 @@ The SEO Insights system is LAEA's operator-facing SEO workflow. It combines:
 ## Weekly operating loop
 
 1. GSC ingest runs on AWS EventBridge every Monday at `06:00 UTC`.
-2. Weekly Codex automation runs on Monday at `9:00 AM America/New_York`.
-3. The weekly run reads insights, clusters, portfolio state, and spend state.
+2. The primary weekly digest scheduler is AWS EventBridge `SeoWeeklyDigestRule`, which invokes the existing `IngestionFunction` with `{"action":"seoWeeklyDigest"}` every Monday at `13:15 UTC`.
+3. `server/src/services/seo/weeklyDigestRunner.ts` reads health, pause state, run status, insights, packaging, portfolio state, and Serper spend state directly through backend services.
 4. It classifies findings into:
    - auto-ship
    - propose
    - human-only
-5. Status and summary are written back into the admin dashboard.
+5. Status and summary are written back into the admin dashboard via `/ai-timeline/<env>/seo-agent-last-run`.
+
+Fallbacks:
+
+- Local manual dry-run: `node scripts/seo-weekly-digest-runner.mjs --dry-run` invokes the deployed ingestion Lambda
+- Local `launchd` fallback: `scripts/install-seo-weekly-digest-launchd.sh`
+- Codex Desktop automation remains optional/manual; it is not the source of truth for weekly scheduling.
 
 Reference:
 
 - `.claude/schedules/seo-weekly.md`
 - `.claude/skills/SEOAuditAgent/SKILL.md`
+- `infra/template.yaml`
+- `server/src/services/seo/weeklyDigestRunner.ts`
 
 ## Auto-ship rules
 
