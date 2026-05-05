@@ -84,18 +84,18 @@ Why this fits the current architecture:
 
 ### 1. Planning and Architecture Confirmation
 
-- [ ] Read `AGENTS.md`, `.claude/CLAUDE.md`, `.claude/reference/seo-insights.md`, `.claude/schedules/seo-weekly.md`, `.claude/skills/AIBlogDraft/SKILL.md`, and `.claude/skills/SEOAuditAgent/SKILL.md`.
-- [ ] Confirm SEOI-12 production rule remains restored to `cron(15 13 ? * MON *)` with target input `{"action":"seoWeeklyDigest"}`.
-- [ ] Confirm Tuesday runner should use the existing ingestion Lambda rather than creating a new Lambda.
-- [ ] Define SSM names for Tuesday state, for example `/ai-timeline/prod/seo-editorial-last-run` and `/ai-timeline/prod/seo-editorial-paused`.
+- [x] Read `AGENTS.md`, `.claude/CLAUDE.md`, `.claude/reference/seo-insights.md`, `.claude/schedules/seo-weekly.md`, `.claude/skills/AIBlogDraft/SKILL.md`, and `.claude/skills/SEOAuditAgent/SKILL.md`.
+- [x] Confirm SEOI-12 production rule remains restored to `cron(15 13 ? * MON *)` with target input `{"action":"seoWeeklyDigest"}`.
+- [x] Confirm Tuesday runner should use the existing ingestion Lambda rather than creating a new Lambda.
+- [x] Define SSM names for Tuesday state, for example `/ai-timeline/prod/seo-editorial-last-run` and `/ai-timeline/prod/seo-editorial-paused`.
 - [ ] Define how deployed Lambda receives blog/SEO voice context. Do not assume repo-root `.claude/skills/...` files exist in the `server/src` Lambda bundle; either copy a reviewed voice snapshot into deployable source, store it in SSM/RDS, or load it from an explicitly packaged asset.
-- [ ] Confirm email sender constraints in SES: verified sender identity, sandbox status, and whether `wyliedeveloper@gmail.com` can receive from the configured sender.
+- [x] Confirm email sender constraints in SES: verified sender identity, sandbox status, and whether `wyliedeveloper@gmail.com` can receive from the configured sender.
 - [ ] Document expected incremental cost: LLM tokens, Serper calls, SES email, and any extra CloudWatch/EventBridge usage.
 - [ ] Get PM approval before adding any new billable AWS resources. Prefer no new billable resource beyond existing EventBridge/Lambda/SES.
 
 ### 2. Editorial Runner Service
 
-- [ ] Add `server/src/services/seo/editorialAutopilotRunner.ts`.
+- [x] Add `server/src/services/seo/editorialAutopilotRunner.ts`.
 - [ ] Add `server/src/services/seo/editorialOpportunitySelector.ts` to rank eligible opportunities from proposals, keyword portfolio rows, and recent articles.
 - [ ] Add `server/src/services/seo/blogDraftComposer.ts` to codify the durable parts of `AIBlogDraft` topic mode:
   - voice file read
@@ -108,8 +108,8 @@ Why this fits the current architecture:
 - [ ] Before adding composer logic, audit and reuse `server/src/services/seo/briefGenerator.ts`; do not copy or fork its proposal generation, link inventory, duplicate-window, entity search, or anti-slop phrase logic.
 - [ ] If `briefGenerator.ts` has useful private helpers, extract narrow exported helpers there instead of creating a parallel SEO context builder.
 - [ ] Add `server/src/services/seo/blogQualityGate.ts` with deterministic pass/fail checks before publish.
-- [ ] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
-- [ ] Keep Tuesday run-status values in one typed backend/UI contract. Avoid scattered string literals for `warning`, `failed_email_only`, `paused`, or partial-success states.
+- [x] Add `server/src/services/seo/editorialRunStatus.ts` for Tuesday run persistence.
+- [x] Keep Tuesday run-status values in one typed backend/UI contract. Avoid scattered string literals for `warning`, `failed_email_only`, `paused`, or partial-success states.
 - [ ] Reuse existing `server/src/services/blogAdmin.ts` functions where possible rather than calling public admin HTTP endpoints from inside Lambda:
   - `createDraft(input, authorId)`
   - `publishPost(id)`
@@ -120,17 +120,17 @@ Why this fits the current architecture:
 
 ### 3. Opportunity Selection Rules
 
-- [ ] Select from Monday-approved proposals first.
-- [ ] Then select unapproved but high-confidence proposals only when the source is `content_gap`, `trend_signal`, `gsc_cluster`, `google_trends`, or `serp_sample`.
-- [ ] Permit autonomous topic-mode posts only when confidence is at least `0.75`.
-- [ ] Require `overallScore >= 70` for keyword portfolio-driven posts.
-- [ ] Require `pageTypeRecommendation=blog_post` for keyword portfolio rows.
-- [ ] Exclude `editorial_seed` rows from auto-publish.
+- [x] Select from Monday-approved proposals first.
+- [x] Then select unapproved but high-confidence proposals only when the source is `content_gap`, `trend_signal`, `gsc_cluster`, `google_trends`, or `serp_sample`.
+- [x] Permit autonomous topic-mode posts only when confidence is at least `0.75`.
+- [x] Require `overallScore >= 70` for keyword portfolio-driven posts.
+- [x] Require `pageTypeRecommendation=blog_post` for keyword portfolio rows.
+- [x] Exclude `editorial_seed` rows from auto-publish.
 - [ ] Exclude opportunities if a same or near-duplicate blog post already exists.
 - [ ] Exclude topics with fewer than 3 strong internal links unless Wylie has manually approved the idea.
-- [ ] Cap output at 3 total posts per Tuesday.
-- [ ] Cap immediate publishing at 2 posts per Tuesday.
-- [ ] Convert all remaining good opportunities to draft-only or leave them queued with a clear reason.
+- [x] Cap output at 3 total posts per Tuesday.
+- [x] Cap immediate publishing at 2 posts per Tuesday.
+- [x] Convert all remaining good opportunities to draft-only or leave them queued with a clear reason.
 
 ### 4. Blog Draft and Publish Flow
 
@@ -178,7 +178,7 @@ Why this fits the current architecture:
 - [ ] Prefer SES `SendEmailCommand`; if sending from the ingestion Lambda, add `ses:SendEmail` and `ses:SendRawEmail` permissions to `IngestionFunction`.
 - [ ] Store the recipient in SSM as `/ai-timeline/prod/seo-editorial-recap-email`, defaulting to `wyliedeveloper@gmail.com`.
 - [ ] Store or configure the sender identity explicitly; do not hardcode an unverified sender without checking SES.
-- [ ] If email uses the ingestion Lambda directly, wire SES permissions in `infra/template.yaml` under `IngestionFunction.Policies`; existing SES permissions currently live on the API Lambda for the contact form, not on the ingestion Lambda.
+- [x] If email uses the ingestion Lambda directly, wire SES permissions in `infra/template.yaml` under `IngestionFunction.Policies`; existing SES permissions currently live on the API Lambda for the contact form, not on the ingestion Lambda.
 - [ ] Include published post URLs.
 - [ ] Include admin edit URLs for every published and draft post using the real route shape `/admin/blog/:id/edit`.
 - [ ] Include source opportunity links back to `/admin/seo-insights/proposals` or `/admin/seo-insights/portfolio`.
@@ -197,22 +197,22 @@ Why this fits the current architecture:
 
 ### 7. EventBridge Schedule
 
-- [ ] Add `SeoTuesdayEditorialRule` to `infra/template.yaml`.
-- [ ] Schedule it for Tuesday after the Monday review window, recommended `cron(0 15 ? * TUE *)` (Tuesday 15:00 UTC).
-- [ ] Target the existing ingestion Lambda with `{"action":"seoEditorialTuesday"}`.
-- [ ] Add paired Lambda invoke permission for the EventBridge rule.
-- [ ] Add ingestion Lambda environment variables for Tuesday pause/status/email SSM params.
+- [x] Add `SeoTuesdayEditorialRule` to `infra/template.yaml`.
+- [x] Schedule it for Tuesday after the Monday review window, recommended `cron(0 15 ? * TUE *)` (Tuesday 15:00 UTC).
+- [x] Target the existing ingestion Lambda with `{"action":"seoEditorialTuesday"}`.
+- [x] Add paired Lambda invoke permission for the EventBridge rule.
+- [x] Add ingestion Lambda environment variables for Tuesday pause/status/email SSM params.
 - [ ] Confirm EventBridge rule, target, and permission via AWS CLI after deploy.
 
 ### 8. Ingestion Lambda Wiring
 
-- [ ] Add `seoEditorialTuesday` action dispatch in `server/src/ingestionLambda.ts`.
-- [ ] Support `dryRun`, `force`, and `maxPosts` payload overrides for manual validation.
-- [ ] Ensure dry-run never creates posts, proposals, status mutations, or emails unless explicitly passed `sendTestEmail=true`.
+- [x] Add `seoEditorialTuesday` action dispatch in `server/src/ingestionLambda.ts`.
+- [x] Support `dryRun`, `force`, and `maxPosts` payload overrides for manual validation.
+- [x] Ensure dry-run never creates posts, proposals, status mutations, or emails unless explicitly passed `sendTestEmail=true`.
 - [ ] Ensure force bypasses same-week idempotency but still respects post caps and duplicate-topic gates.
 - [ ] Process selected opportunities sequentially or with bounded concurrency. Do not use unbounded `Promise.all` around LLM, Serper, blog writes, or publish steps.
 - [ ] Persist per-opportunity failure reasons and continue the run when one candidate fails after selection.
-- [ ] Return a compact JSON summary with selected, published, drafted, skipped, emailed, and failed counts.
+- [x] Return a compact JSON summary with selected, published, drafted, skipped, emailed, and failed counts.
 
 ### 9. Admin UI Review Surface
 
@@ -253,19 +253,19 @@ Why this fits the current architecture:
 
 ### 10. Tests
 
-- [ ] Add `tests/unit/seo/editorialOpportunitySelector.test.ts` for ranking, caps, `editorial_seed` exclusion, and keyword score thresholds.
+- [x] Add `tests/unit/seo/editorialOpportunitySelector.test.ts` for ranking, caps, `editorial_seed` exclusion, and keyword score thresholds.
 - [ ] Add `tests/unit/seo/blogQualityGate.test.ts` for pass/fail cases, unresolved shortcodes, weak internal links, and slop-listicle rejection.
 - [ ] Add `tests/unit/seo/editorialAutopilotRunner.test.ts` for idempotency, dry-run no-op behavior, bounded caps, partial candidate failure, and email failure preserving run results.
 - [ ] Add `tests/unit/seo/editorialEmail.test.ts` for recap payload generation and plain-text fallback links.
 - [ ] Add `tests/unit/ingestionLambda.seoEditorialTuesday.test.ts` for `seoEditorialTuesday` dispatch and dry-run/force/maxPosts payload handling.
 - [ ] Add a mocked Prisma/blog-service integration-style unit test under `tests/unit/seo/` for draft creation; follow the repo's `tests/unit/...` convention instead of colocated `__tests__` folders.
-- [ ] Run `npm run typecheck` after each implementation block.
-- [ ] Run `npm run lint` after each implementation block.
-- [ ] Run targeted Jest tests after each implementation block.
+- [x] Run `npm run typecheck` after each implementation block.
+- [x] Run `npm run lint` after each implementation block.
+- [x] Run targeted Jest tests after each implementation block.
 
 ### 11. Deployment
 
-- [ ] Run `aws events list-rules` and `aws lambda get-function` to confirm existing infrastructure before provisioning.
+- [x] Run `aws events list-rules` and `aws lambda get-function` to confirm existing infrastructure before provisioning.
 - [ ] Deploy backend with `./scripts/deploy-backend.sh`.
 - [ ] Confirm CloudFormation creates `SeoTuesdayEditorialRule` and permission.
 - [ ] Confirm ingestion Lambda has required SSM and SES permissions.

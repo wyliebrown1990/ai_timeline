@@ -19,6 +19,7 @@ import { ingestBibliography, generateMarkdownReport } from './services/ingestion
 import { prisma } from './db';
 import { runBackfill, runWeeklyIngest } from './services/gsc/gscIngest';
 import { runSeoWeeklyDigest } from './services/seo/weeklyDigestRunner';
+import { runSeoEditorialTuesday } from './services/seo/editorialAutopilotRunner';
 
 /**
  * Lambda response structure
@@ -147,7 +148,16 @@ interface SeoWeeklyDigestEvent {
   dryRun?: boolean;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent;
+interface SeoEditorialTuesdayEvent {
+  action: 'seoEditorialTuesday';
+  force?: boolean;
+  dryRun?: boolean;
+  maxPosts?: number;
+  maxAutoPublish?: number;
+  sendTestEmail?: boolean;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent | SeoEditorialTuesdayEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -203,6 +213,10 @@ function isGscBackfillEvent(event: LambdaEvent): event is GscBackfillEvent {
 
 function isSeoWeeklyDigestEvent(event: LambdaEvent): event is SeoWeeklyDigestEvent {
   return (event as SeoWeeklyDigestEvent).action === 'seoWeeklyDigest';
+}
+
+function isSeoEditorialTuesdayEvent(event: LambdaEvent): event is SeoEditorialTuesdayEvent {
+  return (event as SeoEditorialTuesdayEvent).action === 'seoEditorialTuesday';
 }
 
 /**
@@ -1232,6 +1246,37 @@ Return ONLY the JSON object, no other text.`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('[IngestionLambda] SEO weekly digest failed:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
+      throw error;
+    }
+  }
+
+  if (isSeoEditorialTuesdayEvent(event)) {
+    console.log('[IngestionLambda] Running SEO Tuesday editorial autopilot');
+    console.log(`  Dry run: ${event.dryRun ?? false}`);
+    console.log(`  Force: ${event.force ?? false}`);
+    console.log(`  Max posts: ${event.maxPosts ?? 'default'}`);
+    console.log(`  Max auto-publish: ${event.maxAutoPublish ?? 'default'}`);
+    console.log(`  Send test email: ${event.sendTestEmail ?? false}`);
+
+    try {
+      const summary = await runSeoEditorialTuesday({
+        dryRun: event.dryRun ?? false,
+        force: event.force ?? false,
+        maxPosts: event.maxPosts,
+        maxAutoPublish: event.maxAutoPublish,
+        sendTestEmail: event.sendTestEmail ?? false,
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'SEO Tuesday editorial run completed successfully',
+          summary,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] SEO Tuesday editorial run failed:', errorMessage);
       console.error('[IngestionLambda] Full error:', error);
       throw error;
     }

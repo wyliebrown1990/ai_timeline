@@ -105,6 +105,10 @@ Resources:
           SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
           SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
           SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
+          SEO_EDITORIAL_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-last-run'
+          SEO_EDITORIAL_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-paused'
+          SEO_EDITORIAL_RECAP_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-recap-email'
+          SEO_EDITORIAL_SENDER_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-sender-email'
 
       Events:
         ApiProxy:
@@ -256,6 +260,11 @@ Resources:
                 - ssm:GetParameters
                 - ssm:PutParameter
               Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/ai-timeline/${Environment}/*'
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: '*'
             # EC2 permissions for VPC networking (required for RDS access)
             - Effect: Allow
               Action:
@@ -378,6 +387,29 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt SeoWeeklyDigestRule.Arn
+
+  # ============================================
+  # Tuesday SEO Editorial Autopilot
+  # ============================================
+  SeoTuesdayEditorialRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ai-timeline-seo-editorial-tuesday-${Environment}
+      Description: Triggers Tuesday SEO editorial autopilot after Monday review window
+      ScheduleExpression: "cron(0 15 ? * TUE *)"
+      State: ENABLED
+      Targets:
+        - Id: SeoTuesdayEditorialLambdaTarget
+          Arn: !GetAtt IngestionFunction.Arn
+          Input: '{"action":"seoEditorialTuesday"}'
+
+  SeoTuesdayEditorialPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SeoTuesdayEditorialRule.Arn
 
   # ============================================
   # Alerting - SNS Topic + CloudWatch Alarms
