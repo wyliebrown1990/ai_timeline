@@ -8,6 +8,7 @@ const mockGetLatestEditorialRunStatus = jest.fn();
 const mockSetLatestEditorialRunStatus = jest.fn();
 const mockLoadEditorialOpportunityBacklog = jest.fn();
 const mockSelectEditorialOpportunities = jest.fn();
+const mockSendEditorialRecapEmail = jest.fn();
 
 jest.mock('../../../server/src/services/gsc/gscIngest', () => ({
   getGscHealth: mockGetGscHealth,
@@ -26,6 +27,10 @@ jest.mock('../../../server/src/services/seo/editorialRunStatus', () => ({
 jest.mock('../../../server/src/services/seo/editorialOpportunitySelector', () => ({
   loadEditorialOpportunityBacklog: mockLoadEditorialOpportunityBacklog,
   selectEditorialOpportunities: mockSelectEditorialOpportunities,
+}));
+
+jest.mock('../../../server/src/services/seo/editorialEmail', () => ({
+  sendEditorialRecapEmail: mockSendEditorialRecapEmail,
 }));
 
 import { runSeoEditorialTuesday } from '../../../server/src/services/seo/editorialAutopilotRunner';
@@ -81,6 +86,12 @@ beforeEach(() => {
     selected: [],
     deferred: [],
   });
+  mockSendEditorialRecapEmail.mockResolvedValue({
+    sent: true,
+    recipient: 'wyliedeveloper@gmail.com',
+    sender: 'wyliebrown1990@gmail.com',
+    errorMessage: null,
+  });
 });
 
 describe('editorialAutopilotRunner', () => {
@@ -113,6 +124,7 @@ describe('editorialAutopilotRunner', () => {
       draftCount: 0,
     }));
     expect(mockSetLatestEditorialRunStatus).not.toHaveBeenCalled();
+    expect(mockSendEditorialRecapEmail).not.toHaveBeenCalled();
   });
 
   it('passes zero maxPosts to the selector while paused and persists paused status', async () => {
@@ -130,6 +142,40 @@ describe('editorialAutopilotRunner', () => {
     expect(mockSetLatestEditorialRunStatus).toHaveBeenCalledWith(expect.objectContaining({
       status: 'paused',
       skippedCount: 1,
+      emailStatus: 'sent',
+    }));
+  });
+
+  it('dry-run sends recap only when sendTestEmail is explicit', async () => {
+    const summary = await runSeoEditorialTuesday({
+      dryRun: true,
+      sendTestEmail: true,
+      now: new Date('2026-05-05T15:00:00.000Z'),
+    });
+
+    expect(summary.emailedCount).toBe(1);
+    expect(mockSendEditorialRecapEmail).toHaveBeenCalledTimes(1);
+    expect(mockSetLatestEditorialRunStatus).not.toHaveBeenCalled();
+  });
+
+  it('preserves run results and marks warning when recap email fails', async () => {
+    mockSendEditorialRecapEmail.mockResolvedValue({
+      sent: false,
+      recipient: 'wyliedeveloper@gmail.com',
+      sender: null,
+      errorMessage: 'Missing SSM sender parameter',
+    });
+
+    const summary = await runSeoEditorialTuesday({
+      force: true,
+      now: new Date('2026-05-05T15:00:00.000Z'),
+    });
+
+    expect(summary.status).toBe('warning');
+    expect(summary.errorMessage).toBe('Missing SSM sender parameter');
+    expect(mockSetLatestEditorialRunStatus).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'warning',
+      emailStatus: 'failed',
     }));
   });
 

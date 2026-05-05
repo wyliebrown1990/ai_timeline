@@ -173,27 +173,27 @@ Why this fits the current architecture:
 
 ### 6. Tuesday Email Recap
 
-- [ ] Add an email helper for SEO editorial recap emails.
-- [ ] Do not duplicate the contact-form SES wiring inline. Extract or reuse a small shared server email helper so SES client creation, sender validation, and error normalization live in one place.
-- [ ] Prefer SES `SendEmailCommand`; if sending from the ingestion Lambda, add `ses:SendEmail` and `ses:SendRawEmail` permissions to `IngestionFunction`.
-- [ ] Store the recipient in SSM as `/ai-timeline/prod/seo-editorial-recap-email`, defaulting to `wyliedeveloper@gmail.com`.
-- [ ] Store or configure the sender identity explicitly; do not hardcode an unverified sender without checking SES.
+- [x] Add an email helper for SEO editorial recap emails.
+- [x] Do not duplicate the contact-form SES wiring inline. Extract or reuse a small shared server email helper so SES client creation, sender validation, and error normalization live in one place.
+- [x] Prefer SES `SendEmailCommand`; if sending from the ingestion Lambda, add `ses:SendEmail` and `ses:SendRawEmail` permissions to `IngestionFunction`.
+- [x] Store the recipient in SSM as `/ai-timeline/prod/seo-editorial-recap-email`, defaulting to `wyliedeveloper@gmail.com`.
+- [x] Store or configure the sender identity explicitly; do not hardcode an unverified sender without checking SES.
 - [x] If email uses the ingestion Lambda directly, wire SES permissions in `infra/template.yaml` under `IngestionFunction.Policies`; existing SES permissions currently live on the API Lambda for the contact form, not on the ingestion Lambda.
 - [ ] Include published post URLs.
 - [ ] Include admin edit URLs for every published and draft post using the real route shape `/admin/blog/:id/edit`.
 - [ ] Include source opportunity links back to `/admin/seo-insights/proposals` or `/admin/seo-insights/portfolio`.
-- [ ] Include skipped/deferred opportunities with reasons.
-- [ ] Include Serper credits used, month-to-date spend, remaining credits, warning level, and auto-top-up state.
-- [ ] Include Tuesday runner status and CloudWatch log pointer.
-- [ ] Send the email even when the run produces zero posts, unless the whole run fails before email construction.
-- [ ] If email send fails, keep the runner status `warning` or `failed_email_only` while preserving blog/proposal results.
+- [x] Include skipped/deferred opportunities with reasons.
+- [x] Include Serper credits used, month-to-date spend, remaining credits, warning level, and auto-top-up state.
+- [x] Include Tuesday runner status and CloudWatch log pointer.
+- [x] Send the email even when the run produces zero posts, unless the whole run fails before email construction.
+- [x] If email send fails, keep the runner status `warning` or `failed_email_only` while preserving blog/proposal results.
 - [ ] Design the recap as a scannable operator artifact, not a newsletter:
   - top line status: `Published`, `Drafts ready`, `Skipped`, `Warnings`
   - first visible links: public post review URLs and `/admin/blog/:id/edit`
   - grouped sections for Published, Drafts for review, Skipped by gate, Spend/Serper, and Logs
   - plain-text fallback with the same links for mobile/email clients
-- [ ] Keep link labels descriptive (`Review public post`, `Edit draft`, `Open source proposal`) and avoid generic `click here` / `learn more`.
-- [ ] Include one explicit "what Wylie should do next" sentence when posts were published or drafts were created.
+- [x] Keep link labels descriptive (`Review public post`, `Edit draft`, `Open source proposal`) and avoid generic `click here` / `learn more`.
+- [x] Include one explicit "what Wylie should do next" sentence when posts were published or drafts were created.
 
 ### 7. EventBridge Schedule
 
@@ -256,7 +256,7 @@ Why this fits the current architecture:
 - [x] Add `tests/unit/seo/editorialOpportunitySelector.test.ts` for ranking, caps, `editorial_seed` exclusion, and keyword score thresholds.
 - [x] Add `tests/unit/seo/blogQualityGate.test.ts` for pass/fail cases, unresolved shortcodes, weak internal links, and slop-listicle rejection.
 - [ ] Add `tests/unit/seo/editorialAutopilotRunner.test.ts` for idempotency, dry-run no-op behavior, bounded caps, partial candidate failure, and email failure preserving run results.
-- [ ] Add `tests/unit/seo/editorialEmail.test.ts` for recap payload generation and plain-text fallback links.
+- [x] Add `tests/unit/seo/editorialEmail.test.ts` for recap payload generation and plain-text fallback links.
 - [ ] Add `tests/unit/ingestionLambda.seoEditorialTuesday.test.ts` for `seoEditorialTuesday` dispatch and dry-run/force/maxPosts payload handling.
 - [ ] Add a mocked Prisma/blog-service integration-style unit test under `tests/unit/seo/` for draft creation; follow the repo's `tests/unit/...` convention instead of colocated `__tests__` folders.
 - [x] Run `npm run typecheck` after each implementation block.
@@ -383,7 +383,7 @@ Why this fits the current architecture:
 ### Moderate
 
 - [ ] **Do not reuse Monday run-status blindly.** `PUT /api/admin/seo/run-status` and `agentRunStatus.ts` are shaped for the Monday digest (`success | failed`, shipped/proposal/human/measured counts). Tuesday editorial status needs its own status record or a deliberate generalized schema and UI update.
-- [ ] **Wire SES on the correct Lambda.** SES permissions exist for the API Lambda contact form. If Tuesday email sends from `ai-timeline-ingestion-prod`, add SES IAM to `IngestionFunction`.
+- [x] **Wire SES on the correct Lambda.** SES permissions exist for the API Lambda contact form. If Tuesday email sends from `ai-timeline-ingestion-prod`, add SES IAM to `IngestionFunction`.
 - [ ] **Frontend tasks need concrete integration points.** Extend `src/services/api.ts` and `src/pages/admin/SeoInsightsPage.tsx` / existing SEO Insights pages rather than adding a detached admin surface.
 
 ### Minor
@@ -454,5 +454,5 @@ Why this fits the current architecture:
 ## Blocked — PM Decision Needed
 
 - [ ] Confirm final starting cap: recommended `maxPosts=3`, `maxAutoPublish=2`, `minDraftReviewSlots=1`.
-- [ ] Confirm sender identity for Tuesday recap emails.
+- [x] Confirm sender identity for Tuesday recap emails.
 - [ ] Confirm whether the first production Tuesday run should publish immediately or create drafts only for one calibration week.

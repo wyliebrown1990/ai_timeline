@@ -12,6 +12,7 @@ import {
   type DeferredEditorialOpportunity,
   type EditorialOpportunity,
 } from './editorialOpportunitySelector';
+import { sendEditorialRecapEmail } from './editorialEmail';
 
 const DIGEST_URL = 'https://letaiexplainai.com/admin/seo-insights';
 const DEFAULT_MAX_POSTS = 3;
@@ -36,7 +37,7 @@ export interface SeoEditorialTuesdayDecision {
 }
 
 export interface SeoEditorialTuesdayRunSummary {
-  status: 'success' | 'failed' | 'skipped';
+  status: 'success' | 'warning' | 'failed' | 'skipped';
   startedAt: string;
   completedAt: string;
   weekStart: string | null;
@@ -101,14 +102,14 @@ async function persistRunStatus(summary: SeoEditorialTuesdayRunSummary): Promise
   }
 
   const record: SeoEditorialRunStatusRecord = {
-    status: summary.paused ? 'paused' : summary.status === 'failed' ? 'failed' : 'success',
+    status: summary.paused ? 'paused' : summary.status === 'failed' ? 'failed' : summary.status === 'warning' ? 'warning' : 'success',
     startedAt: summary.startedAt,
     completedAt: summary.completedAt,
     weekStart: summary.weekStart ? `${summary.weekStart}T00:00:00.000Z` : null,
     publishedCount: summary.publishedCount,
     draftCount: summary.draftCount,
     skippedCount: summary.skippedCount,
-    emailStatus: 'not_attempted',
+    emailStatus: summary.emailedCount > 0 ? 'sent' : summary.errorMessage ? 'failed' : 'not_attempted',
     digestUrl: summary.digestUrl,
     errorMessage: summary.errorMessage,
     items: summary.decisions.map((decision) => ({
@@ -225,6 +226,17 @@ export async function runSeoEditorialTuesday(
         ...pausedDecision,
       ],
     };
+
+    if (!dryRun || options.sendTestEmail) {
+      const emailResult = await sendEditorialRecapEmail(summary);
+      summary.emailedCount = emailResult.sent ? 1 : 0;
+      if (!emailResult.sent) {
+        summary.errorMessage = emailResult.errorMessage;
+        if (!dryRun) {
+          summary.status = 'warning';
+        }
+      }
+    }
 
     await persistRunStatus(summary);
     return summary;

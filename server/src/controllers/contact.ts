@@ -5,9 +5,7 @@
  */
 
 import type { Request, Response } from 'express';
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
-
-const ses = new SESClient({ region: 'us-east-1' });
+import { normalizeEmailError, sendEmail } from '../services/email';
 
 const RECIPIENT_EMAIL = 'wyliebrown1990@gmail.com';
 // Note: In SES sandbox mode, sender must be verified. Using same email until domain is verified.
@@ -70,28 +68,13 @@ Sent from the AI Timeline Atlas contact form
 https://letaiexplainai.com/contact
     `.trim();
 
-    // Send email via SES
-    const command = new SendEmailCommand({
-      Source: SENDER_EMAIL,
-      Destination: {
-        ToAddresses: [RECIPIENT_EMAIL],
-      },
-      ReplyToAddresses: [email.trim()],
-      Message: {
-        Subject: {
-          Data: emailSubject,
-          Charset: 'UTF-8',
-        },
-        Body: {
-          Text: {
-            Data: emailBody,
-            Charset: 'UTF-8',
-          },
-        },
-      },
+    await sendEmail({
+      from: SENDER_EMAIL,
+      to: [RECIPIENT_EMAIL],
+      replyTo: [email.trim()],
+      subject: emailSubject,
+      text: emailBody,
     });
-
-    await ses.send(command);
 
     console.log(`[Contact] Email sent successfully from ${email}`);
 
@@ -102,13 +85,11 @@ https://letaiexplainai.com/contact
   } catch (error) {
     console.error('[Contact] Error sending email:', error);
 
-    // Check for SES-specific errors
-    if (error instanceof Error) {
-      if (error.name === 'MessageRejected') {
-        return res.status(400).json({
-          error: 'Unable to send email. Please try again later.',
-        });
-      }
+    const emailError = normalizeEmailError(error);
+    if (emailError.code === 'MessageRejected') {
+      return res.status(400).json({
+        error: 'Unable to send email. Please try again later.',
+      });
     }
 
     return res.status(500).json({
