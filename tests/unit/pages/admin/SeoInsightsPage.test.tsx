@@ -461,6 +461,37 @@ describe('SeoInsightsPage', () => {
     );
   });
 
+  it('covers Tuesday editorial operator states', async () => {
+    mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
+    mockSeoInsightsApi.getEditorialStatus.mockResolvedValue(buildEditorialStatus({
+      paused: true,
+      run: {
+        status: 'warning',
+        startedAt: '2026-05-05T15:00:00.000Z',
+        completedAt: '2026-05-05T15:04:00.000Z',
+        weekStart: '2026-04-24T00:00:00.000Z',
+        publishedCount: 0,
+        draftCount: 0,
+        skippedCount: 3,
+        emailStatus: 'failed',
+        digestUrl: 'https://letaiexplainai.com/admin/seo-insights',
+        errorMessage: 'SES rejected the recap email.',
+        items: [],
+      },
+    }));
+
+    renderPage();
+
+    await screen.findByText(/ses rejected the recap email/i);
+    const panel = await screen.findByTestId('seo-editorial-status-panel');
+    expect(panel).toHaveTextContent(/paused/i);
+    expect(panel).toHaveTextContent(/last tuesday run: 0 published, 0 drafts/i);
+    expect(panel).toHaveTextContent(/email status: failed/i);
+    expect(panel).toHaveTextContent(/ses rejected the recap email/i);
+    expect(panel).toHaveTextContent(/no post actions in the latest run/i);
+    expect(screen.getByRole('button', { name: /resume tuesday autopilot/i })).toBeInTheDocument();
+  });
+
   it('pauses and resumes the Tuesday editorial autopilot separately', async () => {
     mockSeoInsightsApi.list
       .mockResolvedValueOnce(buildListResult())

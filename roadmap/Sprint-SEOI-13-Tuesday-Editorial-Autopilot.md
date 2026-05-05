@@ -234,7 +234,7 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
   - `LoadingSkeleton` for loading state
   - `ErrorState` for status fetch failures with retry
   - `react-hot-toast` for pause/resume or resend-email feedback
-- [ ] Define all Tuesday status states in the UI:
+- [x] Define all Tuesday status states in the UI:
   - loading
   - populated success
   - zero eligible opportunities
@@ -250,8 +250,8 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
   - tablet/md: two-column cards or wrapping summary metrics
   - mobile/sm: single-column stack with 48px minimum tap targets and no horizontal scroll
 - [x] Ensure every implemented action (`Open public post`, `Edit post`, `Pause Tuesday autopilot`) has visible focus, disabled/loading state, and success/failure feedback.
-- [ ] Use `ConfirmDialog` before any destructive action exposed from the Tuesday review surface, especially archive/unpublish cleanup.
-- [ ] Ensure any animations use existing `animate-fade-in` / `animate-slide-up` or motion-safe variants; respect `prefers-reduced-motion`.
+- [x] Use `ConfirmDialog` before any destructive action exposed from the Tuesday review surface, especially archive/unpublish cleanup.
+- [x] Ensure any animations use existing `animate-fade-in` / `animate-slide-up` or motion-safe variants; respect `prefers-reduced-motion`.
 
 ### 10. Tests
 
@@ -291,10 +291,10 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
 - [x] Take initial screenshot: `agent-browser screenshot`
 - [ ] Get element references: `agent-browser snapshot -i`
 - [x] Verify Tuesday editorial run status appears.
-- [ ] Verify loading, empty/zero-post, populated, partial-success, failed-email, paused, and fatal-error states with mocked or seeded run-status data.
+- [x] Verify loading, empty/zero-post, populated, partial-success, failed-email, paused, and fatal-error states with mocked or seeded run-status data.
 - [ ] Click published post links and draft edit links.
-- [ ] Verify status badges and skipped reasons render correctly.
-- [ ] Verify pause switch behavior if implemented.
+- [x] Verify status badges and skipped reasons render correctly.
+- [x] Verify pause switch behavior if implemented.
 - [ ] Toggle light/dark theme and screenshot both.
 - [x] Take final screenshot: `agent-browser screenshot`
 - [x] Repeat on mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`
@@ -358,7 +358,7 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
 - [x] Admin UI exposes Tuesday run status and links for human review.
 - [x] EventBridge scheduled trigger validated end-to-end and restored to Tuesday cadence.
 - [x] All browser validation tasks completed with screenshots.
-- [ ] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
+- [x] Tuesday admin review surface covers loading, empty, populated, partial-success, failed-email, paused, and fatal-error states.
 - [x] Tuesday UI passes dark-mode and mobile checks.
 - [x] Tuesday email recap is scannable on mobile and includes plain-text fallback links.
 - [ ] Rich Results Test, Schema.org validator, PageSpeed Insights, Mobile-Friendly/URL Inspection, sitemap inclusion, and GSC follow-up tasks completed for the first generated posts.
@@ -397,7 +397,7 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
 
 ### Moderate
 
-- [ ] **Design the Tuesday operator states, not just the data.** The admin surface must specify loading, populated, zero-opportunity, partial-success, failed-email, paused, and fatal-error states using existing `LoadingSkeleton` / `ErrorState` patterns.
+- [x] **Design the Tuesday operator states, not just the data.** The admin surface must specify loading, populated, zero-opportunity, partial-success, failed-email, paused, and fatal-error states using existing `LoadingSkeleton` / `ErrorState` patterns.
 - [x] **Specify responsive and dark-mode behavior.** The Tuesday review panel must define desktop/tablet/mobile layout, avoid horizontal scroll at 375px, keep 48px mobile tap targets, and include `dark:` variants for every new visual state.
 - [x] **Make the recap email a review workflow.** Since Wylie stays human-in-the-loop by email, the recap must be mobile-scannable, put review/edit links first, group published/draft/skipped items, and include plain-text fallback links.
 
