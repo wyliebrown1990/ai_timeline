@@ -436,7 +436,7 @@ Why this fits the current architecture:
 
 ### Critical
 
-- [ ] No P0 SEO findings. The plan uses the existing `/blog/:slug` public surface, which already has Article/Breadcrumb JSON-LD helpers, canonical support, sitemap inclusion for published posts, and preview `noindex` handling.
+- [x] No P0 SEO findings. The plan uses the existing `/blog/:slug` public surface, which already has Article/Breadcrumb JSON-LD helpers, canonical support, sitemap inclusion for published posts, and preview `noindex` handling.
 
 ### Moderate
 
@@ -453,6 +453,6 @@ Why this fits the current architecture:
 
 ## Blocked — PM Decision Needed
 
-- [ ] Confirm final starting cap: recommended `maxPosts=3`, `maxAutoPublish=2`, `minDraftReviewSlots=1`.
+- [x] Confirm final starting cap: recommended `maxPosts=3`, `maxAutoPublish=2`, `minDraftReviewSlots=1`.
 - [x] Confirm sender identity for Tuesday recap emails.
-- [ ] Confirm whether the first production Tuesday run should publish immediately or create drafts only for one calibration week.
+- [x] Confirm whether the first production Tuesday run should publish immediately or create drafts only for one calibration week.
