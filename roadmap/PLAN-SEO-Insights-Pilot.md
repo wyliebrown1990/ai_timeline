@@ -197,8 +197,9 @@ These sprints begin **after SEOI-7 is stable**. They do **not** change the pilot
 | **SEOI-10** | News-to-evergreen routing + SERP packaging | Repeated `/news` demand promoted into canonical evergreen actions; title/H1/meta/breadcrumb/schema/internal-link packaging audits | 2-3 days |
 | **SEOI-11** | External discovery + keyword portfolio | Non-GSC keyword discovery, Serper-backed competition sampling with cache + spend metering, editorial backlog scoring, portfolio UI, and agent-fed backlog | 2-3 days |
 | **SEOI-12** | Autonomous weekly digest runner | Shared digest service, EventBridge rule targeting the existing ingestion Lambda, local CLI wrapper, idempotent run-state checks, and failure persistence so weekly SEO digests run without manual Codex thread intervention | 1-2 days |
+| **SEOI-13** | Tuesday editorial autopilot | EventBridge Tuesday runner that selects high-confidence proposals/keywords, creates topic-mode blog posts, publishes within caps, and emails Wylie recap/review links | 2-4 days |
 
-**Expansion-track estimated effort**: 9-14 days after the pilot is stable.
+**Expansion-track estimated effort**: 11-18 days after the pilot is stable.
 
 ### Relationship To Existing SEO Plans
 
@@ -213,6 +214,7 @@ These sprints begin **after SEOI-7 is stable**. They do **not** change the pilot
 - **180 days**: at least 3 cluster-backed topic pods have shipped, at least 2 repeated `/news` demand themes have been promoted into canonical evergreen destinations, and at least 1 discovery-lane keyword has produced a measurable organic lift.
 - **Operating discipline**: SEOI-11’s Serper-backed `serp_sample` lane stays within its configured caps, auto-top-up remains off, and Wylie receives automated weekly spend updates with threshold warnings before credits become a surprise.
 - **Autonomous operation**: SEOI-12 runs the weekly digest from a non-interactive scheduler for ≥4 consecutive weeks, writes run status even on failure, and requires no manual token refresh or Codex Desktop thread wakeup.
+- **Editorial autonomy**: SEOI-13 creates up to 3 topic-mode posts per Tuesday, publishes no more than 2 without pre-approval, emails Wylie review links the same day, and keeps draft-only any topic that fails the quality gate.
 
 ---
 
