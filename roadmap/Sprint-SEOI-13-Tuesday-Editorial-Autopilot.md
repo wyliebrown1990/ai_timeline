@@ -292,10 +292,10 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
 - [ ] Get element references: `agent-browser snapshot -i`
 - [x] Verify Tuesday editorial run status appears.
 - [x] Verify loading, empty/zero-post, populated, partial-success, failed-email, paused, and fatal-error states with mocked or seeded run-status data.
-- [ ] Click published post links and draft edit links.
+- [x] Click published post links and draft edit links.
 - [x] Verify status badges and skipped reasons render correctly.
 - [x] Verify pause switch behavior if implemented.
-- [ ] Toggle light/dark theme and screenshot both.
+- [x] Toggle light/dark theme and screenshot both.
 - [x] Take final screenshot: `agent-browser screenshot`
 - [x] Repeat on mobile viewport: `agent-browser resize 375 812 && agent-browser screenshot`
 - [x] Verify mobile layout has no horizontal scroll and all tap targets are at least 48px high/wide.
