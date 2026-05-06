@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   Brain,
   ArrowLeft,
@@ -24,12 +24,15 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { QuizShareCard } from '../components/Quiz/QuizShareCard';
+import { QuizHistoryList } from '../components/Quiz/QuizHistoryList';
+import { SEO } from '../components/SEO';
 import { useSession } from '../contexts/SessionContext';
 import {
   newsQuizApi,
   type NewsQuiz,
   type QuizAnswer,
   type QuizResult,
+  type QuizHistoryRow,
 } from '../services/api';
 
 /**
@@ -81,12 +84,14 @@ type QuizState = 'loading' | 'no-quiz' | 'ready' | 'in-progress' | 'submitting' 
 
 export function NewsQuizPage() {
   const { sessionId, isReady: sessionReady } = useSession();
+  const { id: routeQuizId } = useParams<{ id?: string }>();
+  const isHistorical = Boolean(routeQuizId);
 
-  // Quiz state
+  // Quiz state — weekStart/weekEnd are nullable when no quiz exists yet.
   const [quizState, setQuizState] = useState<QuizState>('loading');
   const [quiz, setQuiz] = useState<NewsQuiz | null>(null);
-  const [weekStart, setWeekStart] = useState<string>('');
-  const [weekEnd, setWeekEnd] = useState<string>('');
+  const [weekStart, setWeekStart] = useState<string | null>(null);
+  const [weekEnd, setWeekEnd] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Answer state
@@ -97,8 +102,11 @@ export function NewsQuizPage() {
   const [results, setResults] = useState<QuizResult[] | null>(null);
   const [score, setScore] = useState<{ score: number; total: number; percentage: number } | null>(null);
 
+  // History state — parent owns this fetch; QuizHistoryList consumes the rows.
+  const [historyRows, setHistoryRows] = useState<QuizHistoryRow[]>([]);
+
   /**
-   * Load the current week's quiz
+   * Load either the current quiz or a specific historical quiz by ID.
    */
   const loadQuiz = useCallback(async () => {
     setQuizState('loading');
@@ -109,28 +117,57 @@ export function NewsQuizPage() {
     setScore(null);
 
     try {
-      const response = await newsQuizApi.getCurrent();
-      setWeekStart(response.weekStart);
-      setWeekEnd(response.weekEnd);
-
-      if (response.data) {
+      if (routeQuizId) {
+        const response = await newsQuizApi.getById(routeQuizId);
         setQuiz(response.data);
+        setWeekStart(response.data.weekStart ?? null);
+        setWeekEnd(response.data.weekEnd ?? null);
         setQuizState('ready');
       } else {
-        setQuiz(null);
-        setQuizState('no-quiz');
+        const response = await newsQuizApi.getCurrent();
+        setWeekStart(response.weekStart);
+        setWeekEnd(response.weekEnd);
+        if (response.data) {
+          setQuiz(response.data);
+          setQuizState('ready');
+        } else {
+          setQuiz(null);
+          setQuizState('no-quiz');
+        }
       }
     } catch (err) {
       console.error('[NewsQuizPage] Failed to load quiz:', err);
       setError(err instanceof Error ? err.message : 'Failed to load quiz');
       setQuizState('no-quiz');
     }
-  }, []);
+  }, [routeQuizId]);
 
-  // Load quiz on mount
+  // Load quiz on mount and whenever the route param changes.
   useEffect(() => {
     loadQuiz();
   }, [loadQuiz]);
+
+  // Load history once the session is ready. Skip on the historical /:id route —
+  // we hide the list there to avoid confusion with the current selection.
+  useEffect(() => {
+    if (isHistorical) return;
+    if (!sessionReady) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await newsQuizApi.getHistory({
+          sessionId: sessionId ?? undefined,
+          limit: 12,
+        });
+        if (!cancelled) setHistoryRows(response.data);
+      } catch (err) {
+        console.error('[NewsQuizPage] Failed to load quiz history:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isHistorical, sessionReady, sessionId]);
 
   /**
    * Start the quiz
@@ -214,19 +251,61 @@ export function NewsQuizPage() {
     setQuizState('ready');
   };
 
+  // SEO block — historical quizzes are noindexed (thin AI-generated content,
+  // multiplied weekly, low evergreen value). Parent /news/quiz is the discovery surface.
+  const seoEl = isHistorical ? (
+    <SEO
+      title={
+        weekStart && weekEnd
+          ? `AI News Quiz — ${formatDate(weekStart)} – ${formatDate(weekEnd)}`
+          : 'AI News Quiz'
+      }
+      description={
+        weekStart && weekEnd
+          ? `Test your knowledge of AI news from ${formatDate(weekStart)} – ${formatDate(weekEnd)}. ${quiz?.questionCount ?? 5} questions covering this week's announcements, models, and concepts.`
+          : 'Test your knowledge of recent AI news with this archived quiz.'
+      }
+      canonical={`https://letaiexplainai.com/news/quiz/${routeQuizId}`}
+      type="website"
+      noIndex
+    />
+  ) : (
+    <SEO
+      title="Weekly AI News Quiz"
+      description="Take this week's AI news quiz. 5 questions on the latest AI models, research, and industry announcements — updated every Friday."
+      canonical="https://letaiexplainai.com/news/quiz"
+      type="website"
+    />
+  );
+
+  // Header back-link — history view goes back to the weekly quiz, current view to /news.
+  // Uses white/80 styling that works across both the indigo and the score-color gradients.
+  const backLink = isHistorical ? (
+    <Link
+      to="/news/quiz"
+      className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors mb-6"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to Weekly Quiz
+    </Link>
+  ) : (
+    <Link
+      to="/news"
+      className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors mb-6"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to News
+    </Link>
+  );
+
   // Show loading state
   if (quizState === 'loading' || !sessionReady) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {seoEl}
         <div className="bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 text-white">
           <div className="container-main py-12 sm:py-16">
-            <Link
-              to="/news"
-              className="inline-flex items-center gap-2 text-indigo-100 hover:text-white transition-colors mb-6"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to News
-            </Link>
+            {backLink}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
                 <Brain className="w-7 h-7" />
@@ -252,15 +331,10 @@ export function NewsQuizPage() {
   if (quizState === 'no-quiz') {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {seoEl}
         <div className="bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 text-white">
           <div className="container-main py-12 sm:py-16">
-            <Link
-              to="/news"
-              className="inline-flex items-center gap-2 text-indigo-100 hover:text-white transition-colors mb-6"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to News
-            </Link>
+            {backLink}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
                 <Brain className="w-7 h-7" />
@@ -282,7 +356,7 @@ export function NewsQuizPage() {
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-2">
               {weekStart && weekEnd
-                ? `The quiz for ${formatDate(weekStart)} - ${formatDate(weekEnd)} hasn't been generated yet.`
+                ? `The quiz for AI news from ${formatDate(weekStart)} – ${formatDate(weekEnd)} hasn't been generated yet.`
                 : 'Check back soon for this week\'s AI news quiz!'}
             </p>
             {error && (
@@ -313,15 +387,10 @@ export function NewsQuizPage() {
   if (quizState === 'ready' && quiz) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {seoEl}
         <div className="bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-600 text-white">
           <div className="container-main py-12 sm:py-16">
-            <Link
-              to="/news"
-              className="inline-flex items-center gap-2 text-indigo-100 hover:text-white transition-colors mb-6"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to News
-            </Link>
+            {backLink}
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center">
                 <Brain className="w-7 h-7" />
@@ -340,7 +409,11 @@ export function NewsQuizPage() {
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-3 text-gray-600 dark:text-gray-400 mb-4">
                   <Calendar className="w-5 h-5" />
-                  <span>Week of {formatDate(weekStart)} - {formatDate(weekEnd)}</span>
+                  <span>
+                    {weekStart && weekEnd
+                      ? `AI news from ${formatDate(weekStart)} – ${formatDate(weekEnd)}`
+                      : 'Latest AI news'}
+                  </span>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                   This Week in AI
@@ -397,6 +470,9 @@ export function NewsQuizPage() {
                 </button>
               </div>
             </div>
+            {!isHistorical && (
+              <QuizHistoryList currentQuizId={quiz.id} rows={historyRows} />
+            )}
           </div>
         </div>
       </div>
@@ -462,9 +538,6 @@ export function NewsQuizPage() {
                     </Link>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                  Based on: {currentQuestion.newsHeadline}
-                </p>
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {currentQuestion.question}
                 </h2>
@@ -571,6 +644,7 @@ export function NewsQuizPage() {
   if (quizState === 'complete' && quiz && results && score) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+        {seoEl}
         {/* Score header */}
         <div className={`${
           score.percentage >= 80
@@ -580,13 +654,7 @@ export function NewsQuizPage() {
             : 'bg-gradient-to-br from-red-500 via-red-600 to-rose-600'
         } text-white`}>
           <div className="container-main py-12 sm:py-16">
-            <Link
-              to="/news"
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors mb-6"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back to News
-            </Link>
+            {backLink}
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="w-24 h-24 rounded-2xl bg-white/20 flex items-center justify-center">
                 <Trophy className="w-12 h-12" />
@@ -608,14 +676,16 @@ export function NewsQuizPage() {
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Actions */}
             <div className="flex flex-wrap gap-3 justify-center items-center">
-              <QuizShareCard
-                quiz={quiz}
-                results={results}
-                score={score}
-                weekStart={weekStart}
-                weekEnd={weekEnd}
-                answers={answers}
-              />
+              {weekStart && weekEnd && (
+                <QuizShareCard
+                  quiz={quiz}
+                  results={results}
+                  score={score}
+                  weekStart={weekStart}
+                  weekEnd={weekEnd}
+                  answers={answers}
+                />
+              )}
               <button
                 onClick={handleRetakeQuiz}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
@@ -727,6 +797,10 @@ export function NewsQuizPage() {
                 );
               })}
             </div>
+
+            {!isHistorical && (
+              <QuizHistoryList currentQuizId={quiz.id} rows={historyRows} />
+            )}
           </div>
         </div>
       </div>

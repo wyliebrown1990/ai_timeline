@@ -213,6 +213,7 @@ function App() {
                     <Route path="learn/:pathId/complete" element={<LearningPathsPage />} />
                     <Route path="news" element={<NewsPage />} />
                     <Route path="news/quiz" element={<NewsQuizPage />} />
+                    <Route path="news/quiz/:id" element={<NewsQuizPage />} />
                     <Route path="glossary" element={<GlossaryPage />} />
                     <Route path="glossary/:slug" element={<GlossaryTermPage />} />
                     <Route path="concepts" element={<ConceptsPage />} />

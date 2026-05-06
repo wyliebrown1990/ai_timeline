@@ -4137,9 +4137,30 @@ export interface NewsQuizQuestion {
 export interface NewsQuiz {
   id: string;
   weekOf: string;
+  /** Coverage window start (= weekOf - 7 days). Present on getById; absent on legacy /current payloads where window is at top level. */
+  weekStart?: string;
+  /** Coverage window end (= weekOf). Present on getById. */
+  weekEnd?: string;
   questionCount: number;
   questions: NewsQuizQuestion[];
   createdAt?: string;
+}
+
+/**
+ * Quiz history row (Sprint Quiz-1)
+ */
+export interface QuizHistoryRow {
+  id: string;
+  weekOf: string;
+  weekStart: string;
+  weekEnd: string;
+  questionCount: number;
+  createdAt: string;
+  /** Best score this session has scored on this quiz (only when sessionId was passed). */
+  userBestScore?: number;
+  userBestTotal?: number;
+  userBestPercentage?: number;
+  userLastAttemptAt?: string;
 }
 
 /**
@@ -4190,34 +4211,38 @@ export interface UserQuizHistoryItem {
  */
 export const newsQuizApi = {
   /**
-   * Get the current week's quiz
+   * Get the current week's quiz (most recent quiz in the DB).
+   * Window dates are null when no quiz has ever been generated.
    */
   async getCurrent(): Promise<{
     data: NewsQuiz | null;
     message?: string;
-    weekStart: string;
-    weekEnd: string;
+    weekStart: string | null;
+    weekEnd: string | null;
   }> {
     return fetchJson<{
       data: NewsQuiz | null;
       message?: string;
-      weekStart: string;
-      weekEnd: string;
+      weekStart: string | null;
+      weekEnd: string | null;
     }>(`${API_BASE}/news-quiz/current`);
   },
 
   /**
-   * Get quiz history
+   * Get quiz history. When sessionId is provided, each row includes the user's best score.
    */
-  async getHistory(limit?: number): Promise<{
-    data: Array<{ id: string; weekOf: string; questionCount: number; createdAt: string }>;
+  async getHistory(opts?: { limit?: number; sessionId?: string }): Promise<{
+    data: QuizHistoryRow[];
     total: number;
   }> {
-    const params = limit ? `?limit=${limit}` : '';
+    const params = new URLSearchParams();
+    if (opts?.limit) params.set('limit', String(opts.limit));
+    if (opts?.sessionId) params.set('sessionId', opts.sessionId);
+    const qs = params.toString();
     return fetchJson<{
-      data: Array<{ id: string; weekOf: string; questionCount: number; createdAt: string }>;
+      data: QuizHistoryRow[];
       total: number;
-    }>(`${API_BASE}/news-quiz/history${params}`);
+    }>(`${API_BASE}/news-quiz/history${qs ? `?${qs}` : ''}`);
   },
 
   /**

@@ -76,11 +76,16 @@ export async function getQuizHistory(
 ): Promise<void> {
   try {
     const limit = parseInt(req.query.limit as string, 10) || 10;
+    // Optional: per-row best-score join when caller is identified by sessionId.
+    // Anonymous session IDs are not auth-grade — treat as click-tracking, not authentication.
+    const sessionId = typeof req.query.sessionId === 'string' && req.query.sessionId.length > 0
+      ? req.query.sessionId
+      : undefined;
 
     const { prisma } = await import('../db');
     if (!prisma) throw ApiError.internal('Database not available');
 
-    const history = await newsQuizGenerator.getQuizHistory(prisma, limit);
+    const history = await newsQuizGenerator.getQuizHistory(prisma, limit, sessionId);
 
     res.json({
       data: history,
@@ -114,6 +119,7 @@ export async function getQuizById(
       throw ApiError.notFound(`Quiz not found: ${id}`);
     }
 
+    // Security invariant: never return correctAnswer or explanation in the public response.
     const questions = quiz.questions as newsQuizGenerator.NewsQuizQuestion[];
     const questionsWithoutAnswers = questions.map((q, index) => ({
       index,
@@ -126,10 +132,17 @@ export async function getQuizById(
       relatedConceptName: q.relatedConceptName,
     }));
 
+    // Pre-compute coverage window so frontend doesn't re-derive it.
+    const weekEnd = quiz.weekOf;
+    const weekStart = new Date(weekEnd);
+    weekStart.setUTCDate(weekStart.getUTCDate() - 7);
+
     res.json({
       data: {
         id: quiz.id,
         weekOf: quiz.weekOf,
+        weekStart,
+        weekEnd,
         questionCount: questions.length,
         questions: questionsWithoutAnswers,
         createdAt: quiz.createdAt,

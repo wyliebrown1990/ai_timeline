@@ -44,12 +44,24 @@ router.get('/', async (_req, res) => {
     const urls: SitemapUrl[] = [];
     const now = new Date().toISOString().split('T')[0];
 
+    // Weekly news quiz parent page (Sprint Quiz-1).
+    // /news/quiz/:id historical retake URLs are deliberately excluded — those pages
+    // ship with noindex per AISEOReview to avoid thin-programmatic-content risk.
+    const latestQuiz = await prisma.newsQuiz.findFirst({
+      orderBy: { weekOf: 'desc' },
+      select: { weekOf: true },
+    });
+    const quizLastmod = latestQuiz
+      ? latestQuiz.weekOf.toISOString().split('T')[0]
+      : now;
+
     // Static pages - Timeline gets highest priority for SEO targeting
     urls.push(
       { loc: `${BASE_URL}/`, changefreq: 'weekly', priority: 1.0, lastmod: now },
       { loc: `${BASE_URL}/timeline`, changefreq: 'daily', priority: 1.0, lastmod: now }, // Highest priority - main target
       { loc: `${BASE_URL}/learn`, changefreq: 'weekly', priority: 0.9, lastmod: now },
       { loc: `${BASE_URL}/news`, changefreq: 'daily', priority: 0.8, lastmod: now },
+      { loc: `${BASE_URL}/news/quiz`, changefreq: 'weekly', priority: 0.7, lastmod: quizLastmod },
       { loc: `${BASE_URL}/feed`, changefreq: 'daily', priority: 0.8, lastmod: now },
       { loc: `${BASE_URL}/glossary`, changefreq: 'weekly', priority: 0.8, lastmod: now },
       { loc: `${BASE_URL}/study`, changefreq: 'weekly', priority: 0.7 },
