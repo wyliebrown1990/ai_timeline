@@ -225,6 +225,7 @@ beforeEach(() => {
   mockGetGscHealth.mockResolvedValue({
     paused: false,
     lastWeekCovered: '2026-04-24',
+    finalizedThroughDate: '2026-04-30',
     agentRun: null,
     serper: SERPER_SUMMARY,
   });
@@ -355,6 +356,25 @@ describe('runSeoWeeklyDigest', () => {
     expect(mockListPendingFeedbackActions).not.toHaveBeenCalled();
     expect(mockListInsights).not.toHaveBeenCalled();
     expect(mockSetLatestAgentRunStatus).not.toHaveBeenCalled();
+  });
+
+  it('fails loudly when the GSC ingest is stale for the current finalized window', async () => {
+    mockGetGscHealth.mockResolvedValue({
+      lastWeekCovered: '2026-04-24',
+      finalizedThroughDate: '2026-05-08',
+    });
+
+    await expect(runSeoWeeklyDigest({
+      now: new Date('2026-05-11T13:15:00.000Z'),
+    })).rejects.toThrow('GSC data is stale');
+
+    expect(mockListPendingFeedbackActions).not.toHaveBeenCalled();
+    expect(mockListInsights).not.toHaveBeenCalled();
+    expect(mockSetLatestAgentRunStatus).toHaveBeenCalledWith(expect.objectContaining({
+      status: 'failed',
+      weekStart: '2026-04-24T00:00:00.000Z',
+      errorMessage: expect.stringContaining('GSC data is stale'),
+    }));
   });
 
   it('treats 409 proposal responses as already queued and keeps the run successful', async () => {

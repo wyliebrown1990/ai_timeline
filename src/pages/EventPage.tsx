@@ -345,48 +345,56 @@ function LinkedTermsSection({ terms }: { terms: EventGlossaryTerm[] }) {
 }
 
 /**
- * Generate JSON-LD for event page
- * Sprint SEO-5: Includes publisher for E-E-A-T signals
+ * Generate JSON-LD for milestone page.
+ *
+ * Uses schema.org `Article` rather than `Event`. Historical AI milestones
+ * (paper publications, model launches, product announcements, policy moves)
+ * do not satisfy schema.org/Event semantics — Event requires `location`,
+ * `endDate`, `offers`, etc. for a scheduled real-world happening, and Google
+ * Search Console flags every milestone page that omits them. Article fits
+ * announcements and is eligible for Google's article rich results.
  */
 function generateEventJsonLd(data: EventPageData) {
   return {
     '@context': 'https://schema.org',
-    '@type': 'Event',
-    name: data.title,
+    '@type': 'Article',
+    headline: data.title,
     description: data.tldr || data.description,
-    startDate: data.date,
     url: data.canonicalUrl,
-    // Sprint SEO-5: E-E-A-T freshness signals
-    ...(data.createdAt && { datePublished: data.createdAt }),
-    ...(data.updatedAt && { dateModified: data.updatedAt }),
-    eventStatus: 'https://schema.org/EventScheduled',
-    eventAttendanceMode: 'https://schema.org/MixedEventAttendanceMode',
+    datePublished: data.createdAt || data.date,
+    dateModified: data.updatedAt || data.createdAt || data.date,
+    author: data.contributors.length > 0
+      ? data.contributors.map((c) => ({
+          '@type': 'Person',
+          name: c.canonicalName,
+          url: `https://letaiexplainai.com/people/${c.slug}`,
+        }))
+      : {
+          '@type': 'Organization',
+          name: 'Let AI Explain AI',
+          url: 'https://letaiexplainai.com',
+        },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Let AI Explain AI',
+      url: 'https://letaiexplainai.com',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://letaiexplainai.com/og-image.png',
+      },
+    },
+    image: data.imageUrl || 'https://letaiexplainai.com/og-image.png',
     ...(data.organization && {
-      organizer: {
+      about: {
         '@type': 'Organization',
         name: data.organization.name,
         url: `https://letaiexplainai.com/organizations/${data.organization.slug}`,
       },
     }),
-    ...(data.contributors.length > 0 && {
-      performer: data.contributors.map((c) => ({
-        '@type': 'Person',
-        name: c.canonicalName,
-        url: `https://letaiexplainai.com/people/${c.slug}`,
-      })),
-    }),
-    about: {
-      '@type': 'Thing',
-      name: 'Artificial Intelligence',
-    },
-    // Sprint SEO-5: E-E-A-T publisher signal
-    recordedIn: {
-      '@type': 'WebPage',
-      isPartOf: {
-        '@type': 'WebSite',
-        name: 'Let AI Explain AI',
-        url: 'https://letaiexplainai.com',
-      },
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'Let AI Explain AI',
+      url: 'https://letaiexplainai.com',
     },
   };
 }

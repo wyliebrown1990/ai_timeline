@@ -200,3 +200,31 @@ Fifth AIBlogDraft post, topic-mode, approved with a single `y` and shipped throu
 - **Single-pass approval on a systems-heavy AI post suggests the atlas voice is now stable across both consumer-AI and agent-architecture explainers.**
 - **Live URL**: `https://letaiexplainai.com/blog/ai-agent-memory`
 - **PublishedAt**: `2026-05-02T16:30:58Z`
+
+## 2026-05-03 — `ai-history-milestones`
+
+Sixth AIBlogDraft post, topic-mode, approved with a single `y` and shipped without revision. The supplied angle came in with an over-strong claim about being the "complete" evolutionary chain, and the successful move was to preserve the four-stop structure while softening the claim into "one especially clear lineage."
+
+### Diction
+- **Declarative historical framing works best when it stays modest about totality.** The title survived because it promises importance without pretending to settle the whole history of AI.
+- **"Changed the bottleneck" is a strong atlas phrase.** It compresses a lot of historical interpretation into a readable frame and gives the post a repeatable conceptual spine.
+- **The voice can move between institutional, technical, and product history in one piece as long as each section keeps one clean claim.** Dartmouth as permission structure, AlexNet as emotional weather shift, Transformer as architectural simplification, GPT-4o as native multimodality all fit the voice cleanly.
+
+### Structure
+- **A 5-H2 chain post works when each section represents one historical handoff.** This piece succeeded because each stop directly answered "what changed next?" rather than turning into a broad timeline recap.
+- **Open by contrasting crowded timelines with decisive inflection points.** That framing quickly explains why LAEA is making a narrower argument than a generic "history of AI" post.
+- **The closing section should widen from four events back to a meta-reading of history.** Here, ending on bottleneck changes made the post feel like interpretation rather than recap.
+
+### Do
+- **When a topic spans decades, argue for a lineage, not an exhaustive canon.** The safest and strongest move is to present "one revealing chain" rather than "the whole story."
+- **Use technical detail only to support the historical pivot.** The Transformer section worked because the architecture explanation served the larger claim about how progress changed, not because it tried to teach the full paper.
+- **Let product releases into the historical canon when they change user expectations, not just benchmarks.** GPT-4o belonged here because it changed how multimodality feels, not merely because it improved a score.
+
+### Don't
+- **Don't claim completeness when the field obviously has other valid lineages.** This post improved the moment the framing stepped back from "complete evolutionary chain."
+- **Don't let milestone posts become listicles.** Each section needs a thesis about what the milestone unlocked or redefined.
+
+### Other
+- **Single-pass approval on a cross-era historical explainer suggests the atlas voice is strongest when it interprets history through a reusable systems lens.**
+- **Live URL**: `https://letaiexplainai.com/blog/ai-history-milestones`
+- **PublishedAt**: `2026-05-03T20:06:40.882Z`

@@ -59,6 +59,18 @@ const context = {
 describe('ingestionLambda seoEditorialTuesday action', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRunWeeklyIngest.mockResolvedValue({
+      mode: 'weekly',
+      startDate: '2026-05-02',
+      endDate: '2026-05-08',
+      finalizedThroughDate: '2026-05-08',
+      dailyRowsInserted: 1,
+      dailyRowsAttempted: 1,
+      snapshotsCreated: 1,
+      weekStartsRebuilt: ['2026-05-02'],
+      clusterWindowsRebuilt: [],
+      durationMs: 1,
+    });
     mockRunSeoEditorialTuesday.mockResolvedValue({
       status: 'success',
       dryRun: true,
@@ -109,5 +121,11 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
       maxAutoPublish: undefined,
       sendTestEmail: false,
     });
+  });
+
+  it('throws when scheduled GSC ingest fails so Lambda metrics and retries see it', async () => {
+    mockRunWeeklyIngest.mockRejectedValue(new Error('invalid_grant'));
+
+    await expect(handler({ action: 'gscWeeklyIngest' }, context)).rejects.toThrow('invalid_grant');
   });
 });

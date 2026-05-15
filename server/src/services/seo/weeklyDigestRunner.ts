@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { appendFile, readdir, readFile } from 'fs/promises';
 import path from 'path';
 import { getGscHealth } from '../gsc/gscIngest';
+import { shiftIsoDate } from '../gsc/gscClient';
 import { listInsights, type BucketInsight, type InsightBucket } from '../gsc/bucketClassifier';
 import { ApiError } from '../../middleware/error';
 import { isPaused } from './agentControl';
@@ -85,6 +86,10 @@ function toIso(value: Date): string {
 
 function normalizeWeekStart(value: string | null | undefined): string | null {
   return value ? value.slice(0, 10) : null;
+}
+
+function getExpectedWeekStart(finalizedThroughDate: string | null | undefined): string | null {
+  return finalizedThroughDate ? shiftIsoDate(finalizedThroughDate.slice(0, 10), -6) : null;
 }
 
 function isConflict(error: unknown): boolean {
@@ -646,6 +651,13 @@ export async function runSeoWeeklyDigest(
 
     if (!weekStart) {
       throw new Error('Missing finalized GSC week; weekly digest cannot run.');
+    }
+
+    const expectedWeekStart = getExpectedWeekStart(health.finalizedThroughDate);
+    if (expectedWeekStart && weekStart !== expectedWeekStart) {
+      throw new Error(
+        `GSC data is stale; latest finalized window should start ${expectedWeekStart}, but latest ingested week is ${weekStart}. Run gscWeeklyIngest before the SEO digest.`
+      );
     }
 
     if (

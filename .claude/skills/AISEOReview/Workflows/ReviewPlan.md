@@ -74,10 +74,10 @@ Run through every category below. For open-ended searches (e.g. "is there an exi
 
 For every new content type in the plan:
 
-- [ ] Appropriate schema type chosen from schema.org (Article / BlogPosting / NewsArticle / Person / Organization / FAQPage / HowTo / Event / Product / VideoObject / Podcast / BreadcrumbList / WebSite / CollectionPage / ItemList / Review).
+- [ ] Appropriate schema type chosen from schema.org (Article / BlogPosting / NewsArticle / Person / Organization / FAQPage / HowTo / Event / Product / VideoObject / Podcast / BreadcrumbList / WebSite / CollectionPage / ItemList / Review / CreativeWork / Thing).
 - [ ] All required properties for that type are present (verify with `https://validator.schema.org/`).
 - [ ] All recommended properties for rich-result eligibility are present (verify with Google's rich results docs).
-- [ ] Reuses existing helpers in `src/components/SEO.tsx` (`PersonJsonLd`, `OrganizationJsonLd`, `FaqJsonLd`) rather than creating parallel patterns.
+- [ ] Reuses existing helpers in `src/components/SEO.tsx` (`PersonJsonLd`, `OrganizationJsonLd`, `FaqJsonLd`, `generateTimelineItemListJsonLd`, `generateArticleJsonLd`, `generateBreadcrumbListJsonLd`) rather than creating parallel patterns.
 - [ ] FAQ schema only used where the literal Q&A text appears visibly on the page.
 - [ ] BreadcrumbList JSON-LD accompanies every visual breadcrumb.
 - [ ] `@id` and `url` are absolute URLs, not relative.
@@ -86,6 +86,33 @@ For every new content type in the plan:
 - [ ] `publisher` on Article-family schemas is the LAEA Organization object with logo URL.
 - [ ] `mainEntityOfPage` is set.
 - [ ] Plan includes a task to **validate with Google Rich Results Test** before marking done.
+
+##### D.1 Schema type — DO NOT misuse `Event`
+
+`schema.org/Event` is the single most-misused type on this project. It exists for **scheduled real-world happenings** (concerts, conferences, webinars, livestreams, classes) where attendees show up, tickets are sold, or a livestream airs at a scheduled time. It is **not** a generic "thing that happened in history" type.
+
+- [ ] No JSON-LD in the plan uses `@type: "Event"` for: AI research papers, model releases, product launches, company foundings, policy decisions, news posts, blog posts, milestones, or any historical / informational content.
+- [ ] If the project's URL path happens to be `/events/:id`, the JSON-LD type is **still not** `Event`. Path naming is independent of schema type.
+- [ ] If a plan emits `Event`, it must specify ALL of these as visible page content AND populated schema fields, or the type must be changed: `location` (place or virtual location object), `startDate` and `endDate` (ISO 8601), `eventStatus` (e.g. `EventScheduled`), `eventAttendanceMode`, `performer` or `organizer`, `offers` (with price/availability/url) or `isAccessibleForFree: true`, `image` (1:1, 4:3, 16:9 per Google).
+- [ ] If any of those are missing, change the type per the table below.
+
+| Content type | Wrong (causes GSC errors) | Correct |
+|---|---|---|
+| Individual AI milestone page (`/events/:id`) | `Event` | `Article` (or `NewsArticle` for news-style milestones) |
+| Blog post (`/blog/:slug`) | `Event`, `BlogPost` (not a real type) | `BlogPosting` or `Article` |
+| Research paper writeup | `Event` | `ScholarlyArticle` (or `Article`) |
+| Model release announcement | `Event` | `Article`; product info in `about: SoftwareApplication` |
+| Product page | `Event` | `Product` or `SoftwareApplication` |
+| Timeline ItemList entries | `item: { @type: Event }` | `item: { @type: CreativeWork }` (or `Article`) |
+| Compare page | `Event` | `Article` with `about` referencing the entities compared |
+| Glossary term page | `Event` | `DefinedTerm` (inside a `DefinedTermSet`) or `Article` |
+| Person profile | `Event` | `Person` |
+| Organization profile | `Event` | `Organization` |
+| Actual live webinar / launch event with date+location+RSVP | `Article` | `Event` (with all required fields) |
+
+##### D.2 Background — the 2026-05 GSC Event-spam incident
+
+In May 2026 Google Search Console flagged 8+ pages on this project as "Events structured data issues" with critical error "Missing field 'location'" plus warnings for `image`, `endDate`, `performer`, `offers`, `eventStatus`. Root cause: `src/pages/EventPage.tsx` emitted `@type: "Event"` for every milestone detail page, and `generateTimelineItemListJsonLd` in `src/components/SEO.tsx` wrapped each list item as a nested `Event`. Both were migrated to `Article` / `CreativeWork` respectively. **Do not re-introduce `Event` for milestones.** When in doubt about a content type, prefer `Article` or `CreativeWork` — both are valid umbrellas for almost any informational content the project ships, and neither demands location/endDate/offers.
 
 #### E. Canonical URLs & Indexation
 
@@ -409,6 +436,7 @@ Every review must cover these categories. Skipping any = incomplete review.
 - **Never approve client-rendered meta tags for a primary landing page without an SSR/prerender plan.**
 - **Never approve duplicated SEO infra.** Reuse `SEO.tsx`, `sitemap.ts`, existing helpers.
 - **Never approve JSON-LD without a Rich Results Test validation task.**
+- **Never approve `schema.org/Event` for historical / informational content.** Event is for scheduled real-world happenings only. AI milestones, papers, model launches, product announcements, and blog posts are `Article` / `NewsArticle` / `CreativeWork`. See Section D.1 + D.2 for the project's Event-misuse incident playbook.
 - **Never approve multiple `<h1>` tags.**
 - **Never approve admin routes in the sitemap.**
 - **Never approve FAQ schema without visible Q&A text.**

@@ -29,6 +29,7 @@
     "db:update-sources": "tsx prisma/updateNewsSources.ts",
     "seed:blog": "tsx prisma/seeds/blog.ts",
     "gsc:oauth-setup": "tsx server/src/services/gsc/oauthSetup.ts",
+    "gsc:oauth-rotate": "tsx server/src/services/gsc/oauthSetup.ts --store-ssm --verify-ingest --run-digest",
     "gsc:backfill": "tsx server/src/services/gsc/backfill.ts",
     "content:validate": "tsx scripts/validate-content.ts",
     "migrate:layered-content": "tsx scripts/migrate-layered-content.ts",

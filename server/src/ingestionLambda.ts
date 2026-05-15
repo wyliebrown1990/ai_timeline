@@ -1188,13 +1188,8 @@ Return ONLY the JSON object, no other text.`;
       console.error('[IngestionLambda] Weekly GSC ingest failed:', errorMessage);
       console.error('[IngestionLambda] Full error:', error);
 
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          message: 'Weekly GSC ingest failed',
-          error: errorMessage,
-        }),
-      };
+      // Re-throw so EventBridge/Lambda failure metrics and retries can see the failure.
+      throw error;
     }
   }
 

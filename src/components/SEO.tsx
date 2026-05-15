@@ -389,18 +389,20 @@ export interface TimelineMilestoneForSchema {
 /**
  * Helper: Generate ItemList JSON-LD schema for Timeline pages
  *
- * Creates an ItemList schema with Event items for Google rich results.
- * Limits to 100 items to avoid schema bloat.
+ * Each list item is a `CreativeWork`, not an `Event`. Historical AI
+ * milestones (papers, model launches, product announcements) do not satisfy
+ * schema.org/Event semantics — Event requires `location`, `endDate`,
+ * `offers`, etc., and Google Search Console flags every page that omits
+ * them. CreativeWork is the correct umbrella for research outputs and
+ * announcements.
  *
- * @example
- * const schema = generateTimelineItemListJsonLd(milestones, 'AI Timeline');
+ * Limits to 100 items to avoid schema bloat.
  */
 export function generateTimelineItemListJsonLd(
   milestones: TimelineMilestoneForSchema[],
   listName: string,
   listDescription?: string
 ): Record<string, unknown> {
-  // Limit to 100 most significant milestones for schema
   const limitedMilestones = milestones.slice(0, 100);
 
   return {
@@ -414,26 +416,26 @@ export function generateTimelineItemListJsonLd(
         ? milestone.date.toISOString().split('T')[0]
         : new Date(milestone.date).toISOString().split('T')[0];
 
-      const item: Record<string, unknown> = {
-        '@type': 'ListItem',
-        position: index + 1,
-        item: {
-          '@type': 'Event',
-          name: milestone.title,
-          startDate: date,
-          description: milestone.description?.slice(0, 200) || undefined,
-        },
+      const work: Record<string, unknown> = {
+        '@type': 'CreativeWork',
+        name: milestone.title,
+        dateCreated: date,
+        url: `${SITE_URL}/events/${milestone.id}`,
+        description: milestone.description?.slice(0, 200) || undefined,
       };
 
-      // Add organizer if organization exists
       if (milestone.organization) {
-        (item.item as Record<string, unknown>).organizer = {
+        work.creator = {
           '@type': 'Organization',
           name: milestone.organization,
         };
       }
 
-      return item;
+      return {
+        '@type': 'ListItem',
+        position: index + 1,
+        item: work,
+      };
     }),
   };
 }

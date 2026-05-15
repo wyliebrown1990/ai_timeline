@@ -47,3 +47,13 @@ MVP delivery does not depend on Discord or email. The operator interface is:
 ## Fallback note
 
 `launchd` is only a local fallback because it depends on Wylie's Mac being awake and online. EventBridge remains the primary scheduler.
+
+## GSC OAuth Rotation
+
+If Google revokes or expires the Search Console refresh token, the only manual step is Google consent in the browser. Do not paste the credential JSON into chat or terminal notes. Run the hardened rotation command instead:
+
+```bash
+npm run gsc:oauth-rotate -- --client-secret "$HOME/Downloads/client_secret_<actual-id>.json"
+```
+
+The command opens the localhost OAuth flow, stores the refreshed credential JSON directly in SSM SecureString `/ai-timeline/prod/gsc-oauth-credentials-json`, invokes `gscWeeklyIngest`, then invokes a forced `seoWeeklyDigest`. It prints status only, not the token JSON.

@@ -1,10 +1,15 @@
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+import { PutParameterCommand, SSMClient } from '@aws-sdk/client-ssm';
 import { google } from 'googleapis';
 import { GSC_SCOPES } from './gscClient';
 
 const DEFAULT_PORT = 3005;
+const DEFAULT_REGION = 'us-east-1';
+const DEFAULT_SSM_PARAM = '/ai-timeline/prod/gsc-oauth-credentials-json';
+const DEFAULT_INGESTION_FUNCTION = 'ai-timeline-ingestion-prod';
 
 interface OAuthClientSecretBlock {
   client_id?: string;
@@ -21,6 +26,18 @@ interface SetupOptions {
   clientSecretPath: string;
   redirectUri?: string;
   port: number;
+  awsRegion: string;
+  ssmParam: string;
+  storeSsm: boolean;
+  verifyIngest: boolean;
+  runDigest: boolean;
+  functionName: string;
+}
+
+interface GscOAuthCredentials {
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
 }
 
 function printLine(line: string = ''): void {
@@ -30,6 +47,10 @@ function printLine(line: string = ''): void {
 function getArgValue(argv: string[], flag: string): string | undefined {
   const index = argv.findIndex((arg) => arg === flag);
   return index >= 0 ? argv[index + 1] : undefined;
+}
+
+function hasFlag(argv: string[], flag: string): boolean {
+  return argv.includes(flag);
 }
 
 function parsePort(value: string | undefined): number {
@@ -55,6 +76,12 @@ function parseArgs(argv: string[]): SetupOptions {
     clientSecretPath,
     redirectUri: getArgValue(argv, '--redirect-uri'),
     port: parsePort(getArgValue(argv, '--port')),
+    awsRegion: getArgValue(argv, '--aws-region') ?? process.env.AWS_REGION ?? DEFAULT_REGION,
+    ssmParam: getArgValue(argv, '--ssm-param') ?? DEFAULT_SSM_PARAM,
+    storeSsm: hasFlag(argv, '--store-ssm'),
+    verifyIngest: hasFlag(argv, '--verify-ingest'),
+    runDigest: hasFlag(argv, '--run-digest'),
+    functionName: getArgValue(argv, '--function-name') ?? DEFAULT_INGESTION_FUNCTION,
   };
 }
 
@@ -160,6 +187,52 @@ function waitForAuthorizationCode(redirectUri: string, expectedState: string): P
   });
 }
 
+async function storeCredentialsInSsm(
+  credentials: GscOAuthCredentials,
+  options: SetupOptions
+): Promise<void> {
+  const client = new SSMClient({ region: options.awsRegion });
+  await client.send(new PutParameterCommand({
+    Name: options.ssmParam,
+    Type: 'SecureString',
+    Overwrite: true,
+    Value: JSON.stringify(credentials),
+  }));
+}
+
+async function invokeLambdaAction(
+  action: 'gscWeeklyIngest' | 'seoWeeklyDigest',
+  options: SetupOptions
+): Promise<unknown> {
+  const client = new LambdaClient({ region: options.awsRegion });
+  const command = new InvokeCommand({
+    FunctionName: options.functionName,
+    Payload: Buffer.from(JSON.stringify(action === 'seoWeeklyDigest'
+      ? { action, force: true }
+      : { action })),
+  });
+  const response = await client.send(command);
+  const payloadText = Buffer.from(response.Payload ?? new Uint8Array()).toString('utf8');
+  const payload = payloadText ? JSON.parse(payloadText) : null;
+
+  if (response.FunctionError) {
+    throw new Error(`${action} Lambda failed: ${payloadText || response.FunctionError}`);
+  }
+
+  if (
+    payload &&
+    typeof payload === 'object' &&
+    'statusCode' in payload &&
+    typeof payload.statusCode === 'number' &&
+    payload.statusCode >= 400
+  ) {
+    const body = typeof payload.body === 'string' ? payload.body : JSON.stringify(payload.body ?? {});
+    throw new Error(`${action} returned HTTP ${payload.statusCode}: ${body}`);
+  }
+
+  return payload;
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const secrets = await loadOAuthClientSecrets(options.clientSecretPath);
@@ -198,20 +271,35 @@ async function main() {
     throw new Error('Google did not return a refresh token. Re-run the flow with prompt=consent on a fresh consent screen.');
   }
 
+  const credentials = {
+    clientId: secrets.client_id,
+    clientSecret: secrets.client_secret,
+    refreshToken: tokens.refresh_token,
+  };
+
+  if (!options.storeSsm) {
+    printLine();
+    printLine(`Store this JSON in SSM SecureString ${options.ssmParam}:`);
+    printLine();
+    printLine(JSON.stringify(credentials, null, 2));
+    return;
+  }
+
+  await storeCredentialsInSsm(credentials, options);
   printLine();
-  printLine('Store this JSON in SSM SecureString /ai-timeline/prod/gsc-oauth-credentials-json:');
-  printLine();
-  printLine(
-    JSON.stringify(
-      {
-        clientId: secrets.client_id,
-        clientSecret: secrets.client_secret,
-        refreshToken: tokens.refresh_token,
-      },
-      null,
-      2
-    )
-  );
+  printLine(`[GSC_OAUTH_SETUP] Stored refreshed credentials in SSM SecureString ${options.ssmParam}.`);
+
+  if (options.verifyIngest) {
+    printLine('[GSC_OAUTH_SETUP] Verifying with gscWeeklyIngest Lambda action...');
+    await invokeLambdaAction('gscWeeklyIngest', options);
+    printLine('[GSC_OAUTH_SETUP] GSC ingest verification succeeded.');
+  }
+
+  if (options.runDigest) {
+    printLine('[GSC_OAUTH_SETUP] Running forced seoWeeklyDigest Lambda action...');
+    await invokeLambdaAction('seoWeeklyDigest', options);
+    printLine('[GSC_OAUTH_SETUP] SEO digest verification succeeded.');
+  }
 }
 
 main().catch((error) => {
