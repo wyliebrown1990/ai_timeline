@@ -82,6 +82,16 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
       emailedCount: 0,
       failedCount: 0,
     });
+    mockRunSeoWeeklyDigest.mockResolvedValue({
+      status: 'success',
+      dryRun: false,
+      force: false,
+      weekStart: '2026-05-21',
+      shippedCount: 0,
+      proposalCount: 1,
+      humanOnlyCount: 0,
+      measuredCount: 0,
+    });
   });
 
   it('dispatches dry-run payload options to the Tuesday editorial runner', async () => {
@@ -127,5 +137,47 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
     mockRunWeeklyIngest.mockRejectedValue(new Error('invalid_grant'));
 
     await expect(handler({ action: 'gscWeeklyIngest' }, context)).rejects.toThrow('invalid_grant');
+  });
+
+  it('runs Tuesday editorial publishing after a successful non-dry weekly digest', async () => {
+    const response = await handler({
+      action: 'seoWeeklyDigest',
+      force: true,
+      maxPosts: 2,
+      maxAutoPublish: 1,
+    }, context);
+
+    expect(mockRunSeoWeeklyDigest).toHaveBeenCalledWith({
+      dryRun: false,
+      force: true,
+    });
+    expect(mockRunSeoEditorialTuesday).toHaveBeenCalledWith({
+      dryRun: false,
+      force: true,
+      maxPosts: 2,
+      maxAutoPublish: 1,
+      sendTestEmail: false,
+    });
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'SEO weekly digest completed successfully',
+      summary: expect.objectContaining({ status: 'success' }),
+      editorialSummary: expect.objectContaining({ status: 'success' }),
+    });
+  });
+
+  it('does not run editorial publishing for weekly digest dry-runs by default', async () => {
+    await handler({ action: 'seoWeeklyDigest', dryRun: true }, context);
+
+    expect(mockRunSeoWeeklyDigest).toHaveBeenCalledWith({
+      dryRun: true,
+      force: false,
+    });
+    expect(mockRunSeoEditorialTuesday).not.toHaveBeenCalled();
+  });
+
+  it('allows weekly digest callers to suppress editorial publishing', async () => {
+    await handler({ action: 'seoWeeklyDigest', runEditorial: false }, context);
+
+    expect(mockRunSeoEditorialTuesday).not.toHaveBeenCalled();
   });
 });

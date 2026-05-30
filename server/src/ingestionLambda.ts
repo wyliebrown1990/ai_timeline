@@ -146,6 +146,10 @@ interface SeoWeeklyDigestEvent {
   action: 'seoWeeklyDigest';
   force?: boolean;
   dryRun?: boolean;
+  runEditorial?: boolean;
+  maxPosts?: number;
+  maxAutoPublish?: number;
+  sendTestEmail?: boolean;
 }
 
 interface SeoEditorialTuesdayEvent {
@@ -1225,17 +1229,29 @@ Return ONLY the JSON object, no other text.`;
     console.log('[IngestionLambda] Running SEO weekly digest');
     console.log(`  Dry run: ${event.dryRun ?? false}`);
     console.log(`  Force: ${event.force ?? false}`);
+    console.log(`  Run editorial after digest: ${event.runEditorial ?? !(event.dryRun ?? false)}`);
 
     try {
       const summary = await runSeoWeeklyDigest({
         dryRun: event.dryRun ?? false,
         force: event.force ?? false,
       });
+      const shouldRunEditorial = event.runEditorial ?? !(event.dryRun ?? false);
+      const editorialSummary = shouldRunEditorial
+        ? await runSeoEditorialTuesday({
+            dryRun: event.dryRun ?? false,
+            force: event.force ?? false,
+            maxPosts: event.maxPosts,
+            maxAutoPublish: event.maxAutoPublish,
+            sendTestEmail: event.sendTestEmail ?? false,
+          })
+        : null;
       return {
         statusCode: 200,
         body: JSON.stringify({
           message: 'SEO weekly digest completed successfully',
           summary,
+          editorialSummary,
         }),
       };
     } catch (error) {
