@@ -119,6 +119,23 @@ describe('editorialOpportunitySelector', () => {
     ]));
   });
 
+  it('keeps promoted keyword rows eligible for the post composer', () => {
+    const result = selectEditorialOpportunities({
+      proposals: [],
+      keywords: [
+        keyword({ id: 'promoted-auto', status: 'promoted', overallScore: 82 }),
+        keyword({ id: 'promoted-draft', status: 'promoted', overallScore: 55 }),
+      ],
+      maxPosts: 3,
+      maxAutoPublish: 1,
+    });
+
+    expect(result.selected.map((row) => [row.id, row.action])).toEqual([
+      ['promoted-auto', 'auto_publish'],
+      ['promoted-draft', 'draft_only'],
+    ]);
+  });
+
   it('allows cluster and keyword-opportunity proposals and drafts lower-confidence ideas', () => {
     const result = selectEditorialOpportunities({
       proposals: [

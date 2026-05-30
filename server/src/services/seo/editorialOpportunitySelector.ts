@@ -7,6 +7,7 @@ import {
   listKeywordOpportunities,
   type KeywordOpportunityRecord,
 } from './keywordDiscovery';
+import { prisma } from '../../db';
 
 const MAX_POSTS_PER_RUN = 3;
 const MAX_AUTO_PUBLISH_PER_RUN = 2;
@@ -99,8 +100,8 @@ function isEligibleProposal(proposal: SeoProposalRecord): string | null {
 }
 
 function isEligibleKeyword(row: KeywordOpportunityRecord): string | null {
-  if (row.status !== 'scored') {
-    return `Keyword status ${row.status} is not scored.`;
+  if (row.status !== 'scored' && row.status !== 'promoted') {
+    return `Keyword status ${row.status} is not scored or promoted.`;
   }
 
   if (!isAllowedKeywordSource(row)) {
@@ -124,6 +125,66 @@ function proposalCanAutoPublish(proposal: SeoProposalRecord): boolean {
 
 function keywordCanAutoPublish(row: KeywordOpportunityRecord): boolean {
   return row.sourceType !== 'editorial_seed' && row.overallScore >= MIN_KEYWORD_AUTO_PUBLISH_SCORE;
+}
+
+function blogSlugFromTargetUrl(targetUrl: string | null): string | null {
+  if (!targetUrl) return null;
+
+  try {
+    const url = new URL(targetUrl);
+    if (url.hostname !== 'letaiexplainai.com') return null;
+    const match = url.pathname.match(/^\/blog\/([^/]+)\/?$/);
+    return match?.[1] ?? null;
+  } catch {
+    const match = targetUrl.match(/^\/blog\/([^/]+)\/?$/);
+    return match?.[1] ?? null;
+  }
+}
+
+async function removeAlreadyHandledKeywords(
+  rows: KeywordOpportunityRecord[],
+): Promise<KeywordOpportunityRecord[]> {
+  if (rows.length === 0) {
+    return rows;
+  }
+
+  const targetSlugs = rows
+    .map((row) => blogSlugFromTargetUrl(row.targetUrl))
+    .filter((slug): slug is string => Boolean(slug));
+  const targetKeywords = rows.map((row) => row.seedQuery);
+
+  const [existingPosts, terminalProposals] = await Promise.all([
+    targetSlugs.length
+      ? prisma.blogPost.findMany({
+          where: {
+            slug: { in: targetSlugs },
+            status: { not: 'archived' },
+          },
+          select: { slug: true },
+        })
+      : Promise.resolve([]),
+    prisma.seoProposal.findMany({
+      where: {
+        targetKeyword: { in: targetKeywords },
+        OR: [
+          { status: 'rejected' },
+          {
+            status: { in: ['approved', 'shipped'] },
+            draftPostId: { not: null },
+          },
+        ],
+      },
+      select: { targetKeyword: true },
+    }),
+  ]);
+
+  const handledSlugs = new Set(existingPosts.map((post) => post.slug));
+  const terminalKeywords = new Set(terminalProposals.map((proposal) => proposal.targetKeyword));
+
+  return rows.filter((row) => {
+    const targetSlug = blogSlugFromTargetUrl(row.targetUrl);
+    return !(targetSlug && handledSlugs.has(targetSlug)) && !terminalKeywords.has(row.seedQuery);
+  });
 }
 
 export function selectEditorialOpportunities(input: {
@@ -214,16 +275,22 @@ export async function loadEditorialOpportunityBacklog(): Promise<{
   proposals: SeoProposalRecord[];
   keywords: KeywordOpportunityRecord[];
 }> {
-  const [approved, drafting, pending, keywords] = await Promise.all([
+  const [approved, drafting, pending, scoredKeywords, promotedKeywords] = await Promise.all([
     loadProposals('approved'),
     loadProposals('drafting'),
     loadProposals('pending'),
     listKeywordOpportunities({ status: 'scored', page: 1, limit: 25 }),
+    listKeywordOpportunities({ status: 'promoted', page: 1, limit: 25 }),
+  ]);
+
+  const keywords = await removeAlreadyHandledKeywords([
+    ...scoredKeywords.data,
+    ...promotedKeywords.data,
   ]);
 
   return {
     proposals: [...approved, ...drafting, ...pending],
-    keywords: keywords.data,
+    keywords,
   };
 }
 
