@@ -15,6 +15,46 @@ const MIN_PROPOSAL_DRAFT_CONFIDENCE = 0.6;
 const MIN_PROPOSAL_AUTO_PUBLISH_CONFIDENCE = 0.7;
 const MIN_KEYWORD_DRAFT_SCORE = 40;
 const MIN_KEYWORD_AUTO_PUBLISH_SCORE = 70;
+const WEEKLY_FALLBACK_ID_PREFIX = 'weekly-news-fallback:';
+const MIN_FALLBACK_ARTICLE_SCORE = 0.65;
+const FALLBACK_ARTICLE_WINDOW_DAYS = 14;
+const FALLBACK_ARTICLE_LIMIT = 8;
+const FALLBACK_AUTO_PUBLISH_MIN_SCORE = 78;
+const FALLBACK_DRAFT_ONLY_SCORE_CAP = 74;
+const TRUSTED_FALLBACK_HOST_SUFFIXES = [
+  'openai.com',
+  'anthropic.com',
+  'deepmind.google',
+  'ai.googleblog.com',
+  'blog.google',
+  'microsoft.com',
+  'nvidia.com',
+  'meta.com',
+  'ibm.com',
+  'arxiv.org',
+  'nature.com',
+  'science.org',
+  'mit.edu',
+  'stanford.edu',
+  'berkeley.edu',
+  'cmu.edu',
+  'theverge.com',
+  'techcrunch.com',
+  'wired.com',
+  'technologyreview.com',
+  'semianalysis.com',
+] as const;
+const DRAFT_ONLY_FALLBACK_HOST_PARTS = [
+  'beehiiv',
+  'substack',
+  'medium.com',
+  'x.com',
+  'twitter.com',
+  'reddit.com',
+  'youtube.com',
+  'facebook.com',
+  'instagram.com',
+] as const;
 
 export type EditorialOpportunitySourceType = 'proposal' | 'keyword';
 export type EditorialOpportunityAction = 'auto_publish' | 'draft_only';
@@ -124,7 +164,15 @@ function proposalCanAutoPublish(proposal: SeoProposalRecord): boolean {
 }
 
 function keywordCanAutoPublish(row: KeywordOpportunityRecord): boolean {
+  if (isWeeklyFallbackKeyword(row)) {
+    return row.overallScore >= FALLBACK_AUTO_PUBLISH_MIN_SCORE;
+  }
+
   return row.sourceType !== 'editorial_seed' && row.overallScore >= MIN_KEYWORD_AUTO_PUBLISH_SCORE;
+}
+
+export function isWeeklyFallbackKeyword(row: Pick<KeywordOpportunityRecord, 'id'>): boolean {
+  return row.id.startsWith(WEEKLY_FALLBACK_ID_PREFIX);
 }
 
 function blogSlugFromTargetUrl(targetUrl: string | null): string | null {
@@ -271,21 +319,152 @@ async function loadProposals(status: SeoProposalStatusFilter): Promise<SeoPropos
   return result.data;
 }
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[‘’']s\b/g, '')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+}
+
+function articleTitleToKeyword(title: string): string {
+  return title
+    .replace(/\s+/g, ' ')
+    .replace(/\s[-|:]\s.*$/, '')
+    .trim()
+    .slice(0, 96);
+}
+
+function hostnameFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+function isTrustedFallbackSource(url: string | null | undefined): boolean {
+  const host = hostnameFromUrl(url);
+  if (!host) return false;
+  return TRUSTED_FALLBACK_HOST_SUFFIXES.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+}
+
+function isDraftOnlyFallbackSource(url: string | null | undefined, sourceName: string | null | undefined): boolean {
+  const haystack = `${hostnameFromUrl(url) ?? ''} ${sourceName ?? ''}`.toLowerCase();
+  return DRAFT_ONLY_FALLBACK_HOST_PARTS.some((part) => haystack.includes(part));
+}
+
+function scoreWeeklyFallbackArticle(input: {
+  relevanceScore: number;
+  externalUrl: string | null | undefined;
+  sourceName: string | null | undefined;
+}): { score: number; sourceTrustNote: string } {
+  if (isTrustedFallbackSource(input.externalUrl)) {
+    return {
+      score: Math.max(60, input.relevanceScore),
+      sourceTrustNote: 'trusted-source fallback; eligible for auto-publish only if quality gates also pass',
+    };
+  }
+
+  const sourceTrustNote = isDraftOnlyFallbackSource(input.externalUrl, input.sourceName)
+    ? 'draft-only fallback from newsletter/social/community source'
+    : 'draft-only fallback until corroborated by a trusted or primary source';
+
+  return {
+    score: Math.min(FALLBACK_DRAFT_ONLY_SCORE_CAP, Math.max(60, input.relevanceScore)),
+    sourceTrustNote,
+  };
+}
+
+async function loadWeeklyNewsFallbackKeywords(): Promise<KeywordOpportunityRecord[]> {
+  const publishedAfter = new Date(Date.now() - FALLBACK_ARTICLE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const articles = await prisma.ingestedArticle.findMany({
+    where: {
+      publishedAt: { gte: publishedAfter },
+      isDuplicate: false,
+      analysisStatus: 'complete',
+      relevanceScore: { gte: MIN_FALLBACK_ARTICLE_SCORE },
+    },
+    orderBy: [
+      { relevanceScore: 'desc' },
+      { publishedAt: 'desc' },
+    ],
+    include: {
+      source: {
+        select: { name: true },
+      },
+    },
+    take: FALLBACK_ARTICLE_LIMIT,
+  });
+
+  const targetSlugs = articles.map((article) => slugify(articleTitleToKeyword(article.title))).filter(Boolean);
+  const existingPosts = targetSlugs.length
+    ? await prisma.blogPost.findMany({
+        where: {
+          slug: { in: targetSlugs },
+          status: { not: 'archived' },
+        },
+        select: { slug: true },
+      })
+    : [];
+  const handledSlugs = new Set(existingPosts.map((post) => post.slug));
+
+  return articles
+    .map((article): KeywordOpportunityRecord => {
+      const keyword = articleTitleToKeyword(article.title);
+      const relevanceScore = Math.round((article.relevanceScore ?? MIN_FALLBACK_ARTICLE_SCORE) * 1000) / 10;
+      const fallbackScore = scoreWeeklyFallbackArticle({
+        relevanceScore,
+        externalUrl: article.externalUrl,
+        sourceName: article.source?.name,
+      });
+      return {
+        id: `${WEEKLY_FALLBACK_ID_PREFIX}${article.id}`,
+        sourceType: 'editorial_seed',
+        dedupeKey: `weekly-news-fallback:${article.id}`,
+        seedQuery: keyword,
+        clusterKey: null,
+        clusterSnapshotId: null,
+        targetIntent: 'informational',
+        demandProxy: Math.round(relevanceScore),
+        competitionProxy: 45,
+        laeaFitScore: Math.max(60, Math.round(relevanceScore)),
+        overallScore: fallbackScore.score,
+        pageTypeRecommendation: 'blog_post',
+        targetUrl: null,
+        rationale: `Weekly fallback from recent ingested article "${article.title}"${article.source?.name ? ` (${article.source.name})` : ''}. Source: ${article.externalUrl}. Source gate: ${fallbackScore.sourceTrustNote}. Use this when GSC-backed SEO opportunities are stale, duplicated, or packaging-only so LAEA still drafts fresh, relevant editorial coverage.`,
+        status: 'scored',
+        linkedExperimentId: null,
+        sourceRef: null,
+        createdAt: article.ingestedAt.toISOString(),
+        updatedAt: article.ingestedAt.toISOString(),
+      };
+    })
+    .filter((row) => row.seedQuery.length > 0 && !handledSlugs.has(slugify(row.seedQuery)));
+}
+
 export async function loadEditorialOpportunityBacklog(): Promise<{
   proposals: SeoProposalRecord[];
   keywords: KeywordOpportunityRecord[];
 }> {
-  const [approved, drafting, pending, scoredKeywords, promotedKeywords] = await Promise.all([
+  const [approved, drafting, pending, scoredKeywords, promotedKeywords, fallbackKeywords] = await Promise.all([
     loadProposals('approved'),
     loadProposals('drafting'),
     loadProposals('pending'),
     listKeywordOpportunities({ status: 'scored', page: 1, limit: 25 }),
     listKeywordOpportunities({ status: 'promoted', page: 1, limit: 25 }),
+    loadWeeklyNewsFallbackKeywords(),
   ]);
 
   const keywords = await removeAlreadyHandledKeywords([
     ...scoredKeywords.data,
     ...promotedKeywords.data,
+    ...fallbackKeywords,
   ]);
 
   return {
@@ -295,6 +474,7 @@ export async function loadEditorialOpportunityBacklog(): Promise<{
 }
 
 export const editorialOpportunitySelectorTestInternals = {
+  scoreWeeklyFallbackArticle,
   isEligibleKeyword,
   isEligibleProposal,
 };

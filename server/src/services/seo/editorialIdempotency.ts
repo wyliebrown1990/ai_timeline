@@ -91,7 +91,7 @@ export async function findExistingEditorialRun(
 export async function claimEditorialOpportunityRun(
   weekStart: string,
   opportunity: EditorialOpportunity,
-): Promise<SeoEditorialOpportunityRunRecord> {
+): Promise<SeoEditorialOpportunityRunRecord & { claimed: boolean }> {
   const idempotencyKey = buildEditorialIdempotencyKey(weekStart, opportunity);
   const weekStartDate = new Date(`${weekStart.slice(0, 10)}T00:00:00.000Z`);
 
@@ -108,14 +108,14 @@ export async function claimEditorialOpportunityRun(
       },
       include: { post: { select: { slug: true, title: true } } },
     });
-    return serializeRun(row);
+    return { ...serializeRun(row), claimed: true };
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     ) {
       const existing = await findExistingEditorialRun(weekStart, opportunity);
-      if (existing) return existing;
+      if (existing) return { ...existing, claimed: false };
     }
     throw error;
   }

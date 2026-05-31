@@ -187,6 +187,61 @@ describe('blogQualityGate', () => {
     );
   });
 
+  it('blocks auto-publish for extraordinary claims with only one visible source', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'OpenAI solved a famous math problem because the reported result would change how people understand automated reasoning. The useful answer is that such a claim needs careful sourcing before it belongs in the AI timeline, because one write-up is not enough to treat a mathematical result as settled.',
+        '',
+        '## Key facts',
+        '',
+        '- OpenAI reportedly found counterexamples to a long-running conjecture.',
+        '- A claim this large needs independent corroboration before publication.',
+        '- The atlas should separate reported claims from verified milestones.',
+        '',
+        '## Why does this belong in the timeline?',
+        '',
+        'Use the [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) to map the context.',
+        '',
+        '## Sources',
+        '',
+        '- [One report](https://example.com/openai-math-claim)',
+      ].join('\n'),
+    }));
+
+    expect(result.metrics.sourceLinkCount).toBe(1);
+    expect(result.blockers).toContain(
+      'Auto-publish requires at least 2 independent visible source links for extraordinary claims.'
+    );
+  });
+
+  it('allows extraordinary claims through the source-count gate when independently sourced', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'A verified breakthrough in AI reasoning matters because independent sources can show whether a result changed from rumor into evidence. The useful answer is that readers need sourcing discipline around solved-problem claims, because those claims can reshape a timeline only when the record is strong.',
+        '',
+        '## Key facts',
+        '',
+        '- Researchers solved a constrained reasoning benchmark in a documented setting.',
+        '- Independent coverage helps separate benchmark progress from broad capability claims.',
+        '- The atlas should anchor any breakthrough in visible source context.',
+        '',
+        '## Why does this belong in the timeline?',
+        '',
+        'Use the [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) to map the context.',
+        '',
+        '## Sources',
+        '',
+        '- [Primary source](https://example.com/primary)',
+        '- [Independent source](https://example.com/independent)',
+      ].join('\n'),
+    }));
+
+    expect(result.metrics.sourceLinkCount).toBe(2);
+    expect(result.blockers).not.toContain(
+      'Auto-publish requires at least 2 independent visible source links for extraordinary claims.'
+    );
+  });
+
   it('blocks auto-publish for too-broad keywords, weak pre-draft links, missing schema path, or no thesis', () => {
     const result = evaluateBlogQualityGate(validInput({
       targetKeyword: 'AI',

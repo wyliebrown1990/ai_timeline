@@ -11,6 +11,7 @@ import {
 import type { KeywordOpportunityRecord } from './keywordDiscovery';
 import type { SerperKeywordSourceRef } from './serperClient';
 import type { EditorialOpportunity } from './editorialOpportunitySelector';
+import { isWeeklyFallbackKeyword } from './editorialOpportunitySelector';
 
 export interface EditorialBlogCompositionBrief {
   targetKeyword: string;
@@ -108,7 +109,7 @@ export async function buildEditorialBlogCompositionBrief(
     broadKeywordReason(opportunity.targetKeyword),
   ].filter((reason): reason is string => Boolean(reason));
 
-  if (loadedLinks.length < 3) {
+  if (loadedLinks.length < 3 && !isWeeklyFallbackKeyword(opportunity)) {
     blockers.push('Fewer than 3 strong internal links are available for this topic.');
   }
 

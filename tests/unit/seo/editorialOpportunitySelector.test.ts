@@ -1,7 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
 import type { SeoProposalRecord } from '../../../server/src/services/seo/briefGenerator';
 import type { KeywordOpportunityRecord } from '../../../server/src/services/seo/keywordDiscovery';
-import { selectEditorialOpportunities } from '../../../server/src/services/seo/editorialOpportunitySelector';
+import {
+  editorialOpportunitySelectorTestInternals,
+  selectEditorialOpportunities,
+} from '../../../server/src/services/seo/editorialOpportunitySelector';
 
 function proposal(overrides: Partial<SeoProposalRecord>): SeoProposalRecord {
   return {
@@ -134,6 +137,48 @@ describe('editorialOpportunitySelector', () => {
       ['promoted-auto', 'auto_publish'],
       ['promoted-draft', 'draft_only'],
     ]);
+  });
+
+  it('can auto-publish strong trusted weekly fallback article opportunities', () => {
+    const result = selectEditorialOpportunities({
+      proposals: [],
+      keywords: [
+        keyword({
+          id: 'weekly-news-fallback:article-1',
+          sourceType: 'editorial_seed',
+          seedQuery: 'new ai model changes coding agents',
+          overallScore: 82,
+        }),
+      ],
+      maxPosts: 1,
+      maxAutoPublish: 1,
+    });
+
+    expect(result.selected.map((row) => [row.id, row.action])).toEqual([
+      ['weekly-news-fallback:article-1', 'auto_publish'],
+    ]);
+  });
+
+  it('keeps weak-source weekly fallback articles draft-only by capping their selector score', () => {
+    const result = editorialOpportunitySelectorTestInternals.scoreWeeklyFallbackArticle({
+      relevanceScore: 96,
+      externalUrl: 'https://www.theneurondaily.com/p/openai-solved-an-80-year-math-problem',
+      sourceName: 'The Neuron',
+    });
+
+    expect(result.score).toBeLessThan(78);
+    expect(result.sourceTrustNote).toContain('draft-only');
+  });
+
+  it('allows trusted weekly fallback sources to keep auto-publish-level scores', () => {
+    const result = editorialOpportunitySelectorTestInternals.scoreWeeklyFallbackArticle({
+      relevanceScore: 88,
+      externalUrl: 'https://openai.com/research/example',
+      sourceName: 'OpenAI',
+    });
+
+    expect(result.score).toBe(88);
+    expect(result.sourceTrustNote).toContain('trusted-source');
   });
 
   it('allows cluster and keyword-opportunity proposals and drafts lower-confidence ideas', () => {

@@ -307,6 +307,65 @@ describe('editorialBlogDraft', () => {
     expect(mockCreateDraft).not.toHaveBeenCalled();
   });
 
+  it('does not duplicate a completed opportunity even when the run is forced', async () => {
+    mockEditorialRunFindUnique.mockResolvedValue({
+      id: 'run-1',
+      idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+      weekStart: new Date('2026-04-24T00:00:00.000Z'),
+      sourceType: 'proposal',
+      sourceId: 'proposal-1',
+      targetKeyword: 'ai timeline',
+      action: 'auto_publish',
+      status: 'draft_created',
+      postId: 'post-1',
+      post: { slug: 'ai-timeline', title: 'AI Timeline as a Systems Map' },
+      reason: 'Created as draft.',
+    });
+
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, {
+      weekStart: '2026-04-24',
+      force: true,
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      status: 'draft_created',
+      postId: 'post-1',
+      adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
+    }));
+    expect(mockEditorialRunCreate).not.toHaveBeenCalled();
+    expect(mockMessagesCreate).not.toHaveBeenCalled();
+    expect(mockCreateDraft).not.toHaveBeenCalled();
+  });
+
+  it('keeps concurrent retries read-only while an opportunity is processing', async () => {
+    mockEditorialRunFindUnique.mockResolvedValue({
+      id: 'run-1',
+      idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+      weekStart: new Date('2026-04-24T00:00:00.000Z'),
+      sourceType: 'proposal',
+      sourceId: 'proposal-1',
+      targetKeyword: 'ai timeline',
+      action: 'auto_publish',
+      status: 'processing',
+      postId: null,
+      post: null,
+      reason: null,
+    });
+
+    const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, {
+      weekStart: '2026-04-24',
+      force: true,
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      status: 'skipped_by_gate',
+      reason: 'Opportunity is already processing for this week.',
+    }));
+    expect(mockEditorialRunCreate).not.toHaveBeenCalled();
+    expect(mockMessagesCreate).not.toHaveBeenCalled();
+    expect(mockCreateDraft).not.toHaveBeenCalled();
+  });
+
   it('blocks duplicate blog topics before creating a draft', async () => {
     mockBlogPostFindFirst.mockResolvedValue({
       id: 'existing-post',

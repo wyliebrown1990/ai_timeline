@@ -39,6 +39,15 @@ const RISKY_CLAIM_PATTERNS = [
   /\b(?:OpenAI|Google|DeepMind|Microsoft|Meta|Anthropic|NVIDIA|Salesforce|LangChain|AutoGen)\b.*\b(?:released|introduced|announced|showed|found|integrated|launched)\b/i,
   /\b(?:released|introduced|announced|showed|found|integrated|launched)\b.*\b(?:OpenAI|Google|DeepMind|Microsoft|Meta|Anthropic|NVIDIA|Salesforce|LangChain|AutoGen)\b/i,
 ];
+const EXTRAORDINARY_CLAIM_PATTERNS = [
+  /\bsolv(?:ed|es|ing)\b.{0,80}\b(?:problem|conjecture|theorem|challenge|bottleneck)\b/i,
+  /\bdisprov(?:ed|es|ing)\b/i,
+  /\bcounterexample(?:s)?\b/i,
+  /\bproved?\s+(?:it\s+)?false\b/i,
+  /\bbroke\b.{0,80}\b(?:guardrail|benchmark|record|model|internet|web|search)\b/i,
+  /\bfirst\s+(?:major|ever|time)\b/i,
+  /\b(?:breakthrough|historic|unprecedented)\b/i,
+] as const;
 
 export interface BlogQualityGateInput {
   targetKeyword?: string;
@@ -153,12 +162,25 @@ function countSourceLinks(markdown: string): number {
 }
 
 function countRiskyClaims(markdown: string): number {
-  const prose = markdown
+  const prose = normalizedProse(markdown);
+
+  return RISKY_CLAIM_PATTERNS.reduce((count, pattern) => {
+    const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
+    return count + [...prose.matchAll(globalPattern)].length;
+  }, 0);
+}
+
+function normalizedProse(markdown: string): string {
+  return markdown
     .replace(/```[\s\S]*?```/g, '')
     .replace(/\[[^\]]+\]\([^)]+\)/g, '')
     .replace(/\[\[(?:person|organization|glossary|event):[a-zA-Z0-9_-]+\|([^\]]+)\]\]/g, '$1');
+}
 
-  return RISKY_CLAIM_PATTERNS.reduce((count, pattern) => {
+function countExtraordinaryClaims(markdown: string): number {
+  const prose = normalizedProse(markdown);
+
+  return EXTRAORDINARY_CLAIM_PATTERNS.reduce((count, pattern) => {
     const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : `${pattern.flags}g`);
     return count + [...prose.matchAll(globalPattern)].length;
   }, 0);
@@ -213,6 +235,7 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   const shortcodeCount = countEntityShortcodes(input.bodyMarkdown);
   const sourceLinkCount = countSourceLinks(input.bodyMarkdown);
   const riskyClaimCount = countRiskyClaims(input.bodyMarkdown);
+  const extraordinaryClaimCount = countExtraordinaryClaims(input.bodyMarkdown);
   const words = wordCount(input.bodyMarkdown);
   const canonical = getCanonical(input);
 
@@ -261,6 +284,9 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   }
   if (input.intendedAction === 'auto_publish' && riskyClaimCount > 0 && sourceLinkCount === 0) {
     blockers.push('Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.');
+  }
+  if (input.intendedAction === 'auto_publish' && extraordinaryClaimCount > 0 && sourceLinkCount < 2) {
+    blockers.push('Auto-publish requires at least 2 independent visible source links for extraordinary claims.');
   }
   if (input.intendedAction === 'auto_publish' && typeof input.strongInternalLinkCandidates === 'number' && input.strongInternalLinkCandidates < 3) {
     blockers.push('Auto-publish requires at least 3 strong internal-link candidates before drafting.');

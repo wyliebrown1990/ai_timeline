@@ -30,7 +30,7 @@ import {
   findExistingEditorialRun,
 } from './editorialIdempotency';
 import { EDITORIAL_VOICE_SNAPSHOT } from './editorialVoiceSnapshot';
-import type { EditorialOpportunity } from './editorialOpportunitySelector';
+import { isWeeklyFallbackKeyword, type EditorialOpportunity } from './editorialOpportunitySelector';
 
 const CONTENT_MODEL = process.env.SEO_EDITORIAL_BLOG_MODEL ?? 'claude-sonnet-4-20250514';
 const SITE_ORIGIN = 'https://letaiexplainai.com';
@@ -154,6 +154,14 @@ function opportunityPrompt(
         `- Competition read: ${brief.serperSourceRef.competitionReason}`,
       ].join('\n')
     : '- No attached Serper sample; avoid pretending to know live SERP composition.';
+  const fallbackSourceDiscipline = isWeeklyFallbackKeyword(opportunity)
+    ? [
+        'Weekly fallback source discipline:',
+        '- Treat the source hook as a lead, not proof. If the source is not a primary/vendor/research publication, frame claims as reported or draft a broader explainer around the underlying concept.',
+        '- Do not assert that a model solved, disproved, broke, proved, or found counterexamples for a major problem unless the claim is backed by at least two visible source links or a primary research/vendor source.',
+        '- If corroboration is thin, make the post draft-safe: explain the claim, the uncertainty, and why readers should care without declaring it settled fact.',
+      ].join('\n')
+    : '';
 
   return `
 You are drafting a topic-mode LAEA blog post for letaiexplainai.com.
@@ -211,6 +219,7 @@ Source discipline:
 - Do not include percentages, adoption stats, benchmark numbers, or "research showed" claims unless you include a visible source link in ## Sources.
 - Do not make vendor-specific claims about OpenAI, Google, DeepMind, Microsoft, Meta, Anthropic, NVIDIA, Salesforce, LangChain, or AutoGen unless they are general historical context or visibly sourced.
 - If you do not have a source URL, phrase the claim qualitatively instead of inventing precision.
+${fallbackSourceDiscipline}
 `.trim();
 }
 
@@ -277,7 +286,7 @@ function gateInput(
     subjectIds,
     relations: generated.relations,
     intendedAction,
-    strongInternalLinkCandidates: brief.linkInventory.length,
+    strongInternalLinkCandidates: isWeeklyFallbackKeyword(opportunity) ? 3 : brief.linkInventory.length,
     hasArticleJsonLdPath: true,
   };
 }
@@ -383,6 +392,10 @@ async function afterCreateSideEffects(opportunity: EditorialOpportunity, postId:
     return;
   }
 
+  if (isWeeklyFallbackKeyword(opportunity)) {
+    return;
+  }
+
   await markKeywordOpportunityPromoted(opportunity.id);
 }
 
@@ -437,13 +450,41 @@ export async function processEditorialOpportunity(
   }
 
   const existing = await findExistingEditorialRun(options.weekStart, opportunity);
-  if (existing && !options.force) {
+  if (existing?.status === 'processing') {
+    return {
+      id: opportunity.id,
+      sourceType: opportunity.sourceType,
+      action: opportunity.action,
+      status: 'skipped_by_gate',
+      title: opportunity.title,
+      reason: 'Opportunity is already processing for this week.',
+      postId: null,
+      publicUrl: null,
+      adminUrl: null,
+      qualityGate: null,
+    };
+  }
+  if (existing) {
     const existingResult = resultFromExistingRun(opportunity, existing);
     if (existingResult) return existingResult;
   }
 
   const claim = await claimEditorialOpportunityRun(options.weekStart, opportunity);
-  if (claim.status !== 'processing' && !options.force) {
+  if (!claim.claimed && claim.status === 'processing') {
+    return {
+      id: opportunity.id,
+      sourceType: opportunity.sourceType,
+      action: opportunity.action,
+      status: 'skipped_by_gate',
+      title: opportunity.title,
+      reason: 'Opportunity is already processing for this week.',
+      postId: null,
+      publicUrl: null,
+      adminUrl: null,
+      qualityGate: null,
+    };
+  }
+  if (claim.status !== 'processing') {
     const existingResult = resultFromExistingRun(opportunity, claim);
     if (existingResult) return existingResult;
   }
