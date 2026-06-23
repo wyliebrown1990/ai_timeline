@@ -223,7 +223,7 @@ export async function getBySlugWithRelations(slug: string): Promise<{
 
   // Get news events mentioning this org (Sprint PD-1 — mirrors persons.ts)
   const newsEventMentions = await prisma.newsEventOrgMention.findMany({
-    where: { organizationId: organization.id },
+    where: { orgId: organization.id },
     include: {
       event: {
         select: {
