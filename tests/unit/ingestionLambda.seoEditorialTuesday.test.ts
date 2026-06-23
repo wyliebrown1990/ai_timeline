@@ -8,9 +8,11 @@ const mockScreenOnly = jest.fn();
 const mockIngestBibliography = jest.fn();
 const mockGenerateMarkdownReport = jest.fn();
 const mockRunBackfill = jest.fn();
-const mockRunWeeklyIngest = jest.fn();
+const mockRunTrackedWeeklyIngest = jest.fn();
 const mockRunSeoWeeklyDigest = jest.fn();
 const mockRunSeoEditorialTuesday = jest.fn();
+const mockRunSingleEditorialOpportunity = jest.fn();
+const mockBackfillBlogEntityLinks = jest.fn();
 
 jest.mock('../../server/src/jobs/ingestionJob', () => ({
   runIngestionJob: mockRunIngestionJob,
@@ -39,7 +41,10 @@ jest.mock('../../server/src/db', () => ({
 
 jest.mock('../../server/src/services/gsc/gscIngest', () => ({
   runBackfill: mockRunBackfill,
-  runWeeklyIngest: mockRunWeeklyIngest,
+}));
+
+jest.mock('../../server/src/services/gsc/trackedIngest', () => ({
+  runTrackedWeeklyIngest: mockRunTrackedWeeklyIngest,
 }));
 
 jest.mock('../../server/src/services/seo/weeklyDigestRunner', () => ({
@@ -48,6 +53,11 @@ jest.mock('../../server/src/services/seo/weeklyDigestRunner', () => ({
 
 jest.mock('../../server/src/services/seo/editorialAutopilotRunner', () => ({
   runSeoEditorialTuesday: mockRunSeoEditorialTuesday,
+  runSingleEditorialOpportunity: mockRunSingleEditorialOpportunity,
+}));
+
+jest.mock('../../server/src/services/seo/backfillBlogEntityLinks', () => ({
+  backfillBlogEntityLinks: mockBackfillBlogEntityLinks,
 }));
 
 import { handler } from '../../server/src/ingestionLambda';
@@ -59,7 +69,7 @@ const context = {
 describe('ingestionLambda seoEditorialTuesday action', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockRunWeeklyIngest.mockResolvedValue({
+    mockRunTrackedWeeklyIngest.mockResolvedValue({
       mode: 'weekly',
       startDate: '2026-05-02',
       endDate: '2026-05-08',
@@ -91,6 +101,26 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
       proposalCount: 1,
       humanOnlyCount: 0,
       measuredCount: 0,
+    });
+    mockRunSingleEditorialOpportunity.mockResolvedValue({
+      id: 'cmpxllifa000102juwkb9ane7',
+      sourceType: 'keyword',
+      action: 'draft_only',
+      status: 'draft_created',
+      title: "NVIDIA's Agent Push Meets Local Hardware Reality",
+      reason: 'Created successfully.',
+      postId: 'post-2',
+      publicUrl: null,
+      adminUrl: 'https://letaiexplainai.com/admin/blog/post-2/edit',
+      qualityGate: null,
+    });
+    mockBackfillBlogEntityLinks.mockResolvedValue({
+      publishedAfter: '2026-05-05',
+      dryRun: false,
+      scannedCount: 5,
+      updatedCount: 4,
+      skippedCount: 1,
+      items: [],
     });
   });
 
@@ -134,7 +164,7 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
   });
 
   it('throws when scheduled GSC ingest fails so Lambda metrics and retries see it', async () => {
-    mockRunWeeklyIngest.mockRejectedValue(new Error('invalid_grant'));
+    mockRunTrackedWeeklyIngest.mockRejectedValue(new Error('invalid_grant'));
 
     await expect(handler({ action: 'gscWeeklyIngest' }, context)).rejects.toThrow('invalid_grant');
   });
@@ -179,5 +209,52 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
     await handler({ action: 'seoWeeklyDigest', runEditorial: false }, context);
 
     expect(mockRunSeoEditorialTuesday).not.toHaveBeenCalled();
+  });
+
+  it('dispatches a one-off editorial opportunity retest without touching the weekly runner', async () => {
+    const response = await handler({
+      action: 'seoEditorialTestOpportunity',
+      opportunityId: 'cmpxllifa000102juwkb9ane7',
+      weekStart: '2026-06-09',
+      force: true,
+    }, context);
+
+    expect(mockRunSingleEditorialOpportunity).toHaveBeenCalledWith({
+      opportunityId: 'cmpxllifa000102juwkb9ane7',
+      weekStart: '2026-06-09',
+      force: true,
+    });
+    expect(mockRunSeoEditorialTuesday).not.toHaveBeenCalled();
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'Single SEO editorial opportunity completed successfully',
+      result: expect.objectContaining({
+        status: 'draft_created',
+        postId: 'post-2',
+      }),
+    });
+  });
+
+  it('dispatches the production entity-link backfill runner', async () => {
+    const response = await handler({
+      action: 'seoBackfillBlogEntityLinks',
+      publishedAfter: '2026-05-05',
+      dryRun: false,
+      limit: 10,
+    }, context);
+
+    expect(mockBackfillBlogEntityLinks).toHaveBeenCalledWith({
+      publishedAfter: '2026-05-05',
+      dryRun: false,
+      limit: 10,
+    });
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'SEO blog entity-link backfill completed successfully',
+      summary: expect.objectContaining({
+        updatedCount: 4,
+        scannedCount: 5,
+      }),
+    });
   });
 });

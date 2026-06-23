@@ -5,6 +5,7 @@ import type { SeoPackagingAuditRecord } from '../../../server/src/services/seo/s
 import type { SerperUsageSummary } from '../../../server/src/services/seo/serperClient';
 
 const mockGetGscHealth = jest.fn();
+const mockGetLatestGscRunStatus = jest.fn();
 const mockListInsights = jest.fn();
 const mockIsPaused = jest.fn();
 const mockGetLatestAgentRunStatus = jest.fn();
@@ -23,6 +24,10 @@ const mockMarkKeywordOpportunityPromoted = jest.fn();
 
 jest.mock('../../../server/src/services/gsc/gscIngest', () => ({
   getGscHealth: mockGetGscHealth,
+}));
+
+jest.mock('../../../server/src/services/gsc/gscRunStatus', () => ({
+  getLatestGscRunStatus: mockGetLatestGscRunStatus,
 }));
 
 jest.mock('../../../server/src/services/gsc/bucketClassifier', () => ({
@@ -229,6 +234,7 @@ beforeEach(() => {
     agentRun: null,
     serper: SERPER_SUMMARY,
   });
+  mockGetLatestGscRunStatus.mockResolvedValue(null);
   mockIsPaused.mockResolvedValue(false);
   mockGetLatestAgentRunStatus.mockResolvedValue(null);
   mockSetLatestAgentRunStatus.mockResolvedValue({});
@@ -375,6 +381,37 @@ describe('runSeoWeeklyDigest', () => {
       weekStart: '2026-04-24T00:00:00.000Z',
       errorMessage: expect.stringContaining('GSC data is stale'),
     }));
+  });
+
+  it('includes the latest tracked GSC remediation when stale data was caused by auth failure', async () => {
+    mockGetGscHealth.mockResolvedValue({
+      lastWeekCovered: '2026-04-24',
+      finalizedThroughDate: '2026-05-08',
+    });
+    mockGetLatestGscRunStatus.mockResolvedValue({
+      status: 'failed',
+      startedAt: '2026-05-11T06:00:00.000Z',
+      completedAt: '2026-05-11T06:00:44.000Z',
+      startDate: '2026-05-02',
+      endDate: '2026-05-08',
+      finalizedThroughDate: '2026-05-08',
+      dailyRowsInserted: 0,
+      dailyRowsAttempted: 0,
+      snapshotsCreated: 0,
+      durationMs: 44000,
+      errorMessage: 'invalid_grant',
+      errorCategory: 'auth',
+      requiresOperatorAction: true,
+      remediation: {
+        summary: 'Re-run the OAuth rotation helper.',
+        command: 'npm run gsc:oauth-rotate',
+        docsPath: '.claude/schedules/seo-weekly.md',
+      },
+    });
+
+    await expect(runSeoWeeklyDigest({
+      now: new Date('2026-05-11T13:15:00.000Z'),
+    })).rejects.toThrow('npm run gsc:oauth-rotate');
   });
 
   it('treats 409 proposal responses as already queued and keeps the run successful', async () => {

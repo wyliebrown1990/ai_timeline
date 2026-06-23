@@ -6,12 +6,13 @@ import { prisma } from '../../db';
 import { getInsightDetail, type InsightDetail } from '../gsc/bucketClassifier';
 import { isPaused } from './agentControl';
 import { ensureExperimentForAction } from './experimentLedger';
+import { SEO_AUTOMATION_MODEL } from './anthropicModels';
 
 // The /SEOAuditAgent skill drives reasoning (what to rewrite and why).
 // This service drives execution (writes, audit, rollback, blast-radius caps).
 // Guardrails are enforced HERE even if the skill misbehaves — never trust the skill alone.
 
-const METADATA_REWRITE_MODEL = 'claude-sonnet-4-20250514';
+const METADATA_REWRITE_MODEL = SEO_AUTOMATION_MODEL;
 const MIN_SHIP_CONFIDENCE = 0.8;
 const MIN_SHIP_IMPRESSIONS = 100;
 const BLAST_RADIUS_CAP = 3;

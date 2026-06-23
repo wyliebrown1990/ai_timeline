@@ -19,6 +19,8 @@ import {
   evaluateBlogQualityGate,
   type BlogQualityGateResult,
 } from './blogQualityGate';
+import { discoverEditorialEntityInventory } from './editorialEntityDiscovery';
+import { enforceEditorialEntityLinks } from './editorialEntityLinker';
 import {
   buildEditorialBlogCompositionBrief,
   type EditorialBlogCompositionBrief,
@@ -31,8 +33,9 @@ import {
 } from './editorialIdempotency';
 import { EDITORIAL_VOICE_SNAPSHOT } from './editorialVoiceSnapshot';
 import { isWeeklyFallbackKeyword, type EditorialOpportunity } from './editorialOpportunitySelector';
+import { SEO_EDITORIAL_BLOG_MODEL } from './anthropicModels';
 
-const CONTENT_MODEL = process.env.SEO_EDITORIAL_BLOG_MODEL ?? 'claude-sonnet-4-20250514';
+const CONTENT_MODEL = SEO_EDITORIAL_BLOG_MODEL;
 const SITE_ORIGIN = 'https://letaiexplainai.com';
 const DEFAULT_SUBJECT_SLUGS = ['science-cs-ml'];
 
@@ -48,6 +51,14 @@ export interface GeneratedEditorialBlogDraft {
   tags: string[];
   subjectSlugs: string[];
   relations?: Array<{ entityType: string; entityId: string; relationLabel?: string }>;
+}
+
+interface NormalizedGeneratedDraft {
+  generated: GeneratedEditorialBlogDraft;
+  linkInventoryCount: number;
+  availablePreviewEntityTypes: string[];
+  availableNonOrganizationCandidates: number;
+  allowedPreviewEntityPaths: string[];
 }
 
 export interface ProcessEditorialOpportunityOptions {
@@ -85,6 +96,15 @@ function extractJsonObject(value: string): unknown {
     throw new Error('Blog draft generation returned no JSON object');
   }
   return JSON.parse(match[0]) as unknown;
+}
+
+function extractToolDraft(response: Anthropic.Message): unknown | null {
+  const toolUse = response.content.find((block) => block.type === 'tool_use');
+  if (!toolUse || toolUse.type !== 'tool_use') {
+    return null;
+  }
+
+  return toolUse.input;
 }
 
 function asString(value: unknown, field: string): string {
@@ -204,7 +224,7 @@ JSON shape:
   "relations": [
     { "entityType": "glossary_term", "entityId": "machine-learning", "relationLabel": "mentions" }
   ],
-  "bodyMarkdown": "<800-1200 words. No H1. Use H2s. Include a visible ## Key facts section. Include at least 3 internal links using markdown links or supported entity shortcodes. Include ## Sources with visible links. Include one question-style H2 or Q/A block. End with ## The atlas's read.>"
+  "bodyMarkdown": "<800-1200 words. No H1. Use H2s. Include a visible ## Key facts section. Name concrete LAEA concepts, people, organizations, and historical milestones so the atlas can link them on first mention. Include at least 6 distinct previewable LAEA entity links when inventory supports it, with category variety: prefer glossary terms, key people, and historical events instead of only company names. Use supported entity shortcodes or /people|/organizations|/glossary|/events links. Generic atlas links like /timeline, /glossary, or /learn do not count toward the entity minimum. Include ## Sources with visible links. Include one question-style H2 or Q/A block. End with ## The atlas's read.>"
 }
 
 Supported entity shortcodes in bodyMarkdown:
@@ -213,7 +233,7 @@ Supported entity shortcodes in bodyMarkdown:
 - [[glossary:slug|Visible Name]]
 - [[event:id|Visible Name]]
 
-Use at least 3 distinct links from the Internal links available list. Use exact markdown hrefs such as [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn).
+Use at least 6 distinct previewable entity links from the Internal links available list when the atlas inventory supports it. Favor a mix of glossary terms, people, organizations, and milestones. Generic atlas links like [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) are useful context but do not count toward the entity minimum.
 
 Source discipline:
 - Do not include percentages, adoption stats, benchmark numbers, or "research showed" claims unless you include a visible source link in ## Sources.
@@ -231,8 +251,44 @@ export async function generateEditorialBlogDraft(
     model: CONTENT_MODEL,
     max_tokens: 4500,
     temperature: 0.4,
+    tools: [{
+      name: 'submit_blog_draft',
+      description: 'Submit the complete LAEA blog draft as structured fields.',
+      input_schema: {
+        type: 'object',
+        required: ['title', 'excerpt', 'bodyMarkdown', 'seoTitle', 'seoDescription', 'tags', 'subjectSlugs'],
+        properties: {
+          title: { type: 'string' },
+          subtitle: { type: 'string' },
+          excerpt: { type: 'string' },
+          seoTitle: { type: 'string' },
+          seoDescription: { type: 'string' },
+          tags: { type: 'array', items: { type: 'string' } },
+          subjectSlugs: { type: 'array', items: { type: 'string' } },
+          relations: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['entityType', 'entityId'],
+              properties: {
+                entityType: { type: 'string' },
+                entityId: { type: 'string' },
+                relationLabel: { type: 'string' },
+              },
+            },
+          },
+          bodyMarkdown: { type: 'string' },
+        },
+      },
+    }],
+    tool_choice: { type: 'tool', name: 'submit_blog_draft' },
     messages: [{ role: 'user', content: opportunityPrompt(opportunity, brief) }],
   });
+  const toolDraft = extractToolDraft(response);
+  if (toolDraft) {
+    return parseGeneratedDraft(toolDraft);
+  }
+
   const text = response.content
     .filter((block): block is Anthropic.TextBlock => block.type === 'text')
     .map((block) => block.text)
@@ -266,13 +322,14 @@ function buildDraftInput(generated: GeneratedEditorialBlogDraft, subjectIds: str
 }
 
 function gateInput(
-  generated: GeneratedEditorialBlogDraft,
+  normalized: NormalizedGeneratedDraft,
   subjectIds: string[],
   slug: string,
   intendedAction: EditorialOpportunity['action'],
   opportunity: EditorialOpportunity,
-  brief: EditorialBlogCompositionBrief,
+  _brief: EditorialBlogCompositionBrief,
 ) {
+  const generated = normalized.generated;
   return {
     targetKeyword: opportunity.targetKeyword,
     title: generated.title,
@@ -286,7 +343,11 @@ function gateInput(
     subjectIds,
     relations: generated.relations,
     intendedAction,
-    strongInternalLinkCandidates: isWeeklyFallbackKeyword(opportunity) ? 3 : brief.linkInventory.length,
+    strongInternalLinkCandidates: isWeeklyFallbackKeyword(opportunity) ? 3 : normalized.linkInventoryCount,
+    availablePreviewLinkCandidates: normalized.linkInventoryCount,
+    availablePreviewEntityTypes: normalized.availablePreviewEntityTypes,
+    availableNonOrganizationCandidates: normalized.availableNonOrganizationCandidates,
+    allowedPreviewEntityPaths: normalized.allowedPreviewEntityPaths,
     hasArticleJsonLdPath: true,
   };
 }
@@ -339,6 +400,36 @@ function repairGeneratedDraftForGate(
   };
 }
 
+async function normalizeGeneratedDraft(
+  generated: GeneratedEditorialBlogDraft,
+  brief: EditorialBlogCompositionBrief,
+): Promise<NormalizedGeneratedDraft> {
+  const discoveredInventory = await discoverEditorialEntityInventory({
+    title: generated.title,
+    bodyMarkdown: generated.bodyMarkdown,
+    baseInventory: brief.linkInventory,
+  });
+  const minimumPreviewLinks = Math.max(3, Math.min(6, discoveredInventory.length));
+  const enriched = enforceEditorialEntityLinks({
+    bodyMarkdown: generated.bodyMarkdown,
+    linkInventory: discoveredInventory,
+    relations: generated.relations,
+    minimumPreviewLinks,
+  });
+
+  return {
+    generated: {
+      ...generated,
+      bodyMarkdown: enriched.bodyMarkdown,
+      relations: enriched.relations,
+    },
+    linkInventoryCount: discoveredInventory.length,
+    availablePreviewEntityTypes: [...new Set(discoveredInventory.map((item) => item.entityType))],
+    availableNonOrganizationCandidates: discoveredInventory.filter((item) => item.entityType !== 'organization').length,
+    allowedPreviewEntityPaths: discoveredInventory.map((item) => item.path),
+  };
+}
+
 function deriveDraftSlug(generated: GeneratedEditorialBlogDraft, opportunity: EditorialOpportunity): string {
   const candidate = (opportunity.targetKeyword || generated.title)
     .toLowerCase()
@@ -376,6 +467,56 @@ function resultFromExistingRun(
     adminUrl: existing.postId ? `${SITE_ORIGIN}/admin/blog/${existing.postId}/edit` : null,
     qualityGate: null,
   };
+}
+
+async function publishExistingDraftFromRun(
+  opportunity: EditorialOpportunity,
+  existing: NonNullable<Awaited<ReturnType<typeof findExistingEditorialRun>>>,
+): Promise<ProcessEditorialOpportunityResult | null> {
+  if (
+    opportunity.action !== 'auto_publish' ||
+    existing.status !== 'draft_created' ||
+    !existing.postId ||
+    existing.reason?.startsWith('Quality gate blocked draft:')
+  ) {
+    return null;
+  }
+
+  const publishedPost = await publishPost(existing.postId);
+  if (!publishedPost) {
+    throw new Error(`Blog post ${existing.postId} disappeared before publish`);
+  }
+
+  await completeEditorialOpportunityRun(existing.idempotencyKey, {
+    status: 'auto_published',
+    postId: existing.postId,
+    reason: 'Published existing clean draft after opportunity qualified for the auto-publish lane.',
+    metadata: { upgradedFrom: 'draft_created' },
+  });
+
+  return {
+    id: opportunity.id,
+    sourceType: opportunity.sourceType,
+    action: 'auto_publish',
+    status: 'auto_published',
+    title: publishedPost.title,
+    reason: 'Published existing clean draft after opportunity qualified for the auto-publish lane.',
+    postId: existing.postId,
+    publicUrl: `${SITE_ORIGIN}/blog/${publishedPost.slug}`,
+    adminUrl: `${SITE_ORIGIN}/admin/blog/${existing.postId}/edit`,
+    qualityGate: null,
+  };
+}
+
+function isRetryableStaleProcessingRun(
+  existing: NonNullable<Awaited<ReturnType<typeof findExistingEditorialRun>>>,
+): boolean {
+  if (existing.status !== 'processing' || existing.postId) {
+    return false;
+  }
+
+  const updatedAtMs = Date.parse(existing.updatedAt);
+  return Number.isFinite(updatedAtMs) && Date.now() - updatedAtMs > 15 * 60 * 1000;
 }
 
 async function prepareProposalForDraft(opportunity: EditorialOpportunity): Promise<void> {
@@ -450,7 +591,10 @@ export async function processEditorialOpportunity(
   }
 
   const existing = await findExistingEditorialRun(options.weekStart, opportunity);
-  if (existing?.status === 'processing') {
+  if (
+    existing?.status === 'processing' &&
+    (!options.force || !isRetryableStaleProcessingRun(existing))
+  ) {
     return {
       id: opportunity.id,
       sourceType: opportunity.sourceType,
@@ -464,12 +608,25 @@ export async function processEditorialOpportunity(
       qualityGate: null,
     };
   }
-  if (existing) {
+  if (
+    existing &&
+    (
+      !options.force ||
+      existing.postId ||
+      (existing.status !== 'failed' && existing.status !== 'skipped_by_gate')
+    )
+  ) {
+    if (options.force) {
+      const upgraded = await publishExistingDraftFromRun(opportunity, existing);
+      if (upgraded) return upgraded;
+    }
     const existingResult = resultFromExistingRun(opportunity, existing);
     if (existingResult) return existingResult;
   }
 
-  const claim = await claimEditorialOpportunityRun(options.weekStart, opportunity);
+  const claim = await claimEditorialOpportunityRun(options.weekStart, opportunity, {
+    force: options.force ?? false,
+  });
   if (!claim.claimed && claim.status === 'processing') {
     return {
       id: opportunity.id,
@@ -493,7 +650,11 @@ export async function processEditorialOpportunity(
     const brief = await buildEditorialBlogCompositionBrief(opportunity);
     const effectiveAction: EditorialOpportunity['action'] =
       opportunity.action === 'auto_publish' && brief.blockers.length > 0 ? 'draft_only' : opportunity.action;
-    const generated = await generateEditorialBlogDraft({ ...opportunity, action: effectiveAction }, brief);
+    const normalizedGenerated = await normalizeGeneratedDraft(
+      await generateEditorialBlogDraft({ ...opportunity, action: effectiveAction }, brief),
+      brief,
+    );
+    const generated = normalizedGenerated.generated;
     const subjectIds = await resolveSubjectIds(generated.subjectSlugs);
     const slug = deriveDraftSlug(generated, opportunity);
     const duplicate = await findDuplicateEditorialPost({
@@ -522,11 +683,15 @@ export async function processEditorialOpportunity(
       };
     }
 
-    let qualityGate = evaluateBlogQualityGate(gateInput(generated, subjectIds, slug, effectiveAction, opportunity, brief));
+    let qualityGate = evaluateBlogQualityGate(gateInput(normalizedGenerated, subjectIds, slug, effectiveAction, opportunity, brief));
     let finalGenerated = generated;
     if (!qualityGate.passed) {
-      finalGenerated = repairGeneratedDraftForGate(generated, opportunity, qualityGate);
-      qualityGate = evaluateBlogQualityGate(gateInput(finalGenerated, subjectIds, slug, effectiveAction, opportunity, brief));
+      const repaired = await normalizeGeneratedDraft(
+        repairGeneratedDraftForGate(generated, opportunity, qualityGate),
+        brief,
+      );
+      finalGenerated = repaired.generated;
+      qualityGate = evaluateBlogQualityGate(gateInput(repaired, subjectIds, slug, effectiveAction, opportunity, brief));
     }
 
     if (!qualityGate.passed) {

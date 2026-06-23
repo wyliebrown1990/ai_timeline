@@ -124,7 +124,7 @@ Rationale and full sprint context: `roadmap/Sprint-Ext-1-Backend-Prep.md`.
 
 - Use `.claude/skills/SEOAuditAgent/` as the operator-facing skill layer for weekly SEO finding review.
 - The unattended weekly digest is scheduled by EventBridge `SeoWeeklyDigestRule` in `infra/template.yaml`.
-- `SeoWeeklyDigestRule` targets the existing `IngestionFunction` with payload `{"action":"seoWeeklyDigest"}`; do not add a second Lambda for the weekly runner.
+- `SeoWeeklyDigestRule` targets the existing `IngestionFunction` with payload `{"action":"seoWeeklyDigest","runEditorial":false}`; do not add a second Lambda for the weekly runner.
 - `server/src/services/seo/weeklyDigestRunner.ts` is the shared service used by the ingestion Lambda; local dry-runs invoke that Lambda instead of connecting to private RDS directly.
 - The Lambda path composes directly with backend services and does not use admin username/password SSM parameters.
 - The runner must persist successful and failed run status through `setLatestAgentRunStatus()` so `/admin/seo-insights` remains the operator surface.

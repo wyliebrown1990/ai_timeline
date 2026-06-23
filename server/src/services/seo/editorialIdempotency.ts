@@ -22,6 +22,7 @@ export interface SeoEditorialOpportunityRunRecord {
   postSlug: string | null;
   postTitle: string | null;
   reason: string | null;
+  updatedAt: string;
 }
 
 function normalizeKeyPart(value: string): string {
@@ -54,6 +55,7 @@ function serializeRun(row: {
   postId: string | null;
   post?: { slug: string; title: string } | null;
   reason: string | null;
+  updatedAt?: Date;
 }): SeoEditorialOpportunityRunRecord {
   return {
     id: row.id,
@@ -73,7 +75,21 @@ function serializeRun(row: {
     postSlug: row.post?.slug ?? null,
     postTitle: row.post?.title ?? null,
     reason: row.reason,
+    updatedAt: row.updatedAt instanceof Date ? row.updatedAt.toISOString() : new Date().toISOString(),
   };
+}
+
+function isStaleProcessingRun(existing: SeoEditorialOpportunityRunRecord): boolean {
+  if (existing.status !== 'processing' || existing.postId) {
+    return false;
+  }
+
+  const updatedAtMs = Date.parse(existing.updatedAt);
+  if (!Number.isFinite(updatedAtMs)) {
+    return false;
+  }
+
+  return Date.now() - updatedAtMs > 15 * 60 * 1000;
 }
 
 export async function findExistingEditorialRun(
@@ -91,6 +107,7 @@ export async function findExistingEditorialRun(
 export async function claimEditorialOpportunityRun(
   weekStart: string,
   opportunity: EditorialOpportunity,
+  options: { force?: boolean } = {},
 ): Promise<SeoEditorialOpportunityRunRecord & { claimed: boolean }> {
   const idempotencyKey = buildEditorialIdempotencyKey(weekStart, opportunity);
   const weekStartDate = new Date(`${weekStart.slice(0, 10)}T00:00:00.000Z`);
@@ -115,6 +132,29 @@ export async function claimEditorialOpportunityRun(
       error.code === 'P2002'
     ) {
       const existing = await findExistingEditorialRun(weekStart, opportunity);
+      if (
+        existing &&
+        options.force &&
+        !existing.postId &&
+        (
+          existing.status === 'failed' ||
+          existing.status === 'skipped_by_gate' ||
+          isStaleProcessingRun(existing)
+        )
+      ) {
+        const row = await prisma.seoEditorialOpportunityRun.update({
+          where: { idempotencyKey },
+          data: {
+            action: opportunity.action,
+            targetKeyword: opportunity.targetKeyword,
+            status: 'processing',
+            reason: null,
+            metadataJson: Prisma.JsonNull,
+          },
+          include: { post: { select: { slug: true, title: true } } },
+        });
+        return { ...serializeRun(row), claimed: true };
+      }
       if (existing) return { ...existing, claimed: false };
     }
     throw error;

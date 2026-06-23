@@ -97,6 +97,7 @@ function buildHealthResult(overrides: Partial<Awaited<ReturnType<typeof seoInsig
     totalRowsLast30d: 354,
     paused: false,
     agentRun: null,
+    gscRun: null,
     serper: {
       configured: true,
       enabled: true,
@@ -396,6 +397,44 @@ describe('SeoInsightsPage', () => {
     expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('$0.0040');
     expect(screen.getByTestId('seo-serper-summary')).toHaveTextContent('Auto top-up off');
     expect(screen.getByRole('button', { name: /pause auto-ship/i })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('surfaces GSC auth remediation when the latest ingest needs operator action', async () => {
+    mockSeoInsightsApi.list.mockResolvedValue(buildListResult());
+    mockSeoInsightsApi.getHealth.mockResolvedValue(buildHealthResult({
+      lastWeekCovered: '2026-05-22',
+      finalizedThroughDate: '2026-06-05',
+      gscRun: {
+        status: 'failed',
+        startedAt: '2026-06-08T06:00:00.000Z',
+        completedAt: '2026-06-08T06:00:44.289Z',
+        startDate: '2026-05-30',
+        endDate: '2026-06-05',
+        finalizedThroughDate: '2026-06-05',
+        dailyRowsInserted: 0,
+        dailyRowsAttempted: 0,
+        snapshotsCreated: 0,
+        durationMs: 44289,
+        errorMessage: 'invalid_grant',
+        errorCategory: 'auth',
+        requiresOperatorAction: true,
+        remediation: {
+          summary:
+            'Google rejected the stored Search Console refresh token. Re-run the OAuth rotation helper from the repo root, complete browser consent, then let the helper verify both gscWeeklyIngest and a forced seoWeeklyDigest.',
+          command: 'npm run gsc:oauth-rotate -- --client-secret "$HOME/Downloads/client_secret_<actual-id>.json"',
+          docsPath: '.claude/schedules/seo-weekly.md',
+        },
+      },
+    }));
+
+    renderPage();
+
+    const alert = await screen.findByTestId('seo-gsc-alert');
+    expect(alert).toHaveTextContent(/operator action required/i);
+    expect(alert).toHaveTextContent('invalid_grant');
+    expect(alert).toHaveTextContent('npm run gsc:oauth-rotate');
+    expect(alert).toHaveTextContent('.claude/schedules/seo-weekly.md');
+    expect(screen.getByText(/google search console auth expired/i)).toBeInTheDocument();
   });
 
   it('renders Tuesday editorial status with post review links', async () => {

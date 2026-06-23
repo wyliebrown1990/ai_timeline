@@ -22,7 +22,9 @@ const DIGEST_URL = 'https://letaiexplainai.com/admin/seo-insights';
 const PROPOSALS_URL = 'https://letaiexplainai.com/admin/seo-insights/proposals';
 const PORTFOLIO_URL = 'https://letaiexplainai.com/admin/seo-insights/portfolio';
 const DEFAULT_MAX_POSTS = 3;
-const DEFAULT_MAX_AUTO_PUBLISH = 2;
+const DEFAULT_MAX_AUTO_PUBLISH = 3;
+const DEFAULT_MIN_PUBLISHED = 1;
+const DEFAULT_MAX_CANDIDATES = 8;
 const MAX_PERSISTED_SKIPPED_ITEMS = 5;
 const MAX_PERSISTED_TITLE_LENGTH = 140;
 const MAX_PERSISTED_REASON_LENGTH = 220;
@@ -34,6 +36,12 @@ export interface SeoEditorialTuesdayRunOptions {
   maxAutoPublish?: number;
   sendTestEmail?: boolean;
   now?: Date;
+}
+
+export interface SingleEditorialOpportunityRunOptions {
+  opportunityId: string;
+  weekStart: string;
+  force?: boolean;
 }
 
 export interface SeoEditorialTuesdayDecision {
@@ -173,15 +181,31 @@ async function processSelectedSequentially(input: {
   opportunities: EditorialOpportunity[];
   weekStart: string;
   force: boolean;
+  maxCreatedPosts: number;
+  minPublished: number;
 }): Promise<SeoEditorialTuesdayDecision[]> {
   const decisions: SeoEditorialTuesdayDecision[] = [];
+  let createdCount = 0;
+  let publishedCount = 0;
 
   for (const opportunity of input.opportunities) {
     const result = await processEditorialOpportunity(opportunity, {
       weekStart: input.weekStart,
       force: input.force,
     });
-    decisions.push(processedDecision(result));
+    const decision = processedDecision(result);
+    decisions.push(decision);
+
+    if (decision.status === 'auto_published') {
+      createdCount += 1;
+      publishedCount += 1;
+    } else if (decision.status === 'draft_created') {
+      createdCount += 1;
+    }
+
+    if (createdCount >= input.maxCreatedPosts && publishedCount >= input.minPublished) {
+      break;
+    }
   }
 
   return decisions;
@@ -207,6 +231,31 @@ async function persistRunStatus(summary: SeoEditorialTuesdayRunSummary): Promise
   };
 
   await setLatestEditorialRunStatus(record);
+}
+
+export async function runSingleEditorialOpportunity(
+  options: SingleEditorialOpportunityRunOptions,
+): Promise<ProcessEditorialOpportunityResult> {
+  const backlog = await loadEditorialOpportunityBacklog();
+  const selection = selectEditorialOpportunities({
+    ...backlog,
+    maxPosts: DEFAULT_MAX_POSTS,
+    maxAutoPublish: DEFAULT_MAX_AUTO_PUBLISH,
+  });
+
+  const opportunity = selection.selected.find((row) => row.id === options.opportunityId);
+  if (!opportunity) {
+    const deferred = selection.deferred.find((row) => row.id === options.opportunityId);
+    if (deferred) {
+      throw new Error(`Opportunity ${options.opportunityId} is currently deferred: ${deferred.reason}`);
+    }
+    throw new Error(`Opportunity ${options.opportunityId} is not currently selected for Tuesday editorial automation.`);
+  }
+
+  return processEditorialOpportunity(opportunity, {
+    weekStart: options.weekStart,
+    force: options.force ?? true,
+  });
 }
 
 export async function runSeoEditorialTuesday(
@@ -268,6 +317,7 @@ export async function runSeoEditorialTuesday(
       ...backlog,
       maxPosts: paused ? 0 : maxPosts,
       maxAutoPublish,
+      maxCandidates: paused ? 0 : DEFAULT_MAX_CANDIDATES,
     });
     const processed = dryRun || paused
       ? selection.selected.map(selectedDecision)
@@ -275,6 +325,8 @@ export async function runSeoEditorialTuesday(
           opportunities: selection.selected,
           weekStart,
           force: options.force ?? false,
+          maxCreatedPosts: maxPosts,
+          minPublished: DEFAULT_MIN_PUBLISHED,
         });
     const deferred = selection.deferred.map(deferredDecision);
     const pausedDecision: SeoEditorialTuesdayDecision[] = paused

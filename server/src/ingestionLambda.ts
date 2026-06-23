@@ -17,9 +17,11 @@ import type { IngestionJobResult } from './jobs/ingestionJob';
 import { analyzeAllPending, analyzeArticle, screenOnly } from './services/ingestion/articleAnalyzer';
 import { ingestBibliography, generateMarkdownReport } from './services/ingestion/bibliographyIngestion';
 import { prisma } from './db';
-import { runBackfill, runWeeklyIngest } from './services/gsc/gscIngest';
+import { runBackfill } from './services/gsc/gscIngest';
+import { runTrackedWeeklyIngest } from './services/gsc/trackedIngest';
 import { runSeoWeeklyDigest } from './services/seo/weeklyDigestRunner';
-import { runSeoEditorialTuesday } from './services/seo/editorialAutopilotRunner';
+import { runSeoEditorialTuesday, runSingleEditorialOpportunity } from './services/seo/editorialAutopilotRunner';
+import { backfillBlogEntityLinks } from './services/seo/backfillBlogEntityLinks';
 
 /**
  * Lambda response structure
@@ -161,7 +163,21 @@ interface SeoEditorialTuesdayEvent {
   sendTestEmail?: boolean;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent | SeoEditorialTuesdayEvent;
+interface SeoEditorialTestOpportunityEvent {
+  action: 'seoEditorialTestOpportunity';
+  opportunityId: string;
+  weekStart: string;
+  force?: boolean;
+}
+
+interface SeoBackfillBlogEntityLinksEvent {
+  action: 'seoBackfillBlogEntityLinks';
+  publishedAfter?: string;
+  dryRun?: boolean;
+  limit?: number;
+}
+
+type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent | SeoEditorialTuesdayEvent | SeoEditorialTestOpportunityEvent | SeoBackfillBlogEntityLinksEvent;
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -221,6 +237,14 @@ function isSeoWeeklyDigestEvent(event: LambdaEvent): event is SeoWeeklyDigestEve
 
 function isSeoEditorialTuesdayEvent(event: LambdaEvent): event is SeoEditorialTuesdayEvent {
   return (event as SeoEditorialTuesdayEvent).action === 'seoEditorialTuesday';
+}
+
+function isSeoEditorialTestOpportunityEvent(event: LambdaEvent): event is SeoEditorialTestOpportunityEvent {
+  return (event as SeoEditorialTestOpportunityEvent).action === 'seoEditorialTestOpportunity';
+}
+
+function isSeoBackfillBlogEntityLinksEvent(event: LambdaEvent): event is SeoBackfillBlogEntityLinksEvent {
+  return (event as SeoBackfillBlogEntityLinksEvent).action === 'seoBackfillBlogEntityLinks';
 }
 
 /**
@@ -1179,7 +1203,7 @@ Return ONLY the JSON object, no other text.`;
     console.log('[IngestionLambda] Running weekly GSC ingest');
 
     try {
-      const result = await runWeeklyIngest();
+      const result = await runTrackedWeeklyIngest();
       return {
         statusCode: 200,
         body: JSON.stringify({
@@ -1288,6 +1312,60 @@ Return ONLY the JSON object, no other text.`;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('[IngestionLambda] SEO Tuesday editorial run failed:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
+      throw error;
+    }
+  }
+
+  if (isSeoEditorialTestOpportunityEvent(event)) {
+    console.log('[IngestionLambda] Running single SEO editorial opportunity retest');
+    console.log(`  Opportunity ID: ${event.opportunityId}`);
+    console.log(`  Week start key: ${event.weekStart}`);
+    console.log(`  Force: ${event.force ?? true}`);
+
+    try {
+      const result = await runSingleEditorialOpportunity({
+        opportunityId: event.opportunityId,
+        weekStart: event.weekStart,
+        force: event.force ?? true,
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Single SEO editorial opportunity completed successfully',
+          result,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Single SEO editorial opportunity failed:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
+      throw error;
+    }
+  }
+
+  if (isSeoBackfillBlogEntityLinksEvent(event)) {
+    console.log('[IngestionLambda] Running SEO blog entity-link backfill');
+    console.log(`  Published after: ${event.publishedAfter ?? '2026-05-05'}`);
+    console.log(`  Dry run: ${event.dryRun ?? false}`);
+    console.log(`  Limit: ${event.limit ?? 20}`);
+
+    try {
+      const summary = await backfillBlogEntityLinks({
+        publishedAfter: event.publishedAfter,
+        dryRun: event.dryRun ?? false,
+        limit: event.limit,
+      });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'SEO blog entity-link backfill completed successfully',
+          summary,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] SEO blog entity-link backfill failed:', errorMessage);
       console.error('[IngestionLambda] Full error:', error);
       throw error;
     }

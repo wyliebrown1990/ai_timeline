@@ -21,6 +21,7 @@ import {
   type SeoEditorialRunItem,
   type SeoEditorialRunRecord,
   type SeoEditorialStatusResponse,
+  type SeoGscRunRecord,
   type SeoInsightsHealth,
   type SeoInsight,
   type SeoInsightBucket,
@@ -231,6 +232,34 @@ function getDigestStatusPill(run: SeoAgentRunRecord): { label: string; classes: 
   };
 }
 
+function getGscFailureTitle(run: SeoGscRunRecord): string {
+  if (run.errorCategory === 'auth') {
+    return `Google Search Console auth expired ${formatRelativeTime(run.completedAt)}`;
+  }
+
+  if (run.errorCategory === 'permission') {
+    return `Google Search Console access was denied ${formatRelativeTime(run.completedAt)}`;
+  }
+
+  if (run.errorCategory === 'config') {
+    return 'Google Search Console configuration needs attention';
+  }
+
+  return `Google Search Console ingest failed ${formatRelativeTime(run.completedAt)}`;
+}
+
+function getGscFailureSummary(run: SeoGscRunRecord, health: SeoInsightsHealth): string {
+  const freshnessSummary = health.lastWeekCovered
+    ? `Finalized data is ready through ${health.finalizedThroughDate ?? 'unknown'}, but the latest loaded week is still ${health.lastWeekCovered}.`
+    : `Finalized data is ready through ${health.finalizedThroughDate ?? 'unknown'}, but no finalized GSC week is loaded yet.`;
+
+  if (run.remediation?.summary) {
+    return `${run.remediation.summary} ${freshnessSummary}`;
+  }
+
+  return freshnessSummary;
+}
+
 function getEditorialStatusPill(
   run: SeoEditorialRunRecord | null,
   paused: boolean
@@ -438,6 +467,8 @@ export default function SeoInsightsPage() {
   const insights = result?.data ?? [];
   const agentBannerState = getAgentBannerState(health);
   const agentRun = health?.agentRun ?? null;
+  const gscRun = health?.gscRun ?? null;
+  const gscRunFailure = gscRun?.status === 'failed' ? gscRun : null;
   const digestStatusPill = agentRun ? getDigestStatusPill(agentRun) : null;
   const hasDedicatedDigestUrl = agentRun?.digestUrl ? !isDigestLoopUrl(agentRun.digestUrl) : false;
   const paused = health?.paused ?? false;
@@ -454,7 +485,7 @@ export default function SeoInsightsPage() {
   const effectiveWeek = result?.meta.weekStart ?? requestedWeek ?? '';
   const activeTab = BUCKET_TABS.find((tab) => tab.id === bucket);
   const bannerClasses =
-    paused || agentBannerState === 'failed'
+    paused || agentBannerState === 'failed' || Boolean(gscRunFailure)
       ? 'border-red-300 bg-red-50 text-red-900'
       : agentBannerState === 'stale'
         ? 'border-amber-300 bg-amber-50 text-amber-900'
@@ -609,21 +640,24 @@ export default function SeoInsightsPage() {
 
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">
-                  {agentBannerState === 'first_run' && 'Weekly digest is not live yet'}
-                  {agentBannerState === 'failed' && `Last digest failed ${formatRelativeTime(agentRun?.completedAt ?? null)}`}
-                  {agentBannerState === 'stale' && `Last successful digest is stale (${formatRelativeTime(agentRun?.completedAt ?? null)})`}
-                  {agentBannerState === 'healthy' && `Last digest ran ${formatRelativeTime(agentRun?.completedAt ?? null)}`}
+                  {gscRunFailure && getGscFailureTitle(gscRunFailure)}
+                  {!gscRunFailure && agentBannerState === 'first_run' && 'Weekly digest is not live yet'}
+                  {!gscRunFailure && agentBannerState === 'failed' && `Last digest failed ${formatRelativeTime(agentRun?.completedAt ?? null)}`}
+                  {!gscRunFailure && agentBannerState === 'stale' && `Last successful digest is stale (${formatRelativeTime(agentRun?.completedAt ?? null)})`}
+                  {!gscRunFailure && agentBannerState === 'healthy' && `Last digest ran ${formatRelativeTime(agentRun?.completedAt ?? null)}`}
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-slate-700">
-                  {agentBannerState === 'first_run' &&
+                  {gscRunFailure &&
+                    getGscFailureSummary(gscRunFailure, health)}
+                  {!gscRunFailure && agentBannerState === 'first_run' &&
                     'The weekly SEO agent has not reported a digest yet. The pause switch is ready now, and this banner will fill in once the Monday schedule starts posting run summaries.'}
-                  {agentBannerState === 'failed' &&
+                  {!gscRunFailure && agentBannerState === 'failed' &&
                     (agentRun?.errorMessage
                       ? `Failure reason: ${agentRun.errorMessage}`
                       : 'The most recent scheduled run reported a failure and needs attention before auto-ship resumes.')}
-                  {agentBannerState === 'stale' &&
+                  {!gscRunFailure && agentBannerState === 'stale' &&
                     'The latest successful digest is older than seven days, which usually means the weekly schedule missed a run or stopped reporting.'}
-                  {agentBannerState === 'healthy' &&
+                  {!gscRunFailure && agentBannerState === 'healthy' &&
                     `Completed ${formatTimestamp(agentRun?.completedAt ?? null)} for week ${agentRun?.weekStart?.slice(0, 10) ?? 'unknown'}.`}
                 </p>
                 {agentRun?.serperSnapshot && (
@@ -632,6 +666,48 @@ export default function SeoInsightsPage() {
                   </p>
                 )}
               </div>
+
+              {gscRunFailure && (
+                <div
+                  className="rounded-2xl border border-rose-200 bg-white/90 p-4 text-slate-900 shadow-sm"
+                  data-testid="seo-gsc-alert"
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 text-rose-600" />
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          {gscRunFailure.requiresOperatorAction
+                            ? 'Operator action required before SEO automation can trust fresh Search Console data.'
+                            : 'The latest Search Console ingest failed, but this may clear on retry.'}
+                        </p>
+                        {gscRunFailure.errorMessage && (
+                          <p className="mt-1 text-sm text-slate-700">
+                            Latest failure: {gscRunFailure.errorMessage}
+                          </p>
+                        )}
+                      </div>
+
+                      {gscRunFailure.remediation?.command && (
+                        <div className="rounded-xl bg-slate-950 px-3 py-3 text-slate-100">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                            Run From Repo Root
+                          </p>
+                          <code className="mt-2 block break-all text-xs sm:text-sm">
+                            {gscRunFailure.remediation.command}
+                          </code>
+                        </div>
+                      )}
+
+                      {gscRunFailure.remediation?.docsPath && (
+                        <p className="text-sm text-slate-700">
+                          Runbook: <code>{gscRunFailure.remediation.docsPath}</code>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap gap-2 text-sm">
                 <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-100 px-3 py-1 font-medium text-blue-800">

@@ -125,6 +125,7 @@ import {
   generateProposalFromCluster,
   generateProposalFromKeywordOpportunity,
   linkProposalDraft,
+  loadLinkInventory,
 } from '../../../server/src/services/seo/briefGenerator';
 
 function buildAnthropicResponse(text: string) {
@@ -405,6 +406,54 @@ describe('briefGenerator', () => {
     );
     mockSnapshotUpdate.mockResolvedValue({});
     mockClusterUpdate.mockResolvedValue({});
+  });
+
+  it('broadens link-inventory lookup beyond the raw headline string', async () => {
+    mockSearchOrganizations.mockResolvedValue([
+      {
+        id: 'nvidia',
+        slug: 'nvidia',
+        name: 'NVIDIA',
+      },
+    ]);
+    mockSearchGlossaryTerms.mockResolvedValue([
+      {
+        id: 'ai-agents',
+        slug: 'ai-agents',
+        term: 'AI agents',
+      },
+    ]);
+    mockSearchMilestones.mockResolvedValue({
+      results: [
+        {
+          id: 'E2024_BLACKWELL',
+          title: 'Blackwell announcement',
+        },
+      ],
+      total: 1,
+    });
+
+    const result = await loadLinkInventory('NVIDIA agents in your laptop?');
+
+    expect(mockSearchOrganizations).toHaveBeenCalledWith('NVIDIA', expect.any(Number));
+    expect(mockSearchGlossaryTerms).toHaveBeenCalledWith('agents', expect.any(Number));
+    expect(result).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        entityType: 'organization',
+        id: 'nvidia',
+        path: '/organizations/nvidia',
+      }),
+      expect.objectContaining({
+        entityType: 'glossary_term',
+        id: 'ai-agents',
+        path: '/glossary/ai-agents',
+      }),
+      expect.objectContaining({
+        entityType: 'milestone',
+        id: 'E2024_BLACKWELL',
+        path: '/events/E2024_BLACKWELL',
+      }),
+    ]));
   });
 
   it('rejects generic listicle angles before persisting them as pending work', async () => {

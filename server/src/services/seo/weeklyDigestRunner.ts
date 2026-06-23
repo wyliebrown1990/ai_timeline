@@ -2,6 +2,7 @@ import { createHash } from 'crypto';
 import { appendFile, readdir, readFile } from 'fs/promises';
 import path from 'path';
 import { getGscHealth } from '../gsc/gscIngest';
+import { getLatestGscRunStatus } from '../gsc/gscRunStatus';
 import { shiftIsoDate } from '../gsc/gscClient';
 import { listInsights, type BucketInsight, type InsightBucket } from '../gsc/bucketClassifier';
 import { ApiError } from '../../middleware/error';
@@ -90,6 +91,42 @@ function normalizeWeekStart(value: string | null | undefined): string | null {
 
 function getExpectedWeekStart(finalizedThroughDate: string | null | undefined): string | null {
   return finalizedThroughDate ? shiftIsoDate(finalizedThroughDate.slice(0, 10), -6) : null;
+}
+
+function buildStaleGscMessage(input: {
+  expectedWeekStart: string;
+  actualWeekStart: string;
+  gscRun: Awaited<ReturnType<typeof getLatestGscRunStatus>>;
+}): string {
+  const base = `GSC data is stale; latest finalized window should start ${input.expectedWeekStart}, but latest ingested week is ${input.actualWeekStart}.`;
+  const gscRun = input.gscRun;
+
+  if (!gscRun || gscRun.status !== 'failed') {
+    return `${base} Run gscWeeklyIngest before the SEO digest.`;
+  }
+
+  const parts = [
+    base,
+    `Latest GSC ingest failed ${gscRun.completedAt}.`,
+  ];
+
+  if (gscRun.errorCategory) {
+    parts.push(`Category: ${gscRun.errorCategory}.`);
+  }
+
+  if (gscRun.errorMessage) {
+    parts.push(`Failure: ${gscRun.errorMessage}.`);
+  }
+
+  if (gscRun.remediation?.summary) {
+    parts.push(gscRun.remediation.summary);
+  }
+
+  if (gscRun.remediation?.command) {
+    parts.push(`Run: ${gscRun.remediation.command}`);
+  }
+
+  return parts.join(' ');
 }
 
 function isConflict(error: unknown): boolean {
@@ -639,11 +676,12 @@ export async function runSeoWeeklyDigest(
   let paused = false;
 
   try {
-    const [health, pausedState, agentRun, serperSummary] = await Promise.all([
+    const [health, pausedState, agentRun, serperSummary, gscRun] = await Promise.all([
       getGscHealth(now),
       isPaused(),
       getLatestAgentRunStatus(),
       getSerperUsageSummary(now),
+      getLatestGscRunStatus(),
     ]);
     weekStart = normalizeWeekStart(health.lastWeekCovered);
     serper = serperSummary;
@@ -655,9 +693,11 @@ export async function runSeoWeeklyDigest(
 
     const expectedWeekStart = getExpectedWeekStart(health.finalizedThroughDate);
     if (expectedWeekStart && weekStart !== expectedWeekStart) {
-      throw new Error(
-        `GSC data is stale; latest finalized window should start ${expectedWeekStart}, but latest ingested week is ${weekStart}. Run gscWeeklyIngest before the SEO digest.`
-      );
+      throw new Error(buildStaleGscMessage({
+        expectedWeekStart,
+        actualWeekStart: weekStart,
+        gscRun,
+      }));
     }
 
     if (

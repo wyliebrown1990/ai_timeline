@@ -10,17 +10,18 @@ import {
 import { prisma } from '../../db';
 
 const MAX_POSTS_PER_RUN = 3;
-const MAX_AUTO_PUBLISH_PER_RUN = 2;
+const MAX_AUTO_PUBLISH_PER_RUN = 3;
+const MAX_CANDIDATES_PER_RUN = 8;
 const MIN_PROPOSAL_DRAFT_CONFIDENCE = 0.6;
 const MIN_PROPOSAL_AUTO_PUBLISH_CONFIDENCE = 0.7;
 const MIN_KEYWORD_DRAFT_SCORE = 40;
 const MIN_KEYWORD_AUTO_PUBLISH_SCORE = 70;
 const WEEKLY_FALLBACK_ID_PREFIX = 'weekly-news-fallback:';
-const MIN_FALLBACK_ARTICLE_SCORE = 0.65;
-const FALLBACK_ARTICLE_WINDOW_DAYS = 14;
-const FALLBACK_ARTICLE_LIMIT = 8;
-const FALLBACK_AUTO_PUBLISH_MIN_SCORE = 78;
-const FALLBACK_DRAFT_ONLY_SCORE_CAP = 74;
+const MIN_FALLBACK_ARTICLE_SCORE = 0.5;
+const FALLBACK_ARTICLE_WINDOW_DAYS = 21;
+const FALLBACK_ARTICLE_LIMIT = 12;
+const FALLBACK_AUTO_PUBLISH_MIN_SCORE = 60;
+const FALLBACK_GUARDED_SOURCE_SCORE_CAP = 74;
 const TRUSTED_FALLBACK_HOST_SUFFIXES = [
   'openai.com',
   'anthropic.com',
@@ -206,7 +207,7 @@ async function removeAlreadyHandledKeywords(
       ? prisma.blogPost.findMany({
           where: {
             slug: { in: targetSlugs },
-            status: { not: 'archived' },
+            status: 'published',
           },
           select: { slug: true },
         })
@@ -240,8 +241,10 @@ export function selectEditorialOpportunities(input: {
   keywords: KeywordOpportunityRecord[];
   maxPosts?: number;
   maxAutoPublish?: number;
+  maxCandidates?: number;
 }): EditorialOpportunitySelection {
   const maxPosts = Math.max(0, Math.min(MAX_POSTS_PER_RUN, input.maxPosts ?? MAX_POSTS_PER_RUN));
+  const maxCandidates = Math.max(0, Math.min(MAX_CANDIDATES_PER_RUN, input.maxCandidates ?? maxPosts));
   const maxAutoPublish = Math.max(0, Math.min(MAX_AUTO_PUBLISH_PER_RUN, input.maxAutoPublish ?? MAX_AUTO_PUBLISH_PER_RUN));
   const selected: EditorialOpportunity[] = [];
   const deferred: DeferredEditorialOpportunity[] = [];
@@ -254,17 +257,45 @@ export function selectEditorialOpportunities(input: {
     return statusRank(a) - statusRank(b) || b.confidence - a.confidence;
   });
 
-  for (const proposal of proposalRows) {
+  function selectKeyword(row: KeywordOpportunityRecord): void {
+    const title = keywordTitle(row);
+    const reason = isEligibleKeyword(row);
+    if (reason) {
+      deferred.push({ id: row.id, sourceType: 'keyword', title, reason });
+      return;
+    }
+
+    if (selected.length >= maxCandidates) {
+      deferred.push({ id: row.id, sourceType: 'keyword', title, reason: 'Deferred because the Tuesday candidate cap was reached.' });
+      return;
+    }
+
+    const action: EditorialOpportunityAction =
+      autoPublishCount < maxAutoPublish && keywordCanAutoPublish(row) ? 'auto_publish' : 'draft_only';
+    if (action === 'auto_publish') autoPublishCount += 1;
+    selected.push({
+      id: row.id,
+      sourceType: 'keyword',
+      action,
+      title,
+      targetKeyword: row.seedQuery,
+      rationale: row.rationale,
+      confidence: row.overallScore / 100,
+      source: row,
+    });
+  }
+
+  function selectProposal(proposal: SeoProposalRecord): void {
     const title = proposalTitle(proposal);
     const reason = isEligibleProposal(proposal);
     if (reason) {
       deferred.push({ id: proposal.id, sourceType: 'proposal', title, reason });
-      continue;
+      return;
     }
 
-    if (selected.length >= maxPosts) {
-      deferred.push({ id: proposal.id, sourceType: 'proposal', title, reason: 'Deferred because the Tuesday post cap was reached.' });
-      continue;
+    if (selected.length >= maxCandidates) {
+      deferred.push({ id: proposal.id, sourceType: 'proposal', title, reason: 'Deferred because the Tuesday candidate cap was reached.' });
+      return;
     }
 
     const action: EditorialOpportunityAction =
@@ -282,34 +313,16 @@ export function selectEditorialOpportunities(input: {
     });
   }
 
-  const keywordRows = [...input.keywords].sort((a, b) => b.overallScore - a.overallScore);
-  for (const row of keywordRows) {
-    const title = keywordTitle(row);
-    const reason = isEligibleKeyword(row);
-    if (reason) {
-      deferred.push({ id: row.id, sourceType: 'keyword', title, reason });
-      continue;
-    }
+  const weeklyNewsRows = input.keywords
+    .filter(isWeeklyFallbackKeyword)
+    .sort((a, b) => b.overallScore - a.overallScore);
+  const discoveryRows = input.keywords
+    .filter((row) => !isWeeklyFallbackKeyword(row))
+    .sort((a, b) => b.overallScore - a.overallScore);
 
-    if (selected.length >= maxPosts) {
-      deferred.push({ id: row.id, sourceType: 'keyword', title, reason: 'Deferred because the Tuesday post cap was reached.' });
-      continue;
-    }
-
-    const action: EditorialOpportunityAction =
-      autoPublishCount < maxAutoPublish && keywordCanAutoPublish(row) ? 'auto_publish' : 'draft_only';
-    if (action === 'auto_publish') autoPublishCount += 1;
-    selected.push({
-      id: row.id,
-      sourceType: 'keyword',
-      action,
-      title,
-      targetKeyword: row.seedQuery,
-      rationale: row.rationale,
-      confidence: row.overallScore / 100,
-      source: row,
-    });
-  }
+  for (const row of weeklyNewsRows) selectKeyword(row);
+  for (const row of discoveryRows) selectKeyword(row);
+  for (const proposal of proposalRows) selectProposal(proposal);
 
   return { selected, deferred };
 }
@@ -372,11 +385,11 @@ function scoreWeeklyFallbackArticle(input: {
   }
 
   const sourceTrustNote = isDraftOnlyFallbackSource(input.externalUrl, input.sourceName)
-    ? 'draft-only fallback from newsletter/social/community source'
-    : 'draft-only fallback until corroborated by a trusted or primary source';
+    ? 'guarded fallback from newsletter/social/community source; quality gates and source discipline decide publishability'
+    : 'guarded fallback until corroborated by a trusted or primary source; quality gates and source discipline decide publishability';
 
   return {
-    score: Math.min(FALLBACK_DRAFT_ONLY_SCORE_CAP, Math.max(60, input.relevanceScore)),
+    score: Math.min(FALLBACK_GUARDED_SOURCE_SCORE_CAP, Math.max(60, input.relevanceScore)),
     sourceTrustNote,
   };
 }
@@ -407,7 +420,7 @@ async function loadWeeklyNewsFallbackKeywords(): Promise<KeywordOpportunityRecor
     ? await prisma.blogPost.findMany({
         where: {
           slug: { in: targetSlugs },
-          status: { not: 'archived' },
+          status: 'published',
         },
         select: { slug: true },
       })

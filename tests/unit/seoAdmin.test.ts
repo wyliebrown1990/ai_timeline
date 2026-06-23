@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { NextFunction, Request, Response } from 'express';
 
-const mockRunWeeklyIngest = jest.fn();
+const mockRunTrackedWeeklyIngest = jest.fn();
 const mockGetGscHealth = jest.fn();
+const mockGetLatestGscRunStatus = jest.fn();
 const mockListInsights = jest.fn();
 const mockGetInsightDetail = jest.fn();
 const mockDismissInsight = jest.fn();
@@ -48,8 +49,15 @@ const mockRebuildKeywordPortfolio = jest.fn();
 const mockGetSerperUsageSummary = jest.fn();
 
 jest.mock('../../server/src/services/gsc/gscIngest', () => ({
-  runWeeklyIngest: mockRunWeeklyIngest,
   getGscHealth: mockGetGscHealth,
+}));
+
+jest.mock('../../server/src/services/gsc/trackedIngest', () => ({
+  runTrackedWeeklyIngest: mockRunTrackedWeeklyIngest,
+}));
+
+jest.mock('../../server/src/services/gsc/gscRunStatus', () => ({
+  getLatestGscRunStatus: mockGetLatestGscRunStatus,
 }));
 
 jest.mock('../../server/src/services/gsc/bucketClassifier', () => ({
@@ -200,6 +208,7 @@ describe('seoAdmin controller', () => {
     jest.clearAllMocks();
     mockIsPaused.mockResolvedValue(false);
     mockGetLatestAgentRunStatus.mockResolvedValue(null);
+    mockGetLatestGscRunStatus.mockResolvedValue(null);
     mockIsEditorialPaused.mockResolvedValue(false);
     mockGetLatestEditorialRunStatus.mockResolvedValue(null);
     mockGetSerperUsageSummary.mockResolvedValue({
@@ -229,7 +238,7 @@ describe('seoAdmin controller', () => {
   });
 
   it('returns the ingest summary for manual admin runs', async () => {
-    mockRunWeeklyIngest.mockResolvedValue({
+    mockRunTrackedWeeklyIngest.mockResolvedValue({
       mode: 'weekly',
       startDate: '2026-04-24',
       endDate: '2026-04-30',
@@ -391,6 +400,7 @@ describe('seoAdmin controller', () => {
       },
       paused: false,
       agentRun: null,
+      gscRun: null,
       serper: {
         configured: false,
         enabled: false,

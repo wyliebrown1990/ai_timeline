@@ -7,7 +7,9 @@ import {
   markInsightActioned,
   type InsightBucket,
 } from '../services/gsc/bucketClassifier';
-import { getGscHealth, runWeeklyIngest } from '../services/gsc/gscIngest';
+import { getGscHealth } from '../services/gsc/gscIngest';
+import { getLatestGscRunStatus } from '../services/gsc/gscRunStatus';
+import { runTrackedWeeklyIngest } from '../services/gsc/trackedIngest';
 import {
   CLUSTER_BUCKETS,
   CLUSTER_HORIZONS,
@@ -181,7 +183,7 @@ function parseScoreInput(value: unknown): number | null {
 
 export async function ingest(_req: Request, res: Response, next: NextFunction) {
   try {
-    const summary = await runWeeklyIngest();
+    const summary = await runTrackedWeeklyIngest();
     res.json(summary);
   } catch (error) {
     next(error);
@@ -241,13 +243,14 @@ export async function action(req: Request, res: Response, next: NextFunction) {
 
 export async function health(_req: Request, res: Response, next: NextFunction) {
   try {
-    const [status, paused, agentRun, serper, editorialPaused, editorialRun] = await Promise.all([
+    const [status, paused, agentRun, serper, editorialPaused, editorialRun, gscRun] = await Promise.all([
       getGscHealth(),
       isPaused(),
       getLatestAgentRunStatus(),
       getSerperUsageSummary(),
       isEditorialPaused(),
       getLatestEditorialRunStatus(),
+      getLatestGscRunStatus(),
     ]);
     res.json({
       lastRunAt: status.lastRunAt?.toISOString() ?? null,
@@ -258,6 +261,7 @@ export async function health(_req: Request, res: Response, next: NextFunction) {
       clusterWindows: status.clusterWindows,
       paused,
       agentRun,
+      gscRun,
       serper,
       editorial: {
         paused: editorialPaused,

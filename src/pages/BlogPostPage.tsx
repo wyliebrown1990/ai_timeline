@@ -45,7 +45,8 @@ type FetchState =
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
-  const isPreview = Boolean(searchParams.get('preview'));
+  const previewToken = searchParams.get('preview');
+  const isPreview = Boolean(previewToken);
   const [state, setState] = useState<FetchState>({ status: 'idle' });
 
   useEffect(() => {
@@ -56,7 +57,10 @@ export default function BlogPostPage() {
     let cancelled = false;
     setState({ status: 'loading' });
 
-    Promise.all([blogApi.getBySlug(slug), blogApi.related(slug).catch(() => ({ posts: [] }))])
+    Promise.all([
+      blogApi.getBySlug(slug, previewToken),
+      blogApi.related(slug).catch(() => ({ posts: [] })),
+    ])
       .then(([detail, rel]) => {
         if (cancelled) return;
         setState({ status: 'ready', post: detail.post, related: rel.posts });
@@ -72,7 +76,7 @@ export default function BlogPostPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, previewToken]);
 
   if (state.status === 'loading' || state.status === 'idle') {
     return (

@@ -11,8 +11,9 @@ import { ensureExperimentForProposalLink, type SeoExperimentTopicPod } from './e
 import { planTopicPodForCluster } from './topicPodPlanner';
 import { getSeoPackagingAudit, type SeoPackagingAuditRecord, type SeoPackagingIssueRecord } from './serpPackagingAudit';
 import type { SerperKeywordSourceRef } from './serperClient';
+import { SEO_AUTOMATION_MODEL } from './anthropicModels';
 
-const PROPOSAL_MODEL = 'claude-sonnet-4-20250514';
+const PROPOSAL_MODEL = SEO_AUTOMATION_MODEL;
 const SUPPORTED_BUCKETS = new Set(['content_gap', 'trend_signal']);
 const DUPLICATE_WINDOW_DAYS = 30;
 const RECENT_NEWS_WINDOW_DAYS = 14;
@@ -32,6 +33,35 @@ const HYPERBOLIC_PHRASES = [
   'unleash',
   'in this article, we will explore',
 ];
+const LINK_INVENTORY_STOP_WORDS = new Set([
+  'the',
+  'a',
+  'an',
+  'and',
+  'or',
+  'for',
+  'from',
+  'with',
+  'without',
+  'into',
+  'onto',
+  'your',
+  'their',
+  'this',
+  'that',
+  'these',
+  'those',
+  'what',
+  'when',
+  'why',
+  'how',
+  'can',
+  'could',
+  'should',
+  'would',
+  'will',
+  'local',
+]);
 
 export type SeoProposalStatus = 'pending' | 'drafting' | 'approved' | 'rejected' | 'shipped';
 export type SeoProposalStatusFilter = SeoProposalStatus | 'all';
@@ -1635,6 +1665,27 @@ function buildDuplicateProposalMessage(target: string, proposalType: SeoProposal
   return 'A recent proposal already exists for this keyword';
 }
 
+function buildLinkInventoryQueries(keyword: string): string[] {
+  const normalized = keyword
+    .replace(/[?!.:,;()[\]{}]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!normalized) return [];
+
+  const tokens = normalized
+    .split(' ')
+    .map((token) => token.trim())
+    .filter((token) => token.length >= 3)
+    .filter((token) => !LINK_INVENTORY_STOP_WORDS.has(token.toLowerCase()));
+
+  const ngrams: string[] = [];
+  for (let i = 0; i < tokens.length - 1; i += 1) {
+    ngrams.push(`${tokens[i]} ${tokens[i + 1]}`);
+  }
+
+  return [...new Set([normalized, ...tokens, ...ngrams])].slice(0, 8);
+}
+
 async function ensureNoRecentDuplicate(keyword: string, proposalType: SeoProposalType): Promise<void> {
   const duplicateWindowStart = subtractDays(DUPLICATE_WINDOW_DAYS);
   const existing = await prisma.seoProposal.findFirst({
@@ -1686,14 +1737,24 @@ function buildEvergreenRoutingRationale(cluster: ClusterSourceRecord, topicPod: 
 }
 
 export async function loadLinkInventory(keyword: string): Promise<SeoProposalLinkInventoryItem[]> {
-  const [personMatch, organizationMatch, persons, organizations, glossaryTerms, milestoneResults] = await Promise.all([
-    matchPerson(keyword),
-    matchOrganization(keyword),
-    searchPersons(keyword, MAX_ENTITY_RESULTS),
-    searchOrganizations(keyword, MAX_ENTITY_RESULTS),
-    searchGlossaryTerms(keyword, MAX_ENTITY_RESULTS),
-    searchMilestones({ query: keyword, skip: 0, limit: MAX_ENTITY_RESULTS }),
+  const queries = buildLinkInventoryQueries(keyword);
+  const primaryQuery = queries[0] ?? keyword;
+
+  const [personMatch, organizationMatch, queryResults] = await Promise.all([
+    matchPerson(primaryQuery),
+    matchOrganization(primaryQuery),
+    Promise.all(queries.map(async (query) => ({
+      persons: await searchPersons(query, MAX_ENTITY_RESULTS),
+      organizations: await searchOrganizations(query, MAX_ENTITY_RESULTS),
+      glossaryTerms: await searchGlossaryTerms(query, MAX_ENTITY_RESULTS),
+      milestones: await searchMilestones({ query, skip: 0, limit: MAX_ENTITY_RESULTS }),
+    }))),
   ]);
+
+  const persons = queryResults.flatMap((result) => result.persons);
+  const organizations = queryResults.flatMap((result) => result.organizations);
+  const glossaryTerms = queryResults.flatMap((result) => result.glossaryTerms);
+  const milestoneResults = queryResults.flatMap((result) => result.milestones.results);
 
   const items: SeoProposalLinkInventoryItem[] = [];
   const seen = new Set<string>();
@@ -1758,7 +1819,7 @@ export async function loadLinkInventory(keyword: string): Promise<SeoProposalLin
     });
   }
 
-  for (const milestone of milestoneResults.results) {
+  for (const milestone of milestoneResults) {
     pushItem({
       entityType: 'milestone',
       id: milestone.id,

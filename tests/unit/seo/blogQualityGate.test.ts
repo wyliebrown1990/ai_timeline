@@ -57,6 +57,7 @@ describe('blogQualityGate', () => {
     expect(result.passed).toBe(true);
     expect(result.blockers).toEqual([]);
     expect(result.metrics.internalLinkCount).toBeGreaterThanOrEqual(3);
+    expect(result.metrics.previewEntityLinkCount).toBe(3);
     expect(result.metrics.shortcodeCount).toBe(3);
     expect(result.metrics.sourceLinkCount).toBeGreaterThanOrEqual(1);
   });
@@ -91,6 +92,61 @@ describe('blogQualityGate', () => {
       'At least one subject is required.',
       'Opening 150 words must answer the target query directly.',
     ]));
+  });
+
+  it('blocks preview links that anchor on filler text instead of the entity name', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'AI agents are software systems that can plan, use tools, and carry work across multiple steps because modern models can interpret goals and context. The useful way to understand AI agents is not as magic workers, but as a continuation of automation, search, and interface design. That framing matters for readers trying to separate actual capability from marketing fog.',
+        '',
+        '## Key facts',
+        '',
+        '- AI agents combine model reasoning, tool use, memory, and workflow control.',
+        '- The 2020s agent wave grew out of earlier work on language models and reinforcement learning.',
+        '- The durable question is where autonomy creates leverage versus where it creates review burden.',
+        '',
+        '## Why agents belong in the AI timeline',
+        '',
+        'The story runs through [[glossary:transformer|as]], [[organization:openai|OpenAI]], and [[person:sam-altman|Sam Altman]] because those entities shaped the model and product layer.',
+        '',
+        '## Sources',
+        '',
+        '- [OpenAI](/organizations/openai)',
+      ].join('\n'),
+    }));
+
+    expect(result.passed).toBe(false);
+    expect(result.blockers).toContain(
+      'Previewable entity links must anchor on the entity name, not filler text: [[glossary:transformer|as]]'
+    );
+  });
+
+  it('blocks preview links that do not target verified atlas entity paths', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      bodyMarkdown: [
+        'AI agents are software systems that can plan, use tools, and carry work across multiple steps because modern models can interpret goals and context. The useful way to understand AI agents is not as magic workers, but as a continuation of automation, search, and interface design. That framing matters for readers trying to separate actual capability from marketing fog.',
+        '',
+        '## Key facts',
+        '',
+        '- AI agents combine model reasoning, tool use, memory, and workflow control.',
+        '- The 2020s agent wave grew out of earlier work on language models and reinforcement learning.',
+        '- The durable question is where autonomy creates leverage versus where it creates review burden.',
+        '',
+        '## Why agents belong in the AI timeline',
+        '',
+        'The story runs through [[glossary:transformer|transformer architecture]], [[organization:openai|OpenAI]], and [Speech-to-speech translation](/glossary/speech-to-speech-translation) because those entities shaped the product layer.',
+        '',
+        '## Sources',
+        '',
+        '- [OpenAI](/organizations/openai)',
+      ].join('\n'),
+      allowedPreviewEntityPaths: ['/glossary/transformer', '/organizations/openai', '/people/sam-altman'],
+    }));
+
+    expect(result.passed).toBe(false);
+    expect(result.blockers).toContain(
+      'Previewable entity links must target verified atlas entries: /glossary/speech-to-speech-translation'
+    );
   });
 
   it('blocks custom canonicals outside the blog URL pattern', () => {
@@ -128,6 +184,10 @@ describe('blogQualityGate', () => {
 
     expect(result.metrics.internalLinkCount).toBeGreaterThanOrEqual(3);
     expect(result.blockers).not.toContain('At least 3 distinct internal links are required.');
+    expect(result.metrics.previewEntityLinkCount).toBe(0);
+    expect(result.blockers).toContain(
+      'At least 3 distinct previewable entity links are required (/people, /organizations, /glossary, /events).'
+    );
   });
 
   it('blocks auto-publish for risky claims without visible source links', () => {
@@ -156,6 +216,20 @@ describe('blogQualityGate', () => {
     expect(result.blockers).toContain(
       'Auto-publish requires visible source links for numeric, vendor-specific, or research-like claims.'
     );
+  });
+
+  it('raises the bar when richer atlas inventory is available', () => {
+    const result = evaluateBlogQualityGate(validInput({
+      availablePreviewLinkCandidates: 6,
+      availablePreviewEntityTypes: ['glossary_term', 'person', 'organization', 'milestone'],
+      availableNonOrganizationCandidates: 4,
+    }));
+
+    expect(result.passed).toBe(false);
+    expect(result.blockers).toEqual(expect.arrayContaining([
+      'At least 6 distinct previewable entity links are required (/people, /organizations, /glossary, /events).',
+      'Previewable LAEA links must include at least 3 non-organization entities when the atlas inventory supports it.',
+    ]));
   });
 
   it('allows sourced risky claims to pass the source-link gate', () => {

@@ -4,7 +4,33 @@ const ENTITY_SHORTCODE_PATTERN = /\[\[(person|organization|glossary|event):([a-z
 const ENTITY_SHORTCODE_EXACT_PATTERN = /^\[\[(person|organization|glossary|event):([a-zA-Z0-9_-]+)\|([^\]]+)\]\]$/;
 const ANY_SHORTCODE_PATTERN = /\[\[([^\]]+)\]\]/g;
 const MARKDOWN_LINK_PATTERN = /\[[^\]]+\]\(([^)]+)\)/g;
+const ENTITY_MARKDOWN_LINK_PATTERN = /\[[^\]]+\]\(((?:https:\/\/letaiexplainai\.com)?\/(?:people|organizations|glossary|events)\/[^)]+)\)/g;
+const ENTITY_MARKDOWN_LINK_WITH_LABEL_PATTERN = /\[([^\]]+)\]\(((?:https:\/\/letaiexplainai\.com)?\/(?:people|organizations|glossary|events)\/[^)]+)\)/g;
 const HEADING_PATTERN = /^#{2,3}\s+(.+)$/gm;
+const ENTITY_LABEL_STOPWORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'as',
+  'at',
+  'by',
+  'for',
+  'from',
+  'in',
+  'into',
+  'is',
+  'it',
+  'its',
+  'of',
+  'on',
+  'or',
+  'that',
+  'the',
+  'their',
+  'this',
+  'to',
+  'with',
+]);
 const INTERNAL_LINK_PREFIXES = [
   '/people/',
   '/organizations/',
@@ -63,6 +89,10 @@ export interface BlogQualityGateInput {
   relations?: Array<{ entityType: string; entityId: string }>;
   intendedAction: 'auto_publish' | 'draft_only';
   strongInternalLinkCandidates?: number;
+  availablePreviewLinkCandidates?: number;
+  availablePreviewEntityTypes?: string[];
+  availableNonOrganizationCandidates?: number;
+  allowedPreviewEntityPaths?: string[];
   hasArticleJsonLdPath?: boolean;
   clientRenderedCrawlVerified?: boolean;
 }
@@ -73,6 +103,7 @@ export interface BlogQualityGateResult {
   warnings: string[];
   metrics: {
     internalLinkCount: number;
+    previewEntityLinkCount: number;
     shortcodeCount: number;
     wordCount: number;
     sourceLinkCount: number;
@@ -92,10 +123,147 @@ function countEntityShortcodes(markdown: string): number {
   return [...markdown.matchAll(ENTITY_SHORTCODE_PATTERN)].length;
 }
 
+function countPreviewEntityLinks(markdown: string): number {
+  const hrefs = new Set<string>();
+
+  for (const match of markdown.matchAll(ENTITY_SHORTCODE_PATTERN)) {
+    const type = match[1];
+    const slug = match[2];
+    const href =
+      type === 'person'
+        ? `/people/${slug}`
+        : type === 'organization'
+          ? `/organizations/${slug}`
+          : type === 'glossary'
+            ? `/glossary/${slug}`
+            : `/events/${slug}`;
+    hrefs.add(href);
+  }
+
+  for (const match of markdown.matchAll(ENTITY_MARKDOWN_LINK_PATTERN)) {
+    hrefs.add(match[1].replace(SITE_ORIGIN, ''));
+  }
+
+  return hrefs.size;
+}
+
+function previewEntityTypes(markdown: string): Set<string> {
+  const entityTypes = new Set<string>();
+
+  for (const match of markdown.matchAll(ENTITY_SHORTCODE_PATTERN)) {
+    entityTypes.add(
+      match[1] === 'glossary'
+        ? 'glossary_term'
+        : match[1] === 'event'
+          ? 'milestone'
+          : match[1],
+    );
+  }
+
+  for (const match of markdown.matchAll(ENTITY_MARKDOWN_LINK_PATTERN)) {
+    const href = match[1].replace(SITE_ORIGIN, '');
+    if (href.startsWith('/people/')) entityTypes.add('person');
+    else if (href.startsWith('/organizations/')) entityTypes.add('organization');
+    else if (href.startsWith('/glossary/')) entityTypes.add('glossary_term');
+    else if (href.startsWith('/events/')) entityTypes.add('milestone');
+  }
+
+  return entityTypes;
+}
+
+function countNonOrganizationPreviewLinks(markdown: string): number {
+  const hrefs = new Set<string>();
+
+  for (const match of markdown.matchAll(ENTITY_SHORTCODE_PATTERN)) {
+    const type = match[1];
+    if (type === 'organization') continue;
+    const slug = match[2];
+    const href =
+      type === 'person'
+        ? `/people/${slug}`
+        : type === 'glossary'
+          ? `/glossary/${slug}`
+          : `/events/${slug}`;
+    hrefs.add(href);
+  }
+
+  for (const match of markdown.matchAll(ENTITY_MARKDOWN_LINK_PATTERN)) {
+    const href = match[1].replace(SITE_ORIGIN, '');
+    if (!href.startsWith('/organizations/')) {
+      hrefs.add(href);
+    }
+  }
+
+  return hrefs.size;
+}
+
 function findUnsupportedShortcodes(markdown: string): string[] {
   return [...markdown.matchAll(ANY_SHORTCODE_PATTERN)]
     .map((match) => match[0])
     .filter((shortcode) => !ENTITY_SHORTCODE_EXACT_PATTERN.test(shortcode));
+}
+
+function shortcodeToPath(type: string, slug: string): string {
+  return type === 'person'
+    ? `/people/${slug}`
+    : type === 'organization'
+      ? `/organizations/${slug}`
+      : type === 'glossary'
+        ? `/glossary/${slug}`
+        : `/events/${slug}`;
+}
+
+function findUnsupportedPreviewEntityPaths(markdown: string, allowedPaths: string[] | undefined): string[] {
+  if (!allowedPaths) return [];
+
+  const allowed = new Set(allowedPaths.map((path) => path.replace(SITE_ORIGIN, '')));
+  const unsupported = new Set<string>();
+
+  for (const match of markdown.matchAll(ENTITY_SHORTCODE_PATTERN)) {
+    const path = shortcodeToPath(match[1], match[2]);
+    if (!allowed.has(path)) unsupported.add(path);
+  }
+
+  for (const match of markdown.matchAll(ENTITY_MARKDOWN_LINK_PATTERN)) {
+    const path = match[1].replace(SITE_ORIGIN, '');
+    if (!allowed.has(path)) unsupported.add(path);
+  }
+
+  return [...unsupported];
+}
+
+function isSuspiciousEntityLabel(label: string): boolean {
+  const trimmed = label.trim();
+  if (!trimmed) return true;
+
+  const normalized = trimmed
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!normalized) return true;
+  if (ENTITY_LABEL_STOPWORDS.has(normalized)) return true;
+  if (normalized.length <= 2 && !/^[A-Z0-9]{2,5}$/.test(trimmed)) return true;
+
+  return false;
+}
+
+function findSuspiciousEntityLabels(markdown: string): string[] {
+  const suspicious = new Set<string>();
+
+  for (const match of markdown.matchAll(ENTITY_SHORTCODE_PATTERN)) {
+    if (isSuspiciousEntityLabel(match[3])) {
+      suspicious.add(match[0]);
+    }
+  }
+
+  for (const match of markdown.matchAll(ENTITY_MARKDOWN_LINK_WITH_LABEL_PATTERN)) {
+    if (isSuspiciousEntityLabel(match[1])) {
+      suspicious.add(match[0]);
+    }
+  }
+
+  return [...suspicious];
 }
 
 function countInternalLinks(markdown: string): number {
@@ -232,12 +400,27 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   const blockers: string[] = [];
   const warnings: string[] = [];
   const internalLinkCount = countInternalLinks(input.bodyMarkdown);
+  const previewEntityLinkCount = countPreviewEntityLinks(input.bodyMarkdown);
+  const linkedPreviewEntityTypes = previewEntityTypes(input.bodyMarkdown);
+  const nonOrganizationPreviewLinkCount = countNonOrganizationPreviewLinks(input.bodyMarkdown);
   const shortcodeCount = countEntityShortcodes(input.bodyMarkdown);
   const sourceLinkCount = countSourceLinks(input.bodyMarkdown);
   const riskyClaimCount = countRiskyClaims(input.bodyMarkdown);
   const extraordinaryClaimCount = countExtraordinaryClaims(input.bodyMarkdown);
   const words = wordCount(input.bodyMarkdown);
   const canonical = getCanonical(input);
+  const requiredPreviewEntityLinks = input.availablePreviewLinkCandidates !== undefined
+    ? Math.max(3, Math.min(6, input.availablePreviewLinkCandidates))
+    : 3;
+  const availablePreviewEntityTypeCount = new Set(input.availablePreviewEntityTypes ?? []).size;
+  const requiredPreviewEntityTypeCount = availablePreviewEntityTypeCount >= 3
+    ? 3
+    : availablePreviewEntityTypeCount >= 2
+      ? 2
+      : 1;
+  const requiredNonOrganizationPreviewLinks = input.availableNonOrganizationCandidates !== undefined
+    ? Math.min(3, input.availableNonOrganizationCandidates)
+    : 0;
 
   if (!SLUG_PATTERN.test(input.slug)) {
     blockers.push('Slug must be lowercase kebab-case.');
@@ -257,9 +440,29 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   if (internalLinkCount < 3) {
     blockers.push('At least 3 distinct internal links are required.');
   }
+  if (previewEntityLinkCount < requiredPreviewEntityLinks) {
+    blockers.push(`At least ${requiredPreviewEntityLinks} distinct previewable entity links are required (/people, /organizations, /glossary, /events).`);
+  }
+  if (linkedPreviewEntityTypes.size < requiredPreviewEntityTypeCount) {
+    blockers.push(`Previewable LAEA links must span at least ${requiredPreviewEntityTypeCount} entity categories when the atlas inventory supports it.`);
+  }
+  if (requiredNonOrganizationPreviewLinks >= 2 && nonOrganizationPreviewLinkCount < requiredNonOrganizationPreviewLinks) {
+    blockers.push(`Previewable LAEA links must include at least ${requiredNonOrganizationPreviewLinks} non-organization entities when the atlas inventory supports it.`);
+  }
   const unsupportedShortcodes = findUnsupportedShortcodes(input.bodyMarkdown);
   if (unsupportedShortcodes.length > 0) {
     blockers.push(`Unsupported markdown shortcode(s): ${unsupportedShortcodes.join(', ')}`);
+  }
+  const unsupportedPreviewEntityPaths = findUnsupportedPreviewEntityPaths(
+    input.bodyMarkdown,
+    input.allowedPreviewEntityPaths,
+  );
+  if (unsupportedPreviewEntityPaths.length > 0) {
+    blockers.push(`Previewable entity links must target verified atlas entries: ${unsupportedPreviewEntityPaths.join(', ')}`);
+  }
+  const suspiciousEntityLabels = findSuspiciousEntityLabels(input.bodyMarkdown);
+  if (suspiciousEntityLabels.length > 0) {
+    blockers.push(`Previewable entity links must anchor on the entity name, not filler text: ${suspiciousEntityLabels.join(', ')}`);
   }
   if (SLOP_TITLE_PATTERNS.some((pattern) => pattern.test(input.title) || pattern.test(input.seoTitle ?? ''))) {
     blockers.push('Title or seoTitle uses generic/sloppy SERP phrasing.');
@@ -272,6 +475,9 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   }
   if (!input.relations || input.relations.length < 3) {
     warnings.push('Relations should include the directly cited entities that drive FromTheBlog injections.');
+  }
+  if (input.intendedAction === 'auto_publish' && input.relations && input.relations.length < previewEntityLinkCount) {
+    blockers.push('Auto-publish requires relations for the linked LAEA entities that drive FromTheBlog injections.');
   }
   if (!startsWithDirectAnswer(input.bodyMarkdown)) {
     blockers.push('Opening 150 words must answer the target query directly.');
@@ -317,6 +523,7 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
     warnings,
     metrics: {
       internalLinkCount,
+      previewEntityLinkCount,
       shortcodeCount,
       wordCount: words,
       sourceLinkCount,

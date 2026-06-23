@@ -98,11 +98,14 @@ Resources:
           ADMIN_USERNAME: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-username}}'
           ADMIN_PASSWORD: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-password}}'
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+          SEO_AUTOMATION_MODEL: claude-sonnet-4-6
+          SEO_EDITORIAL_BLOG_MODEL: claude-sonnet-4-6
           CORS_ORIGIN: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/cors-origin}}'
           YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
           PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
           SEO_AGENT_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-paused'
           SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
+          GSC_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/gsc-last-run'
           SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
           SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
 
@@ -233,10 +236,13 @@ Resources:
           DATABASE_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/database-url}}'
           # Secrets from SSM Parameter Store (secure)
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+          SEO_AUTOMATION_MODEL: claude-sonnet-4-6
+          SEO_EDITORIAL_BLOG_MODEL: claude-sonnet-4-6
           YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
           PLAYWRIGHT_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/playwright-url}}'
           SEO_AGENT_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-paused'
           SEO_AGENT_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-agent-last-run'
+          GSC_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/gsc-last-run'
           SERPER_API_KEY_PARAM: !Sub '/ai-timeline/${Environment}/serper-api-key'
           SERPER_PRICING_PARAM: !Sub '/ai-timeline/${Environment}/serper-pricing-json'
           SEO_EDITORIAL_LAST_RUN_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-last-run'
@@ -349,8 +355,8 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Name: !Sub ai-timeline-gsc-schedule-${Environment}
-      Description: Triggers weekly Google Search Console ingest
-      ScheduleExpression: "cron(0 6 ? * MON *)"
+      Description: Triggers weekly Google Search Console ingest after PT midnight so the latest finalized day is available
+      ScheduleExpression: "cron(15 8 ? * MON *)"
       State: ENABLED
       Targets:
         - Id: GscWeeklyIngestLambdaTarget
@@ -378,7 +384,7 @@ Resources:
       Targets:
         - Id: SeoWeeklyDigestLambdaTarget
           Arn: !GetAtt IngestionFunction.Arn
-          Input: '{"action":"seoWeeklyDigest"}'
+          Input: '{"action":"seoWeeklyDigest","runEditorial":false}'
 
   SeoWeeklyDigestPermission:
     Type: AWS::Lambda::Permission
@@ -401,7 +407,7 @@ Resources:
       Targets:
         - Id: SeoTuesdayEditorialLambdaTarget
           Arn: !GetAtt IngestionFunction.Arn
-          Input: '{"action":"seoEditorialTuesday"}'
+          Input: '{"action":"seoEditorialTuesday","maxPosts":3,"maxAutoPublish":3}'
 
   SeoTuesdayEditorialPermission:
     Type: AWS::Lambda::Permission
@@ -438,6 +444,33 @@ Resources:
       Dimensions:
         - Name: FunctionName
           Value: !Ref IngestionFunction
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
+  GscOperatorActionMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref IngestionFunctionLogGroup
+      FilterPattern: '"Weekly ingest requires operator action"'
+      MetricTransformations:
+        - MetricName: GscOperatorActionFailures
+          MetricNamespace: !Sub AITimeline/${Environment}
+          MetricValue: '1'
+          DefaultValue: 0
+
+  GscOperatorActionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ai-timeline-gsc-operator-action-${Environment}
+      AlarmDescription: Weekly GSC ingest needs operator action - check SEO Insights or rerun the OAuth helper
+      Namespace: !Sub AITimeline/${Environment}
+      MetricName: GscOperatorActionFailures
       Statistic: Sum
       Period: 3600
       EvaluationPeriods: 1

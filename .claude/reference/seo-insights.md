@@ -34,13 +34,15 @@ The SEO Insights system is LAEA's operator-facing SEO workflow. It combines:
 ## Weekly operating loop
 
 1. GSC ingest runs on AWS EventBridge every Monday at `06:00 UTC`.
-2. The primary weekly digest scheduler is AWS EventBridge `SeoWeeklyDigestRule`, which invokes the existing `IngestionFunction` with `{"action":"seoWeeklyDigest"}` every Monday at `13:15 UTC`.
+2. The primary weekly digest scheduler is AWS EventBridge `SeoWeeklyDigestRule`, which invokes the existing `IngestionFunction` with `{"action":"seoWeeklyDigest","runEditorial":false}` every Monday at `13:15 UTC`.
 3. `server/src/services/seo/weeklyDigestRunner.ts` reads health, pause state, run status, insights, packaging, portfolio state, and Serper spend state directly through backend services.
 4. It classifies findings into:
    - auto-ship
    - propose
    - human-only
 5. Status and summary are written back into the admin dashboard via `/ai-timeline/<env>/seo-agent-last-run`.
+6. Weekly GSC ingest writes its own run record to `/ai-timeline/<env>/gsc-last-run`, including auth vs config vs network classification plus the operator remediation command when human action is required.
+7. Tuesday editorial publishing is news-led: recent high-fit ingested articles are selected before discovery keywords and GSC/proposal backlog so the site keeps building search presence even when GSC has little data.
 
 Fallbacks:
 
@@ -60,7 +62,7 @@ Reference:
 Auto-ship is intentionally narrow.
 
 - Today it only covers metadata rewrites on existing published blog posts.
-- It does not auto-publish new blog posts.
+- New blog posts publish through the separate Tuesday editorial autopilot, not the Monday digest. The Tuesday run is expected to publish up to 3 posts when quality gates pass. It tries a broader news-led candidate set and keeps going after draft-only/blocked candidates until at least one post publishes or all candidates fail the gates.
 - It does not auto-apply packaging fixes or routing plans.
 - The pause switch must disable auto-mutating behavior while keeping read-only visibility alive.
 
@@ -106,6 +108,7 @@ Serper is paid and must stay guarded:
 
 - `/ai-timeline/prod/gsc-oauth-credentials-json`
 - `/ai-timeline/prod/gsc-site-url`
+- `/ai-timeline/prod/gsc-last-run`
 - `/ai-timeline/prod/seo-agent-paused`
 - `/ai-timeline/prod/seo-agent-last-run`
 - `/ai-timeline/prod/serper-api-key`

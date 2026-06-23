@@ -267,6 +267,83 @@ describe('editorialAutopilotRunner', () => {
     }));
   });
 
+  it('keeps trying candidates after drafts until the weekly publish target is met', async () => {
+    mockSelectEditorialOpportunities.mockReturnValue({
+      selected: [
+        {
+          id: 'news-draft',
+          sourceType: 'keyword',
+          action: 'auto_publish',
+          title: 'Satellite AI needs review',
+          targetKeyword: 'satellite ai',
+          rationale: 'Recent news.',
+          confidence: 0.74,
+          source: {},
+        },
+        {
+          id: 'news-publish',
+          sourceType: 'keyword',
+          action: 'auto_publish',
+          title: 'Voice translation ships',
+          targetKeyword: 'voice translation ai',
+          rationale: 'Recent news.',
+          confidence: 0.74,
+          source: {},
+        },
+        {
+          id: 'extra',
+          sourceType: 'keyword',
+          action: 'auto_publish',
+          title: 'Extra candidate',
+          targetKeyword: 'extra ai',
+          rationale: 'Should not run after cap plus publish target.',
+          confidence: 0.74,
+          source: {},
+        },
+      ],
+      deferred: [],
+    });
+    mockProcessEditorialOpportunity
+      .mockResolvedValueOnce({
+        id: 'news-draft',
+        sourceType: 'keyword',
+        action: 'auto_publish',
+        status: 'draft_created',
+        title: 'Satellite AI needs review',
+        reason: 'Quality gate blocked draft.',
+        postId: 'post-draft',
+        publicUrl: null,
+        adminUrl: 'https://letaiexplainai.com/admin/blog/post-draft/edit',
+        qualityGate: null,
+      })
+      .mockResolvedValueOnce({
+        id: 'news-publish',
+        sourceType: 'keyword',
+        action: 'auto_publish',
+        status: 'auto_published',
+        title: 'Voice translation ships',
+        reason: 'Created successfully.',
+        postId: 'post-published',
+        publicUrl: 'https://letaiexplainai.com/blog/voice-translation-ai',
+        adminUrl: 'https://letaiexplainai.com/admin/blog/post-published/edit',
+        qualityGate: null,
+      });
+
+    const summary = await runSeoEditorialTuesday({
+      force: true,
+      maxPosts: 1,
+      maxAutoPublish: 3,
+      now: new Date('2026-05-05T15:00:00.000Z'),
+    });
+
+    expect(mockProcessEditorialOpportunity.mock.calls.map((call) => call[0].id)).toEqual([
+      'news-draft',
+      'news-publish',
+    ]);
+    expect(summary.publishedCount).toBe(1);
+    expect(summary.draftCount).toBe(1);
+  });
+
   it('passes zero maxPosts to the selector while paused and persists paused status', async () => {
     mockIsEditorialPaused.mockResolvedValue(true);
 

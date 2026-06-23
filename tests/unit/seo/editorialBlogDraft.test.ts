@@ -15,6 +15,7 @@ const mockLinkProposalDraft = jest.fn();
 const mockMarkKeywordOpportunityPromoted = jest.fn();
 const mockEvaluateBlogQualityGate = jest.fn();
 const mockBuildEditorialBlogCompositionBrief = jest.fn();
+const mockDiscoverEditorialEntityInventory = jest.fn();
 
 jest.mock('@anthropic-ai/sdk', () => ({
   __esModule: true,
@@ -64,6 +65,10 @@ jest.mock('../../../server/src/services/seo/blogDraftComposer', () => ({
   buildEditorialBlogCompositionBrief: mockBuildEditorialBlogCompositionBrief,
 }));
 
+jest.mock('../../../server/src/services/seo/editorialEntityDiscovery', () => ({
+  discoverEditorialEntityInventory: mockDiscoverEditorialEntityInventory,
+}));
+
 import {
   processEditorialOpportunity,
   resetEditorialBlogDraftForTests,
@@ -77,12 +82,16 @@ const GENERATED_DRAFT = {
   seoDescription: 'AI timelines work best when they show causal handoffs, bottlenecks, and links between research eras instead of listing events flatly.',
   tags: ['ai-history', 'ai-timeline', 'machine-learning'],
   subjectSlugs: ['science-cs-ml'],
-  relations: [{ entityType: 'glossary_term', entityId: 'machine-learning', relationLabel: 'mentions' }],
+  relations: [],
   bodyMarkdown: `Opening answer about AI timelines and why they matter.
 
 ## Key facts
 
 - One.
+
+## Why timelines need entities
+
+Machine learning changes shape when OpenAI turns research into products and Sam Altman turns product bets into distribution.
 
 ## The atlas's read
 
@@ -144,7 +153,7 @@ beforeEach(() => {
     passed: true,
     blockers: [],
     warnings: [],
-    metrics: { internalLinkCount: 3, shortcodeCount: 1, wordCount: 900 },
+    metrics: { internalLinkCount: 3, previewEntityLinkCount: 3, shortcodeCount: 3, wordCount: 900, sourceLinkCount: 1, riskyClaimCount: 0 },
   });
   mockBuildEditorialBlogCompositionBrief.mockResolvedValue({
     targetKeyword: 'ai timeline',
@@ -160,6 +169,11 @@ beforeEach(() => {
     winnabilityNotes: ['Strong internal-link base: 3 reusable entity links.'],
     blockers: [],
   });
+  mockDiscoverEditorialEntityInventory.mockResolvedValue([
+    { entityType: 'glossary_term', id: 'machine-learning', label: 'Machine learning', path: '/glossary/machine-learning', reason: 'Relevant term.' },
+    { entityType: 'organization', id: 'openai', label: 'OpenAI', path: '/organizations/openai', reason: 'Relevant organization.' },
+    { entityType: 'person', id: 'sam-altman', label: 'Sam Altman', path: '/people/sam-altman', reason: 'Relevant person.' },
+  ]);
   mockGetOrCreateDefaultAuthor.mockResolvedValue({ id: 'author-1', slug: 'wylie-brown' });
   mockCreateDraft.mockResolvedValue({
     id: 'post-1',
@@ -203,6 +217,12 @@ describe('editorialBlogDraft', () => {
       slug: 'ai-timeline',
       subjectIds: ['subject-ml'],
       primarySubjectId: 'subject-ml',
+      bodyMarkdown: expect.stringContaining('[[glossary:machine-learning|Machine learning]]'),
+      relations: expect.arrayContaining([
+        { entityType: 'glossary_term', entityId: 'machine-learning', relationLabel: undefined },
+        { entityType: 'organization', entityId: 'openai', relationLabel: undefined },
+        { entityType: 'person', entityId: 'sam-altman', relationLabel: undefined },
+      ]),
     }), 'author-1');
     expect(mockPublishPost).toHaveBeenCalledWith('post-1');
     expect(mockLinkProposalDraft).toHaveBeenCalledWith('proposal-1', 'post-1');
@@ -225,7 +245,7 @@ describe('editorialBlogDraft', () => {
       passed: false,
       blockers: ['At least 3 distinct internal links are required.'],
       warnings: [],
-      metrics: { internalLinkCount: 1, shortcodeCount: 0, wordCount: 500 },
+      metrics: { internalLinkCount: 1, previewEntityLinkCount: 1, shortcodeCount: 0, wordCount: 500, sourceLinkCount: 0, riskyClaimCount: 0 },
     });
 
     const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
@@ -270,7 +290,7 @@ describe('editorialBlogDraft', () => {
       passed: false,
       blockers: ['seoTitle is required and must be <= 60 characters.'],
       warnings: [],
-      metrics: { internalLinkCount: 3, shortcodeCount: 0, wordCount: 900 },
+      metrics: { internalLinkCount: 3, previewEntityLinkCount: 3, shortcodeCount: 0, wordCount: 900, sourceLinkCount: 0, riskyClaimCount: 0 },
     });
 
     const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
@@ -307,7 +327,7 @@ describe('editorialBlogDraft', () => {
     expect(mockCreateDraft).not.toHaveBeenCalled();
   });
 
-  it('does not duplicate a completed opportunity even when the run is forced', async () => {
+  it('publishes an existing clean draft on forced auto-publish retry without duplicating it', async () => {
     mockEditorialRunFindUnique.mockResolvedValue({
       id: 'run-1',
       idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
@@ -328,10 +348,12 @@ describe('editorialBlogDraft', () => {
     });
 
     expect(result).toEqual(expect.objectContaining({
-      status: 'draft_created',
+      status: 'auto_published',
       postId: 'post-1',
+      publicUrl: 'https://letaiexplainai.com/blog/ai-timeline',
       adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
     }));
+    expect(mockPublishPost).toHaveBeenCalledWith('post-1');
     expect(mockEditorialRunCreate).not.toHaveBeenCalled();
     expect(mockMessagesCreate).not.toHaveBeenCalled();
     expect(mockCreateDraft).not.toHaveBeenCalled();

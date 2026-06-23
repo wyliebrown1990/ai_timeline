@@ -5627,8 +5627,11 @@ export const blogApi = {
     return fetchJson<BlogListResponse>(url);
   },
 
-  async getBySlug(slug: string): Promise<{ post: BlogPostType }> {
-    return fetchJson<{ post: BlogPostType }>(`${API_BASE}/blog/${slug}`);
+  async getBySlug(slug: string, previewToken?: string | null): Promise<{ post: BlogPostType }> {
+    const qs = new URLSearchParams();
+    if (previewToken) qs.set('preview', previewToken);
+    const url = `${API_BASE}/blog/${slug}${qs.toString() ? `?${qs.toString()}` : ''}`;
+    return fetchJson<{ post: BlogPostType }>(url);
   },
 
   async related(slug: string): Promise<{ posts: BlogPostListItem[] }> {
@@ -6004,6 +6007,38 @@ export interface SeoAgentRunRecord {
   digestUrl: string | null;
   errorMessage: string | null;
   serperSnapshot: SeoAgentRunSerperSnapshot | null;
+}
+
+export type SeoGscRunStatus = 'success' | 'failed';
+export type SeoGscRunErrorCategory =
+  | 'auth'
+  | 'permission'
+  | 'config'
+  | 'quota'
+  | 'network'
+  | 'unknown';
+
+export interface SeoGscRunRemediation {
+  summary: string;
+  command: string | null;
+  docsPath: string | null;
+}
+
+export interface SeoGscRunRecord {
+  status: SeoGscRunStatus;
+  startedAt: string;
+  completedAt: string;
+  startDate: string | null;
+  endDate: string | null;
+  finalizedThroughDate: string | null;
+  dailyRowsInserted: number;
+  dailyRowsAttempted: number;
+  snapshotsCreated: number;
+  durationMs: number;
+  errorMessage: string | null;
+  errorCategory: SeoGscRunErrorCategory | null;
+  requiresOperatorAction: boolean;
+  remediation: SeoGscRunRemediation | null;
 }
 
 export interface SeoEditorialRunItem {
@@ -6482,6 +6517,7 @@ export interface SeoInsightsHealth {
   clusterWindows?: Partial<Record<SeoClusterHorizon, SeoClusterWindowSummary>>;
   paused: boolean;
   agentRun: SeoAgentRunRecord | null;
+  gscRun: SeoGscRunRecord | null;
   serper: SeoSerperUsageSummary;
   editorial?: SeoEditorialStatusResponse;
 }

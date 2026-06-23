@@ -72,7 +72,7 @@ function keyword(overrides: Partial<KeywordOpportunityRecord>): KeywordOpportuni
 }
 
 describe('editorialOpportunitySelector', () => {
-  it('prioritizes approved proposals and enforces post and auto-publish caps', () => {
+  it('prioritizes weekly news and discovery keywords before older proposals', () => {
     const result = selectEditorialOpportunities({
       proposals: [
         proposal({ id: 'pending-high', status: 'pending', confidence: 0.95 }),
@@ -81,23 +81,27 @@ describe('editorialOpportunitySelector', () => {
       ],
       keywords: [
         keyword({ id: 'keyword-high', overallScore: 90 }),
+        keyword({ id: 'weekly-news-fallback:article-1', sourceType: 'editorial_seed', overallScore: 74 }),
       ],
       maxPosts: 3,
-      maxAutoPublish: 2,
+      maxAutoPublish: 3,
+      maxCandidates: 4,
     });
 
     expect(result.selected.map((row) => row.id)).toEqual([
+      'weekly-news-fallback:article-1',
+      'keyword-high',
       'approved-mid',
       'drafting-mid',
-      'pending-high',
     ]);
     expect(result.selected.map((row) => row.action)).toEqual([
+      'auto_publish',
       'auto_publish',
       'auto_publish',
       'draft_only',
     ]);
     expect(result.deferred).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: 'keyword-high', reason: 'Deferred because the Tuesday post cap was reached.' }),
+      expect.objectContaining({ id: 'pending-high', reason: 'Deferred because the Tuesday candidate cap was reached.' }),
     ]));
   });
 
@@ -159,15 +163,16 @@ describe('editorialOpportunitySelector', () => {
     ]);
   });
 
-  it('keeps weak-source weekly fallback articles draft-only by capping their selector score', () => {
+  it('lets weak-source weekly fallback articles reach the guarded publish lane', () => {
     const result = editorialOpportunitySelectorTestInternals.scoreWeeklyFallbackArticle({
       relevanceScore: 96,
       externalUrl: 'https://www.theneurondaily.com/p/openai-solved-an-80-year-math-problem',
       sourceName: 'The Neuron',
     });
 
+    expect(result.score).toBeGreaterThanOrEqual(70);
     expect(result.score).toBeLessThan(78);
-    expect(result.sourceTrustNote).toContain('draft-only');
+    expect(result.sourceTrustNote).toContain('guarded fallback');
   });
 
   it('allows trusted weekly fallback sources to keep auto-publish-level scores', () => {

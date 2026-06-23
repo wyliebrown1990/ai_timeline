@@ -208,7 +208,7 @@ async function invokeLambdaAction(
   const command = new InvokeCommand({
     FunctionName: options.functionName,
     Payload: Buffer.from(JSON.stringify(action === 'seoWeeklyDigest'
-      ? { action, force: true }
+      ? { action, force: true, runEditorial: false }
       : { action })),
   });
   const response = await client.send(command);
@@ -296,7 +296,7 @@ async function main() {
   }
 
   if (options.runDigest) {
-    printLine('[GSC_OAUTH_SETUP] Running forced seoWeeklyDigest Lambda action...');
+    printLine('[GSC_OAUTH_SETUP] Running forced seoWeeklyDigest Lambda action without Tuesday editorial...');
     await invokeLambdaAction('seoWeeklyDigest', options);
     printLine('[GSC_OAUTH_SETUP] SEO digest verification succeeded.');
   }
