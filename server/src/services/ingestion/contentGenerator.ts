@@ -6,6 +6,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_SONNET_MODEL } from '../anthropicModels';
 
 // These interfaces match our Zod schemas EXACTLY
 export interface MilestoneDraft {
@@ -181,7 +182,7 @@ export async function generateContent(
     .replace('{{recentMilestones}}', milestonesContext);
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: ANTHROPIC_SONNET_MODEL,
     max_tokens: 4000, // Increased for layered content fields
     messages: [
       {

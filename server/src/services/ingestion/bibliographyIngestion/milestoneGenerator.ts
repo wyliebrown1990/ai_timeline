@@ -12,6 +12,7 @@ import type {
   GeneratedMilestoneData,
   ScrapedMetadata,
 } from './types';
+import { ANTHROPIC_SONNET_MODEL } from '../../anthropicModels';
 
 // Era definitions matching the existing system
 const ERA_DEFINITIONS = [
@@ -119,7 +120,7 @@ export async function generateMilestoneData(
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: ANTHROPIC_SONNET_MODEL,
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }],
     });

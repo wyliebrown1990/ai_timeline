@@ -9,6 +9,7 @@
 
 import { prisma } from '../../db';
 import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_HAIKU_MODEL } from '../anthropicModels';
 
 /**
  * Duplicate match result
@@ -147,7 +148,7 @@ Focus on: Is this the SAME news event being reported?`;
 
   try {
     const response = await client.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: ANTHROPIC_HAIKU_MODEL,
       max_tokens: 256,
       messages: [{ role: 'user', content: prompt }],
     });

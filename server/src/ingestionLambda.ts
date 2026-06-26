@@ -22,6 +22,7 @@ import { runTrackedWeeklyIngest } from './services/gsc/trackedIngest';
 import { runSeoWeeklyDigest } from './services/seo/weeklyDigestRunner';
 import { runSeoEditorialTuesday, runSingleEditorialOpportunity } from './services/seo/editorialAutopilotRunner';
 import { backfillBlogEntityLinks } from './services/seo/backfillBlogEntityLinks';
+import { ANTHROPIC_SONNET_MODEL } from './services/anthropicModels';
 
 /**
  * Lambda response structure
@@ -990,7 +991,7 @@ ${fieldsToGenerate.includes('commonMisconceptions') ? `  "commonMisconceptions":
 Return ONLY the JSON object, no other text.`;
 
             const response = await client.messages.create({
-              model: 'claude-sonnet-4-20250514',
+              model: ANTHROPIC_SONNET_MODEL,
               max_tokens: 1000,
               messages: [{ role: 'user', content: prompt }],
             });

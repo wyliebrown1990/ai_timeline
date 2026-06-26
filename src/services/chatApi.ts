@@ -15,6 +15,7 @@ import type {
 } from '../types/chat';
 import { ApiError } from './api';
 import { apiKeyService } from './apiKeyService';
+import { safeGetSessionStorage, safeSetSessionStorage } from '../lib/webStorage';
 
 /**
  * API base URL - uses relative URL to work with Vite proxy in development
@@ -25,6 +26,8 @@ const API_BASE = import.meta.env.VITE_API_URL || '/api';
  * Anthropic API URL for direct browser calls
  */
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const DIRECT_ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+let fallbackSessionId: string | null = null;
 
 /**
  * Generate a unique session ID for rate limiting
@@ -32,11 +35,12 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
  */
 export function getSessionId(): string {
   const storageKey = 'ai_companion_session_id';
-  let sessionId = sessionStorage.getItem(storageKey);
+  let sessionId = safeGetSessionStorage(storageKey) ?? fallbackSessionId;
 
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    sessionStorage.setItem(storageKey, sessionId);
+    fallbackSessionId = sessionId;
+    safeSetSessionStorage(storageKey, sessionId);
   }
 
   return sessionId;
@@ -73,7 +77,7 @@ Be educational, engaging, and accurate. Reference specific historical milestones
       'anthropic-dangerous-direct-browser-access': 'true',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: DIRECT_ANTHROPIC_MODEL,
       max_tokens: 1024,
       system: systemPrompt,
       messages: [{ role: 'user', content: request.message }],

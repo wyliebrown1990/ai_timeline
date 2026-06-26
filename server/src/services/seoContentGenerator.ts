@@ -7,6 +7,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '../db';
+import { ANTHROPIC_SONNET_MODEL } from './anthropicModels';
 
 // Initialize Anthropic client
 function getAnthropicClient(): Anthropic {
@@ -18,7 +19,7 @@ function getAnthropicClient(): Anthropic {
 }
 
 // Use Sonnet for quality content generation
-const CONTENT_MODEL = 'claude-sonnet-4-20250514';
+const CONTENT_MODEL = ANTHROPIC_SONNET_MODEL;
 
 /**
  * Generated content for Explained pages

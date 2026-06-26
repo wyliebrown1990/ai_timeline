@@ -1,5 +1,6 @@
 import { prisma } from '../db';
 import type { GlossaryTerm } from '@prisma/client';
+import { ANTHROPIC_HAIKU_MODEL } from './anthropicModels';
 
 /**
  * Glossary term category enum (matches frontend types)
@@ -539,7 +540,7 @@ Return ONLY the quick answer text, no quotes, no explanation, no "Here is..." pr
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-latest',
+        model: ANTHROPIC_HAIKU_MODEL,
         max_tokens: 200,
         messages: [{ role: 'user', content: prompt }],
       }),

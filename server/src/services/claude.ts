@@ -5,10 +5,11 @@
 
 import type { ChatMessage, ChatResponse, ExplainMode, MilestoneContext } from '../types/chat';
 import { buildSystemPrompt, generateFollowUpPrompt, generatePrerequisitePrompt } from '../prompts';
+import { ANTHROPIC_HAIKU_MODEL, ANTHROPIC_SONNET_MODEL } from './anthropicModels';
 
 // API Configuration
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'; // Using Claude Sonnet for balance of quality/cost
+const CLAUDE_MODEL = ANTHROPIC_SONNET_MODEL;
 const MAX_TOKENS = 1024;
 
 /**
@@ -240,7 +241,7 @@ async function generateFollowUps(topic: string): Promise<string[]> {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-latest', // Use Haiku for quick, cheap follow-up generation
+        model: ANTHROPIC_HAIKU_MODEL,
         max_tokens: 256,
         messages: [{ role: 'user', content: generateFollowUpPrompt(topic) }],
       }),
@@ -311,7 +312,7 @@ export async function detectPrerequisites(concept: string): Promise<Prerequisite
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-latest', // Use Haiku for quick, cheap prerequisite detection
+        model: ANTHROPIC_HAIKU_MODEL,
         max_tokens: 512,
         messages: [{ role: 'user', content: generatePrerequisitePrompt(concept) }],
       }),

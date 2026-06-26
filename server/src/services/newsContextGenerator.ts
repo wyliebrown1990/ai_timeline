@@ -7,6 +7,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import type { PrismaClient } from '@prisma/client';
+import { ANTHROPIC_SONNET_MODEL } from './anthropicModels';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic();
@@ -91,7 +92,7 @@ Return ONLY the JSON array, no other text.`;
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: ANTHROPIC_SONNET_MODEL,
       max_tokens: 1000,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -152,7 +153,7 @@ Do NOT use phrases like "This matters because..." - just explain the significanc
 
     try {
       const response = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: ANTHROPIC_SONNET_MODEL,
         max_tokens: 300,
         messages: [{ role: 'user', content: prompt }],
       });
@@ -186,7 +187,7 @@ Example format:
 
   try {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: ANTHROPIC_SONNET_MODEL,
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     });

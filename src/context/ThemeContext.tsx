@@ -10,6 +10,7 @@ import {
   useCallback,
   type ReactNode,
 } from 'react';
+import { safeGetLocalStorage, safeSetLocalStorage } from '../lib/webStorage';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -33,7 +34,7 @@ function getSystemTheme(): 'light' | 'dark' {
 
 function getStoredTheme(): ThemeMode {
   if (typeof window === 'undefined') return 'dark';
-  const stored = localStorage.getItem(STORAGE_KEY);
+  const stored = safeGetLocalStorage(STORAGE_KEY);
   if (stored === 'light' || stored === 'dark' || stored === 'system') {
     return stored;
   }
@@ -99,7 +100,7 @@ export function ThemeProvider({
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
-    localStorage.setItem(STORAGE_KEY, newTheme);
+    safeSetLocalStorage(STORAGE_KEY, newTheme);
   }, []);
 
   const toggleTheme = useCallback(() => {

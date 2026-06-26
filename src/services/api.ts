@@ -5,6 +5,7 @@ import type {
   MilestoneCategory,
 } from '../types/milestone';
 import type { SearchResponse, FilterQueryParams } from '../types/filters';
+import { safeGetSessionStorage } from '../lib/webStorage';
 
 /**
  * API base URL for all endpoints
@@ -23,7 +24,7 @@ const AUTH_TOKEN_KEY = 'ai-timeline-admin-token';
  * Get authorization headers from stored token
  */
 function getAuthHeaders(): Record<string, string> {
-  const token = sessionStorage.getItem(AUTH_TOKEN_KEY);
+  const token = safeGetSessionStorage(AUTH_TOKEN_KEY);
   if (token) {
     return { Authorization: `Bearer ${token}` };
   }
@@ -4129,6 +4130,15 @@ export interface NewsQuizQuestion {
   options: string[];
   relatedConceptId?: string;
   relatedConceptName?: string;
+  sourceUrl?: string | null;
+  sourcePublisher?: string | null;
+  sourcePublishedDate?: string;
+  sourceSummary?: string;
+  sourceWhyItMatters?: string | null;
+  sourceConnectionExplanation?: string | null;
+  hostedArticlePath?: string;
+  prerequisiteMilestoneTitles?: string[];
+  relatedMilestoneTitles?: string[];
 }
 
 /**

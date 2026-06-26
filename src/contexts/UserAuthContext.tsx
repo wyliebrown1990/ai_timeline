@@ -73,25 +73,34 @@ export function UserAuthProvider({ children }: UserAuthProviderProps) {
    */
   useEffect(() => {
     const initAuth = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        setState({
-          isAuthenticated: false,
-          isLoading: false,
-          user: null,
-        });
-        return;
-      }
+      try {
+        const token = getAccessToken();
+        if (!token) {
+          setState({
+            isAuthenticated: false,
+            isLoading: false,
+            user: null,
+          });
+          return;
+        }
 
-      // Try to get current user
-      const user = await getCurrentUser();
-      if (user) {
-        setState({
-          isAuthenticated: true,
-          isLoading: false,
-          user,
-        });
-      } else {
+        // Try to get current user
+        const user = await getCurrentUser();
+        if (user) {
+          setState({
+            isAuthenticated: true,
+            isLoading: false,
+            user,
+          });
+        } else {
+          setState({
+            isAuthenticated: false,
+            isLoading: false,
+            user: null,
+          });
+        }
+      } catch (error) {
+        console.warn('[UserAuth] Failed to initialize auth state:', error);
         setState({
           isAuthenticated: false,
           isLoading: false,

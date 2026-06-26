@@ -5,6 +5,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_HAIKU_MODEL } from './anthropicModels';
 
 // Types
 export interface PrerequisiteSuggestion {
@@ -230,7 +231,7 @@ Respond in JSON format:
   // Call Claude API
   const client = new Anthropic();
   const message = await client.messages.create({
-    model: 'claude-3-5-haiku-20241022',
+    model: ANTHROPIC_HAIKU_MODEL,
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   });

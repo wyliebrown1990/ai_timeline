@@ -586,6 +586,7 @@ export async function mergeKeyFigures(
 // =============================================================================
 
 import Anthropic from '@anthropic-ai/sdk';
+import { ANTHROPIC_SONNET_MODEL } from './anthropicModels';
 
 /**
  * Generated profile fields from AI
@@ -658,7 +659,7 @@ Return ONLY valid JSON, no markdown or explanation.`;
 
   try {
     const response = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: ANTHROPIC_SONNET_MODEL,
       max_tokens: 2000,
       messages: [
         {

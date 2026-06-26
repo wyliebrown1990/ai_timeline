@@ -48,6 +48,15 @@ export async function getCurrentQuiz(
       options: q.options,
       relatedConceptId: q.relatedConceptId,
       relatedConceptName: q.relatedConceptName,
+      sourceUrl: q.sourceUrl,
+      sourcePublisher: q.sourcePublisher,
+      sourcePublishedDate: q.sourcePublishedDate,
+      sourceSummary: q.sourceSummary,
+      sourceWhyItMatters: q.sourceWhyItMatters,
+      sourceConnectionExplanation: q.sourceConnectionExplanation,
+      hostedArticlePath: q.hostedArticlePath,
+      prerequisiteMilestoneTitles: q.prerequisiteMilestoneTitles,
+      relatedMilestoneTitles: q.relatedMilestoneTitles,
     }));
 
     res.json({
@@ -130,6 +139,15 @@ export async function getQuizById(
       options: q.options,
       relatedConceptId: q.relatedConceptId,
       relatedConceptName: q.relatedConceptName,
+      sourceUrl: q.sourceUrl,
+      sourcePublisher: q.sourcePublisher,
+      sourcePublishedDate: q.sourcePublishedDate,
+      sourceSummary: q.sourceSummary,
+      sourceWhyItMatters: q.sourceWhyItMatters,
+      sourceConnectionExplanation: q.sourceConnectionExplanation,
+      hostedArticlePath: q.hostedArticlePath,
+      prerequisiteMilestoneTitles: q.prerequisiteMilestoneTitles,
+      relatedMilestoneTitles: q.relatedMilestoneTitles,
     }));
 
     // Pre-compute coverage window so frontend doesn't re-derive it.

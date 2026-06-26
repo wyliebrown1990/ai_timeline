@@ -25,12 +25,14 @@ import {
 } from 'lucide-react';
 import { QuizShareCard } from '../components/Quiz/QuizShareCard';
 import { QuizHistoryList } from '../components/Quiz/QuizHistoryList';
+import { QuizSourceModal } from '../components/Quiz/QuizSourceModal';
 import { SEO } from '../components/SEO';
 import { useSession } from '../contexts/SessionContext';
 import {
   newsQuizApi,
   type NewsQuiz,
   type QuizAnswer,
+  type NewsQuizQuestion,
   type QuizResult,
   type QuizHistoryRow,
 } from '../services/api';
@@ -101,6 +103,7 @@ export function NewsQuizPage() {
   // Results state
   const [results, setResults] = useState<QuizResult[] | null>(null);
   const [score, setScore] = useState<{ score: number; total: number; percentage: number } | null>(null);
+  const [sourceQuestion, setSourceQuestion] = useState<NewsQuizQuestion | null>(null);
 
   // History state — parent owns this fetch; QuizHistoryList consumes the rows.
   const [historyRows, setHistoryRows] = useState<QuizHistoryRow[]>([]);
@@ -115,6 +118,7 @@ export function NewsQuizPage() {
     setCurrentQuestionIndex(0);
     setResults(null);
     setScore(null);
+    setSourceQuestion(null);
 
     try {
       if (routeQuizId) {
@@ -175,6 +179,7 @@ export function NewsQuizPage() {
   const handleStartQuiz = () => {
     setQuizState('in-progress');
     setCurrentQuestionIndex(0);
+    setSourceQuestion(null);
   };
 
   /**
@@ -248,6 +253,7 @@ export function NewsQuizPage() {
     setCurrentQuestionIndex(0);
     setResults(null);
     setScore(null);
+    setSourceQuestion(null);
     setQuizState('ready');
   };
 
@@ -455,8 +461,9 @@ export function NewsQuizPage() {
                   <div className="flex items-start gap-3">
                     <Lightbulb className="w-5 h-5 text-indigo-600 dark:text-indigo-400 flex-shrink-0 mt-0.5" />
                     <div className="text-sm text-indigo-800 dark:text-indigo-200">
-                      <strong>Tip:</strong> After completing the quiz, you'll see explanations
-                      for each question with links to learn more about related concepts.
+                      <strong>Tip:</strong> While answering, you can open each question&apos;s
+                      source context to inspect the hosted LAEA news brief before choosing an
+                      answer.
                     </div>
                   </div>
                 </div>
@@ -502,7 +509,10 @@ export function NewsQuizPage() {
           <div className="container-main py-3 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => setQuizState('ready')}
+                onClick={() => {
+                  setSourceQuestion(null);
+                  setQuizState('ready');
+                }}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -541,6 +551,21 @@ export function NewsQuizPage() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {currentQuestion.question}
                 </h2>
+                <button
+                  onClick={() => setSourceQuestion(currentQuestion)}
+                  className="mt-4 w-full rounded-xl border border-indigo-100 bg-indigo-50/80 p-4 text-left transition-colors hover:border-indigo-200 hover:bg-indigo-50 dark:border-indigo-900/40 dark:bg-indigo-950/40 dark:hover:border-indigo-800 dark:hover:bg-indigo-950/60"
+                >
+                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-700 dark:text-indigo-300">
+                    Source Piece
+                  </div>
+                  <div className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+                    {currentQuestion.newsHeadline}
+                  </div>
+                  <div className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-700 dark:text-indigo-300">
+                    Read source context
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </div>
+                </button>
               </div>
 
               {/* Options */}
@@ -636,6 +661,13 @@ export function NewsQuizPage() {
             )}
           </div>
         </div>
+        {sourceQuestion && (
+          <QuizSourceModal
+            question={sourceQuestion}
+            sessionId={sessionId}
+            onClose={() => setSourceQuestion(null)}
+          />
+        )}
       </div>
     );
   }
@@ -742,6 +774,13 @@ export function NewsQuizPage() {
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             From: {question.newsHeadline}
                           </p>
+                          <button
+                            onClick={() => setSourceQuestion(question)}
+                            className="mt-2 inline-flex items-center gap-1 text-sm text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+                          >
+                            Read source context
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -803,6 +842,13 @@ export function NewsQuizPage() {
             )}
           </div>
         </div>
+        {sourceQuestion && (
+          <QuizSourceModal
+            question={sourceQuestion}
+            sessionId={sessionId}
+            onClose={() => setSourceQuestion(null)}
+          />
+        )}
       </div>
     );
   }

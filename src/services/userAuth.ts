@@ -5,6 +5,12 @@
  * Uses httpOnly cookies for refresh tokens (managed by browser).
  */
 
+import {
+  safeGetLocalStorage,
+  safeRemoveLocalStorage,
+  safeSetLocalStorage,
+} from '../lib/webStorage';
+
 const API_BASE = import.meta.env.VITE_DYNAMIC_API_URL || '/api';
 const USER_TOKEN_KEY = 'ai-timeline-user-token';
 
@@ -83,21 +89,21 @@ export interface ChangePasswordInput {
  * Get stored access token
  */
 export function getAccessToken(): string | null {
-  return localStorage.getItem(USER_TOKEN_KEY);
+  return safeGetLocalStorage(USER_TOKEN_KEY);
 }
 
 /**
  * Store access token
  */
 export function setAccessToken(token: string): void {
-  localStorage.setItem(USER_TOKEN_KEY, token);
+  safeSetLocalStorage(USER_TOKEN_KEY, token);
 }
 
 /**
  * Clear access token
  */
 export function clearAccessToken(): void {
-  localStorage.removeItem(USER_TOKEN_KEY);
+  safeRemoveLocalStorage(USER_TOKEN_KEY);
 }
 
 /**
