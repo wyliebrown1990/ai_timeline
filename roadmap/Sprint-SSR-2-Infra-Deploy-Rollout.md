@@ -70,7 +70,8 @@ Ship SSR to production: package the SSR bundle into the API Lambda, route `letai
 
 ### 4. Invalidation on publish (future posts go live instantly)
 
-- [ ] In the blog admin publish/update/unpublish/schedule paths (`server/src/controllers/blogAdmin.ts` or its service), call `cloudfront:CreateInvalidation` on `E23Z9QNRPDI3HW` for paths `["/blog", "/blog/<slug>", "/blog/tag/*", "/blog/author/*"]` — fire-and-forget with error logging; a failed invalidation must not fail the publish request
+- [ ] Add the dependency first: `npm i @aws-sdk/client-cloudfront` — the repo's AWS SDK is **v3** (`@aws-sdk/client-s3`, `-lambda`, `-ssm`, `-ses`, `-cloudwatch-logs` are installed; no v2 `aws-sdk`, no cloudfront client yet). Match the existing v3 client style in `cloudfrontInvalidator.ts`
+- [ ] Hook invalidation at the **service layer** where the status transition commits — `server/src/services/blogAdmin.ts` (the controllers in `controllers/blogAdmin.ts` — `publishPost`/`updatePost`/`schedulePost`/`archivePost` — are thin wrappers over it). Call `cloudfront:CreateInvalidation` on `E23Z9QNRPDI3HW` for paths `["/blog", "/blog/<slug>", "/blog/tag/*", "/blog/author/*"]` — fire-and-forget with error logging; a failed invalidation must not fail the publish request
 - [ ] Add the distribution ID as a Lambda env var in `infra/template.yaml` (no hardcoding in TS) and grant the function IAM `cloudfront:CreateInvalidation` scoped to the distribution ARN
 - [ ] Unit test: publishing a post triggers an invalidation call with the right paths (mock the CloudFront SDK client)
 - [ ] Verify from prod: publish a trivial edit to an existing post via `/admin/blog`, confirm the change is visible in raw `curl` HTML within ~1 minute
@@ -132,9 +133,10 @@ scripts/deploy-backend.sh                      (modify — build + package SSR b
 scripts/deploy-frontend.sh                     (modify — dist-ssr guard comment)
 scripts/verify-blog-ssr.sh                     (new — all-posts raw-HTML sweep)
 infra/template.yaml                            (modify — /blog route event, env var, IAM invalidation)
-server/src/controllers/blogAdmin.ts            (modify — invalidation on publish/update)
-server/src/services/cloudfrontInvalidator.ts   (new — thin SDK wrapper + tests)
-server/src/services/__tests__/cloudfrontInvalidator.test.ts (new)
+server/src/services/blogAdmin.ts               (modify — fire invalidation on status transitions)
+server/src/services/cloudfrontInvalidator.ts   (new — thin @aws-sdk/client-cloudfront v3 wrapper)
+tests/unit/services/cloudfrontInvalidator.test.ts (new — Jest only runs tests/unit/**)
+package.json                                    (modify — add @aws-sdk/client-cloudfront)
 .claude/rules/backend.md                       (modify — document new infra)
 .claude/CLAUDE.md                              (modify — SSR deploy note)
 ```
@@ -144,3 +146,30 @@ server/src/services/__tests__/cloudfrontInvalidator.test.ts (new)
 ## Blocked — PM decision needed
 
 (None yet. Note: no new billable resources — invalidations stay within CloudFront's 1,000 free paths/month at current publish volume. If publish volume ever makes invalidations non-trivial, revisit with a versioned-path cache strategy.)
+
+---
+
+## Slop Findings (AISlopReviewer — 2026-07-02)
+
+Verified against the codebase. Inline corrections above already applied for the SDK dependency, the invalidation service layer, and test paths.
+
+### P1
+
+(None.)
+
+### P2
+
+- [x] **[Cat 13 — Dependency hygiene]** Task 4. Fixed inline: `@aws-sdk/client-cloudfront` is **not installed** — the repo has v3 clients for s3/lambda/ssm/ses/cloudwatch-logs only. Added an explicit `npm i` task and pinned the wrapper to v3 style (no `aws-sdk` v2 anywhere in the repo).
+- [x] **[Cat 9 — Tests wrong directory]** Task 5 + Files Touched. Fixed inline: `server/src/services/__tests__/…` won't run under Jest (`testMatch` = `tests/unit/**`). Moved to `tests/unit/services/cloudfrontInvalidator.test.ts`.
+- [x] **[Cat 12 — Correct layer]** Task 4. Fixed inline: DB writes for publish/archive/schedule live in `server/src/services/blogAdmin.ts`, not the controller. The invalidation belongs where the status transition commits.
+
+### P3
+
+- [ ] **[Cat 16 — IaC vs CLI]** Task 3 changes the CloudFront distribution via `aws cloudfront update-distribution`. Confirmed the distribution `E23Z9QNRPDI3HW` is **not in any IaC file** (`infra/template.yaml` / `infra/edge-og-tags/template.yaml` don't declare it), so a SAM change is impossible without first importing it. The CLI path is acceptable here (it's not a console click-op), but: (a) script the change as a committed, re-runnable file under `scripts/` or `infra/` rather than ad-hoc shell, and (b) see `roadmap/slop-ledger.md` — logged the "CloudFront distribution unmanaged by IaC" debt so it's tracked, not lost.
+
+### Slop Avoided (positive)
+
+- Correctly relies on the API Gateway `/{proxy+}` catch-all (`infra/template.yaml:113-118`) + `serverless-http` passing the full path unmodified — a top-level `/blog` route genuinely reaches Express (verified: no `/api` basepath stripping). The architecture is sound.
+- Extends `ai-timeline-api-prod` rather than adding a new Lambda — matches the "extend, don't create" AWS rule.
+- Correctly identifies that the production domain serves `/blog` from CloudFront→S3 today, so the CloudFront behavior change (not just the Lambda route) is the real prerequisite.
+- Keeps `dist-ssr/` backend-only with a guard comment — no risk of the SSR bundle reaching the public CDN (`build-and-deploy-security.md`).

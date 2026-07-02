@@ -70,7 +70,7 @@ Close the loop: make crawler access explicit (search + AI crawlers), confirm the
 
 ### 3. llms.txt
 
-- [ ] Update `public/llms.txt`: add/refresh the `## Blog` section listing the blog index and the highest-value posts with one-line descriptions (Blog-5 established the format — extend it, don't restructure)
+- [ ] Update `public/llms.txt`: a `## Blog` section **already exists** (`public/llms.txt:4-7` — index, RSS, author link). Refresh/expand it with the highest-value posts and one-line descriptions; do NOT create a second Blog section or restructure the file
 
 ### 4. Google Search Console
 
@@ -83,12 +83,12 @@ Close the loop: make crawler access explicit (search + AI crawlers), confirm the
 
 - [ ] Update `.claude/skills/AIBlogDraft/SKILL.md` publish step: after shipping via `/api/admin/blog`, run `scripts/verify-blog-ssr.sh <slug>` (support single-slug mode) and treat FAIL as a publish blocker
 - [ ] Add a Playwright e2e test (`tests/e2e/blog-ssr.spec.ts` or existing e2e dir) that fetches a post with `request.get()` (no browser JS) and asserts `<h1>`, `<h2>`, `ld+json`, canonical — CI-level regression net
-- [ ] Add an SSR crawlability line to the weekly SEO digest surface: extend `server/src/services/seo/weeklyDigestRunner.ts` health checks with a raw-HTML probe of the latest post (fails → surfaces in `/admin/seo-insights`). Keep it a probe, not a new subsystem
+- [ ] Add an SSR crawlability line to the weekly SEO digest surface. **Note:** `weeklyDigestRunner.ts` has no generic "health checks" registry — its health concept is GSC-ingest-specific (`getGscHealth(now)` at `:680`, gating on data freshness). So add a small standalone probe (raw-HTML fetch of the latest post asserting `<h1>`/`<h2>`/`ld+json`) and surface its result through the existing `GET /api/admin/seo/health` endpoint (already in `backend.md`) rather than overloading the digest runner's GSC-freshness logic. Keep it a probe, not a new subsystem
 - [ ] Update `.claude/reference/seo-insights.md` + `.claude/rules/backend.md` with the new probe + verify script so `/SEOAuditAgent` knows about them
 
 ### 6. Tests
 
-- [ ] Unit test for the weekly-digest SSR probe (mock fetch: healthy/unhealthy paths)
+- [ ] Unit test for the SSR crawlability probe in `tests/unit/seo/blogSsrProbe.test.ts` (repo-root `tests/unit/**` — not `__tests__/`; mock fetch: healthy/unhealthy paths)
 - [ ] Playwright e2e from task 5 green locally and in CI
 - [ ] `npm test` — all pass; `npm run typecheck` — zero errors; `npm run lint` — zero errors
 
@@ -135,9 +135,10 @@ scripts/verify-blog-ssr.sh                           (modify — single-slug mod
 .claude/skills/AIBlogDraft/SKILL.md                  (modify — publish-gate step)
 .claude/reference/seo-insights.md                    (modify — document probe)
 .claude/rules/backend.md                             (modify — document probe + script)
-server/src/services/seo/weeklyDigestRunner.ts        (modify — SSR crawlability probe)
-server/src/services/seo/__tests__/…                  (modify/new — probe tests)
-tests/e2e/blog-ssr.spec.ts                           (new — no-JS raw HTML assertion)
+server/src/services/seo/… (probe helper)            (new — standalone SSR crawlability probe)
+server/src/routes/seoAdmin.ts (or controller)        (modify — surface probe via GET /api/admin/seo/health)
+tests/unit/seo/blogSsrProbe.test.ts                  (new — Jest only runs tests/unit/**)
+tests/e2e/blog-ssr.spec.ts                           (new — no-JS raw HTML assertion; Playwright testDir=tests/e2e ✓)
 ```
 
 ---
@@ -145,3 +146,28 @@ tests/e2e/blog-ssr.spec.ts                           (new — no-JS raw HTML ass
 ## Blocked — PM decision needed
 
 (None yet. One likely candidate: if Cloudflare Bot Fight Mode challenges GPTBot/ClaudeBot/PerplexityBot (task 1), allowing them requires a Cloudflare dashboard exception — that trades bot-protection posture for AI-citation reach and is Wylie's call. Document the observed status codes here before asking.)
+
+---
+
+## Slop Findings (AISlopReviewer — 2026-07-02)
+
+Verified against the codebase. Inline corrections applied for test paths, the llms.txt double-section risk, and the digest-runner scope.
+
+### P1
+
+(None.)
+
+### P2
+
+- [x] **[Cat 9 — Tests wrong directory]** `server/src/services/seo/__tests__/…` won't run under Jest (`testMatch` = `tests/unit/**`). Moved probe test to `tests/unit/seo/blogSsrProbe.test.ts`. (The Playwright `tests/e2e/blog-ssr.spec.ts` path is already correct — `playwright.config.ts` `testDir: './tests/e2e'`.)
+
+### P3
+
+- [x] **[Cat 17 — Scope / misread of an existing surface]** Task 5 said "extend `weeklyDigestRunner.ts` health checks." That file has no generic health registry — its health is GSC-ingest-freshness (`getGscHealth`). Fixed inline: add a standalone probe and surface it through the existing `GET /api/admin/seo/health` endpoint instead of overloading the digest runner.
+- [x] **[Cat 1 — Duplicate content block]** Task 3 said "add/refresh" the llms.txt Blog section; it **already exists** (`public/llms.txt:4-7`). Fixed inline: refresh in place, don't create a second section.
+
+### Slop Avoided (positive)
+
+- Correctly confirms `/blog` was never robots-blocked and that the Lambda@Edge og-tags function (`infra/edge-og-tags/index.js`) only matches `/news/:id` + `/glossary/:slug` (`:47`,`:52`) — `/blog` passes through, so no cloaking to unwind.
+- Reuses the existing `/api/sitemap.xml` + its `robots.txt` reference rather than building a root `/sitemap.xml` alias — correctly notes cross-path sitemaps are valid when declared in robots.txt.
+- Wires the crawlability check into `/AIBlogDraft`'s publish flow + a CI e2e test — closes the regression loop instead of leaving it as a one-time fix (directly addresses the initiative's "prevent this on future posts" goal).

@@ -129,6 +129,16 @@ Discovery surfaces already exist from Sprints Blog-4/Blog-5 (header nav, homepag
 - **VPC Lambda → CloudFront API**: `cloudfront:CreateInvalidation` from the API Lambda traverses the NAT instance. Works, but confirm in SSR-2 backend validation.
 - **Cost**: no new billable resources. CloudFront invalidations stay far under the 1,000 free paths/month at current publish volume; marginal Lambda invocations for `/blog*` are noise. Nothing needs cost approval.
 
+## Slop Review (AISlopReviewer — 2026-07-02)
+
+Reviewed against the codebase. Per-sprint `## Slop Findings` sections carry the detail; summary:
+
+- **1 P1 (fixed in SSR-3):** a proposed `generateFaqPageJsonLd` duplicated the existing `generateFAQJsonLd` in `src/components/SEO.tsx:230`. Rewritten to reuse it — only the `extractFaq(markdown)` parser is net-new.
+- **P2s (fixed inline):** JSON-LD helper path corrected (`src/components/SEO.tsx`, not the hallucinated `src/lib/jsonLd.ts`); all unit tests relocated from `__tests__/` to `tests/unit/**` (Jest `testMatch` ignores co-located folders); `@aws-sdk/client-cloudfront` added as an explicit dependency (SDK is v3, client not yet installed); blog data reuse pointed at `server/src/services/blog.ts` (already-separated) instead of re-extracting from the controller; CloudFront invalidation moved to the service layer.
+- **Architecture confirmations:** the API Gateway `/{proxy+}` catch-all + `serverless-http` (no `/api` basepath stripping) means a top-level `/blog` route genuinely reaches Express — the chosen runtime-SSR architecture is sound. The real prerequisite is the CloudFront `/blog*` behavior (production domain serves `/blog` from S3 today).
+- **Ledger:** `LEDGER-004` logs that CloudFront `E23Z9QNRPDI3HW` is unmanaged by IaC (out of scope here; future infra-hardening).
+- **Composition:** one open item for `/AITechLeadReview` — how the SSR route sources the `dist/index.html` shell (Lambda `CodeUri` is `../server/src/`, so the frontend build isn't in the bundle; prefer copying it into the SAM build context over a runtime CloudFront self-fetch).
+
 ---
 
 ## Definition of Done (whole initiative)

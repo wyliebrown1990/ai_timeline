@@ -43,10 +43,11 @@ With SSR live, the raw HTML now carries whatever `SEO.tsx` emits — so this spr
 
 ### 1. FAQPage JSON-LD for posts with Q&A sections
 
-- [ ] Add `extractFaq(bodyMarkdown)` to the existing JSON-LD helper module (same file as `generateArticleJsonLd` — extend, don't create a parallel helper): detect an FAQ section (an `## FAQ`-style heading, or `###` question headings ending in `?`) and return `{question, answer}` pairs; answers rendered to plain text/basic HTML via the existing markdown pipeline
-- [ ] Add `generateFaqPageJsonLd(pairs)` and emit it from `BlogPostPage`'s `<SEO jsonLd={…}>` only when ≥2 pairs exist (avoid thin FAQPage markup)
+- [ ] **REUSE the existing `generateFAQJsonLd(faqs: FAQItem[])`** at `src/components/SEO.tsx:230` — it already emits a `FAQPage` schema, filters empty Q/A, and returns `null` when there are none. Do NOT add a parallel `generateFaqPageJsonLd`. (`generateArticleJsonLd` and `generateBreadcrumbListJsonLd` live in this same file too — there is no `src/lib/jsonLd.ts`.)
+- [ ] Add ONLY the genuinely-new piece: `extractFaq(bodyMarkdown): FAQItem[]` (reuse the existing `FAQItem` type from `SEO.tsx`) — detect an FAQ section (`## FAQ`-style heading, or `###` question headings ending in `?`) and return `{question, answer}` pairs; render answers to plain text via the existing `react-markdown`/`remark-gfm` pipeline. Put it beside `generateFAQJsonLd` in `src/components/SEO.tsx` (or a colocated helper it imports), not a new parallel module
+- [ ] Emit from `BlogPostPage`'s `<SEO jsonLd={[articleJsonLd, breadcrumbJsonLd, faqJsonLd].filter(Boolean)}>` — `generateFAQJsonLd` already returns `null` for empty input, so guard by requiring ≥2 extracted pairs before calling it (avoid thin FAQPage markup)
 - [ ] Guardrail: FAQ answers in JSON-LD must be verbatim from visible page content — never generated or trimmed differently (Google policy: FAQ markup must match on-page content)
-- [ ] Unit tests for `extractFaq`: markdown with FAQ section, without, malformed headings, 1-pair (suppressed), answers containing links/entities (correctly escaped)
+- [ ] Unit tests for `extractFaq` in `tests/unit/seo/blogFaq.test.ts` (repo-root `tests/unit/**` — Jest ignores `__tests__/`): markdown with FAQ section, without, malformed headings, 1-pair (suppressed), answers containing links/entities (correctly escaped)
 
 ### 2. Metadata quality audit across the catalog (fix data, not just code)
 
@@ -69,8 +70,8 @@ With SSR live, the raw HTML now carries whatever `SEO.tsx` emits — so this spr
 
 ### 5. Tests
 
-- [ ] Unit tests from task 1 (`extractFaq`, `generateFaqPageJsonLd`)
-- [ ] SSR integration test additions in `server/src/ssr/__tests__/blogSsr.test.ts`: FAQ post raw HTML contains valid `FAQPage` JSON-LD; JSON-LD parses with `JSON.parse` (no unescaped quotes/newlines from post content)
+- [ ] Unit tests from task 1 (`extractFaq` + reuse of `generateFAQJsonLd`) in `tests/unit/seo/blogFaq.test.ts`
+- [ ] SSR integration test additions in `tests/unit/ssr/blogSsr.test.ts`: FAQ post raw HTML contains valid `FAQPage` JSON-LD; JSON-LD parses with `JSON.parse` (no unescaped quotes/newlines from post content)
 - [ ] `npm test` — all pass; `npm run typecheck` — zero errors; `npm run lint` — zero errors
 
 ### 6. Deploy
@@ -106,13 +107,12 @@ With SSR live, the raw HTML now carries whatever `SEO.tsx` emits — so this spr
 ## Files Touched (expected)
 
 ```
-src/lib/jsonLd.ts (or wherever generateArticleJsonLd lives)  (modify — extractFaq, generateFaqPageJsonLd)
-src/lib/__tests__/jsonLd.test.ts                             (new/modify)
-src/pages/BlogPostPage.tsx                                   (modify — emit FAQPage JSON-LD)
-src/pages/BlogIndexPage.tsx                                  (modify — head correctness if gaps found)
-src/components/SEO.tsx                                       (modify — only if audit finds template gaps)
-server/src/ssr/__tests__/blogSsr.test.ts                     (modify — FAQ + JSON-LD escape tests)
-scripts/verify-blog-ssr.sh                                   (modify — metadata checks)
+src/components/SEO.tsx                          (modify — add extractFaq beside existing generateFAQJsonLd; NO new generateFaqPageJsonLd, NO src/lib/jsonLd.ts)
+tests/unit/seo/blogFaq.test.ts                  (new — extractFaq + FAQItem reuse; Jest only runs tests/unit/**)
+src/pages/BlogPostPage.tsx                       (modify — emit existing generateFAQJsonLd when ≥2 pairs)
+src/pages/BlogIndexPage.tsx                      (modify — head correctness if gaps found)
+tests/unit/ssr/blogSsr.test.ts                   (modify — FAQ + JSON-LD escape tests)
+scripts/verify-blog-ssr.sh                        (modify — metadata checks)
 ```
 
 ---
@@ -120,3 +120,24 @@ scripts/verify-blog-ssr.sh                                   (modify — metadat
 ## Blocked — PM decision needed
 
 (None yet. Possible future question: should older posts get FAQ sections added editorially to qualify for FAQPage rich results? That's an /AIBlogDraft editorial decision, not an engineering one — raise after SSR-4 indexation data lands.)
+
+---
+
+## Slop Findings (AISlopReviewer — 2026-07-02)
+
+Verified against the codebase. **This sprint had the one P1 of the initiative** — fixed inline.
+
+### P1
+
+- [x] **[Cat 1 — Duplication of an existing helper]** Task 1 proposed a new `generateFaqPageJsonLd(pairs)`. A `FAQPage` generator **already exists**: `generateFAQJsonLd(faqs: FAQItem[]): Record<string, unknown> | null` at `src/components/SEO.tsx:230` — it emits the exact `@type: FAQPage` / `mainEntity` / `Question` / `acceptedAnswer` shape, filters empty Q/A, and returns `null` when empty. Shipping a parallel generator would be textbook slop. **Fixed inline:** reuse `generateFAQJsonLd` + the existing `FAQItem` type; build only the genuinely-new `extractFaq(bodyMarkdown)` markdown parser.
+
+### P2
+
+- [x] **[Cat 3 — Hallucinated file path]** Tasks + Files Touched referenced `src/lib/jsonLd.ts`. That file **does not exist** — `generateArticleJsonLd` (`:455`), `generateBreadcrumbListJsonLd` (`:515`), and `generateFAQJsonLd` (`:230`) all live in `src/components/SEO.tsx`. `src/lib/` holds `utils.ts`/`storage.ts`, no JSON-LD. Fixed inline throughout.
+- [x] **[Cat 9 — Tests wrong directory]** `src/lib/__tests__/jsonLd.test.ts` and `server/src/ssr/__tests__/blogSsr.test.ts` won't run (`testMatch` = `tests/unit/**`). Moved to `tests/unit/seo/blogFaq.test.ts` and `tests/unit/ssr/blogSsr.test.ts`.
+
+### Slop Avoided (positive)
+
+- Correctly treats blog FAQ as **markdown-derived** — verified the `BlogPost` model (`prisma/schema.prisma:1651-1682`) has NO structured FAQ field (`faqItems` belongs to `GlossaryTerm:200`, not blog). No hallucinated schema field.
+- Correctly reuses the existing `/api/sitemap.xml` (already lists all blog posts with `<lastmod>`) — Step 4 of the dev brief is verification, not a rebuild.
+- FAQ-answer-must-match-visible-content guardrail respects Google policy and prevents generated/trimmed-answer slop.

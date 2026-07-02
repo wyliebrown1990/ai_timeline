@@ -77,7 +77,7 @@ Build real server-side rendering for the four blog surfaces (`/blog`, `/blog/:sl
   GET /blog/tag/:tag        → tag archive (respect Blog-5 noIndex rule for <3 posts)
   GET /blog/author/:slug    → author archive
   ```
-- [ ] Data loading: call the existing blog service/controller logic directly (extract shared functions from `server/src/controllers/blog.ts` if needed — refactor, don't duplicate queries)
+- [ ] Data loading: import the **existing data functions from `server/src/services/blog.ts`** — `listPublishedPosts` (`:121`), `getPublishedPostBySlug` (`:210`), `getPostBySlugForPreview` (`:218`). These are already pure (no `req`/`res`). Do NOT extract new functions from `server/src/controllers/blog.ts` — that layer is a thin req/res wrapper over this service and re-extracting would duplicate queries. Reuse the controller's serialization helpers (`serializeListItem`/`serializePost`, `controllers/blog.ts:16`/`:23`) rather than re-writing them
 - [ ] HTML shell: load the **built client** `dist/index.html` as the template — fetch `https://letaiexplainai.com/index.html` at cold start and cache in memory (decouples backend deploys from hashed asset names); inject `appHtml` into `<div id="root">`, helmet output (`helmet.title`, `helmet.meta`, `helmet.link`, `helmet.script`) into `<head>`, and `<script>window.__SSR_DATA__ = …</script>` (JSON-escaped — `</script>` breakout guard) before the bundle script. For local dev, read `dist/index.html` from disk
 - [ ] Set `Cache-Control: public, max-age=300, s-maxage=3600` on 200s; `no-store` + `<meta name="robots" content="noindex">` on 404s
 - [ ] Error fallback: if SSR render throws, log to CloudWatch and return the un-rendered SPA shell with status 200 (site must never go down because SSR broke) — but count it: `console.error('[SSR] render failed', …)` so it's alarmable
@@ -90,7 +90,7 @@ Build real server-side rendering for the four blog surfaces (`/blog`, `/blog/:sl
 
 ### 5. Tests
 
-- [ ] Unit test `server/src/ssr/__tests__/blogSsr.test.ts`: mock Prisma, assert raw response HTML for a post contains `<h1>{title}</h1>`, at least one `<h2>`, body copy from `bodyMarkdown`, `<title>`, `<meta name="description">`, `<link rel="canonical">`, `og:title`, `og:image`, `twitter:card`, and a `<script type="application/ld+json">` parsing to `@type: Article` with correct `headline`/`datePublished`/`dateModified`/`author`/`mainEntityOfPage`
+- [ ] Unit test `tests/unit/ssr/blogSsr.test.ts` (repo-root `tests/unit/**` is the ONLY path Jest's `testMatch` picks up — see `jest.config.ts`; `__tests__/` folders do not run): mock Prisma, assert raw response HTML for a post contains `<h1>{title}</h1>`, at least one `<h2>`, body copy from `bodyMarkdown`, `<title>`, `<meta name="description">`, `<link rel="canonical">`, `og:title`, `og:image`, `twitter:card`, and a `<script type="application/ld+json">` parsing to `@type: Article` with correct `headline`/`datePublished`/`dateModified`/`author`/`mainEntityOfPage`
 - [ ] Unit test: unknown slug → HTTP 404 + `noindex`
 - [ ] Unit test: index + tag + author routes return their post lists as anchor tags in raw HTML
 - [ ] Unit test: SSR render throw → 200 SPA-shell fallback (and error logged)
@@ -144,8 +144,8 @@ src/pages/BlogTagPage.tsx                      (modify — SSR data hook)
 src/components/SEO.tsx                         (modify — only if SSR guards needed)
 server/src/ssr/blogSsr.ts                      (new — Express SSR routes)
 server/src/ssr/htmlShell.ts                    (new — template fetch/cache/inject)
-server/src/ssr/__tests__/blogSsr.test.ts       (new)
-server/src/controllers/blog.ts                 (modify — extract shared data fns)
+tests/unit/ssr/blogSsr.test.ts                 (new — Jest only runs tests/unit/**)
+server/src/services/blog.ts                    (reuse — import existing data fns; no new extraction)
 server/src/index.ts                            (modify — mount /blog SSR router)
 vite.config.ts                                 (modify — SSR build config if needed)
 package.json                                   (modify — build:ssr script)
@@ -156,3 +156,28 @@ package.json                                   (modify — build:ssr script)
 ## Blocked — PM decision needed
 
 (None yet. Add questions for Wylie here as they arise. Include context so Wylie can decide without re-reading the whole sprint.)
+
+---
+
+## Slop Findings (AISlopReviewer — 2026-07-02)
+
+Verified against the codebase. P0/P1 are blocking; P2/P3 are advisory. Inline corrections above already applied for the test path and the data-layer reuse.
+
+### P1
+
+(None. The SSR mechanism is genuinely net-new — no existing `renderToString`/`StaticRouter`/`hydrateRoot` in the repo, so no duplication risk here. `src/main.tsx:18` is `createRoot`-only with routing inside `App`; the `hydrateRoot` branch is justified.)
+
+### P2
+
+- [x] **[Cat 1 — Duplication / wrong layer]** Task 3 (data loading). Fixed inline: the reusable data layer already exists as `server/src/services/blog.ts` (`listPublishedPosts`/`getPublishedPostBySlug`/`getPostBySlugForPreview`), not something to extract from the controller. Import the service; don't duplicate queries.
+- [x] **[Cat 9 — Tests wrong directory]** Task 5 + Files Touched. Fixed inline: Jest `testMatch` is `tests/unit/**/*.test.ts(x)` (`jest.config.ts`, rootDir = repo root). `server/src/ssr/__tests__/…` would be silently skipped. Moved to `tests/unit/ssr/blogSsr.test.ts`. No `__tests__/` folder exists anywhere in the repo except `extension/` (separate package).
+
+### P3
+
+- [ ] **[Cat 12 — Architecture, for /AITechLeadReview]** Task 3 (HTML shell). The API Lambda's `CodeUri` is `../server/src/` (`infra/template.yaml:80`), so the built `dist/index.html` is **not** in the Lambda bundle. The plan's "fetch `https://letaiexplainai.com/index.html` at cold start" means the Lambda fetches the CloudFront domain it will itself be serving `/blog*` from — workable (different path → S3 behavior, egress via NAT) but a cold-start + circular-ish dependency. Confirm with /AITechLeadReview whether to instead **copy `dist/index.html` into the SAM build context** (deterministic, no runtime fetch) — likely the cleaner choice. Not slop; flagging for the correctness lens.
+
+### Slop Avoided (positive)
+
+- Reuses `src/components/SEO.tsx` correctly — verified `jsonLd` prop accepts `Record<string, unknown> | Record<string, unknown>[]` (`:20`) and `noIndex` (`:22`) exist; the server render emits the same tags via react-helmet-async's server API.
+- Keeps sourcemap discipline: DoD asserts `find dist dist-ssr -name '*.map' | wc -l` → 0, honoring `build-and-deploy-security.md` for the new SSR artifact.
+- Imports blog pages directly into `entry-server.tsx` rather than `App.tsx` — avoids dragging the whole SPA (and its client-only modules) into the SSR bundle.
