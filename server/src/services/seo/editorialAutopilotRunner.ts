@@ -1,4 +1,3 @@
-import { getGscHealth } from '../gsc/gscIngest';
 import { getSerperUsageSummary, type SerperUsageSummary } from './serperClient';
 import {
   isEditorialPaused,
@@ -83,6 +82,21 @@ function toIso(value: Date): string {
 
 function normalizeWeekStart(value: string | null | undefined): string | null {
   return value ? value.slice(0, 10) : null;
+}
+
+/**
+ * Editorial idempotency key: the Monday (UTC) of the calendar week the run fires in.
+ *
+ * This is deliberately independent of Google Search Console. Publishing is news-led and
+ * does not require GSC (see .claude/schedules/seo-weekly.md). Keying idempotency on the run's
+ * own calendar week — rather than GSC's `lastWeekCovered` — means a stalled GSC ingest can no
+ * longer freeze the key and make every subsequent Tuesday self-skip as "already completed".
+ */
+function getEditorialWeekStart(now: Date): string {
+  const utcMidnight = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const daysSinceMonday = (utcMidnight.getUTCDay() + 6) % 7; // 0=Sun..6=Sat -> days since Monday
+  utcMidnight.setUTCDate(utcMidnight.getUTCDate() - daysSinceMonday);
+  return utcMidnight.toISOString().slice(0, 10);
 }
 
 function getErrorMessage(error: unknown): string {
@@ -264,24 +278,20 @@ export async function runSeoEditorialTuesday(
   const now = options.now ?? new Date();
   const startedAt = toIso(now);
   const dryRun = options.dryRun ?? false;
-  let weekStart: string | null = null;
+  // Idempotency key is the run's own editorial calendar week, not GSC state. Set it up front so
+  // failure summaries carry it too.
+  const weekStart: string = getEditorialWeekStart(now);
   let paused = false;
   let serper: SerperUsageSummary | null = null;
 
   try {
-    const [health, pausedState, latestRun, serperSummary] = await Promise.all([
-      getGscHealth(now),
+    const [pausedState, latestRun, serperSummary] = await Promise.all([
       isEditorialPaused(),
       getLatestEditorialRunStatus(),
       getSerperUsageSummary(now),
     ]);
-    weekStart = normalizeWeekStart(health.lastWeekCovered);
     paused = pausedState;
     serper = serperSummary;
-
-    if (!weekStart) {
-      throw new Error('Missing finalized GSC week; Tuesday editorial run cannot select opportunities.');
-    }
 
     if (
       !dryRun &&
@@ -380,6 +390,17 @@ export async function runSeoEditorialTuesday(
           summary.status = 'warning';
         }
       }
+    }
+
+    // Observability guard: the whole point of this runner is to publish at least one post per
+    // active week. If an active (non-paused, non-dry) run publishes nothing, emit a stable,
+    // greppable marker so CloudWatch can alarm instead of the failure going silent for weeks.
+    if (!dryRun && !paused && summary.publishedCount === 0) {
+      console.warn(
+        `[SEO Editorial Tuesday] OPERATOR ACTION: active run for week ${weekStart} published 0 posts ` +
+          `(selected=${summary.selectedCount}, drafts=${summary.draftCount}, ` +
+          `skipped=${summary.skippedCount}, failed=${summary.failedCount}). Investigate ${DIGEST_URL}`,
+      );
     }
 
     await persistRunStatus(summary);

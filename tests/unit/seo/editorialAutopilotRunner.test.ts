@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import type { SerperUsageSummary } from '../../../server/src/services/seo/serperClient';
 
-const mockGetGscHealth = jest.fn();
 const mockGetSerperUsageSummary = jest.fn();
 const mockIsEditorialPaused = jest.fn();
 const mockGetLatestEditorialRunStatus = jest.fn();
@@ -10,10 +9,6 @@ const mockLoadEditorialOpportunityBacklog = jest.fn();
 const mockSelectEditorialOpportunities = jest.fn();
 const mockSendEditorialRecapEmail = jest.fn();
 const mockProcessEditorialOpportunity = jest.fn();
-
-jest.mock('../../../server/src/services/gsc/gscIngest', () => ({
-  getGscHealth: mockGetGscHealth,
-}));
 
 jest.mock('../../../server/src/services/seo/serperClient', () => ({
   getSerperUsageSummary: mockGetSerperUsageSummary,
@@ -75,10 +70,6 @@ const SERPER_SUMMARY: SerperUsageSummary = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGetGscHealth.mockResolvedValue({
-    paused: false,
-    lastWeekCovered: '2026-04-24',
-  });
   mockGetSerperUsageSummary.mockResolvedValue(SERPER_SUMMARY);
   mockIsEditorialPaused.mockResolvedValue(false);
   mockGetLatestEditorialRunStatus.mockResolvedValue(null);
@@ -135,7 +126,7 @@ describe('editorialAutopilotRunner', () => {
     expect(summary).toEqual(expect.objectContaining({
       status: 'success',
       dryRun: true,
-      weekStart: '2026-04-24',
+      weekStart: '2026-05-04',
       selectedCount: 1,
       publishedCount: 0,
       draftCount: 0,
@@ -169,7 +160,7 @@ describe('editorialAutopilotRunner', () => {
     expect(mockProcessEditorialOpportunity).toHaveBeenCalledWith(expect.objectContaining({
       id: 'proposal-1',
     }), {
-      weekStart: '2026-04-24',
+      weekStart: '2026-05-04',
       force: true,
     });
     expect(summary).toEqual(expect.objectContaining({
@@ -433,12 +424,13 @@ describe('editorialAutopilotRunner', () => {
     expect(JSON.stringify(persisted).length).toBeLessThan(4096);
   });
 
-  it('skips when the week has already completed unless forced', async () => {
+  it('skips when the current editorial week has already completed unless forced', async () => {
     mockGetLatestEditorialRunStatus.mockResolvedValue({
       status: 'success',
       startedAt: '2026-05-05T15:00:00.000Z',
       completedAt: '2026-05-05T15:01:00.000Z',
-      weekStart: '2026-04-24T00:00:00.000Z',
+      // Same editorial week (Monday) as `now` below.
+      weekStart: '2026-05-04T00:00:00.000Z',
       publishedCount: 0,
       draftCount: 0,
       skippedCount: 0,
@@ -456,5 +448,71 @@ describe('editorialAutopilotRunner', () => {
     expect(summary.alreadyCompleted).toBe(true);
     expect(mockLoadEditorialOpportunityBacklog).not.toHaveBeenCalled();
     expect(mockSetLatestEditorialRunStatus).not.toHaveBeenCalled();
+  });
+
+  it('does not skip when the last successful run is a stale prior week (GSC-independent idempotency)', async () => {
+    // Regression guard: before the fix, idempotency keyed on GSC `lastWeekCovered`. A stalled GSC
+    // ingest froze that value, so a run recorded "success" for the frozen week and every later
+    // Tuesday self-skipped forever. Idempotency now keys on the run's own calendar week, so a
+    // success recorded for an earlier week must NOT block this week's publishing.
+    mockGetLatestEditorialRunStatus.mockResolvedValue({
+      status: 'success',
+      startedAt: '2026-07-21T15:00:00.000Z',
+      completedAt: '2026-07-21T15:01:00.000Z',
+      weekStart: '2026-07-20T00:00:00.000Z', // frozen weeks ago
+      publishedCount: 1,
+      draftCount: 0,
+      skippedCount: 0,
+      emailStatus: 'sent',
+      digestUrl: null,
+      errorMessage: null,
+      items: [],
+    });
+    mockSelectEditorialOpportunities.mockReturnValue({
+      selected: [{
+        id: 'proposal-1',
+        sourceType: 'proposal',
+        action: 'auto_publish',
+        title: 'AI timeline explained',
+        targetKeyword: 'ai timeline',
+        rationale: 'Strong fit.',
+        confidence: 0.9,
+        source: {},
+      }],
+      deferred: [],
+    });
+
+    const summary = await runSeoEditorialTuesday({
+      now: new Date('2026-08-04T15:00:00.000Z'),
+    });
+
+    expect(summary.status).not.toBe('skipped');
+    expect(summary.alreadyCompleted).toBe(false);
+    expect(summary.weekStart).toBe('2026-08-03');
+    expect(mockLoadEditorialOpportunityBacklog).toHaveBeenCalled();
+    expect(mockProcessEditorialOpportunity).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'proposal-1' }),
+      { weekStart: '2026-08-03', force: false },
+    );
+    expect(summary.publishedCount).toBe(1);
+  });
+
+  it('emits an operator-action warning when an active run publishes zero posts', async () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockSelectEditorialOpportunities.mockReturnValue({ selected: [], deferred: [] });
+
+    try {
+      const summary = await runSeoEditorialTuesday({
+        force: true,
+        now: new Date('2026-05-05T15:00:00.000Z'),
+      });
+
+      expect(summary.publishedCount).toBe(0);
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[SEO Editorial Tuesday] OPERATOR ACTION'),
+      );
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });

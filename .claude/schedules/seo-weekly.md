@@ -58,6 +58,10 @@ The Tuesday run is the blog-publishing path. It is news-led: recent ingested art
 
 The weekly invariant is: publish at least one post when any candidate passes quality gates. The runner tries a broader ranked candidate set than the normal post cap, keeps going after draft-only or blocked candidates, and stops after the normal post cap is reached and at least one post has published. Hard quality gates still block unsafe copy, unsupported extraordinary claims, and malformed SEO metadata.
 
+Idempotency is keyed on the run's own **editorial calendar week** (the Monday-UTC of the week the run fires), not on GSC's `lastWeekCovered`. This is deliberate: the Tuesday path is GSC-independent, so a stalled GSC ingest cannot freeze the idempotency key and make every subsequent Tuesday self-skip as "already completed." Each calendar week gets one successful run; forcing (`force: true`) bypasses the same-week skip. (Historical note: a GSC-coupled key caused publishing to silently stall for weeks after 2026-07-21 until this was decoupled.)
+
+When an active (non-paused, non-dry) run publishes zero posts, the runner emits a `[SEO Editorial Tuesday] OPERATOR ACTION` warning to CloudWatch so a zero-publish week raises an alarm instead of failing silently.
+
 ## Fallback note
 
 `launchd` is only a local fallback because it depends on Wylie's Mac being awake and online. EventBridge remains the primary scheduler.
