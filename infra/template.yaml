@@ -577,6 +577,37 @@ Resources:
       AlarmActions:
         - !Ref AlertsTopic
 
+  # Alarm: Tuesday SEO editorial autopilot ran but published nothing.
+  # Matches the greppable marker emitted by editorialAutopilotRunner when an active
+  # (non-paused, non-dry) run publishes 0 posts, so a silent zero-publish week (quality
+  # gate, dedupe, or an idempotency regression) surfaces instead of going unnoticed.
+  SeoEditorialZeroPublishMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref IngestionFunctionLogGroup
+      FilterPattern: '"OPERATOR ACTION: active run for week"'
+      MetricTransformations:
+        - MetricName: SeoEditorialZeroPublish
+          MetricNamespace: !Sub AITimeline/${Environment}
+          MetricValue: '1'
+          DefaultValue: 0
+
+  SeoEditorialZeroPublishAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ai-timeline-seo-editorial-zero-publish-${Environment}
+      AlarmDescription: Tuesday SEO editorial autopilot ran but published 0 posts - check /admin/seo-insights (quality gate, dedupe, or a publishing regression)
+      Namespace: !Sub AITimeline/${Environment}
+      MetricName: SeoEditorialZeroPublish
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
   # NOTE: WAF can be added later after initial deployment
   # For now, API Gateway throttling provides rate limiting
 
