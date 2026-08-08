@@ -4,7 +4,7 @@
  * live /Browser QA, this suite just catches shape regressions.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { BlogPostCard } from '../../../../src/components/Blog/BlogPostCard';
 import type { BlogPostListItem } from '../../../../src/types/blog';
@@ -69,5 +69,11 @@ describe('BlogPostCard', () => {
     const img = screen.getByRole('img') as HTMLImageElement;
     expect(img.getAttribute('loading')).toBe('eager');
     expect(img.getAttribute('fetchpriority')).toBe('high');
+  });
+
+  it('drops the cover image after a load error', () => {
+    renderCard({ post: BASE_POST });
+    fireEvent.error(screen.getByRole('img'));
+    expect(screen.queryByRole('img')).toBeNull();
   });
 });

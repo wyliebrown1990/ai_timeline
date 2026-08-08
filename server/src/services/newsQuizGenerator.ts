@@ -41,6 +41,21 @@ export interface GeneratedQuiz {
   questions: NewsQuizQuestion[];
 }
 
+export const MIN_WEEKLY_QUIZ_QUESTIONS = 3;
+
+export type QuizAvailabilityReason =
+  | 'available'
+  | 'missing'
+  | 'wrong_week'
+  | 'invalid_questions'
+  | 'too_few_questions';
+
+export interface QuizAvailability {
+  available: boolean;
+  reason: QuizAvailabilityReason;
+  questionCount: number;
+}
+
 interface NewsEventWithContext {
   id: string;
   headline: string;
@@ -89,6 +104,41 @@ export function getFridayUTC(date: Date = new Date()): Date {
   const diff = (day - 5 + 7) % 7; // days since most recent Friday
   d.setUTCDate(d.getUTCDate() - diff);
   return d;
+}
+
+/**
+ * Validate that a persisted/generated quiz is usable as the current Friday quiz.
+ * Kept pure so the Friday watchdog can be tested without a database or LLM call.
+ */
+export function getQuizAvailability(
+  quiz: { weekOf: Date; questions: unknown } | null,
+  expectedWeekOf: Date = getFridayUTC()
+): QuizAvailability {
+  if (!quiz) {
+    return { available: false, reason: 'missing', questionCount: 0 };
+  }
+
+  if (quiz.weekOf.getTime() !== expectedWeekOf.getTime()) {
+    return { available: false, reason: 'wrong_week', questionCount: 0 };
+  }
+
+  if (!Array.isArray(quiz.questions)) {
+    return { available: false, reason: 'invalid_questions', questionCount: 0 };
+  }
+
+  if (quiz.questions.length < MIN_WEEKLY_QUIZ_QUESTIONS) {
+    return {
+      available: false,
+      reason: 'too_few_questions',
+      questionCount: quiz.questions.length,
+    };
+  }
+
+  return {
+    available: true,
+    reason: 'available',
+    questionCount: quiz.questions.length,
+  };
 }
 
 /**
@@ -578,6 +628,12 @@ export async function generateWeeklyQuiz(
   // Question-quality self-check pass.
   const finalQuestions = await applyQuestionQualitySelfCheck(questions, events);
 
+  if (finalQuestions.length < MIN_WEEKLY_QUIZ_QUESTIONS) {
+    throw new Error(
+      `Quiz quality check left only ${finalQuestions.length} usable questions; need at least ${MIN_WEEKLY_QUIZ_QUESTIONS}.`
+    );
+  }
+
   // Save or update the quiz
   if (existingQuiz) {
     await prisma.newsQuiz.update({
@@ -596,6 +652,57 @@ export async function generateWeeklyQuiz(
   }
 
   return { weekOf, questions: finalQuestions };
+}
+
+/**
+ * Friday availability watchdog. Healthy runs cost one indexed DB lookup and no
+ * LLM calls. Missing or malformed current-week rows are regenerated in place.
+ */
+export async function ensureWeeklyQuizAvailable(
+  prisma: PrismaClient,
+  options: {
+    questionCount?: number;
+    daysBack?: number;
+  } = {}
+): Promise<GeneratedQuiz & { repaired: boolean }> {
+  const weekOf = getFridayUTC();
+  const existingQuiz = await prisma.newsQuiz.findUnique({
+    where: { weekOf },
+    select: { weekOf: true, questions: true },
+  });
+  const availability = getQuizAvailability(existingQuiz, weekOf);
+
+  if (availability.available && existingQuiz) {
+    console.log(
+      `[QuizAvailability] PASSED for ${weekOf.toISOString()} (${availability.questionCount} questions)`
+    );
+    return {
+      weekOf,
+      questions: existingQuiz.questions as unknown as NewsQuizQuestion[],
+      repaired: false,
+    };
+  }
+
+  console.warn(
+    `[QuizAvailability] ${availability.reason} for ${weekOf.toISOString()}; starting automatic repair`
+  );
+  const generated = await generateWeeklyQuiz(prisma, {
+    questionCount: options.questionCount ?? 5,
+    daysBack: options.daysBack ?? 7,
+    forceRegenerate: Boolean(existingQuiz),
+  });
+  const repairedAvailability = getQuizAvailability(generated, weekOf);
+
+  if (!repairedAvailability.available) {
+    throw new Error(
+      `Quiz repair completed without a usable current-week quiz (${repairedAvailability.reason}, ${repairedAvailability.questionCount} questions).`
+    );
+  }
+
+  console.log(
+    `[QuizAvailability] REPAIRED ${weekOf.toISOString()} (${repairedAvailability.questionCount} questions)`
+  );
+  return { ...generated, repaired: true };
 }
 
 /**

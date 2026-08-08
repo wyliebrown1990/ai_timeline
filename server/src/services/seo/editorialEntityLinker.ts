@@ -582,6 +582,7 @@ export function enforceEditorialEntityLinks(input: {
   linkInventory: SeoProposalLinkInventoryItem[];
   relations?: RelationInput[];
   minimumPreviewLinks?: number;
+  allowFallbackSection?: boolean;
 }): EditorialEntityLinkerResult {
   const minimumPreviewLinks = input.minimumPreviewLinks ?? 3;
   const candidateMap = new Map<string, LinkCandidate>();
@@ -633,7 +634,10 @@ export function enforceEditorialEntityLinks(input: {
   }
 
   let bodyMarkdown = restoreMarkdown(protectedMarkdown);
-  if (countPreviewEntityLinks(bodyMarkdown) < minimumPreviewLinks) {
+  if (
+    input.allowFallbackSection !== false
+    && countPreviewEntityLinks(bodyMarkdown) < minimumPreviewLinks
+  ) {
     bodyMarkdown = insertAtlasConnectionsSection(bodyMarkdown, candidates, minimumPreviewLinks);
   }
 

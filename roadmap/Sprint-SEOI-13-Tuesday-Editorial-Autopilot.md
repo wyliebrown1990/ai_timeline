@@ -280,6 +280,10 @@ Cost note: the Tuesday runner adds no new billable AWS resources beyond existing
 - [x] Deploy frontend/admin UI changes with `/Users/wyliebrown/ai_timeline/scripts/deploy-frontend.sh`; do not use ad-hoc S3 sync because the deploy script enforces sourcemap and cache-header rules.
 - [x] Validate deployed admin UI after CloudFront invalidation, not only against local Vite.
 
+### 12. Operator Documentation
+
+- [x] Create the root `user_guide.md` with the verified production setup, every SEO admin destination, remaining Google launch validation, weekly operating loop, proposal/publishing workflows, safe manual AWS commands, incident recovery, deployment, and recurring checklists. Completed 2026-07-25.
+
 ## Browser Testing & Validation
 
 > **CRITICAL**: Use agent-browser CLI to manually test all web features.

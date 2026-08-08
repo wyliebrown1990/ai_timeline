@@ -98,6 +98,8 @@ Resources:
           ADMIN_USERNAME: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-username}}'
           ADMIN_PASSWORD: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/admin-password}}'
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+          ANTHROPIC_SONNET_MODEL: claude-sonnet-4-6
+          ANTHROPIC_HAIKU_MODEL: claude-haiku-4-5
           SEO_AUTOMATION_MODEL: claude-sonnet-4-6
           SEO_EDITORIAL_BLOG_MODEL: claude-sonnet-4-6
           CORS_ORIGIN: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/cors-origin}}'
@@ -236,6 +238,8 @@ Resources:
           DATABASE_URL: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/database-url}}'
           # Secrets from SSM Parameter Store (secure)
           ANTHROPIC_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/anthropic-api-key}}'
+          ANTHROPIC_SONNET_MODEL: claude-sonnet-4-6
+          ANTHROPIC_HAIKU_MODEL: claude-haiku-4-5
           SEO_AUTOMATION_MODEL: claude-sonnet-4-6
           SEO_EDITORIAL_BLOG_MODEL: claude-sonnet-4-6
           YOUTUBE_API_KEY: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/youtube-api-key}}'
@@ -249,6 +253,8 @@ Resources:
           SEO_EDITORIAL_PAUSED_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-paused'
           SEO_EDITORIAL_RECAP_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-recap-email'
           SEO_EDITORIAL_SENDER_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-sender-email'
+          ALERT_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/alert-email'
+          ALERT_SENDER_EMAIL_PARAM: !Sub '/ai-timeline/${Environment}/seo-editorial-sender-email'
 
       # IAM permissions
       Policies:
@@ -348,6 +354,31 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt QuizGenerationScheduleRule.Arn
 
+  # Independent availability watchdog. Healthy checks perform one indexed DB
+  # lookup and no LLM calls; missing/malformed current-week quizzes self-repair.
+  QuizAvailabilityScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub ai-timeline-quiz-availability-${Environment}
+      Description: Verifies and repairs the current Friday quiz throughout the afternoon
+      ScheduleExpression: "cron(15 15-21 ? * FRI *)"
+      State: ENABLED
+      Targets:
+        - Id: QuizAvailabilityLambdaTarget
+          Arn: !GetAtt IngestionFunction.Arn
+          Input: '{"action":"ensureQuizAvailable","questionCount":5,"daysBack":7}'
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 3600
+            MaximumRetryAttempts: 2
+
+  QuizAvailabilitySchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt QuizAvailabilityScheduleRule.Arn
+
   # ============================================
   # Weekly Google Search Console Ingest
   # ============================================
@@ -426,12 +457,23 @@ Resources:
       TopicName: !Sub ai-timeline-alerts-${Environment}
       DisplayName: AI Timeline Alerts
 
-  AlertsEmailSubscription:
+  # Relay alerts through Lambda + SES. Direct SNS email subscriptions expose
+  # unauthenticated unsubscribe links that email security scanners can follow.
+  AlertsLambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref IngestionFunction
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref AlertsTopic
+
+  AlertsLambdaSubscription:
     Type: AWS::SNS::Subscription
+    DependsOn: AlertsLambdaInvokePermission
     Properties:
       TopicArn: !Ref AlertsTopic
-      Protocol: email
-      Endpoint: !Sub '{{resolve:ssm:/ai-timeline/${Environment}/alert-email}}'
+      Protocol: lambda
+      Endpoint: !GetAtt IngestionFunction.Arn
 
   # Alarm: Ingestion Lambda errors (covers both scheduled ingestion + quiz generation)
   IngestionLambdaErrorAlarm:
@@ -508,6 +550,33 @@ Resources:
       AlarmActions:
         - !Ref AlertsTopic
 
+  QuizAvailabilityFailureMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref IngestionFunctionLogGroup
+      FilterPattern: '"Quiz availability check FAILED"'
+      MetricTransformations:
+        - MetricName: QuizAvailabilityFailures
+          MetricNamespace: !Sub AITimeline/${Environment}
+          MetricValue: '1'
+          DefaultValue: 0
+
+  QuizAvailabilityFailureAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub ai-timeline-quiz-availability-failed-${Environment}
+      AlarmDescription: Friday quiz self-healing failed - check the ingestion Lambda logs
+      Namespace: !Sub AITimeline/${Environment}
+      MetricName: QuizAvailabilityFailures
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlertsTopic
+
   # NOTE: WAF can be added later after initial deployment
   # For now, API Gateway throttling provides rate limiting
 
@@ -547,3 +616,9 @@ Outputs:
     Value: !GetAtt QuizGenerationScheduleRule.Arn
     Export:
       Name: !Sub ai-timeline-quiz-schedule-arn-${Environment}
+
+  QuizAvailabilityScheduleRuleArn:
+    Description: Friday quiz availability watchdog EventBridge rule ARN
+    Value: !GetAtt QuizAvailabilityScheduleRule.Arn
+    Export:
+      Name: !Sub ai-timeline-quiz-availability-arn-${Environment}

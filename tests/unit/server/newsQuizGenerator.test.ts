@@ -1,14 +1,15 @@
 /**
  * Tests for the News Quiz Generator service (Sprint Quiz-1).
  *
- * Focus: pure date-math invariants of getFridayUTC. The verifyNoTitleLeak
- * self-check is intentionally tested via end-to-end manual generator runs
- * documented in the sprint's Backend Validation section, since it requires
- * live Anthropic credentials.
+ * Focus: pure date/availability invariants. LLM quality checks are exercised by
+ * the scheduled production path because they require live Anthropic credentials.
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { getFridayUTC } from '../../../server/src/services/newsQuizGenerator';
+import {
+  getFridayUTC,
+  getQuizAvailability,
+} from '../../../server/src/services/newsQuizGenerator';
 
 describe('getFridayUTC', () => {
   it('returns the same Friday at 00:00 UTC when given a Friday', () => {
@@ -58,5 +59,70 @@ describe('getFridayUTC', () => {
     // Mon Mar 2 2026 → most recent Friday is Feb 27
     const monday = new Date('2026-03-02T10:00:00Z');
     expect(getFridayUTC(monday).toISOString()).toBe('2026-02-27T00:00:00.000Z');
+  });
+});
+
+describe('getQuizAvailability', () => {
+  const expectedFriday = new Date('2026-07-17T00:00:00.000Z');
+
+  it('reports a missing current-week quiz', () => {
+    expect(getQuizAvailability(null, expectedFriday)).toEqual({
+      available: false,
+      reason: 'missing',
+      questionCount: 0,
+    });
+  });
+
+  it('rejects a prior Friday quiz even when it has enough questions', () => {
+    expect(
+      getQuizAvailability(
+        {
+          weekOf: new Date('2026-07-10T00:00:00.000Z'),
+          questions: [{}, {}, {}, {}, {}],
+        },
+        expectedFriday
+      )
+    ).toEqual({
+      available: false,
+      reason: 'wrong_week',
+      questionCount: 0,
+    });
+  });
+
+  it('rejects malformed or undersized question payloads', () => {
+    expect(
+      getQuizAvailability(
+        { weekOf: expectedFriday, questions: { not: 'an array' } },
+        expectedFriday
+      )
+    ).toEqual({
+      available: false,
+      reason: 'invalid_questions',
+      questionCount: 0,
+    });
+
+    expect(
+      getQuizAvailability(
+        { weekOf: expectedFriday, questions: [{}, {}] },
+        expectedFriday
+      )
+    ).toEqual({
+      available: false,
+      reason: 'too_few_questions',
+      questionCount: 2,
+    });
+  });
+
+  it('accepts a current Friday quiz with at least three questions', () => {
+    expect(
+      getQuizAvailability(
+        { weekOf: expectedFriday, questions: [{}, {}, {}] },
+        expectedFriday
+      )
+    ).toEqual({
+      available: true,
+      reason: 'available',
+      questionCount: 3,
+    });
   });
 });

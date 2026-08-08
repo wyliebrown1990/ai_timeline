@@ -77,3 +77,6 @@ extension/.env.production
 # Generated extension package served from /admin/extension
 public/ai-timeline-extension.zip
 public/ai-timeline-extension.json
+
+# Local browser-automation / QA output
+artifacts/

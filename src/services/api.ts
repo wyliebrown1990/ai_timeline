@@ -4235,7 +4235,7 @@ export const newsQuizApi = {
       message?: string;
       weekStart: string | null;
       weekEnd: string | null;
-    }>(`${API_BASE}/news-quiz/current`);
+    }>(`${API_BASE}/news-quiz/current`, { cache: 'no-store' });
   },
 
   /**

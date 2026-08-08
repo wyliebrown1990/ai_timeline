@@ -224,7 +224,7 @@ JSON shape:
   "relations": [
     { "entityType": "glossary_term", "entityId": "machine-learning", "relationLabel": "mentions" }
   ],
-  "bodyMarkdown": "<800-1200 words. No H1. Use H2s. Include a visible ## Key facts section. Name concrete LAEA concepts, people, organizations, and historical milestones so the atlas can link them on first mention. Include at least 6 distinct previewable LAEA entity links when inventory supports it, with category variety: prefer glossary terms, key people, and historical events instead of only company names. Use supported entity shortcodes or /people|/organizations|/glossary|/events links. Generic atlas links like /timeline, /glossary, or /learn do not count toward the entity minimum. Include ## Sources with visible links. Include one question-style H2 or Q/A block. End with ## The atlas's read.>"
+  "bodyMarkdown": "<800-1200 words. No H1. Use H2s. Include a visible ## Key facts section. Name concrete LAEA concepts, people, organizations, and historical milestones so the atlas can link them on first mention. Include 3 natural previewable LAEA entity links when the verified inventory supports it. Use fewer links rather than forcing an unrelated connection, and never invent a slug. Prefer glossary terms, key people, and historical events instead of only company names. Use supported entity shortcodes or /people|/organizations|/glossary|/events links. Generic atlas links like /timeline, /glossary, or /learn do not count toward the entity minimum. Include ## Sources with visible links. Include one question-style H2 or Q/A block. End with ## The atlas's read.>"
 }
 
 Supported entity shortcodes in bodyMarkdown:
@@ -233,7 +233,7 @@ Supported entity shortcodes in bodyMarkdown:
 - [[glossary:slug|Visible Name]]
 - [[event:id|Visible Name]]
 
-Use at least 6 distinct previewable entity links from the Internal links available list when the atlas inventory supports it. Favor a mix of glossary terms, people, organizations, and milestones. Generic atlas links like [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) are useful context but do not count toward the entity minimum.
+Use 3 natural previewable entity links from the Internal links available list when the verified atlas inventory supports it. Never invent a slug and never add an unrelated entity merely to reach a quota. Generic atlas links like [Timeline](/timeline), [AI glossary](/glossary), and [Learn](/learn) are useful context but do not count toward the entity minimum.
 
 Source discipline:
 - Do not include percentages, adoption stats, benchmark numbers, or "research showed" claims unless you include a visible source link in ## Sources.
@@ -343,7 +343,7 @@ function gateInput(
     subjectIds,
     relations: generated.relations,
     intendedAction,
-    strongInternalLinkCandidates: isWeeklyFallbackKeyword(opportunity) ? 3 : normalized.linkInventoryCount,
+    strongInternalLinkCandidates: normalized.linkInventoryCount,
     availablePreviewLinkCandidates: normalized.linkInventoryCount,
     availablePreviewEntityTypes: normalized.availablePreviewEntityTypes,
     availableNonOrganizationCandidates: normalized.availableNonOrganizationCandidates,
@@ -409,12 +409,13 @@ async function normalizeGeneratedDraft(
     bodyMarkdown: generated.bodyMarkdown,
     baseInventory: brief.linkInventory,
   });
-  const minimumPreviewLinks = Math.max(3, Math.min(6, discoveredInventory.length));
+  const minimumPreviewLinks = Math.min(3, discoveredInventory.length);
   const enriched = enforceEditorialEntityLinks({
     bodyMarkdown: generated.bodyMarkdown,
     linkInventory: discoveredInventory,
     relations: generated.relations,
     minimumPreviewLinks,
+    allowFallbackSection: false,
   });
 
   return {

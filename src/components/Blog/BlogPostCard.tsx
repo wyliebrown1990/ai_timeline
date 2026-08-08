@@ -7,10 +7,12 @@
  * stays low (we hint aspect-ratio via the image wrapper).
  */
 
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Clock, User } from 'lucide-react';
 import type { BlogPostListItem } from '../../types/blog';
 import { cn } from '../../lib/utils';
+import { useRenderableImageUrl } from '../../hooks/useRenderableImageUrl';
 
 type Variant = 'default' | 'featured' | 'compact';
 
@@ -68,8 +70,16 @@ export function BlogPostCard({
   lcp = false,
   className,
 }: BlogPostCardProps) {
+  const [coverImageFailed, setCoverImageFailed] = useState(false);
+
+  useEffect(() => {
+    setCoverImageFailed(false);
+  }, [post.coverImageUrl]);
+
   const href = `/blog/${post.slug}`;
   const published = formatDate(post.publishedAt);
+  const renderableCoverImageUrl = useRenderableImageUrl(post.coverImageUrl);
+  const showCoverImage = Boolean(renderableCoverImageUrl && !coverImageFailed);
 
   // Compact variant — no cover, used in sidebars / homepage secondary rows.
   if (variant === 'compact') {
@@ -110,7 +120,7 @@ export function BlogPostCard({
         className
       )}
     >
-      {post.coverImageUrl && (
+      {showCoverImage && (
         <div
           className={cn(
             'relative bg-gray-100 dark:bg-gray-900 overflow-hidden',
@@ -118,12 +128,13 @@ export function BlogPostCard({
           )}
         >
           <img
-            src={post.coverImageUrl}
+            src={renderableCoverImageUrl ?? undefined}
             alt={post.title}
             loading={lcp ? 'eager' : 'lazy'}
             // React 18 does not recognise camelCase `fetchPriority`; pass the
             // HTML attribute name through directly.
             {...{ fetchpriority: lcp ? 'high' : 'auto' }}
+            onError={() => setCoverImageFailed(true)}
             className="absolute inset-0 h-full w-full object-cover group-hover:scale-[1.02] motion-safe:transition-transform motion-safe:duration-500"
           />
         </div>

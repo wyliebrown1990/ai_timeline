@@ -1810,11 +1810,12 @@ export async function loadLinkInventory(keyword: string): Promise<SeoProposalLin
   }
 
   for (const glossaryTerm of glossaryTerms) {
+    if (!glossaryTerm.slug) continue;
     pushItem({
       entityType: 'glossary_term',
       id: glossaryTerm.id,
       label: glossaryTerm.term,
-      path: `/glossary/${glossaryTerm.slug ?? slugify(glossaryTerm.term)}`,
+      path: `/glossary/${glossaryTerm.slug}`,
       reason: 'Related glossary term for first-mention internal links.',
     });
   }

@@ -50,6 +50,8 @@ aws s3 sync dist/ s3://${BUCKET}/ \
   --exclude "assets/*" \
   --exclude "index.html" \
   --exclude "data/*" \
+  --exclude "blog-uploads/*" \
+  --exclude "blog-og/*" \
   --exclude "stats.html" \
   --exclude "*.map" \
   --cache-control "max-age=86400" \

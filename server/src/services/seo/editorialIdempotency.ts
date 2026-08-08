@@ -79,19 +79,6 @@ function serializeRun(row: {
   };
 }
 
-function isStaleProcessingRun(existing: SeoEditorialOpportunityRunRecord): boolean {
-  if (existing.status !== 'processing' || existing.postId) {
-    return false;
-  }
-
-  const updatedAtMs = Date.parse(existing.updatedAt);
-  if (!Number.isFinite(updatedAtMs)) {
-    return false;
-  }
-
-  return Date.now() - updatedAtMs > 15 * 60 * 1000;
-}
-
 export async function findExistingEditorialRun(
   weekStart: string,
   opportunity: EditorialOpportunity,
@@ -111,54 +98,61 @@ export async function claimEditorialOpportunityRun(
 ): Promise<SeoEditorialOpportunityRunRecord & { claimed: boolean }> {
   const idempotencyKey = buildEditorialIdempotencyKey(weekStart, opportunity);
   const weekStartDate = new Date(`${weekStart.slice(0, 10)}T00:00:00.000Z`);
+  const inserted = await prisma.seoEditorialOpportunityRun.createMany({
+    data: {
+      idempotencyKey,
+      weekStart: weekStartDate,
+      sourceType: opportunity.sourceType,
+      sourceId: opportunity.id,
+      targetKeyword: opportunity.targetKeyword,
+      action: opportunity.action,
+      status: 'processing',
+    },
+    skipDuplicates: true,
+  });
 
-  try {
-    const row = await prisma.seoEditorialOpportunityRun.create({
-      data: {
-        idempotencyKey,
-        weekStart: weekStartDate,
-        sourceType: opportunity.sourceType,
-        sourceId: opportunity.id,
-        targetKeyword: opportunity.targetKeyword,
-        action: opportunity.action,
-        status: 'processing',
-      },
-      include: { post: { select: { slug: true, title: true } } },
-    });
-    return { ...serializeRun(row), claimed: true };
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
-      const existing = await findExistingEditorialRun(weekStart, opportunity);
-      if (
-        existing &&
-        options.force &&
-        !existing.postId &&
-        (
-          existing.status === 'failed' ||
-          existing.status === 'skipped_by_gate' ||
-          isStaleProcessingRun(existing)
-        )
-      ) {
-        const row = await prisma.seoEditorialOpportunityRun.update({
-          where: { idempotencyKey },
-          data: {
-            action: opportunity.action,
-            targetKeyword: opportunity.targetKeyword,
-            status: 'processing',
-            reason: null,
-            metadataJson: Prisma.JsonNull,
-          },
-          include: { post: { select: { slug: true, title: true } } },
-        });
-        return { ...serializeRun(row), claimed: true };
-      }
-      if (existing) return { ...existing, claimed: false };
+  if (inserted.count === 1) {
+    const created = await findExistingEditorialRun(weekStart, opportunity);
+    if (!created) {
+      throw new Error(`Claimed editorial opportunity run disappeared: ${idempotencyKey}`);
     }
-    throw error;
+    return { ...created, claimed: true };
   }
+
+  if (options.force) {
+    const staleBefore = new Date(Date.now() - 15 * 60 * 1000);
+    const reclaimed = await prisma.seoEditorialOpportunityRun.updateMany({
+      where: {
+        idempotencyKey,
+        postId: null,
+        OR: [
+          { status: { in: ['failed', 'skipped_by_gate'] } },
+          { status: 'processing', updatedAt: { lt: staleBefore } },
+        ],
+      },
+      data: {
+        action: opportunity.action,
+        targetKeyword: opportunity.targetKeyword,
+        status: 'processing',
+        reason: null,
+        metadataJson: Prisma.JsonNull,
+      },
+    });
+
+    if (reclaimed.count === 1) {
+      const claimed = await findExistingEditorialRun(weekStart, opportunity);
+      if (!claimed) {
+        throw new Error(`Reclaimed editorial opportunity run disappeared: ${idempotencyKey}`);
+      }
+      return { ...claimed, claimed: true };
+    }
+  }
+
+  const existing = await findExistingEditorialRun(weekStart, opportunity);
+  if (!existing) {
+    throw new Error(`Editorial opportunity run disappeared after claim conflict: ${idempotencyKey}`);
+  }
+  return { ...existing, claimed: false };
 }
 
 export async function completeEditorialOpportunityRun(

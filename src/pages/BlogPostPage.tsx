@@ -30,6 +30,7 @@ import { NewsletterCta } from '../components/Blog/NewsletterCta';
 import { CommentThread } from '../components/Comments';
 import { ErrorState } from '../components/ui';
 import { LoadingSkeleton } from '../components/ui/LoadingSkeleton';
+import { useRenderableImageUrl } from '../hooks/useRenderableImageUrl';
 
 const BlogMarkdown = lazy(() =>
   import('../components/Blog/BlogMarkdown').then((m) => ({ default: m.BlogMarkdown }))
@@ -48,6 +49,10 @@ export default function BlogPostPage() {
   const previewToken = searchParams.get('preview');
   const isPreview = Boolean(previewToken);
   const [state, setState] = useState<FetchState>({ status: 'idle' });
+  const [coverImageFailed, setCoverImageFailed] = useState(false);
+  const coverImageUrl =
+    state.status === 'ready' ? state.post.coverImageUrl : null;
+  const renderableCoverImageUrl = useRenderableImageUrl(coverImageUrl);
 
   useEffect(() => {
     if (!slug) {
@@ -55,6 +60,7 @@ export default function BlogPostPage() {
       return;
     }
     let cancelled = false;
+    setCoverImageFailed(false);
     setState({ status: 'loading' });
 
     Promise.all([
@@ -129,6 +135,7 @@ export default function BlogPostPage() {
   }
 
   const { post, related } = state;
+  const hasCoverImage = Boolean(renderableCoverImageUrl && !coverImageFailed);
   const relationLinks = resolveRelationLinks(post);
   const canonical = post.canonicalUrl ?? `${SITE_URL}/blog/${post.slug}`;
   const authorUrl = `${SITE_URL}/blog/author/${post.author.slug}`;
@@ -202,19 +209,20 @@ export default function BlogPostPage() {
           ]}
         />
 
-        {post.coverImageUrl && (
+        {hasCoverImage && (
           <figure className="mt-6 mb-8">
             <img
-              src={post.coverImageUrl}
+              src={renderableCoverImageUrl ?? undefined}
               alt={post.title}
               loading="eager"
               {...{ fetchpriority: 'high' }}
+              onError={() => setCoverImageFailed(true)}
               className="w-full rounded-xl object-cover max-h-[480px]"
             />
           </figure>
         )}
 
-        <header className={post.coverImageUrl ? '' : 'mt-6'}>
+        <header className={hasCoverImage ? '' : 'mt-6'}>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
             {post.title}
           </h1>

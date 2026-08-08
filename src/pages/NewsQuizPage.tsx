@@ -151,6 +151,26 @@ export function NewsQuizPage() {
     loadQuiz();
   }, [loadQuiz]);
 
+  // An open tab may have loaded before Friday's generation completed. While the
+  // empty state is visible, re-check periodically and immediately on tab focus so
+  // a repaired quiz appears without asking the visitor to hard-refresh.
+  useEffect(() => {
+    if (isHistorical || quizState !== 'no-quiz') return;
+
+    const retryIfVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadQuiz();
+      }
+    };
+    const intervalId = window.setInterval(retryIfVisible, 60_000);
+    document.addEventListener('visibilitychange', retryIfVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', retryIfVisible);
+    };
+  }, [isHistorical, loadQuiz, quizState]);
+
   // Load history once the session is ready. Skip on the historical /:id route —
   // we hide the list there to avoid confusion with the current selection.
   useEffect(() => {

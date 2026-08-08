@@ -11,7 +11,7 @@
  */
 /* eslint-disable no-console */
 
-import type { ScheduledEvent, Context } from 'aws-lambda';
+import type { ScheduledEvent, Context, SNSEvent } from 'aws-lambda';
 import { runIngestionJob } from './jobs/ingestionJob';
 import type { IngestionJobResult } from './jobs/ingestionJob';
 import { analyzeAllPending, analyzeArticle, screenOnly } from './services/ingestion/articleAnalyzer';
@@ -23,6 +23,7 @@ import { runSeoWeeklyDigest } from './services/seo/weeklyDigestRunner';
 import { runSeoEditorialTuesday, runSingleEditorialOpportunity } from './services/seo/editorialAutopilotRunner';
 import { backfillBlogEntityLinks } from './services/seo/backfillBlogEntityLinks';
 import { ANTHROPIC_SONNET_MODEL } from './services/anthropicModels';
+import { relayAlertEmails } from './services/alertEmailRelay';
 
 /**
  * Lambda response structure
@@ -127,13 +128,22 @@ interface BulkUpdateLayeredContentEvent {
 
 /**
  * Custom event payload for weekly quiz generation
- * Triggered by EventBridge rule on Sunday evening EST (Monday 1:00 AM UTC)
+ * Triggered by EventBridge every Friday morning.
  */
 interface GenerateQuizEvent {
   action: 'generateQuiz';
   questionCount?: number;
   daysBack?: number;
   forceRegenerate?: boolean;
+}
+
+/**
+ * Follow-up Friday checks that repair a missing or malformed current quiz.
+ */
+interface EnsureQuizAvailableEvent {
+  action: 'ensureQuizAvailable';
+  questionCount?: number;
+  daysBack?: number;
 }
 
 interface GscWeeklyIngestEvent {
@@ -178,7 +188,12 @@ interface SeoBackfillBlogEntityLinksEvent {
   limit?: number;
 }
 
-type LambdaEvent = ScheduledEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent | SeoEditorialTuesdayEvent | SeoEditorialTestOpportunityEvent | SeoBackfillBlogEntityLinksEvent;
+type LambdaEvent = ScheduledEvent | SNSEvent | AnalysisOnlyEvent | SingleArticleEvent | BulkScreenEvent | BibliographyIngestionEvent | CleanupMilestonesEvent | FixContributorsEvent | RemoveDuplicatesEvent | PopulateContributorsEvent | BackfillLayeredContentEvent | BulkUpdateLayeredContentEvent | GenerateQuizEvent | EnsureQuizAvailableEvent | GscWeeklyIngestEvent | GscBackfillEvent | SeoWeeklyDigestEvent | SeoEditorialTuesdayEvent | SeoEditorialTestOpportunityEvent | SeoBackfillBlogEntityLinksEvent;
+
+function isSnsEvent(event: LambdaEvent): event is SNSEvent {
+  return Array.isArray((event as SNSEvent).Records)
+    && (event as SNSEvent).Records.every((record) => record.EventSource === 'aws:sns');
+}
 
 function isAnalysisOnlyEvent(event: LambdaEvent): event is AnalysisOnlyEvent {
   return (event as AnalysisOnlyEvent).mode === 'analysis_only';
@@ -224,6 +239,10 @@ function isGenerateQuizEvent(event: LambdaEvent): event is GenerateQuizEvent {
   return (event as GenerateQuizEvent).action === 'generateQuiz';
 }
 
+function isEnsureQuizAvailableEvent(event: LambdaEvent): event is EnsureQuizAvailableEvent {
+  return (event as EnsureQuizAvailableEvent).action === 'ensureQuizAvailable';
+}
+
 function isGscWeeklyIngestEvent(event: LambdaEvent): event is GscWeeklyIngestEvent {
   return (event as GscWeeklyIngestEvent).action === 'gscWeeklyIngest';
 }
@@ -261,6 +280,34 @@ export async function handler(
   context: Context
 ): Promise<LambdaResponse> {
   console.log(`[IngestionLambda] Request ID: ${context.awsRequestId}`);
+
+  // SNS email subscriptions have public unsubscribe links that security
+  // scanners can follow. Relay alarm notifications through SES instead.
+  if (isSnsEvent(event)) {
+    const alerts = event.Records.map((record) => ({
+      message: record.Sns.Message,
+      messageId: record.Sns.MessageId,
+      subject: record.Sns.Subject,
+      timestamp: record.Sns.Timestamp,
+      topicArn: record.Sns.TopicArn,
+    }));
+
+    try {
+      const result = await relayAlertEmails(alerts);
+      console.log(`[IngestionLambda] Protected alert relay SENT ${result.sentCount} email(s)`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'Alert email relay completed',
+          sentCount: result.sentCount,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Protected alert relay FAILED:', errorMessage);
+      throw error;
+    }
+  }
 
   // Check for single article analysis mode (invoked from API via async Lambda)
   if (isSingleArticleEvent(event)) {
@@ -1196,6 +1243,40 @@ Return ONLY the JSON object, no other text.`;
       console.error('[IngestionLambda] Full error:', error);
 
       // Re-throw so Lambda reports as failed — triggers CloudWatch alarm + EventBridge retry
+      throw error;
+    }
+  }
+
+  // Independent Friday watchdog. A healthy check is a single indexed DB read;
+  // a missing/malformed quiz is regenerated and then validated before success.
+  if (isEnsureQuizAvailableEvent(event)) {
+    console.log('[IngestionLambda] Running Friday quiz availability check');
+
+    try {
+      const { ensureWeeklyQuizAvailable } = await import('./services/newsQuizGenerator');
+      const result = await ensureWeeklyQuizAvailable(prisma, {
+        questionCount: event.questionCount ?? 5,
+        daysBack: event.daysBack ?? 7,
+      });
+
+      console.log(
+        `[IngestionLambda] Quiz availability check ${result.repaired ? 'REPAIRED' : 'PASSED'}`
+      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: result.repaired
+            ? 'Weekly quiz availability repaired'
+            : 'Weekly quiz availability confirmed',
+          weekOf: result.weekOf.toISOString(),
+          questionsAvailable: result.questions.length,
+          repaired: result.repaired,
+        }),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[IngestionLambda] Quiz availability check FAILED:', errorMessage);
+      console.error('[IngestionLambda] Full error:', error);
       throw error;
     }
   }

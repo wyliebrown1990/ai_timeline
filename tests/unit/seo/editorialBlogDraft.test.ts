@@ -4,8 +4,9 @@ import type { EditorialOpportunity } from '../../../server/src/services/seo/edit
 const mockMessagesCreate = jest.fn();
 const mockSubjectFindMany = jest.fn();
 const mockEditorialRunFindUnique = jest.fn();
-const mockEditorialRunCreate = jest.fn();
+const mockEditorialRunCreateMany = jest.fn();
 const mockEditorialRunUpdate = jest.fn();
+const mockEditorialRunUpdateMany = jest.fn();
 const mockBlogPostFindFirst = jest.fn();
 const mockCreateDraft = jest.fn();
 const mockGetOrCreateDefaultAuthor = jest.fn();
@@ -33,8 +34,9 @@ jest.mock('../../../server/src/db', () => ({
     },
     seoEditorialOpportunityRun: {
       findUnique: mockEditorialRunFindUnique,
-      create: mockEditorialRunCreate,
+      createMany: mockEditorialRunCreateMany,
       update: mockEditorialRunUpdate,
+      updateMany: mockEditorialRunUpdateMany,
     },
     blogPost: {
       findFirst: mockBlogPostFindFirst,
@@ -73,6 +75,7 @@ import {
   processEditorialOpportunity,
   resetEditorialBlogDraftForTests,
 } from '../../../server/src/services/seo/editorialBlogDraft';
+import { claimEditorialOpportunityRun } from '../../../server/src/services/seo/editorialIdempotency';
 
 const GENERATED_DRAFT = {
   title: 'AI Timeline as a Systems Map',
@@ -117,19 +120,26 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.ANTHROPIC_API_KEY = 'test-key';
   resetEditorialBlogDraftForTests();
-  mockEditorialRunFindUnique.mockResolvedValue(null);
-  mockEditorialRunCreate.mockResolvedValue({
-    id: 'run-1',
-    idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
-    weekStart: new Date('2026-04-24T00:00:00.000Z'),
-    sourceType: 'proposal',
-    sourceId: 'proposal-1',
-    targetKeyword: 'ai timeline',
-    action: 'auto_publish',
-    status: 'processing',
-    postId: null,
-    post: null,
-    reason: null,
+  mockEditorialRunCreateMany.mockResolvedValue({ count: 1 });
+  mockEditorialRunUpdateMany.mockResolvedValue({ count: 0 });
+  let editorialRunLookupCount = 0;
+  mockEditorialRunFindUnique.mockImplementation(async () => {
+    editorialRunLookupCount += 1;
+    if (editorialRunLookupCount === 1) return null;
+    return {
+      id: 'run-1',
+      idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+      weekStart: new Date('2026-04-24T00:00:00.000Z'),
+      sourceType: 'proposal',
+      sourceId: 'proposal-1',
+      targetKeyword: 'ai timeline',
+      action: 'auto_publish',
+      status: 'processing',
+      postId: null,
+      post: null,
+      reason: null,
+      updatedAt: new Date('2026-04-24T00:00:00.000Z'),
+    };
   });
   mockEditorialRunUpdate.mockImplementation(async ({ data }) => ({
     id: 'run-1',
@@ -193,6 +203,79 @@ beforeEach(() => {
 });
 
 describe('editorialBlogDraft', () => {
+  it('allows exactly one claimant when two workers insert the same opportunity', async () => {
+    let inserted = false;
+    mockEditorialRunCreateMany.mockImplementation(async () => {
+      if (inserted) return { count: 0 };
+      inserted = true;
+      return { count: 1 };
+    });
+    mockEditorialRunFindUnique.mockResolvedValue({
+      id: 'run-1',
+      idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+      weekStart: new Date('2026-04-24T00:00:00.000Z'),
+      sourceType: 'proposal',
+      sourceId: 'proposal-1',
+      targetKeyword: 'ai timeline',
+      action: 'auto_publish',
+      status: 'processing',
+      postId: null,
+      post: null,
+      reason: null,
+      updatedAt: new Date(),
+    });
+
+    const claims = await Promise.all([
+      claimEditorialOpportunityRun('2026-04-24', PROPOSAL_OPPORTUNITY),
+      claimEditorialOpportunityRun('2026-04-24', PROPOSAL_OPPORTUNITY),
+    ]);
+
+    expect(claims.filter((claim) => claim.claimed)).toHaveLength(1);
+    expect(mockEditorialRunCreateMany).toHaveBeenCalledTimes(2);
+    expect(mockEditorialRunUpdateMany).not.toHaveBeenCalled();
+  });
+
+  it('allows exactly one forced worker to reclaim a stale opportunity', async () => {
+    let reclaimed = false;
+    mockEditorialRunCreateMany.mockResolvedValue({ count: 0 });
+    mockEditorialRunUpdateMany.mockImplementation(async () => {
+      if (reclaimed) return { count: 0 };
+      reclaimed = true;
+      return { count: 1 };
+    });
+    mockEditorialRunFindUnique.mockResolvedValue({
+      id: 'run-1',
+      idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+      weekStart: new Date('2026-04-24T00:00:00.000Z'),
+      sourceType: 'proposal',
+      sourceId: 'proposal-1',
+      targetKeyword: 'ai timeline',
+      action: 'auto_publish',
+      status: 'processing',
+      postId: null,
+      post: null,
+      reason: null,
+      updatedAt: new Date(),
+    });
+
+    const claims = await Promise.all([
+      claimEditorialOpportunityRun('2026-04-24', PROPOSAL_OPPORTUNITY, { force: true }),
+      claimEditorialOpportunityRun('2026-04-24', PROPOSAL_OPPORTUNITY, { force: true }),
+    ]);
+
+    expect(claims.filter((claim) => claim.claimed)).toHaveLength(1);
+    expect(mockEditorialRunUpdateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
+        postId: null,
+        OR: expect.arrayContaining([
+          { status: { in: ['failed', 'skipped_by_gate'] } },
+          { status: 'processing', updatedAt: { lt: expect.any(Date) } },
+        ]),
+      }),
+    }));
+  });
+
   it('does not generate or mutate during dry-runs', async () => {
     const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { dryRun: true });
 
@@ -205,11 +288,12 @@ describe('editorialBlogDraft', () => {
   it('creates, publishes, and links a passing proposal opportunity', async () => {
     const result = await processEditorialOpportunity(PROPOSAL_OPPORTUNITY, { weekStart: '2026-04-24' });
 
-    expect(mockEditorialRunCreate).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockEditorialRunCreateMany).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
         idempotencyKey: 'seo-editorial:2026-04-24:proposal:proposal-1',
         status: 'processing',
       }),
+      skipDuplicates: true,
     }));
     expect(mockApproveSeoProposal).toHaveBeenCalledWith('proposal-1');
     expect(mockCreateDraft).toHaveBeenCalledWith(expect.objectContaining({
@@ -354,7 +438,7 @@ describe('editorialBlogDraft', () => {
       adminUrl: 'https://letaiexplainai.com/admin/blog/post-1/edit',
     }));
     expect(mockPublishPost).toHaveBeenCalledWith('post-1');
-    expect(mockEditorialRunCreate).not.toHaveBeenCalled();
+    expect(mockEditorialRunCreateMany).not.toHaveBeenCalled();
     expect(mockMessagesCreate).not.toHaveBeenCalled();
     expect(mockCreateDraft).not.toHaveBeenCalled();
   });
@@ -383,7 +467,7 @@ describe('editorialBlogDraft', () => {
       status: 'skipped_by_gate',
       reason: 'Opportunity is already processing for this week.',
     }));
-    expect(mockEditorialRunCreate).not.toHaveBeenCalled();
+    expect(mockEditorialRunCreateMany).not.toHaveBeenCalled();
     expect(mockMessagesCreate).not.toHaveBeenCalled();
     expect(mockCreateDraft).not.toHaveBeenCalled();
   });

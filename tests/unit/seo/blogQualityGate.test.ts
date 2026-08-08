@@ -218,7 +218,7 @@ describe('blogQualityGate', () => {
     );
   });
 
-  it('raises the bar when richer atlas inventory is available', () => {
+  it('caps the entity-link quota while preserving category quality', () => {
     const result = evaluateBlogQualityGate(validInput({
       availablePreviewLinkCandidates: 6,
       availablePreviewEntityTypes: ['glossary_term', 'person', 'organization', 'milestone'],
@@ -227,9 +227,11 @@ describe('blogQualityGate', () => {
 
     expect(result.passed).toBe(false);
     expect(result.blockers).toEqual(expect.arrayContaining([
-      'At least 6 distinct previewable entity links are required (/people, /organizations, /glossary, /events).',
       'Previewable LAEA links must include at least 3 non-organization entities when the atlas inventory supports it.',
     ]));
+    expect(result.blockers).not.toContain(
+      'At least 6 distinct previewable entity links are required (/people, /organizations, /glossary, /events).',
+    );
   });
 
   it('allows sourced risky claims to pass the source-link gate', () => {

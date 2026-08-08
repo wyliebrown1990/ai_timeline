@@ -410,7 +410,7 @@ export function evaluateBlogQualityGate(input: BlogQualityGateInput): BlogQualit
   const words = wordCount(input.bodyMarkdown);
   const canonical = getCanonical(input);
   const requiredPreviewEntityLinks = input.availablePreviewLinkCandidates !== undefined
-    ? Math.max(3, Math.min(6, input.availablePreviewLinkCandidates))
+    ? Math.min(3, input.availablePreviewLinkCandidates)
     : 3;
   const availablePreviewEntityTypeCount = new Set(input.availablePreviewEntityTypes ?? []).size;
   const requiredPreviewEntityTypeCount = availablePreviewEntityTypeCount >= 3

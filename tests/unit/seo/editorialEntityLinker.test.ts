@@ -81,6 +81,26 @@ describe('editorialEntityLinker', () => {
     expect(result.previewEntityLinkCount).toBe(3);
   });
 
+  it('does not force an atlas connections section for autonomous editorial drafts', () => {
+    const result = enforceEditorialEntityLinks({
+      bodyMarkdown: [
+        'OpenAI changed how the public encountered generative AI because distribution set the pace of adoption.',
+        '',
+        '## Key facts',
+        '',
+        '- Distribution determines which models become products.',
+      ].join('\n'),
+      linkInventory: LINK_INVENTORY,
+      relations: [],
+      minimumPreviewLinks: 3,
+      allowFallbackSection: false,
+    });
+
+    expect(result.bodyMarkdown).toContain('[[organization:openai|OpenAI]]');
+    expect(result.bodyMarkdown).not.toContain('## Atlas connections');
+    expect(result.previewEntityLinkCount).toBe(1);
+  });
+
   it('strips bogus filler-word entity links and relinks the real entity mention', () => {
     const result = enforceEditorialEntityLinks({
       bodyMarkdown: [

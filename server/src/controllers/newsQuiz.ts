@@ -23,6 +23,10 @@ export async function getCurrentQuiz(
   next: NextFunction
 ): Promise<void> {
   try {
+    // Friday generation changes this response in place. Never let browser/CDN
+    // caches preserve an earlier empty or prior-week response.
+    res.set('Cache-Control', 'no-store, max-age=0');
+
     const { prisma } = await import('../db');
     if (!prisma) throw ApiError.internal('Database not available');
 

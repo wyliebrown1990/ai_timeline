@@ -10,7 +10,9 @@ import { randomUUID } from 'crypto';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { prisma } from '../db';
+import { ApiError } from '../middleware/error';
 import { computeReadingMinutes } from './blog';
+import { validateBlogEntityLinks } from './blogEntityLinkValidator';
 
 const BLOG_UPLOAD_BUCKET =
   process.env.BLOG_UPLOAD_BUCKET ?? 'ai-timeline-frontend-1765916222';
@@ -252,8 +254,24 @@ export async function updatePost(id: string, patch: UpdatePostPatch) {
 }
 
 export async function publishPost(id: string) {
-  const existing = await prisma.blogPost.findUnique({ where: { id } });
+  const existing = await prisma.blogPost.findUnique({
+    where: { id },
+    include: { relations: true },
+  });
   if (!existing) return null;
+  const entityLinkValidation = await validateBlogEntityLinks(
+    existing.bodyMarkdown,
+    existing.relations,
+  );
+  if (!entityLinkValidation.valid) {
+    throw ApiError.badRequest(
+      'Blog post contains entity links that do not resolve to public atlas content.',
+      {
+        invalidTargets: entityLinkValidation.invalidTargets,
+        unsupportedRelationTypes: entityLinkValidation.unsupportedRelationTypes,
+      },
+    );
+  }
   const publishAt = existing.scheduledFor ?? new Date();
   return prisma.blogPost.update({
     where: { id },

@@ -456,6 +456,30 @@ describe('briefGenerator', () => {
     ]));
   });
 
+  it('excludes glossary records without a canonical public slug', async () => {
+    mockSearchGlossaryTerms.mockResolvedValue([
+      {
+        id: 'draft-concept-id',
+        slug: null,
+        term: 'Teleoperated Humanoid Robot',
+      },
+      {
+        id: 'machine-learning-id',
+        slug: 'machine-learning',
+        term: 'Machine Learning',
+      },
+    ]);
+
+    const result = await loadLinkInventory('teleoperated humanoid robot');
+
+    expect(result).toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: '/glossary/machine-learning' }),
+    ]));
+    expect(result).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ path: '/glossary/teleoperated-humanoid-robot' }),
+    ]));
+  });
+
   it('rejects generic listicle angles before persisting them as pending work', async () => {
     mockMessageCreate.mockResolvedValue(buildAnthropicResponse(JSON.stringify({
       suggestedAngle: 'Top 10 AI agents in healthcare',

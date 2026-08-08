@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import type { Context } from 'aws-lambda';
+import type { Context, SNSEvent } from 'aws-lambda';
 
 const mockRunIngestionJob = jest.fn();
 const mockAnalyzeAllPending = jest.fn();
@@ -13,6 +13,9 @@ const mockRunSeoWeeklyDigest = jest.fn();
 const mockRunSeoEditorialTuesday = jest.fn();
 const mockRunSingleEditorialOpportunity = jest.fn();
 const mockBackfillBlogEntityLinks = jest.fn();
+const mockEnsureWeeklyQuizAvailable = jest.fn();
+const mockGenerateWeeklyQuiz = jest.fn();
+const mockRelayAlertEmails = jest.fn();
 
 jest.mock('../../server/src/jobs/ingestionJob', () => ({
   runIngestionJob: mockRunIngestionJob,
@@ -58,6 +61,15 @@ jest.mock('../../server/src/services/seo/editorialAutopilotRunner', () => ({
 
 jest.mock('../../server/src/services/seo/backfillBlogEntityLinks', () => ({
   backfillBlogEntityLinks: mockBackfillBlogEntityLinks,
+}));
+
+jest.mock('../../server/src/services/newsQuizGenerator', () => ({
+  ensureWeeklyQuizAvailable: mockEnsureWeeklyQuizAvailable,
+  generateWeeklyQuiz: mockGenerateWeeklyQuiz,
+}));
+
+jest.mock('../../server/src/services/alertEmailRelay', () => ({
+  relayAlertEmails: mockRelayAlertEmails,
 }));
 
 import { handler } from '../../server/src/ingestionLambda';
@@ -122,6 +134,58 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
       skippedCount: 1,
       items: [],
     });
+    mockEnsureWeeklyQuizAvailable.mockResolvedValue({
+      weekOf: new Date('2026-07-17T00:00:00.000Z'),
+      questions: [{}, {}, {}, {}, {}],
+      repaired: false,
+    });
+    mockRelayAlertEmails.mockResolvedValue({ sentCount: 1 });
+  });
+
+  it('relays SNS alarm events through the protected SES delivery path', async () => {
+    const event = {
+      Records: [{
+        EventSource: 'aws:sns',
+        Sns: {
+          Message: '{"AlarmName":"quiz-failed"}',
+          MessageId: 'message-123',
+          Subject: 'ALARM: quiz-failed',
+          Timestamp: '2026-07-17T19:30:00.000Z',
+          TopicArn: 'arn:aws:sns:us-east-1:211125652144:ai-timeline-alerts-prod',
+        },
+      }],
+    } as SNSEvent;
+
+    const response = await handler(event, context);
+
+    expect(mockRelayAlertEmails).toHaveBeenCalledWith([{
+      message: '{"AlarmName":"quiz-failed"}',
+      messageId: 'message-123',
+      subject: 'ALARM: quiz-failed',
+      timestamp: '2026-07-17T19:30:00.000Z',
+      topicArn: 'arn:aws:sns:us-east-1:211125652144:ai-timeline-alerts-prod',
+    }]);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'Alert email relay completed',
+      sentCount: 1,
+    });
+  });
+
+  it('throws when protected alert delivery fails so SNS retries it', async () => {
+    mockRelayAlertEmails.mockRejectedValue(new Error('SES unavailable'));
+    const event = {
+      Records: [{
+        EventSource: 'aws:sns',
+        Sns: {
+          Message: 'test',
+          MessageId: 'message-456',
+          Timestamp: '2026-07-17T19:31:00.000Z',
+          TopicArn: 'arn:aws:sns:us-east-1:211125652144:ai-timeline-alerts-prod',
+        },
+      }],
+    } as SNSEvent;
+
+    await expect(handler(event, context)).rejects.toThrow('SES unavailable');
   });
 
   it('dispatches dry-run payload options to the Tuesday editorial runner', async () => {
@@ -167,6 +231,34 @@ describe('ingestionLambda seoEditorialTuesday action', () => {
     mockRunTrackedWeeklyIngest.mockRejectedValue(new Error('invalid_grant'));
 
     await expect(handler({ action: 'gscWeeklyIngest' }, context)).rejects.toThrow('invalid_grant');
+  });
+
+  it('dispatches the Friday quiz availability watchdog', async () => {
+    const response = await handler({
+      action: 'ensureQuizAvailable',
+      questionCount: 5,
+      daysBack: 7,
+    }, context);
+
+    expect(mockEnsureWeeklyQuizAvailable).toHaveBeenCalledWith(
+      expect.any(Object),
+      { questionCount: 5, daysBack: 7 }
+    );
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      message: 'Weekly quiz availability confirmed',
+      weekOf: '2026-07-17T00:00:00.000Z',
+      questionsAvailable: 5,
+      repaired: false,
+    });
+  });
+
+  it('throws when the Friday quiz watchdog cannot repair availability', async () => {
+    mockEnsureWeeklyQuizAvailable.mockRejectedValue(new Error('quiz repair failed'));
+
+    await expect(
+      handler({ action: 'ensureQuizAvailable' }, context)
+    ).rejects.toThrow('quiz repair failed');
   });
 
   it('runs Tuesday editorial publishing after a successful non-dry weekly digest', async () => {
